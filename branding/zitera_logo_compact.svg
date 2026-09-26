@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <style>
+      .c-bg { fill: #0a0d12; stroke: #2a3547; stroke-width: 2; }
+      .c-text { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 42px; font-weight: 900; letter-spacing: 2px; fill: #f8fafc; }
+      .c-sub { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; font-weight: 800; letter-spacing: 2px; fill: #64748b; }
+      .c-bracket { stroke: #e63946; stroke-width: 3; fill: none; }
+      .c-accent { fill: #e63946; }
+      .c-dot { fill: #10b981; }
+    </style>
+  </defs>
+
+  <!-- Container -->
+  <rect x="8" y="8" width="184" height="184" rx="16" class="c-bg"/>
+
+  <!-- Brackets -->
+  <path d="M 24 44 L 24 24 L 44 24" class="c-bracket"/>
+  <path d="M 176 44 L 176 24 L 156 24" class="c-bracket"/>
+  <path d="M 24 156 L 24 176 L 44 176" class="c-bracket"/>
+  <path d="M 176 156 L 176 176 L 156 176" class="c-bracket"/>
+
+  <!-- Status indicator -->
+  <circle cx="160" cy="36" r="4" class="c-dot"/>
+
+  <!-- Monogram -->
+  <text x="100" y="105" text-anchor="middle" class="c-text">Z<tspan class="c-accent">_</tspan>L</text>
+  <text x="100" y="135" text-anchor="middle" class="c-sub">SEC.LAB</text>
+
+  <!-- Hash indicator -->
+  <line x1="80" y1="152" x2="120" y2="152" stroke="#334155" stroke-width="2"/>
+  <line x1="90" y1="156" x2="110" y2="156" stroke="#e63946" stroke-width="2"/>
+</svg>
