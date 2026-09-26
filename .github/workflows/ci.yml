@@ -1,0 +1,61 @@
+name: ZITERA_LAB CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  engine-check:
+    name: Rust Engine CI
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cargo Check
+        run: |
+          cd engine/rust
+          cargo check --verbose
+
+      - name: Cargo Clippy
+        run: |
+          cd engine/rust
+          cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Cargo Build Release
+        run: |
+          cd engine/rust
+          cargo build --release --verbose
+
+  ui-check:
+    name: Flutter Desktop CI
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter Dependencies
+        run: |
+          cd ui/flutter
+          flutter pub get
+
+      - name: Flutter Analyze
+        run: |
+          cd ui/flutter
+          flutter analyze
+
+      - name: Flutter Test
+        run: |
+          cd ui/flutter
+          flutter test
