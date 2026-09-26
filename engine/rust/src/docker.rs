@@ -1,14 +1,6 @@
 use crate::process::run_cmd;
 use std::path::Path;
 
-#[allow(dead_code)]
-pub fn is_docker_running() -> bool {
-    match run_cmd("docker", &["info", "--format", "{{.ServerVersion}}"], None) {
-        Ok(out) => out.success && !out.stdout.is_empty(),
-        Err(_) => false,
-    }
-}
-
 pub fn start_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
     if !compose_path.exists() {
         return Err(format!("Docker compose file not found at {:?}", compose_path));

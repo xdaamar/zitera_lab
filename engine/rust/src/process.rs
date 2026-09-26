@@ -3,8 +3,6 @@ use std::process::{Command, Stdio};
 
 #[derive(Debug, Clone)]
 pub struct CommandOutput {
-    #[allow(dead_code)]
-    pub exit_code: i32,
     pub stdout: String,
     pub stderr: String,
     pub success: bool,
@@ -27,10 +25,8 @@ pub fn run_cmd(
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-            let exit_code = output.status.code().unwrap_or(-1);
             let success = output.status.success();
             Ok(CommandOutput {
-                exit_code,
                 stdout,
                 stderr,
                 success,

@@ -81,6 +81,12 @@ pub fn list_all_labs(workspace_root: &Path) -> Vec<LabStatus> {
 pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     let lab_dir = get_lab_dir(workspace_root, lab_id);
     let manifest = read_manifest(&lab_dir)?;
+    if !crate::system::is_port_available(manifest.default_port) && !docker::get_lab_container_status(lab_id) {
+        return Err(format!(
+            "Port {} is already in use by another process. Please free the port before starting lab {}.",
+            manifest.default_port, lab_id
+        ));
+    }
     let compose_path = lab_dir.join(&manifest.entrypoint);
     docker::start_lab(&compose_path, &manifest.id)
 }

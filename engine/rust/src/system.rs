@@ -27,7 +27,6 @@ pub fn diagnose_system() -> SystemDiagnostics {
     }
 }
 
-#[allow(dead_code)]
 pub fn is_port_available(port: u16) -> bool {
     TcpListener::bind(("127.0.0.1", port)).is_ok()
 }

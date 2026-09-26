@@ -66,7 +66,7 @@ class ZiteraEngineClient {
     final result = await Process.run(engine, ['--json', 'tool', 'list']);
     final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
     final list = jsonMap['data'] as List<dynamic>? ?? [];
-    return list.map((item) => ToolItem.fromJson(item as Map<String, dynamic>)).collect();
+    return list.map((item) => ToolItem.fromJson(item as Map<String, dynamic>)).toList();
   }
 
   static Future<List<LabItem>> getLabs() async {
@@ -74,7 +74,7 @@ class ZiteraEngineClient {
     final result = await Process.run(engine, ['--json', 'lab', 'list']);
     final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
     final list = jsonMap['data'] as List<dynamic>? ?? [];
-    return list.map((item) => LabItem.fromJson(item as Map<String, dynamic>)).collect();
+    return list.map((item) => LabItem.fromJson(item as Map<String, dynamic>)).toList();
   }
 
   static Future<LabItem> getLabStatus(String id) async {
@@ -121,10 +121,6 @@ class ZiteraEngineClient {
     final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
     final catData = jsonMap['data'] as Map<String, dynamic>? ?? {};
     final list = catData['labs'] as List<dynamic>? ?? [];
-    return list.map((item) => CatalogEntry.fromJson(item as Map<String, dynamic>)).collect();
+    return list.map((item) => CatalogEntry.fromJson(item as Map<String, dynamic>)).toList();
   }
-}
-
-extension IterableExtension<T> on Iterable<T> {
-  List<T> collect() => toList();
 }
