@@ -37,6 +37,37 @@ pub fn validate_lab_id(lab_id: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// SEC-011/SEC-012: Validate a repository URL is a safe HTTPS GitHub URL.
+/// Rejects file://, ssh://, git://, arbitrary hosts, and argument-looking values.
+/// Only allows https://github.com/<owner>/<repo>.git with safe identifier chars.
+pub fn validate_repo_url(url: &str) -> Result<(), String> {
+    if !url.starts_with("https://github.com/") {
+        return Err(format!(
+            "Repository URL '{}' is not a trusted HTTPS GitHub URL. Only https://github.com/ is allowed.",
+            url
+        ));
+    }
+    let path = url
+        .strip_prefix("https://github.com/")
+        .unwrap_or("")
+        .trim_end_matches(".git");
+    // Validate owner/repo: only alphanumeric, hyphens, underscores, and one slash
+    let parts: Vec<&str> = path.splitn(2, '/').collect();
+    if parts.len() != 2 {
+        return Err(format!("Repository '{}' must be in 'owner/repo' format.", url));
+    }
+    let valid_ident = |s: &&str| {
+        !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    };
+    if !parts.iter().all(valid_ident) {
+        return Err(format!(
+            "Repository '{}' contains invalid characters in owner or repo name.",
+            url
+        ));
+    }
+    Ok(())
+}
+
 pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
     if validate_lab_id(lab_id).is_err() {
         return LabStatus {
@@ -160,12 +191,15 @@ pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String
         format!("https://github.com/{}.git", item.repository)
     };
 
+    // SEC-011/012: Reject file://, ssh://, arbitrary hosts, and injection attempts.
+    validate_repo_url(&repo_url)?;
+
     fs::create_dir_all(get_labs_dir(workspace_root))
         .map_err(|e| format!("Failed to create labs directory: {}", e))?;
 
     let clone_out = crate::process::run_cmd(
         "git",
-        &["clone", &repo_url, lab_dir.to_str().unwrap_or("")],
+        &["clone", "--depth", "1", &repo_url, lab_dir.to_str().unwrap_or("")],
         None,
     )?;
     if clone_out.success && lab_dir.join("manifest.json").exists() {

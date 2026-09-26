@@ -14,6 +14,8 @@ pub fn diagnose_system() -> SystemDiagnostics {
         && (docker_status.installed && docker_daemon_status.installed)
         && wsl_status.installed;
 
+    let (memory_gb, disk_free_gb) = query_resources();
+
     SystemDiagnostics {
         os: os_status,
         git: git_status,
@@ -21,8 +23,8 @@ pub fn diagnose_system() -> SystemDiagnostics {
         docker: docker_status,
         docker_daemon: docker_daemon_status,
         powershell: powershell_status,
-        memory_gb: 16.0,    // Standard minimum detection baseline
-        disk_free_gb: 50.0, // Standard minimum detection baseline
+        memory_gb,
+        disk_free_gb,
         all_ready,
     }
 }
@@ -79,17 +81,23 @@ fn check_wsl() -> ComponentStatus {
             recommendation: None,
         },
         Ok(out) => {
-            let msg =
-                if out.stdout.contains("not installed") || out.stderr.contains("not installed") {
-                    "WSL is not installed on this system."
-                } else {
-                    "WSL status check reported an issue."
-                };
+            let combined = format!("{} {}", out.stdout, out.stderr).to_lowercase();
+            let (msg, status) = if combined.contains("not installed") {
+                (
+                    "WSL is not installed on this system.",
+                    "MISSING",
+                )
+            } else {
+                (
+                    "WSL --status reported a non-zero exit code; WSL may be partially installed or blocked.",
+                    "WARNING",
+                )
+            };
             ComponentStatus {
                 name: "WSL2".to_string(),
                 installed: false,
                 version: None,
-                status: "MISSING".to_string(),
+                status: status.to_string(),
                 message: msg.to_string(),
                 recommendation: Some(
                     "Run 'wsl --install' in an elevated PowerShell terminal.".to_string(),
@@ -101,7 +109,7 @@ fn check_wsl() -> ComponentStatus {
             installed: false,
             version: None,
             status: "MISSING".to_string(),
-            message: "wsl.exe binary not found.".to_string(),
+            message: "wsl.exe binary not found or cannot be executed.".to_string(),
             recommendation: Some(
                 "Enable Windows Subsystem for Linux via Windows Features or 'wsl --install'."
                     .to_string(),
@@ -164,9 +172,61 @@ fn check_docker_daemon() -> ComponentStatus {
     }
 }
 
+/// Query real RAM and disk-free values from the host OS.
+/// Resolves powershell.exe via %WINDIR% to avoid PATH dependency.
+/// Falls back to 0.0 if unavailable — never fabricates readiness.
+fn query_resources() -> (f64, f64) {
+    let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string());
+    let ps = format!(
+        r"{}\System32\WindowsPowerShell\v1.0\powershell.exe",
+        windir
+    );
+
+    let memory_gb = run_cmd(
+        &ps,
+        &[
+            "-NoProfile",
+            "-Command",
+            "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB",
+        ],
+        None,
+    )
+    .ok()
+    .and_then(|o| {
+        if o.success {
+            o.stdout.trim().parse::<f64>().ok()
+        } else {
+            None
+        }
+    })
+    .unwrap_or(0.0);
+
+    let disk_free_gb = run_cmd(
+        &ps,
+        &["-NoProfile", "-Command", "(Get-PSDrive C).Free / 1GB"],
+        None,
+    )
+    .ok()
+    .and_then(|o| {
+        if o.success {
+            o.stdout.trim().parse::<f64>().ok()
+        } else {
+            None
+        }
+    })
+    .unwrap_or(0.0);
+
+    (memory_gb, disk_free_gb)
+}
+
 fn check_powershell() -> ComponentStatus {
+    let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string());
+    let ps = format!(
+        r"{}\System32\WindowsPowerShell\v1.0\powershell.exe",
+        windir
+    );
     match run_cmd(
-        "powershell.exe",
+        &ps,
         &["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"],
         None,
     ) {

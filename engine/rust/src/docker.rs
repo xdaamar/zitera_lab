@@ -5,17 +5,41 @@ pub fn get_docker_cmd() -> String {
     if run_cmd("docker", &["--version"], None).is_ok() {
         return "docker".to_string();
     }
-    let fallback_paths = [
-        r"C:\Program Files\Docker\Docker\resources\bin\docker.exe",
-        r"C:\Users\Damar\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe",
+
+    // Resolve user-profile-relative paths dynamically — never hardcode usernames
+    let local_appdata = std::env::var("LOCALAPPDATA").unwrap_or_default();
+    let program_files = std::env::var("ProgramFiles").unwrap_or_default();
+
+    let fallback_paths: Vec<String> = vec![
+        // Docker Desktop bundled CLI (most reliably allowed by AppControl policies)
+        format!(
+            r"{}\Programs\DockerDesktop\resources\bin\docker.exe",
+            local_appdata
+        ),
+        // System-wide Docker Desktop install
+        format!(r"{}\Docker\Docker\resources\bin\docker.exe", program_files),
+        // WinGet-installed standalone Docker CLI
+        format!(
+            r"{}\Microsoft\WinGet\Packages\Docker.DockerCLI_Microsoft.Winget.Source_8wekyb3d8bbwe\docker\docker.exe",
+            local_appdata
+        ),
+        // Scoop-installed Docker
+        format!(
+            r"{}\scoop\shims\docker.exe",
+            std::env::var("USERPROFILE").unwrap_or_default()
+        ),
+        // Chocolatey-installed Docker
+        r"C:\ProgramData\chocolatey\bin\docker.exe".to_string(),
     ];
+
     for p in &fallback_paths {
-        if Path::new(p).exists() {
-            return p.to_string();
+        if !p.is_empty() && Path::new(p).exists() {
+            return p.clone();
         }
     }
     "docker".to_string()
 }
+
 
 pub fn start_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
     if !compose_path.exists() {
