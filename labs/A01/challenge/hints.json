@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{b10k3n_4cc355_c0ntr01_m45t3r}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Consider how the server decides which invoice to render when a URL request is processed."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Look at the numerical identifier in the invoice URL path or query parameters."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Standard user invoices start at ID 1 and 2. Administrative records are often placed at special indexes or higher numbers like 42 or 99."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Try accessing /invoice/42 or check the administrative export endpoint /api/invoice/42 while logged in as Alice."
+    }
+  ]
+}

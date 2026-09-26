@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "labs": [
+    {
+      "id": "A01",
+      "title": "Broken Access Control",
+      "repository": "xdaamar/zitera_lab_a01",
+      "version": "1.0.0",
+      "difficulty": "Beginner",
+      "owasp": "A01:2025",
+      "description": "Learn how authorization flaws allow unauthorized users to view, tamper with, or delete sensitive data."
+    },
+    {
+      "id": "A05",
+      "title": "Injection",
+      "repository": "xdaamar/zitera_lab_a05",
+      "version": "1.0.0",
+      "difficulty": "Beginner",
+      "owasp": "A05:2025",
+      "description": "Understand SQL injection root causes, malicious query manipulation, and parameterized query remediation."
+    }
+  ]
+}

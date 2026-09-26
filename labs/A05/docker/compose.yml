@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: zitera_a05_target
+    ports:
+      - "127.0.0.1:8015:8015"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

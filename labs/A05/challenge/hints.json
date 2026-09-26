@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{5q1_1nj3ct10n_m45t3r_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Try determining how many columns the original SELECT statement returns before using a UNION operator."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "The products query returns 3 columns: name, category, and price. Your UNION query must have the exact same number of columns."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "In SQLite, you can query table names from sqlite_master where type='table', or directly inspect the table 'vault_secrets'."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Inject: ' UNION SELECT secret_name, secret_data, 0 FROM vault_secrets --"
+    }
+  ]
+}
