@@ -9,11 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn run() {
     let args: Vec<String> = env::args().collect();
     let json_mode = args.iter().any(|a| a == "--json");
-    let filtered_args: Vec<String> = args
-        .into_iter()
-        .skip(1)
-        .filter(|a| a != "--json")
-        .collect();
+    let filtered_args: Vec<String> = args.into_iter().skip(1).filter(|a| a != "--json").collect();
 
     let workspace_root = find_workspace_root();
 
@@ -56,11 +52,27 @@ fn handle_doctor(json: bool) {
         println!("OS            : [{}] {}", diag.os.status, diag.os.name);
         println!("Git           : [{}] {}", diag.git.status, diag.git.message);
         println!("WSL2          : [{}] {}", diag.wsl.status, diag.wsl.message);
-        println!("Docker CLI    : [{}] {}", diag.docker.status, diag.docker.message);
-        println!("Docker Daemon : [{}] {}", diag.docker_daemon.status, diag.docker_daemon.message);
-        println!("PowerShell    : [{}] {}", diag.powershell.status, diag.powershell.message);
+        println!(
+            "Docker CLI    : [{}] {}",
+            diag.docker.status, diag.docker.message
+        );
+        println!(
+            "Docker Daemon : [{}] {}",
+            diag.docker_daemon.status, diag.docker_daemon.message
+        );
+        println!(
+            "PowerShell    : [{}] {}",
+            diag.powershell.status, diag.powershell.message
+        );
         println!("--------------------------------------------------");
-        println!("Overall Readiness: {}", if diag.all_ready { "READY" } else { "ATTENTION REQUIRED" });
+        println!(
+            "Overall Readiness: {}",
+            if diag.all_ready {
+                "READY"
+            } else {
+                "ATTENTION REQUIRED"
+            }
+        );
         println!("==================================================");
     }
 }
@@ -98,9 +110,15 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
             let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
             let st = labs::get_lab_status(workspace_root, id);
             if json {
-                println!("{}", serde_json::to_string_pretty(&ApiResponse::ok("lab.status", st)).unwrap());
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&ApiResponse::ok("lab.status", st)).unwrap()
+                );
             } else {
-                println!("Lab: {} | Status: {} | Port: {}", st.title, st.status, st.port);
+                println!(
+                    "Lab: {} | Status: {} | Port: {}",
+                    st.title, st.status, st.port
+                );
                 if let Some(url) = st.url {
                     println!("Access URL: {}", url);
                 }
@@ -111,14 +129,19 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
             match labs::start_lab(workspace_root, id) {
                 Ok(msg) => {
                     if json {
-                        println!("{}", serde_json::to_string_pretty(&ApiResponse::ok("lab.start", msg)).unwrap());
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("lab.start", msg))
+                                .unwrap()
+                        );
                     } else {
                         println!("[SUCCESS] {}", msg);
                     }
                 }
                 Err(e) => {
                     if json {
-                        let resp: ApiResponse<()> = ApiResponse::err("lab.start", "LAB_START_FAILED", e, true);
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("lab.start", "LAB_START_FAILED", e, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -131,14 +154,19 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
             match labs::stop_lab(workspace_root, id) {
                 Ok(msg) => {
                     if json {
-                        println!("{}", serde_json::to_string_pretty(&ApiResponse::ok("lab.stop", msg)).unwrap());
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("lab.stop", msg))
+                                .unwrap()
+                        );
                     } else {
                         println!("[SUCCESS] {}", msg);
                     }
                 }
                 Err(e) => {
                     if json {
-                        let resp: ApiResponse<()> = ApiResponse::err("lab.stop", "LAB_STOP_FAILED", e, true);
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("lab.stop", "LAB_STOP_FAILED", e, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -151,14 +179,94 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
             match labs::reset_lab(workspace_root, id) {
                 Ok(msg) => {
                     if json {
-                        println!("{}", serde_json::to_string_pretty(&ApiResponse::ok("lab.reset", msg)).unwrap());
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("lab.reset", msg))
+                                .unwrap()
+                        );
                     } else {
                         println!("[SUCCESS] {}", msg);
                     }
                 }
                 Err(e) => {
                     if json {
-                        let resp: ApiResponse<()> = ApiResponse::err("lab.reset", "LAB_RESET_FAILED", e, true);
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("lab.reset", "LAB_RESET_FAILED", e, true);
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] {}", e);
+                    }
+                }
+            }
+        }
+        "install" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            match labs::install_lab(workspace_root, id) {
+                Ok(msg) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("lab.install", msg))
+                                .unwrap()
+                        );
+                    } else {
+                        println!("[SUCCESS] {}", msg);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("lab.install", "LAB_INSTALL_FAILED", e, true);
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] {}", e);
+                    }
+                }
+            }
+        }
+        "update" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            match labs::update_lab(workspace_root, id) {
+                Ok(msg) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("lab.update", msg))
+                                .unwrap()
+                        );
+                    } else {
+                        println!("[SUCCESS] {}", msg);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("lab.update", "LAB_UPDATE_FAILED", e, true);
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] {}", e);
+                    }
+                }
+            }
+        }
+        "remove" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            match labs::remove_lab(workspace_root, id) {
+                Ok(msg) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("lab.remove", msg))
+                                .unwrap()
+                        );
+                    } else {
+                        println!("[SUCCESS] {}", msg);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("lab.remove", "LAB_REMOVE_FAILED", e, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -167,7 +275,17 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
             }
         }
         other => {
-            eprintln!("Unknown lab subcommand: {}", other);
+            if json {
+                let resp: ApiResponse<()> = ApiResponse::err(
+                    "lab",
+                    "UNKNOWN_SUBCOMMAND",
+                    format!("Unknown lab subcommand: {}", other),
+                    false,
+                );
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                eprintln!("Unknown lab subcommand: {}", other);
+            }
         }
     }
 }
@@ -175,13 +293,19 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
 fn handle_lab_list(workspace_root: &Path, json: bool) {
     let all = labs::list_all_labs(workspace_root);
     if json {
-        println!("{}", serde_json::to_string_pretty(&ApiResponse::ok("lab.list", all)).unwrap());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&ApiResponse::ok("lab.list", all)).unwrap()
+        );
     } else {
         println!("==================================================");
         println!("  ZITERA_LAB — Laboratory Catalog & Status        ");
         println!("==================================================");
         for l in all {
-            println!("{:<5} {:<24} [{:<12}] Port: {}", l.id, l.title, l.status, l.port);
+            println!(
+                "{:<5} {:<24} [{:<12}] Port: {}",
+                l.id, l.title, l.status, l.port
+            );
         }
         println!("==================================================");
     }
@@ -191,17 +315,24 @@ fn handle_catalog(workspace_root: &Path, json: bool) {
     match catalog::load_catalog(workspace_root) {
         Ok(cat) => {
             if json {
-                println!("{}", serde_json::to_string_pretty(&ApiResponse::ok("catalog.list", cat)).unwrap());
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&ApiResponse::ok("catalog.list", cat)).unwrap()
+                );
             } else {
                 println!("ZITERA Lab Catalog (schema v{})", cat.schema_version);
                 for l in cat.labs {
-                    println!("- [{}] {} ({}) - {}", l.id, l.title, l.version, l.description);
+                    println!(
+                        "- [{}] {} ({}) - {}",
+                        l.id, l.title, l.version, l.description
+                    );
                 }
             }
         }
         Err(e) => {
             if json {
-                let resp: ApiResponse<()> = ApiResponse::err("catalog.list", "CATALOG_ERROR", e, true);
+                let resp: ApiResponse<()> =
+                    ApiResponse::err("catalog.list", "CATALOG_ERROR", e, true);
                 println!("{}", serde_json::to_string_pretty(&resp).unwrap());
             } else {
                 eprintln!("Error loading catalog: {}", e);
@@ -211,16 +342,18 @@ fn handle_catalog(workspace_root: &Path, json: bool) {
 }
 
 fn find_workspace_root() -> PathBuf {
-    let current = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    if current.join("PRD").exists() || current.join("catalog").exists() {
-        return current;
-    }
-    if let Some(parent) = current.parent() {
-        if parent.join("PRD").exists() || parent.join("catalog").exists() {
-            return parent.to_path_buf();
+    let mut current = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    loop {
+        if current.join("catalog").join("catalog.json").exists() || current.join(".git").exists() {
+            return current;
+        }
+        if let Some(parent) = current.parent() {
+            current = parent.to_path_buf();
+        } else {
+            break;
         }
     }
-    current
+    env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
 
 fn print_help(json: bool) {
@@ -236,9 +369,12 @@ fn print_help(json: bool) {
         println!("  tool list              List supported security tools and status");
         println!("  lab list               List installed and available labs");
         println!("  lab status <id>        Show runtime status for a lab");
+        println!("  lab install <id>       Install lab from catalog");
         println!("  lab start <id>         Start a lab environment");
         println!("  lab stop <id>          Stop a lab environment");
         println!("  lab reset <id>         Deterministically reset a lab environment");
+        println!("  lab update <id>        Update a lab environment to latest version");
+        println!("  lab remove <id>        Remove an installed lab");
         println!("  catalog                Show central catalog");
     }
 }

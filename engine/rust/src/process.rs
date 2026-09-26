@@ -8,11 +8,7 @@ pub struct CommandOutput {
     pub success: bool,
 }
 
-pub fn run_cmd(
-    program: &str,
-    args: &[&str],
-    cwd: Option<&Path>,
-) -> Result<CommandOutput, String> {
+pub fn run_cmd(program: &str, args: &[&str], cwd: Option<&Path>) -> Result<CommandOutput, String> {
     let mut cmd = Command::new(program);
     cmd.args(args);
     if let Some(dir) = cwd {

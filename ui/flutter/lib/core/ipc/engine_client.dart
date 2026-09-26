@@ -115,6 +115,39 @@ class ZiteraEngineClient {
     throw Exception(err?['message'] ?? 'Failed to reset lab.');
   }
 
+  static Future<String> installLab(String id) async {
+    final engine = findEngineExecutable();
+    final result = await Process.run(engine, ['--json', 'lab', 'install', id]);
+    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
+    if (jsonMap['success'] == true) {
+      return jsonMap['data'] as String? ?? 'Lab installed.';
+    }
+    final err = jsonMap['error'] as Map<String, dynamic>?;
+    throw Exception(err?['message'] ?? 'Failed to install lab.');
+  }
+
+  static Future<String> updateLab(String id) async {
+    final engine = findEngineExecutable();
+    final result = await Process.run(engine, ['--json', 'lab', 'update', id]);
+    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
+    if (jsonMap['success'] == true) {
+      return jsonMap['data'] as String? ?? 'Lab updated.';
+    }
+    final err = jsonMap['error'] as Map<String, dynamic>?;
+    throw Exception(err?['message'] ?? 'Failed to update lab.');
+  }
+
+  static Future<String> removeLab(String id) async {
+    final engine = findEngineExecutable();
+    final result = await Process.run(engine, ['--json', 'lab', 'remove', id]);
+    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
+    if (jsonMap['success'] == true) {
+      return jsonMap['data'] as String? ?? 'Lab removed.';
+    }
+    final err = jsonMap['error'] as Map<String, dynamic>?;
+    throw Exception(err?['message'] ?? 'Failed to remove lab.');
+  }
+
   static Future<List<CatalogEntry>> getCatalog() async {
     final engine = findEngineExecutable();
     final result = await Process.run(engine, ['--json', 'catalog']);

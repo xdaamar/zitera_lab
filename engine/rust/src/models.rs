@@ -20,7 +20,12 @@ impl<T> ApiResponse<T> {
         }
     }
 
-    pub fn err(action: impl Into<String>, code: impl Into<String>, message: impl Into<String>, recoverable: bool) -> Self {
+    pub fn err(
+        action: impl Into<String>,
+        code: impl Into<String>,
+        message: impl Into<String>,
+        recoverable: bool,
+    ) -> Self {
         Self {
             success: false,
             action: action.into(),

@@ -61,36 +61,39 @@ fn check_git() -> ComponentStatus {
             version: None,
             status: "MISSING".to_string(),
             message: "Git executable not found in PATH.".to_string(),
-            recommendation: Some("Install Git for Windows from https://git-scm.com/download/win".to_string()),
+            recommendation: Some(
+                "Install Git for Windows from https://git-scm.com/download/win".to_string(),
+            ),
         },
     }
 }
 
 fn check_wsl() -> ComponentStatus {
     match run_cmd("wsl.exe", &["--status"], None) {
-        Ok(out) if out.success => {
-            ComponentStatus {
-                name: "WSL2".to_string(),
-                installed: true,
-                version: Some("WSL2 Active".to_string()),
-                status: "READY".to_string(),
-                message: "Windows Subsystem for Linux is enabled and ready.".to_string(),
-                recommendation: None,
-            }
-        }
+        Ok(out) if out.success => ComponentStatus {
+            name: "WSL2".to_string(),
+            installed: true,
+            version: Some("WSL2 Active".to_string()),
+            status: "READY".to_string(),
+            message: "Windows Subsystem for Linux is enabled and ready.".to_string(),
+            recommendation: None,
+        },
         Ok(out) => {
-            let msg = if out.stdout.contains("not installed") || out.stderr.contains("not installed") {
-                "WSL is not installed on this system."
-            } else {
-                "WSL status check reported an issue."
-            };
+            let msg =
+                if out.stdout.contains("not installed") || out.stderr.contains("not installed") {
+                    "WSL is not installed on this system."
+                } else {
+                    "WSL status check reported an issue."
+                };
             ComponentStatus {
                 name: "WSL2".to_string(),
                 installed: false,
                 version: None,
                 status: "MISSING".to_string(),
                 message: msg.to_string(),
-                recommendation: Some("Run 'wsl --install' in an elevated PowerShell terminal.".to_string()),
+                recommendation: Some(
+                    "Run 'wsl --install' in an elevated PowerShell terminal.".to_string(),
+                ),
             }
         }
         Err(_) => ComponentStatus {
@@ -99,13 +102,17 @@ fn check_wsl() -> ComponentStatus {
             version: None,
             status: "MISSING".to_string(),
             message: "wsl.exe binary not found.".to_string(),
-            recommendation: Some("Enable Windows Subsystem for Linux via Windows Features or 'wsl --install'.".to_string()),
+            recommendation: Some(
+                "Enable Windows Subsystem for Linux via Windows Features or 'wsl --install'."
+                    .to_string(),
+            ),
         },
     }
 }
 
 fn check_docker_cli() -> ComponentStatus {
-    match run_cmd("docker", &["--version"], None) {
+    let docker_bin = crate::docker::get_docker_cmd();
+    match run_cmd(&docker_bin, &["--version"], None) {
         Ok(out) if out.success => {
             let ver = out.stdout.trim().to_string();
             ComponentStatus {
@@ -113,7 +120,7 @@ fn check_docker_cli() -> ComponentStatus {
                 installed: true,
                 version: Some(ver),
                 status: "READY".to_string(),
-                message: "Docker CLI is installed.".to_string(),
+                message: "Docker CLI is installed and accessible.".to_string(),
                 recommendation: None,
             }
         }
@@ -122,47 +129,55 @@ fn check_docker_cli() -> ComponentStatus {
             installed: false,
             version: None,
             status: "MISSING".to_string(),
-            message: "Docker CLI executable not found in PATH.".to_string(),
+            message: "Docker CLI executable not found in PATH or standard install paths.".to_string(),
             recommendation: Some("Install Docker Desktop with WSL2 backend from https://www.docker.com/products/docker-desktop".to_string()),
         },
     }
 }
 
 fn check_docker_daemon() -> ComponentStatus {
-    match run_cmd("docker", &["info", "--format", "{{.ServerVersion}}"], None) {
-        Ok(out) if out.success && !out.stdout.is_empty() => {
-            ComponentStatus {
-                name: "Docker Engine Daemon".to_string(),
-                installed: true,
-                version: Some(out.stdout),
-                status: "READY".to_string(),
-                message: "Docker engine is running and responding.".to_string(),
-                recommendation: None,
-            }
-        }
+    let docker_bin = crate::docker::get_docker_cmd();
+    match run_cmd(
+        &docker_bin,
+        &["info", "--format", "{{.ServerVersion}}"],
+        None,
+    ) {
+        Ok(out) if out.success && !out.stdout.is_empty() => ComponentStatus {
+            name: "Docker Engine Daemon".to_string(),
+            installed: true,
+            version: Some(out.stdout),
+            status: "READY".to_string(),
+            message: "Docker engine is running and responding.".to_string(),
+            recommendation: None,
+        },
         _ => ComponentStatus {
             name: "Docker Engine Daemon".to_string(),
             installed: false,
             version: None,
             status: "BLOCKED".to_string(),
             message: "Docker Desktop daemon is stopped or not running.".to_string(),
-            recommendation: Some("Launch Docker Desktop and ensure the engine icon shows green (Running).".to_string()),
+            recommendation: Some(
+                "Launch Docker Desktop and ensure the engine icon shows green (Running)."
+                    .to_string(),
+            ),
         },
     }
 }
 
 fn check_powershell() -> ComponentStatus {
-    match run_cmd("powershell.exe", &["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"], None) {
-        Ok(out) if out.success => {
-            ComponentStatus {
-                name: "PowerShell".to_string(),
-                installed: true,
-                version: Some(format!("v{}", out.stdout.trim())),
-                status: "READY".to_string(),
-                message: "PowerShell is available.".to_string(),
-                recommendation: None,
-            }
-        }
+    match run_cmd(
+        "powershell.exe",
+        &["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"],
+        None,
+    ) {
+        Ok(out) if out.success => ComponentStatus {
+            name: "PowerShell".to_string(),
+            installed: true,
+            version: Some(format!("v{}", out.stdout.trim())),
+            status: "READY".to_string(),
+            message: "PowerShell is available.".to_string(),
+            recommendation: None,
+        },
         _ => ComponentStatus {
             name: "PowerShell".to_string(),
             installed: false,

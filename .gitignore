@@ -25,6 +25,8 @@ rustup-init.exe
 .packages
 pubspec.lock
 ephemeral/
+/PRD
+
 
 # Rust
 Cargo.lock

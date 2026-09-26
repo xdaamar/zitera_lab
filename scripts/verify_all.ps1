@@ -7,6 +7,12 @@ Write-Host "==================================================" -ForegroundColor
 $WorkspaceRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $WorkspaceRoot
 
+# Ensure tool paths are available in session
+$cargoBin = "C:\Users\Damar\.cargo\bin"
+$flutterBin = "C:\src\flutter\bin"
+$dockerBin = "C:\Users\Damar\AppData\Local\Programs\DockerDesktop\resources\bin"
+$env:Path = "$cargoBin;$flutterBin;$dockerBin;$env:Path"
+
 # 1. Rust Engine Check & Build
 Write-Host "`n[1/5] Building & Testing Rust Engine (zitera-engine)..." -ForegroundColor Yellow
 Set-Location "$WorkspaceRoot\engine\rust"
@@ -18,8 +24,8 @@ cargo build --release --quiet
 if ($LASTEXITCODE -ne 0) { Write-Error "Rust cargo build release failed!"; exit 1 }
 Write-Host "  -> Rust Engine Build & Clippy: PASS" -ForegroundColor Green
 
-# 2. Rust CLI Execution
-Write-Host "`n[2/5] Testing zitera-engine CLI and JSON Output..." -ForegroundColor Yellow
+# 2. Rust CLI Execution & Security Checks
+Write-Host "`n[2/5] Testing zitera-engine CLI, JSON Output & Security Validation..." -ForegroundColor Yellow
 $DoctorOut = & ".\target\release\zitera-engine.exe" --json doctor | ConvertFrom-Json
 if ($DoctorOut.success -eq $true -and $DoctorOut.action -eq "doctor") {
     Write-Host "  -> Engine doctor JSON IPC: PASS" -ForegroundColor Green
@@ -33,6 +39,25 @@ if ($LabsOut.success -eq $true -and $LabsOut.data.Count -ge 2) {
     Write-Host "  -> Engine lab list discovery ($($LabsOut.data.Count) labs found): PASS" -ForegroundColor Green
 } else {
     Write-Error "Engine lab list output invalid!"
+    exit 1
+}
+
+# Traversal rejection check
+$TraversalCheck = & ".\target\release\zitera-engine.exe" --json lab status "../../secret" | ConvertFrom-Json
+if ($TraversalCheck.data.status -eq "INVALID_ID") {
+    Write-Host "  -> Engine path-traversal guard: PASS (rejected cleanly with INVALID_ID)" -ForegroundColor Green
+} else {
+    Write-Error "Engine path-traversal guard failed!"
+    exit 1
+}
+
+# Lab lifecycle commands (install / update idempotency)
+$InstallCheck = & ".\target\release\zitera-engine.exe" --json lab install A01 | ConvertFrom-Json
+$UpdateCheck = & ".\target\release\zitera-engine.exe" --json lab update A01 | ConvertFrom-Json
+if ($InstallCheck.success -eq $true -and $UpdateCheck.success -eq $true) {
+    Write-Host "  -> Engine lab install & update lifecycle: PASS" -ForegroundColor Green
+} else {
+    Write-Error "Engine lab install or update check failed!"
     exit 1
 }
 

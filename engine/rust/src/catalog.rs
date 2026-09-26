@@ -16,8 +16,7 @@ pub fn load_catalog(workspace_root: &Path) -> Result<Catalog, String> {
     let content = fs::read_to_string(&path)
         .map_err(|e| format!("Failed to read catalog at {:?}: {}", path, e))?;
 
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse catalog JSON: {}", e))
+    serde_json::from_str(&content).map_err(|e| format!("Failed to parse catalog JSON: {}", e))
 }
 
 pub fn default_catalog() -> Catalog {
