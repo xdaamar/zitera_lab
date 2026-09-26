@@ -1,0 +1,44 @@
+# Build artifacts
+target/
+build/
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdb
+*.o
+*.a
+
+# Visual Studio / C++
+vs_buildtools.exe
+rustup-init.exe
+.vs/
+*.user
+*.suo
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+ephemeral/
+
+# Rust
+Cargo.lock
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+[Dd]esktop.ini
+.DS_Store
+
+# Logs & temp
+*.log
+scratch/
+tmp/
