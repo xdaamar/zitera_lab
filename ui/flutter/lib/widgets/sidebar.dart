@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/zitera_colors.dart';
 
-class Sidebar extends StatelessWidget {
+class Sidebar extends StatefulWidget {
   final int selectedIndex;
   final Function(int) onDestinationSelected;
 
@@ -10,6 +10,13 @@ class Sidebar extends StatelessWidget {
     required this.selectedIndex,
     required this.onDestinationSelected,
   });
+
+  @override
+  State<Sidebar> createState() => _SidebarState();
+}
+
+class _SidebarState extends State<Sidebar> {
+  bool _isMenuVisible = true;
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +29,18 @@ class Sidebar extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // 1. Sidebar Background Image
+          // 1. Sidebar Background Video/Animation (Infinite Looping WebP converted from sidebar_bg.mp4)
           Positioned.fill(
             child: Image.asset(
-              'assets/images/sidebar_bg.jpg',
+              'assets/images/sidebar_bg.webp',
               fit: BoxFit.cover,
+              gaplessPlayback: true,
+              errorBuilder: (context, error, stackTrace) {
+                return Image.asset(
+                  'assets/images/sidebar_bg.jpg',
+                  fit: BoxFit.cover,
+                );
+              },
             ),
           ),
           // Warm cream wash overlay — matches off-white palette
@@ -122,9 +136,9 @@ class Sidebar extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 2),
-                            // Subtext — JetBrainsMono
+                            // Subtext — JetBrainsMono (RETRO removed)
                             const Text(
-                              'CYBER LAB // RETRO',
+                              'CYBER LAB',
                               style: TextStyle(
                                 color: Color(0xFF5C5347),
                                 fontSize: 11,
@@ -136,6 +150,34 @@ class Sidebar extends StatelessWidget {
                           ],
                         ),
                       ),
+                      // Show / Hide Toggle Button
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _isMenuVisible = !_isMenuVisible;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: _isMenuVisible ? const Color(0xFFE6FFFA) : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: _isMenuVisible ? const Color(0xFF2DD4BF) : ZiteraColors.border,
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Icon(
+                              _isMenuVisible ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                              size: 18,
+                              color: _isMenuVisible ? const Color(0xFF0F766E) : const Color(0xFF5C5347),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -143,12 +185,50 @@ class Sidebar extends StatelessWidget {
 
               const SizedBox(height: 4),
 
-              // Navigation Menu Items
-              _navItem(0, 'Dashboard',    Icons.dashboard_outlined,         'HOME_SYS',   null),
-              _navItem(1, 'Labs Catalog', Icons.science_outlined,            'OWASP_25',   'assets/images/sticker_pink.png'),
-              _navItem(2, 'Smart Setup',  Icons.health_and_safety_outlined,  'SYS_DIAG',   null),
-              _navItem(3, 'Tool Manager', Icons.construction_outlined,        'SEC_TOOLS',  'assets/images/sticker_cat_laptop.png'),
-              _navItem(4, 'Settings',     Icons.settings_outlined,            'PREFERENCES', null),
+              // Navigation Menu Items with Show/Hide Animated Crossfade
+              AnimatedCrossFade(
+                firstChild: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _navItem(0, 'Dashboard',    Icons.dashboard_outlined,         'HOME_SYS',   null),
+                    _navItem(1, 'Labs Catalog', Icons.science_outlined,            'OWASP_25',   'assets/images/sticker_pink.png'),
+                    _navItem(2, 'Smart Setup',  Icons.health_and_safety_outlined,  'SYS_DIAG',   'assets/images/sticker_bunny.png'),
+                    _navItem(3, 'Tool Manager', Icons.construction_outlined,        'SEC_TOOLS',  'assets/images/sticker_cat_laptop.png'),
+                    _navItem(4, 'Settings',     Icons.settings_outlined,            'PREFERENCES', 'assets/images/sticker_shiba.png'),
+                  ],
+                ),
+                secondChild: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFCFBF8).withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: ZiteraColors.border, width: 1.0),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.visibility_off_outlined, size: 14, color: Color(0xFF9C9080)),
+                        SizedBox(width: 8),
+                        Text(
+                          'MENU HIDDEN',
+                          style: TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF9C9080),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                crossFadeState: _isMenuVisible ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+                duration: const Duration(milliseconds: 200),
+              ),
 
               const Spacer(),
 
@@ -237,13 +317,13 @@ class Sidebar extends StatelessWidget {
   }
 
   Widget _navItem(int index, String label, IconData icon, String tag, String? stickerAsset) {
-    final isSelected = selectedIndex == index;
+    final isSelected = widget.selectedIndex == index;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => onDestinationSelected(index),
+          onTap: () => widget.onDestinationSelected(index),
           borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
@@ -291,8 +371,8 @@ class Sidebar extends StatelessWidget {
                 ),
                 if (stickerAsset != null)
                   SizedBox(
-                    width: 38,
-                    height: 38,
+                    width: 34,
+                    height: 34,
                     child: Image.asset(
                       stickerAsset,
                       fit: BoxFit.contain,
