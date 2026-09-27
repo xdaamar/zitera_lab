@@ -80,8 +80,21 @@ pub struct ToolStatus {
     pub installed: bool,
     pub version: Option<String>,
     pub min_version: String,
-    pub status: String,
+    pub status: String, // READY, MISSING, OUTDATED, BLOCKED, ERROR, UNKNOWN
+    pub path: Option<String>,
+    pub capabilities: Vec<String>,
+    pub install_method: String, // "winget", "pip", "manual", "guide"
     pub install_guide: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct LabRequirements {
+    #[serde(default)]
+    pub tools: Vec<String>,
+    #[serde(default)]
+    pub required_tools: Vec<String>,
+    #[serde(default)]
+    pub recommended_tools: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -98,6 +111,8 @@ pub struct LabManifest {
     pub default_port: u16,
     pub estimated_minutes: u32,
     pub modes: Vec<String>,
+    #[serde(default)]
+    pub requirements: Option<LabRequirements>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -110,6 +125,18 @@ pub struct LabStatus {
     pub url: Option<String>,
     pub version: String,
     pub status: String, // NOT_INSTALLED, STOPPED, RUNNING, ERROR
+    #[serde(default = "default_ready")]
+    pub learn_readiness: String, // READY
+    #[serde(default = "default_ready")]
+    pub practice_readiness: String, // READY
+    #[serde(default = "default_ready")]
+    pub challenge_readiness: String, // READY, PARTIAL, BLOCKED
+    #[serde(default)]
+    pub recommended_tools: Vec<String>,
+}
+
+fn default_ready() -> String {
+    "READY".to_string()
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -150,4 +177,19 @@ pub struct ChallengeVerification {
     pub lab_id: String,
     pub status: String,
     pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PracticeVerification {
+    pub lab_id: String,
+    pub status: String, // passed, failed, unavailable, error
+    pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolInstallResult {
+    pub id: String,
+    pub success: bool,
+    pub message: String,
+    pub method: String,
 }

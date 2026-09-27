@@ -84,6 +84,10 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
             url: None,
             version: "N/A".to_string(),
             status: "INVALID_ID".to_string(),
+            learn_readiness: "NOT_READY".to_string(),
+            practice_readiness: "NOT_READY".to_string(),
+            challenge_readiness: "NOT_READY".to_string(),
+            recommended_tools: Vec::new(),
         };
     }
 
@@ -98,6 +102,10 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
             url: None,
             version: "N/A".to_string(),
             status: "NOT_INSTALLED".to_string(),
+            learn_readiness: "NOT_READY".to_string(),
+            practice_readiness: "NOT_READY".to_string(),
+            challenge_readiness: "NOT_READY".to_string(),
+            recommended_tools: Vec::new(),
         };
     }
 
@@ -111,6 +119,41 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
                 None
             };
 
+            let (challenge_readiness, recommended_tools) = if let Some(req) = &manifest.requirements
+            {
+                let installed_tools: Vec<String> = crate::tools::list_tools()
+                    .into_iter()
+                    .filter(|t| t.installed)
+                    .map(|t| t.id.to_lowercase())
+                    .collect();
+
+                let missing_recommended: Vec<String> = req
+                    .recommended_tools
+                    .iter()
+                    .filter(|t| !installed_tools.contains(&t.to_lowercase()))
+                    .cloned()
+                    .collect();
+
+                let missing_required: Vec<String> = req
+                    .required_tools
+                    .iter()
+                    .filter(|t| !installed_tools.contains(&t.to_lowercase()))
+                    .cloned()
+                    .collect();
+
+                let readiness = if !missing_required.is_empty() {
+                    "BLOCKED"
+                } else if !missing_recommended.is_empty() {
+                    "PARTIAL"
+                } else {
+                    "READY"
+                };
+
+                (readiness.to_string(), missing_recommended)
+            } else {
+                ("READY".to_string(), Vec::new())
+            };
+
             LabStatus {
                 id: manifest.id,
                 title: manifest.title,
@@ -120,6 +163,10 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
                 url,
                 version: manifest.version,
                 status: status_str.to_string(),
+                learn_readiness: "READY".to_string(),
+                practice_readiness: "READY".to_string(),
+                challenge_readiness,
+                recommended_tools,
             }
         }
         Err(_) => LabStatus {
@@ -131,6 +178,10 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
             url: None,
             version: "UNKNOWN".to_string(),
             status: "INVALID_MANIFEST".to_string(),
+            learn_readiness: "NOT_READY".to_string(),
+            practice_readiness: "NOT_READY".to_string(),
+            challenge_readiness: "NOT_READY".to_string(),
+            recommended_tools: Vec::new(),
         },
     }
 }
@@ -323,22 +374,25 @@ pub fn get_lab_content(
 
     let manifest = read_manifest(&lab_dir)?;
 
-    // Read lesson files
+    // Read lesson files - both standard keys and any additional dynamic markdown sections
     let lesson_dir = lab_dir.join("lesson");
     let mut lessons = std::collections::HashMap::new();
-    let lesson_keys = [
-        "analogy",
-        "concept",
-        "remediation",
-        "walkthrough",
-        "introduction",
-    ];
 
-    for key in &lesson_keys {
-        let file_path = lesson_dir.join(format!("{}.md", key));
-        if file_path.exists() {
-            if let Ok(text) = safe_read_file(&file_path) {
-                lessons.insert(key.to_string(), text);
+    if let Ok(entries) = fs::read_dir(&lesson_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("md") {
+                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                    let stem_clean = stem.to_lowercase();
+                    if stem_clean
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+                    {
+                        if let Ok(text) = safe_read_file(&path) {
+                            lessons.insert(stem_clean, text);
+                        }
+                    }
+                }
             }
         }
     }
@@ -387,6 +441,105 @@ pub fn get_lab_content(
         challenge_objective,
         hints: progressive_hints,
     })
+}
+
+/// Dynamic practice orchestrator (Phase 6F).
+/// Verifies local practice runtime health and response code directly via the engine.
+pub fn verify_practice(
+    workspace_root: &Path,
+    lab_id: &str,
+) -> Result<crate::models::PracticeVerification, String> {
+    validate_lab_id(lab_id)?;
+    let lab_dir = get_lab_dir(workspace_root, lab_id);
+    if !lab_dir.exists() {
+        return Ok(crate::models::PracticeVerification {
+            lab_id: lab_id.to_uppercase(),
+            status: "unavailable".to_string(),
+            message: format!("Lab {} is not installed.", lab_id),
+        });
+    }
+
+    if !docker::get_lab_container_status(lab_id) {
+        return Ok(crate::models::PracticeVerification {
+            lab_id: lab_id.to_uppercase(),
+            status: "unavailable".to_string(),
+            message: format!(
+                "Lab {} runtime container is stopped. Please start the lab environment first.",
+                lab_id
+            ),
+        });
+    }
+
+    let manifest = read_manifest(&lab_dir)?;
+    let port = manifest.default_port;
+    let url = format!("http://127.0.0.1:{}/health", port);
+
+    // Fast bounded curl probe (3 seconds max)
+    let probe = crate::process::run_cmd(
+        "curl.exe",
+        &[
+            "-s",
+            "-o",
+            "nul",
+            "-w",
+            "%{http_code}",
+            "--max-time",
+            "3",
+            &url,
+        ],
+        None,
+    );
+
+    match probe {
+        Ok(out) if out.stdout.trim() == "200" => Ok(crate::models::PracticeVerification {
+            lab_id: lab_id.to_uppercase(),
+            status: "passed".to_string(),
+            message: format!(
+                "Local practice target service on port {} is active and healthy (HTTP 200).",
+                port
+            ),
+        }),
+        _ => {
+            // Check root endpoint if /health returns non-200 or 404
+            let root_url = format!("http://127.0.0.1:{}/", port);
+            let root_probe = crate::process::run_cmd(
+                "curl.exe",
+                &[
+                    "-s",
+                    "-o",
+                    "nul",
+                    "-w",
+                    "%{http_code}",
+                    "--max-time",
+                    "3",
+                    &root_url,
+                ],
+                None,
+            );
+            if let Ok(rout) = root_probe {
+                let code = rout.stdout.trim();
+                if code.starts_with('2') || code.starts_with('3') {
+                    return Ok(crate::models::PracticeVerification {
+                        lab_id: lab_id.to_uppercase(),
+                        status: "passed".to_string(),
+                        message: format!(
+                            "Local practice target service on port {} responded successfully (HTTP {}).",
+                            port, code
+                        ),
+                    });
+                }
+            }
+
+            Ok(crate::models::PracticeVerification {
+                lab_id: lab_id.to_uppercase(),
+                status: "failed".to_string(),
+                message: format!(
+                    "Practice target probe returned unexpected status on port {}.",
+                    port
+                ),
+            })
+        }
+    }
 }
 
 /// Authoritative challenge validator (Phases 18, 19).

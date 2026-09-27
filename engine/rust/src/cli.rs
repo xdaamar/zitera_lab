@@ -77,24 +77,113 @@ fn handle_doctor(json: bool) {
     }
 }
 
-fn handle_tool(_args: &[String], json: bool) {
-    let tool_list = tools::list_tools();
-    if json {
-        let resp = ApiResponse::ok("tool.list", tool_list);
-        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
-    } else {
-        println!("==================================================");
-        println!("  ZITERA_LAB — Security Tools Status              ");
-        println!("==================================================");
-        for t in tool_list {
-            println!("{:<12} [{:<7}] Category: {}", t.name, t.status, t.category);
-            if let Some(v) = t.version {
-                println!("  Version: {}", v);
-            } else {
-                println!("  Guide: {}", t.install_guide);
+fn handle_tool(args: &[String], json: bool) {
+    if args.is_empty() || args[0] == "list" {
+        let tool_list = tools::list_tools();
+        if json {
+            let resp = ApiResponse::ok("tool.list", tool_list);
+            println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+        } else {
+            println!("==================================================");
+            println!("  ZITERA_LAB — Security Tools Status              ");
+            println!("==================================================");
+            for t in tool_list {
+                println!("{:<12} [{:<7}] Category: {}", t.name, t.status, t.category);
+                if let Some(v) = t.version {
+                    println!("  Version: {}", v);
+                } else {
+                    println!("  Guide: {}", t.install_guide);
+                }
+            }
+            println!("==================================================");
+        }
+        return;
+    }
+
+    match args[0].as_str() {
+        "status" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            match tools::get_tool_status(id) {
+                Ok(t) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("tool.status", t))
+                                .unwrap()
+                        );
+                    } else {
+                        println!("Tool: {} [{}] Version: {:?}", t.name, t.status, t.version);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::<()>::err(
+                                "tool.status",
+                                "TOOL_NOT_FOUND",
+                                e,
+                                false
+                            ))
+                            .unwrap()
+                        );
+                    } else {
+                        eprintln!("[ERROR] {}", e);
+                    }
+                }
             }
         }
-        println!("==================================================");
+        "install" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            match tools::install_tool(id) {
+                Ok(res) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("tool.install", res))
+                                .unwrap()
+                        );
+                    } else {
+                        println!("[INSTALL] {}: {}", res.id, res.message);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::<()>::err(
+                                "tool.install",
+                                "TOOL_INSTALL_FAILED",
+                                e,
+                                false
+                            ))
+                            .unwrap()
+                        );
+                    } else {
+                        eprintln!("[ERROR] {}", e);
+                    }
+                }
+            }
+        }
+        other => {
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&ApiResponse::<()>::err(
+                        "tool",
+                        "UNKNOWN_TOOL_ACTION",
+                        format!("Unknown tool action '{}'", other),
+                        false
+                    ))
+                    .unwrap()
+                );
+            } else {
+                eprintln!(
+                    "Unknown tool command '{}'. Use: list, status, install",
+                    other
+                );
+            }
+        }
     }
 }
 
@@ -327,6 +416,38 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                         let resp: ApiResponse<()> = ApiResponse::err(
                             "lab.validate_challenge",
                             "CHALLENGE_VERIFY_FAILED",
+                            e,
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] {}", e);
+                    }
+                }
+            }
+        }
+        "practice-verify" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            match labs::verify_practice(workspace_root, id) {
+                Ok(res) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok(
+                                "lab.practice_verify",
+                                res
+                            ))
+                            .unwrap()
+                        );
+                    } else {
+                        println!("[{}] {}", res.status, res.message);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err(
+                            "lab.practice_verify",
+                            "PRACTICE_VERIFY_FAILED",
                             e,
                             true,
                         );
