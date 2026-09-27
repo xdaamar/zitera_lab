@@ -2,15 +2,11 @@ use crate::process::run_cmd;
 use std::path::Path;
 
 pub fn get_docker_cmd() -> String {
-    if run_cmd("docker", &["--version"], None).is_ok() {
-        return "docker".to_string();
-    }
-
     // Resolve user-profile-relative paths dynamically — never hardcode usernames
     let local_appdata = std::env::var("LOCALAPPDATA").unwrap_or_default();
     let program_files = std::env::var("ProgramFiles").unwrap_or_default();
 
-    let fallback_paths: Vec<String> = vec![
+    let candidate_paths: Vec<String> = vec![
         // Docker Desktop bundled CLI (most reliably allowed by AppControl policies)
         format!(
             r"{}\Programs\DockerDesktop\resources\bin\docker.exe",
@@ -30,16 +26,20 @@ pub fn get_docker_cmd() -> String {
         ),
         // Chocolatey-installed Docker
         r"C:\ProgramData\chocolatey\bin\docker.exe".to_string(),
+        "docker".to_string(),
     ];
 
-    for p in &fallback_paths {
-        if !p.is_empty() && Path::new(p).exists() {
-            return p.clone();
+    for p in &candidate_paths {
+        if !p.is_empty() && (p == "docker" || Path::new(p).exists()) {
+            if let Ok(out) = run_cmd(p, &["--version"], None) {
+                if out.success {
+                    return p.clone();
+                }
+            }
         }
     }
     "docker".to_string()
 }
-
 
 pub fn start_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
     if !compose_path.exists() {

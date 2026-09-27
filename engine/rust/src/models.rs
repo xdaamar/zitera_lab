@@ -128,3 +128,26 @@ pub struct Catalog {
     pub schema_version: u32,
     pub labs: Vec<CatalogLabItem>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ProgressiveHint {
+    pub tier: u32,
+    #[serde(rename = "type")]
+    pub hint_type: String,
+    pub hint: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LabContent {
+    pub manifest: LabManifest,
+    pub lessons: std::collections::HashMap<String, String>,
+    pub challenge_objective: String,
+    pub hints: Vec<ProgressiveHint>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChallengeVerification {
+    pub lab_id: String,
+    pub status: String,
+    pub message: String,
+}

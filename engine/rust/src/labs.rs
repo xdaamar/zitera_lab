@@ -54,10 +54,15 @@ pub fn validate_repo_url(url: &str) -> Result<(), String> {
     // Validate owner/repo: only alphanumeric, hyphens, underscores, and one slash
     let parts: Vec<&str> = path.splitn(2, '/').collect();
     if parts.len() != 2 {
-        return Err(format!("Repository '{}' must be in 'owner/repo' format.", url));
+        return Err(format!(
+            "Repository '{}' must be in 'owner/repo' format.",
+            url
+        ));
     }
     let valid_ident = |s: &&str| {
-        !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        !s.is_empty()
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
     };
     if !parts.iter().all(valid_ident) {
         return Err(format!(
@@ -199,7 +204,13 @@ pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String
 
     let clone_out = crate::process::run_cmd(
         "git",
-        &["clone", "--depth", "1", &repo_url, lab_dir.to_str().unwrap_or("")],
+        &[
+            "clone",
+            "--depth",
+            "1",
+            &repo_url,
+            lab_dir.to_str().unwrap_or(""),
+        ],
         None,
     )?;
     if clone_out.success && lab_dir.join("manifest.json").exists() {
@@ -220,6 +231,13 @@ pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String
 
 pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     validate_lab_id(lab_id)?;
+    if docker::get_lab_container_status(lab_id) {
+        return Err(format!(
+            "Lab {} is currently running. Please stop the lab before updating.",
+            lab_id
+        ));
+    }
+
     let lab_dir = get_lab_dir(workspace_root, lab_id);
     if !lab_dir.exists() {
         return Err(format!(
@@ -269,4 +287,152 @@ pub fn remove_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
     let _ = stop_lab(workspace_root, lab_id);
     fs::remove_dir_all(&lab_dir).map_err(|e| format!("Failed to remove lab directory: {}", e))?;
     Ok(format!("Lab {} has been removed.", lab_id))
+}
+
+const MAX_CONTENT_FILE_SIZE: u64 = 65536; // 64 KB limit per content file (SEC / bounded reads)
+
+fn safe_read_file(path: &Path) -> Result<String, String> {
+    if !path.exists() {
+        return Err(format!("File not found: {:?}", path));
+    }
+    let meta =
+        fs::metadata(path).map_err(|e| format!("Failed to read metadata for {:?}: {}", path, e))?;
+    if meta.len() > MAX_CONTENT_FILE_SIZE {
+        return Err(format!(
+            "File {:?} exceeds maximum allowed size ({} bytes > {} bytes limit)",
+            path,
+            meta.len(),
+            MAX_CONTENT_FILE_SIZE
+        ));
+    }
+    fs::read_to_string(path).map_err(|e| format!("Failed to read {:?}: {}", path, e))
+}
+
+/// Dynamic content loader (Phases 8, 9, 10). Loads manifest, lesson markdown files,
+/// and progressive hints dynamically from the installed repository.
+/// Secret flags are NEVER included in the returned content.
+pub fn get_lab_content(
+    workspace_root: &Path,
+    lab_id: &str,
+) -> Result<crate::models::LabContent, String> {
+    validate_lab_id(lab_id)?;
+    let lab_dir = get_lab_dir(workspace_root, lab_id);
+    if !lab_dir.exists() {
+        return Err(format!("Lab {} is not installed.", lab_id));
+    }
+
+    let manifest = read_manifest(&lab_dir)?;
+
+    // Read lesson files
+    let lesson_dir = lab_dir.join("lesson");
+    let mut lessons = std::collections::HashMap::new();
+    let lesson_keys = [
+        "analogy",
+        "concept",
+        "remediation",
+        "walkthrough",
+        "introduction",
+    ];
+
+    for key in &lesson_keys {
+        let file_path = lesson_dir.join(format!("{}.md", key));
+        if file_path.exists() {
+            if let Ok(text) = safe_read_file(&file_path) {
+                lessons.insert(key.to_string(), text);
+            }
+        }
+    }
+
+    // Read challenge objective
+    let challenge_path = lab_dir.join("challenge").join("challenge.md");
+    let challenge_objective = if challenge_path.exists() {
+        safe_read_file(&challenge_path).unwrap_or_default()
+    } else {
+        "Complete the mission objective in the target application.".to_string()
+    };
+
+    // Read progressive hints (stripping secret flag)
+    let hints_path = lab_dir.join("challenge").join("hints.json");
+    let mut progressive_hints = Vec::new();
+    if hints_path.exists() {
+        if let Ok(raw_json) = safe_read_file(&hints_path) {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&raw_json) {
+                if let Some(arr) = parsed.get("hints").and_then(|h| h.as_array()) {
+                    for item in arr {
+                        let tier = item.get("tier").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
+                        let hint_type = item
+                            .get("type")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("general")
+                            .to_string();
+                        let hint = item
+                            .get("hint")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        progressive_hints.push(crate::models::ProgressiveHint {
+                            tier,
+                            hint_type,
+                            hint,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(crate::models::LabContent {
+        manifest,
+        lessons,
+        challenge_objective,
+        hints: progressive_hints,
+    })
+}
+
+/// Authoritative challenge validator (Phases 18, 19).
+/// Verifies user submission against the lab repository's official challenge flag.
+pub fn validate_challenge(
+    workspace_root: &Path,
+    lab_id: &str,
+    user_submission: &str,
+) -> Result<crate::models::ChallengeVerification, String> {
+    validate_lab_id(lab_id)?;
+    let lab_dir = get_lab_dir(workspace_root, lab_id);
+    if !lab_dir.exists() {
+        return Err(format!("Lab {} is not installed.", lab_id));
+    }
+
+    let hints_path = lab_dir.join("challenge").join("hints.json");
+    if !hints_path.exists() {
+        return Err(format!(
+            "Challenge definition not found for lab {}.",
+            lab_id
+        ));
+    }
+
+    let raw_json = safe_read_file(&hints_path)?;
+    let parsed: serde_json::Value = serde_json::from_str(&raw_json)
+        .map_err(|e| format!("Failed to parse challenge definition: {}", e))?;
+
+    let expected_flag = parsed
+        .get("flag")
+        .and_then(|f| f.as_str())
+        .ok_or_else(|| "Challenge does not define an expected flag.".to_string())?;
+
+    let submission_clean = user_submission.trim();
+    let expected_clean = expected_flag.trim();
+
+    if submission_clean == expected_clean {
+        Ok(crate::models::ChallengeVerification {
+            lab_id: lab_id.to_uppercase(),
+            status: "passed".to_string(),
+            message: "EXCELLENT! Challenge Completed! Flag Verified.".to_string(),
+        })
+    } else {
+        Ok(crate::models::ChallengeVerification {
+            lab_id: lab_id.to_uppercase(),
+            status: "failed".to_string(),
+            message: "Invalid Flag. Keep investigating!".to_string(),
+        })
+    }
 }

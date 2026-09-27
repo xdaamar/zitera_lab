@@ -83,10 +83,7 @@ fn check_wsl() -> ComponentStatus {
         Ok(out) => {
             let combined = format!("{} {}", out.stdout, out.stderr).to_lowercase();
             let (msg, status) = if combined.contains("not installed") {
-                (
-                    "WSL is not installed on this system.",
-                    "MISSING",
-                )
+                ("WSL is not installed on this system.", "MISSING")
             } else {
                 (
                     "WSL --status reported a non-zero exit code; WSL may be partially installed or blocked.",
@@ -177,10 +174,7 @@ fn check_docker_daemon() -> ComponentStatus {
 /// Falls back to 0.0 if unavailable — never fabricates readiness.
 fn query_resources() -> (f64, f64) {
     let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string());
-    let ps = format!(
-        r"{}\System32\WindowsPowerShell\v1.0\powershell.exe",
-        windir
-    );
+    let ps = format!(r"{}\System32\WindowsPowerShell\v1.0\powershell.exe", windir);
 
     let memory_gb = run_cmd(
         &ps,
@@ -221,10 +215,7 @@ fn query_resources() -> (f64, f64) {
 
 fn check_powershell() -> ComponentStatus {
     let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string());
-    let ps = format!(
-        r"{}\System32\WindowsPowerShell\v1.0\powershell.exe",
-        windir
-    );
+    let ps = format!(r"{}\System32\WindowsPowerShell\v1.0\powershell.exe", windir);
     match run_cmd(
         &ps,
         &["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"],

@@ -156,4 +156,14 @@ class ZiteraEngineClient {
     final list = catData['labs'] as List<dynamic>? ?? [];
     return list.map((item) => CatalogEntry.fromJson(item as Map<String, dynamic>)).toList();
   }
+
+  static Future<LabContent> getLabContent(String id) async {
+    final data = await executeCommand(['lab', 'content', id]);
+    return LabContent.fromJson(data);
+  }
+
+  static Future<ChallengeResult> validateChallenge(String id, String flag) async {
+    final data = await executeCommand(['lab', 'validate-challenge', id, flag]);
+    return ChallengeResult.fromJson(data);
+  }
 }

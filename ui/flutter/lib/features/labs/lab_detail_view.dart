@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/ipc/engine_client.dart';
 import '../../core/ipc/models.dart';
+import '../../core/progress/progress_manager.dart';
 import '../../core/theme/zitera_colors.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
@@ -23,11 +24,14 @@ class LabDetailView extends StatefulWidget {
 class _LabDetailViewState extends State<LabDetailView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   LabItem? _status;
+  LabContent? _content;
   bool _isLoading = true;
+  String? _error;
   int _revealedHintTier = 0;
   final TextEditingController _flagController = TextEditingController();
   String? _flagFeedback;
   bool _flagSuccess = false;
+  bool _isVerifyingFlag = false;
 
   @override
   void initState() {
@@ -44,15 +48,36 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   }
 
   Future<void> _refreshStatus() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
     try {
       final st = await ZiteraEngineClient.getLabStatus(widget.labId);
-      setState(() {
-        _status = st;
-        _isLoading = false;
-      });
-    } catch (_) {
-      setState(() => _isLoading = false);
+      LabContent? content;
+      if (st.installed) {
+        try {
+          content = await ZiteraEngineClient.getLabContent(widget.labId);
+        } catch (_) {
+          // If reading content fails, graceful fallback
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _status = st;
+          _content = content;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -88,7 +113,10 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       _refreshStatus();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lab ${widget.labId} deterministically reset.'), backgroundColor: ZiteraColors.ready),
+          SnackBar(
+            content: Text('Lab ${widget.labId} deterministically reset.'),
+            backgroundColor: ZiteraColors.ready,
+          ),
         );
       }
     } catch (e) {
@@ -100,36 +128,67 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     }
   }
 
-  void _verifyFlag() {
+  Future<void> _verifyFlag() async {
     final input = _flagController.text.trim();
-    String expected;
-    if (widget.labId == 'A01') {
-      expected = 'ZITERA{b10k3n_4cc355_c0ntr01_m45t3r}';
-    } else {
-      expected = 'ZITERA{5q1_1nj3ct10n_m45t3r_2026}';
-    }
+    if (input.isEmpty) return;
 
     setState(() {
-      if (input == expected) {
-        _flagSuccess = true;
-        _flagFeedback = 'EXCELLENT! Challenge Completed! Flag Verified.';
-      } else {
-        _flagSuccess = false;
-        _flagFeedback = 'Invalid Flag. Keep investigating!';
-      }
+      _isVerifyingFlag = true;
+      _flagFeedback = null;
     });
+
+    try {
+      final res = await ZiteraEngineClient.validateChallenge(widget.labId, input);
+      final passed = res.status == 'passed';
+
+      if (passed) {
+        await ProgressManager.markFlagSolved(widget.labId, input);
+      }
+
+      if (mounted) {
+        setState(() {
+          _flagSuccess = passed;
+          _flagFeedback = res.message;
+          _isVerifyingFlag = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _flagSuccess = false;
+          _flagFeedback = 'Error verifying flag: $e';
+          _isVerifyingFlag = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: ZiteraColors.primary));
+      return const Scaffold(
+        backgroundColor: ZiteraColors.background,
+        body: Center(child: CircularProgressIndicator(color: ZiteraColors.primary)),
+      );
     }
 
-    final isA01 = widget.labId == 'A01';
-    final title = isA01 ? 'Broken Access Control' : 'Injection (SQLi)';
-    final owaspCode = isA01 ? 'A01:2025' : 'A05:2025';
-    final port = isA01 ? 8011 : 8015;
+    if (_error != null && _status == null) {
+      return Scaffold(
+        backgroundColor: ZiteraColors.background,
+        appBar: AppBar(leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onBack)),
+        body: Center(
+          child: ZiteraCard(
+            borderColor: ZiteraColors.error,
+            child: Text('Error loading lab: $_error', style: const TextStyle(color: ZiteraColors.error)),
+          ),
+        ),
+      );
+    }
+
+    final manifest = _content?.manifest;
+    final title = manifest?.title ?? _status?.title ?? widget.labId;
+    final owaspCode = manifest?.owasp ?? 'OWASP';
+    final port = manifest?.defaultPort ?? _status?.port ?? 0;
     final isRunning = _status?.running ?? false;
 
     return Scaffold(
@@ -143,7 +202,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child: StatusBadge(status: isRunning ? 'RUNNING' : 'STOPPED'),
+            child: StatusBadge(status: isRunning ? 'RUNNING' : (_status?.status ?? 'STOPPED')),
           ),
         ],
       ),
@@ -163,7 +222,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Target URL: http://127.0.0.1:$port',
+                      port > 0 ? 'Target URL: http://127.0.0.1:$port' : 'Port: Unassigned',
                       style: const TextStyle(
                         fontFamily: 'monospace',
                         color: ZiteraColors.cyan,
@@ -229,9 +288,9 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildLearnTab(isA01),
-                _buildPracticeTab(isA01, port),
-                _buildChallengeTab(isA01, port),
+                _buildLearnTab(),
+                _buildPracticeTab(port),
+                _buildChallengeTab(),
               ],
             ),
           ),
@@ -240,91 +299,126 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     );
   }
 
-  Widget _buildLearnTab(bool isA01) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionCard(
-            title: isA01 ? 'Analogy: The Hotel Room Keycard' : 'Analogy: The Tampered Bank Check',
-            icon: Icons.lightbulb_outline,
-            accentColor: ZiteraColors.cyan,
-            content: isA01
-                ? 'Authentication checks your reservation at the front desk and hands you keycard #302. Insecure Direct Object Reference (IDOR) happens when room doors trust your phone app saying "open room #303" without verifying that room 303 belongs to you.'
-                : 'Imagine writing a paper check with a memo line. If the recipient writes an instruction in the memo line and the bank cashier blindly executes it as a new money transfer, that is Injection! The database confuses user-provided data for executable database commands.',
-          ),
-          const SizedBox(height: 20),
-          _sectionCard(
-            title: 'Technical Core Concept',
-            icon: Icons.code,
-            accentColor: ZiteraColors.primary,
-            content: isA01
-                ? 'Broken Access Control occurs when authorization rules are not enforced on the server. If Alice views /invoice/1, and simply changes the URL to /invoice/2, a vulnerable server returns Bob\'s invoice because it queries the database by ID without checking whether invoice.user_id matches the active session.'
-                : 'SQL Injection occurs when user input is concatenated directly into SQL queries using string formatting (e.g. f"SELECT * FROM items WHERE name LIKE \'%{input}%\'"). Injecting single quotes (\') breaks out of the string boundary, allowing attackers to append OR 1=1 or UNION SELECT to steal database records.',
-          ),
-          const SizedBox(height: 20),
-          _sectionCard(
-            title: 'Secure Remediation',
-            icon: Icons.security,
-            accentColor: ZiteraColors.ready,
-            content: isA01
-                ? 'Always verify ownership server-side before serving objects:\n\nSELECT * FROM invoices WHERE id = ? AND user_id = ?\n\nAdopt the Principle of Least Privilege: deny all access by default.'
-                : 'Never use string concatenation or formatting for SQL queries. Always use Parameterized Queries (Prepared Statements). In parameterized queries, database drivers send query structure and user data over completely separate channels, making injection impossible.',
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildLearnTab() {
+    final lessons = _content?.lessons ?? {};
+    final analogyText = lessons['analogy'];
+    final conceptText = lessons['concept'];
+    final remediationText = lessons['remediation'];
+    final introText = lessons['introduction'];
 
-  Widget _buildPracticeTab(bool isA01, int port) {
+    if (lessons.isEmpty) {
+      return Center(
+        child: ZiteraCard(
+          child: Text(
+            _status?.installed == true
+                ? 'Lesson content loading or not present in repository.'
+                : 'Lab not installed. Please install the lab to view lesson materials.',
+            style: const TextStyle(color: ZiteraColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'GUIDED PRACTICE INVESTIGATION (STEP-BY-STEP)',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-              fontFamily: 'monospace',
+          if (introText != null && introText.isNotEmpty) ...[
+            _sectionCard(
+              title: 'Overview & Introduction',
+              icon: Icons.info_outline,
+              accentColor: ZiteraColors.primary,
+              content: introText,
             ),
-          ),
-          const SizedBox(height: 16),
-          _stepCard(
-            step: '01',
-            action: 'Launch & Open Target',
-            instruction: 'Start the lab environment and open http://127.0.0.1:$port in your browser.',
-            observation: 'The target web application loads in your local browser.',
-          ),
-          const SizedBox(height: 16),
-          _stepCard(
-            step: '02',
-            action: isA01 ? 'Log In as Alice' : 'Test Normal Query',
-            instruction: isA01
-                ? 'Sign in with credentials: username "alice", password "password123".'
-                : 'Enter "Server" in the search box and observe standard filtered hardware items.',
-            observation: isA01 ? 'You are redirected to /invoice/1' : 'Only Server hardware records appear in table.',
-          ),
-          const SizedBox(height: 16),
-          _stepCard(
-            step: '03',
-            action: isA01 ? 'Test Object Identifier Tampering' : 'Inject Syntax Delimiter',
-            instruction: isA01
-                ? 'Edit the URL from /invoice/1 to /invoice/2 and hit Enter.'
-                : 'Type a single apostrophe (\') into the search box and press Search.',
-            observation: isA01
-                ? 'Bob\'s confidential invoice details load without requiring his password!'
-                : 'A raw database SQLite OperationalError appears, confirming syntax injection.',
-          ),
+            const SizedBox(height: 20),
+          ],
+          if (analogyText != null && analogyText.isNotEmpty) ...[
+            _sectionCard(
+              title: 'Mental Model / Real-World Analogy',
+              icon: Icons.lightbulb_outline,
+              accentColor: ZiteraColors.cyan,
+              content: analogyText,
+            ),
+            const SizedBox(height: 20),
+          ],
+          if (conceptText != null && conceptText.isNotEmpty) ...[
+            _sectionCard(
+              title: 'Technical Core Concept',
+              icon: Icons.code,
+              accentColor: ZiteraColors.primary,
+              content: conceptText,
+            ),
+            const SizedBox(height: 20),
+          ],
+          if (remediationText != null && remediationText.isNotEmpty) ...[
+            _sectionCard(
+              title: 'Secure Remediation & Defense',
+              icon: Icons.security,
+              accentColor: ZiteraColors.ready,
+              content: remediationText,
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildChallengeTab(bool isA01, int port) {
+  Widget _buildPracticeTab(int port) {
+    final walkthroughText = _content?.lessons['walkthrough'];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'GUIDED PRACTICE INVESTIGATION (STEP-BY-STEP)',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              StatusBadge(status: 'PORT: $port'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (walkthroughText != null && walkthroughText.isNotEmpty)
+            ZiteraCard(
+              child: SelectableText(
+                walkthroughText,
+                style: const TextStyle(
+                  color: ZiteraColors.textPrimary,
+                  fontSize: 13,
+                  height: 1.6,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            )
+          else
+            const ZiteraCard(
+              child: Text(
+                'Practice walkthrough not specified in lab repository.',
+                style: TextStyle(color: ZiteraColors.textSecondary),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChallengeTab() {
+    final objective = (_content != null && _content!.challengeObjective.isNotEmpty)
+        ? _content!.challengeObjective
+        : 'Complete the mission objective in the target application.';
+    final difficulty = _content?.manifest.difficulty.toUpperCase() ?? 'BEGINNER';
+    final hints = _content?.hints ?? [];
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: Column(
@@ -347,15 +441,13 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                         fontFamily: 'monospace',
                       ),
                     ),
-                    StatusBadge(status: 'DIFFICULTY: BEGINNER'),
+                    StatusBadge(status: 'DIFFICULTY: $difficulty'),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  isA01
-                      ? 'An internal financial portal leaks records via authorization tampering. Locate the hidden master billing record (#42) to recover the project flag.'
-                      : 'The hardware catalog portal query logic can be broken via UNION SQL injection. Extract the secret flag from the private "vault_secrets" table.',
-                  style: const TextStyle(color: ZiteraColors.textPrimary, fontSize: 14, height: 1.4),
+                SelectableText(
+                  objective,
+                  style: const TextStyle(color: ZiteraColors.textPrimary, fontSize: 13, height: 1.5),
                 ),
               ],
             ),
@@ -363,18 +455,19 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
 
           const SizedBox(height: 24),
 
-          const Text(
-            'PROGRESSIVE HINTS (USE ONLY WHEN STUCK)',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0, fontFamily: 'monospace'),
-          ),
-          const SizedBox(height: 12),
-
-          _buildHintAccordion(1, 'Hint 1: Conceptual', isA01 ? 'Inspect the URL parameters and think about how the server locates records.' : 'Determine how many columns are returned by the original SELECT query.'),
-          _buildHintAccordion(2, 'Hint 2: Technical Area', isA01 ? 'Standard users start at 1 and 2. Administrative records have higher IDs.' : 'The original table has 3 columns: name, category, and price.'),
-          _buildHintAccordion(3, 'Hint 3: Investigation Direction', isA01 ? 'Try inspecting invoice ID 42.' : 'Try: \' UNION SELECT secret_name, secret_data, 0 FROM vault_secrets --'),
-          _buildHintAccordion(4, 'Hint 4: Solution Path', isA01 ? 'Navigate directly to http://127.0.0.1:8011/invoice/42 while logged in.' : 'Enter the UNION payload in the search field to dump the vault_secrets table contents.'),
-
-          const SizedBox(height: 28),
+          if (hints.isNotEmpty) ...[
+            const Text(
+              'PROGRESSIVE HINTS (USE ONLY WHEN STUCK)',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0, fontFamily: 'monospace'),
+            ),
+            const SizedBox(height: 12),
+            ...hints.map((h) => _buildHintAccordion(
+                  h.tier,
+                  'Hint ${h.tier}: ${h.type.toUpperCase()}',
+                  h.hint,
+                )),
+            const SizedBox(height: 28),
+          ],
 
           // Flag Submission
           ZiteraCard(
@@ -406,10 +499,10 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                     ),
                     const SizedBox(width: 16),
                     ZiteraButton(
-                      label: 'Verify Flag',
+                      label: _isVerifyingFlag ? 'Verifying...' : 'Verify Flag',
                       icon: Icons.verified_outlined,
                       variant: ButtonVariant.primary,
-                      onPressed: _verifyFlag,
+                      onPressed: _isVerifyingFlag ? () {} : _verifyFlag,
                     ),
                   ],
                 ),
@@ -429,11 +522,13 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                           color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error,
                         ),
                         const SizedBox(width: 12),
-                        Text(
-                          _flagFeedback!,
-                          style: TextStyle(
-                            color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            _flagFeedback!,
+                            style: TextStyle(
+                              color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -464,7 +559,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                   Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   if (isRevealed) ...[
                     const SizedBox(height: 6),
-                    Text(text, style: const TextStyle(color: ZiteraColors.cyan, fontSize: 12)),
+                    SelectableText(text, style: const TextStyle(color: ZiteraColors.cyan, fontSize: 12)),
                   ],
                 ],
               ),
@@ -480,7 +575,12 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     );
   }
 
-  Widget _sectionCard({required String title, required IconData icon, required Color accentColor, required String content}) {
+  Widget _sectionCard({
+    required String title,
+    required IconData icon,
+    required Color accentColor,
+    required String content,
+  }) {
     return ZiteraCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,37 +593,9 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
             ],
           ),
           const SizedBox(height: 12),
-          Text(content, style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13, height: 1.5)),
-        ],
-      ),
-    );
-  }
-
-  Widget _stepCard({required String step, required String action, required String instruction, required String observation}) {
-    return ZiteraCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: ZiteraColors.primaryMuted,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(step, style: const TextStyle(color: ZiteraColors.primary, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(action, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 6),
-                Text('Task: $instruction', style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 12)),
-                const SizedBox(height: 4),
-                Text('Expected Observation: $observation', style: const TextStyle(color: ZiteraColors.cyan, fontSize: 12)),
-              ],
-            ),
+          SelectableText(
+            content,
+            style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13, height: 1.5),
           ),
         ],
       ),

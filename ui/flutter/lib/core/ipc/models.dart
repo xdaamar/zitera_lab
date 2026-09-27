@@ -166,3 +166,121 @@ class CatalogEntry {
     );
   }
 }
+
+class LabManifest {
+  final int schemaVersion;
+  final String id;
+  final String slug;
+  final String title;
+  final String owasp;
+  final String version;
+  final String difficulty;
+  final String runtime;
+  final String entrypoint;
+  final int defaultPort;
+  final int estimatedMinutes;
+  final List<String> modes;
+
+  LabManifest({
+    required this.schemaVersion,
+    required this.id,
+    required this.slug,
+    required this.title,
+    required this.owasp,
+    required this.version,
+    required this.difficulty,
+    required this.runtime,
+    required this.entrypoint,
+    required this.defaultPort,
+    required this.estimatedMinutes,
+    required this.modes,
+  });
+
+  factory LabManifest.fromJson(Map<String, dynamic> json) {
+    return LabManifest(
+      schemaVersion: json['schema_version'] as int? ?? 1,
+      id: json['id'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      owasp: json['owasp'] as String? ?? '',
+      version: json['version'] as String? ?? '1.0.0',
+      difficulty: json['difficulty'] as String? ?? 'Beginner',
+      runtime: json['runtime'] as String? ?? 'docker',
+      entrypoint: json['entrypoint'] as String? ?? '',
+      defaultPort: json['default_port'] as int? ?? 0,
+      estimatedMinutes: json['estimated_minutes'] as int? ?? 45,
+      modes: (json['modes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+    );
+  }
+}
+
+class ProgressiveHint {
+  final int tier;
+  final String type;
+  final String hint;
+
+  ProgressiveHint({
+    required this.tier,
+    required this.type,
+    required this.hint,
+  });
+
+  factory ProgressiveHint.fromJson(Map<String, dynamic> json) {
+    return ProgressiveHint(
+      tier: json['tier'] as int? ?? 1,
+      type: json['type'] as String? ?? 'general',
+      hint: json['hint'] as String? ?? '',
+    );
+  }
+}
+
+class LabContent {
+  final LabManifest manifest;
+  final Map<String, String> lessons;
+  final String challengeObjective;
+  final List<ProgressiveHint> hints;
+
+  LabContent({
+    required this.manifest,
+    required this.lessons,
+    required this.challengeObjective,
+    required this.hints,
+  });
+
+  factory LabContent.fromJson(Map<String, dynamic> json) {
+    final rawLessons = json['lessons'] as Map<String, dynamic>? ?? {};
+    final parsedLessons = rawLessons.map((k, v) => MapEntry(k, v.toString()));
+
+    final rawHints = json['hints'] as List<dynamic>? ?? [];
+    final parsedHints = rawHints
+        .map((h) => ProgressiveHint.fromJson(h as Map<String, dynamic>))
+        .toList();
+
+    return LabContent(
+      manifest: LabManifest.fromJson(json['manifest'] as Map<String, dynamic>? ?? {}),
+      lessons: parsedLessons,
+      challengeObjective: json['challenge_objective'] as String? ?? '',
+      hints: parsedHints,
+    );
+  }
+}
+
+class ChallengeResult {
+  final String labId;
+  final String status;
+  final String message;
+
+  ChallengeResult({
+    required this.labId,
+    required this.status,
+    required this.message,
+  });
+
+  factory ChallengeResult.fromJson(Map<String, dynamic> json) {
+    return ChallengeResult(
+      labId: json['lab_id'] as String? ?? '',
+      status: json['status'] as String? ?? 'failed',
+      message: json['message'] as String? ?? '',
+    );
+  }
+}

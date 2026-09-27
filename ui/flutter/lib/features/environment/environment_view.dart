@@ -42,6 +42,22 @@ class _EnvironmentViewState extends State<EnvironmentView> {
       return const Center(child: CircularProgressIndicator(color: ZiteraColors.primary));
     }
 
+    if (_diagnostics == null) {
+      return Center(
+        child: ZiteraCard(
+          borderColor: ZiteraColors.error,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Unable to query system diagnostics.', style: TextStyle(color: ZiteraColors.error)),
+              const SizedBox(height: 12),
+              ZiteraButton(label: 'Retry Check', icon: Icons.refresh, onPressed: _runCheck),
+            ],
+          ),
+        ),
+      );
+    }
+
     final diag = _diagnostics!;
 
     return SingleChildScrollView(

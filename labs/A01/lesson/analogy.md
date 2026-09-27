@@ -7,3 +7,6 @@ Imagine checking into a hotel:
 3. **Broken Access Control (Vulnerability):** Suppose the hotel uses an insecure digital lock where tapping your keycard asks your phone app: *"Which room do you want to unlock?"* If you edit the app to say `303` instead of `302`, the door clicks open!
 
 The front desk verified who you were (Authentication succeeded), but the room door trusted your client input without checking whether room 303 was actually rented to you (Authorization failed).
+
+## Zero-Recompile Verification Marker (v1.0.1)
+This lesson was dynamically updated and pulled from GitHub without recompiling the ZITERA_LAB core application binary.

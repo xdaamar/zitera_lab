@@ -221,75 +221,57 @@ class _DashboardViewState extends State<DashboardView> {
           ),
           const SizedBox(height: 16),
 
-          Row(
-            children: [
-              Expanded(
-                child: ZiteraCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          StatusBadge(status: 'A01:2025'),
-                          StatusBadge(status: 'PORT 8011'),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Broken Access Control',
-                        style: TextStyle(color: ZiteraColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Exploit horizontal IDOR parameter flaws to recover confidential financial accounts.',
-                        style: TextStyle(color: ZiteraColors.textSecondary, fontSize: 12),
-                      ),
-                      const SizedBox(height: 16),
-                      ZiteraButton(
-                        label: 'Enter Laboratory',
-                        icon: Icons.login,
-                        onPressed: () => widget.onOpenLab('A01'),
-                      ),
-                    ],
-                  ),
-                ),
+          if (_labs.isEmpty)
+            const ZiteraCard(
+              child: Text(
+                'No laboratories discovered yet. Check your connection or catalog.',
+                style: TextStyle(color: ZiteraColors.textSecondary),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ZiteraCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          StatusBadge(status: 'A05:2025'),
-                          StatusBadge(status: 'PORT 8015'),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Injection (SQLi)',
-                        style: TextStyle(color: ZiteraColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Bypass query boundaries with UNION injection to extract hidden database vault flags.',
-                        style: TextStyle(color: ZiteraColors.textSecondary, fontSize: 12),
-                      ),
-                      const SizedBox(height: 16),
-                      ZiteraButton(
-                        label: 'Enter Laboratory',
-                        icon: Icons.login,
-                        onPressed: () => widget.onOpenLab('A05'),
-                      ),
-                    ],
+            )
+          else
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: _labs.map((lab) {
+                return SizedBox(
+                  width: 380,
+                  child: ZiteraCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            StatusBadge(status: lab.status),
+                            if (lab.port > 0) StatusBadge(status: 'PORT ${lab.port}'),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          lab.title,
+                          style: const TextStyle(
+                            color: ZiteraColors.textPrimary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'ID: ${lab.id} • Version: v${lab.version}',
+                          style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        ZiteraButton(
+                          label: 'Enter Laboratory',
+                          icon: Icons.login,
+                          onPressed: () => widget.onOpenLab(lab.id),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
+                );
+              }).toList(),
+            ),
 
           const SizedBox(height: 32),
 

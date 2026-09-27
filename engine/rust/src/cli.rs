@@ -274,6 +274,69 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
             }
         }
+        "content" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            match labs::get_lab_content(workspace_root, id) {
+                Ok(content) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("lab.content", content))
+                                .unwrap()
+                        );
+                    } else {
+                        println!(
+                            "Lab Content: {} (v{})",
+                            content.manifest.title, content.manifest.version
+                        );
+                        println!("Objective: {}", content.challenge_objective);
+                        println!("Hints available: {}", content.hints.len());
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("lab.content", "LAB_CONTENT_FAILED", e, true);
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] {}", e);
+                    }
+                }
+            }
+        }
+        "validate-challenge" | "verify" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            let submission = args.get(2).map(|s| s.as_str()).unwrap_or("");
+            match labs::validate_challenge(workspace_root, id, submission) {
+                Ok(verif) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok(
+                                "lab.validate_challenge",
+                                verif
+                            ))
+                            .unwrap()
+                        );
+                    } else {
+                        println!("[{}] {}", verif.status, verif.message);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err(
+                            "lab.validate_challenge",
+                            "CHALLENGE_VERIFY_FAILED",
+                            e,
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] {}", e);
+                    }
+                }
+            }
+        }
         other => {
             if json {
                 let resp: ApiResponse<()> = ApiResponse::err(
@@ -369,6 +432,8 @@ fn print_help(json: bool) {
         println!("  tool list              List supported security tools and status");
         println!("  lab list               List installed and available labs");
         println!("  lab status <id>        Show runtime status for a lab");
+        println!("  lab content <id>       Get dynamic lesson and challenge content");
+        println!("  lab validate-challenge <id> <flag> Validate a challenge submission");
         println!("  lab install <id>       Install lab from catalog");
         println!("  lab start <id>         Start a lab environment");
         println!("  lab stop <id>          Stop a lab environment");
