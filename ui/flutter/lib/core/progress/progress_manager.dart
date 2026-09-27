@@ -41,13 +41,25 @@ class ProgressManager {
 
   static Future<void> markFlagSolved(String labId, String flag) async {
     final data = await loadProgress();
-    final list = List<String>.from(data['solved_flags'] as List? ?? []);
-    if (!list.contains(flag)) {
-      list.add(flag);
-      data['solved_flags'] = list;
+    final flags = List<String>.from(data['solved_flags'] as List? ?? []);
+    final labs = List<String>.from(data['completed_labs'] as List? ?? []);
+    var changed = false;
+
+    if (!flags.contains(flag)) {
+      flags.add(flag);
+      data['solved_flags'] = flags;
+      changed = true;
+    }
+    if (!labs.contains(labId)) {
+      labs.add(labId);
+      data['completed_labs'] = labs;
+      data['last_updated'] = DateTime.now().toIso8601String();
+      changed = true;
+    }
+
+    if (changed) {
       await _getProgressFile().writeAsString(jsonEncode(data));
     }
-    await markLabCompleted(labId);
   }
 
   static Future<void> resetAll() async {

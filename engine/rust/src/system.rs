@@ -176,41 +176,31 @@ fn query_resources() -> (f64, f64) {
     let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string());
     let ps = format!(r"{}\System32\WindowsPowerShell\v1.0\powershell.exe", windir);
 
-    let memory_gb = run_cmd(
+    let out = run_cmd(
         &ps,
         &[
             "-NoProfile",
             "-Command",
-            "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB",
+            "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB; (Get-PSDrive C).Free / 1GB",
         ],
         None,
-    )
-    .ok()
-    .and_then(|o| {
-        if o.success {
-            o.stdout.trim().parse::<f64>().ok()
-        } else {
-            None
-        }
-    })
-    .unwrap_or(0.0);
+    );
 
-    let disk_free_gb = run_cmd(
-        &ps,
-        &["-NoProfile", "-Command", "(Get-PSDrive C).Free / 1GB"],
-        None,
-    )
-    .ok()
-    .and_then(|o| {
+    if let Ok(o) = out {
         if o.success {
-            o.stdout.trim().parse::<f64>().ok()
-        } else {
-            None
+            let mut lines = o.stdout.lines();
+            let memory = lines
+                .next()
+                .and_then(|l| l.trim().parse::<f64>().ok())
+                .unwrap_or(0.0);
+            let disk = lines
+                .next()
+                .and_then(|l| l.trim().parse::<f64>().ok())
+                .unwrap_or(0.0);
+            return (memory, disk);
         }
-    })
-    .unwrap_or(0.0);
-
-    (memory_gb, disk_free_gb)
+    }
+    (0.0, 0.0)
 }
 
 fn check_powershell() -> ComponentStatus {
