@@ -55,8 +55,7 @@ zitera_lab/
 │   └── security.md     # Security Boundaries & Isolation Policy
 ├── catalog/
 │   └── catalog.json    # Centralized Lab Discovery Catalog
-├── branding/           # Vector Assets & Visual Identity
-└── scripts/            # Development & Verification Scripts
+└── branding/           # Vector Assets & Visual Identity
 ```
 
 ---

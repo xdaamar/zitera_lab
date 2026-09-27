@@ -24,9 +24,14 @@ rustup-init.exe
 .flutter-plugins-dependencies
 .packages
 pubspec.lock
-ephemeral/
-/PRD
-
+# Developer Internal, Build Scripts, Testing & Reports (Local Only)
+dev_internal/
+.dev_internal/
+scripts/
+reports/
+PRD/diagnostics/
+PRD/reports/
+PRD/decisions/
 
 # Rust
 Cargo.lock
