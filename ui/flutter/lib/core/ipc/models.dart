@@ -73,6 +73,9 @@ class ToolItem {
   final String? version;
   final String minVersion;
   final String status;
+  final String? path;
+  final List<String> capabilities;
+  final String installMethod;
   final String installGuide;
 
   ToolItem({
@@ -83,6 +86,9 @@ class ToolItem {
     this.version,
     required this.minVersion,
     required this.status,
+    this.path,
+    this.capabilities = const [],
+    this.installMethod = 'manual',
     required this.installGuide,
   });
 
@@ -95,6 +101,9 @@ class ToolItem {
       version: json['version'] as String?,
       minVersion: json['min_version'] as String? ?? '',
       status: json['status'] as String? ?? 'MISSING',
+      path: json['path'] as String?,
+      capabilities: (json['capabilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      installMethod: json['install_method'] as String? ?? 'manual',
       installGuide: json['install_guide'] as String? ?? '',
     );
   }
@@ -109,6 +118,10 @@ class LabItem {
   final String? url;
   final String version;
   final String status;
+  final String learnReadiness;
+  final String practiceReadiness;
+  final String challengeReadiness;
+  final List<String> recommendedTools;
 
   LabItem({
     required this.id,
@@ -119,6 +132,10 @@ class LabItem {
     this.url,
     required this.version,
     required this.status,
+    this.learnReadiness = 'READY',
+    this.practiceReadiness = 'READY',
+    this.challengeReadiness = 'READY',
+    this.recommendedTools = const [],
   });
 
   factory LabItem.fromJson(Map<String, dynamic> json) {
@@ -131,6 +148,10 @@ class LabItem {
       url: json['url'] as String?,
       version: json['version'] as String? ?? '1.0.0',
       status: json['status'] as String? ?? 'NOT_INSTALLED',
+      learnReadiness: json['learn_readiness'] as String? ?? 'READY',
+      practiceReadiness: json['practice_readiness'] as String? ?? 'READY',
+      challengeReadiness: json['challenge_readiness'] as String? ?? 'READY',
+      recommendedTools: (json['recommended_tools'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 }
@@ -281,6 +302,49 @@ class ChallengeResult {
       labId: json['lab_id'] as String? ?? '',
       status: json['status'] as String? ?? 'failed',
       message: json['message'] as String? ?? '',
+    );
+  }
+}
+
+class PracticeVerificationResult {
+  final String labId;
+  final String status; // passed, failed, unavailable, error
+  final String message;
+
+  PracticeVerificationResult({
+    required this.labId,
+    required this.status,
+    required this.message,
+  });
+
+  factory PracticeVerificationResult.fromJson(Map<String, dynamic> json) {
+    return PracticeVerificationResult(
+      labId: json['lab_id'] as String? ?? '',
+      status: json['status'] as String? ?? 'unavailable',
+      message: json['message'] as String? ?? '',
+    );
+  }
+}
+
+class ToolInstallResult {
+  final String id;
+  final bool success;
+  final String message;
+  final String method;
+
+  ToolInstallResult({
+    required this.id,
+    required this.success,
+    required this.message,
+    required this.method,
+  });
+
+  factory ToolInstallResult.fromJson(Map<String, dynamic> json) {
+    return ToolInstallResult(
+      id: json['id'] as String? ?? '',
+      success: json['success'] as bool? ?? false,
+      message: json['message'] as String? ?? '',
+      method: json['method'] as String? ?? 'manual',
     );
   }
 }

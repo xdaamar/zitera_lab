@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/ipc/engine_client.dart';
 import '../../core/ipc/models.dart';
 import '../../core/progress/progress_manager.dart';
@@ -33,6 +34,13 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   bool _flagSuccess = false;
   bool _isVerifyingFlag = false;
 
+  bool _isChallengeSolved = false;
+  bool _isPracticeDone = false;
+  Set<String> _completedSections = {};
+  bool _isVerifyingPractice = false;
+  PracticeVerificationResult? _practiceResult;
+  bool _dismissToolWarning = false;
+
   @override
   void initState() {
     super.initState();
@@ -59,15 +67,22 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       if (st.installed) {
         try {
           content = await ZiteraEngineClient.getLabContent(widget.labId);
-        } catch (_) {
-          // If reading content fails, graceful fallback
-        }
+        } catch (_) {}
       }
+
+      final progressData = await ProgressManager.loadProgress();
+      final challenges = List<String>.from(progressData['completed_challenges'] as List? ?? []);
+      final practice = List<String>.from(progressData['completed_practice'] as List? ?? []);
+      final sectionsMap = Map<String, dynamic>.from(progressData['completed_sections'] as Map? ?? {});
+      final labSections = Set<String>.from(sectionsMap[widget.labId] as List? ?? []);
 
       if (mounted) {
         setState(() {
           _status = st;
           _content = content;
+          _isChallengeSolved = challenges.contains(widget.labId);
+          _isPracticeDone = practice.contains(widget.labId);
+          _completedSections = labSections;
           _isLoading = false;
         });
       }
@@ -128,6 +143,65 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     }
   }
 
+  Future<void> _verifyPracticeTarget() async {
+    setState(() {
+      _isVerifyingPractice = true;
+      _practiceResult = null;
+    });
+
+    try {
+      final res = await ZiteraEngineClient.verifyPractice(widget.labId);
+      if (mounted) {
+        setState(() {
+          _practiceResult = res;
+          _isVerifyingPractice = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _practiceResult = PracticeVerificationResult(
+            labId: widget.labId,
+            status: 'error',
+            message: 'Failed to execute practice probe: $e',
+          );
+          _isVerifyingPractice = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleSectionUnderstood(String sectionKey) async {
+    await ProgressManager.markSectionCompleted(widget.labId, sectionKey);
+    setState(() {
+      _completedSections.add(sectionKey);
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Section "$sectionKey" marked as completed.'),
+          backgroundColor: ZiteraColors.ready,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
+  Future<void> _markPracticeCompleted() async {
+    await ProgressManager.markPracticeCompleted(widget.labId);
+    setState(() {
+      _isPracticeDone = true;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Practice mode marked as completed!'),
+          backgroundColor: ZiteraColors.ready,
+        ),
+      );
+    }
+  }
+
   Future<void> _verifyFlag() async {
     final input = _flagController.text.trim();
     if (input.isEmpty) return;
@@ -142,12 +216,14 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       final passed = res.status == 'passed';
 
       if (passed) {
-        await ProgressManager.markFlagSolved(widget.labId, input);
+        // Authoritative pass: record challenge completed WITHOUT saving flag text
+        await ProgressManager.markChallengeCompleted(widget.labId);
       }
 
       if (mounted) {
         setState(() {
           _flagSuccess = passed;
+          if (passed) _isChallengeSolved = true;
           _flagFeedback = res.message;
           _isVerifyingFlag = false;
         });
@@ -161,6 +237,13 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
         });
       }
     }
+  }
+
+  void _copyToClipboard(String text, String label) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label copied to clipboard!'), backgroundColor: ZiteraColors.ready),
+    );
   }
 
   @override
@@ -190,6 +273,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     final owaspCode = manifest?.owasp ?? 'OWASP';
     final port = manifest?.defaultPort ?? _status?.port ?? 0;
     final isRunning = _status?.running ?? false;
+    final hasMissingRecommended = _status?.challengeReadiness == 'PARTIAL' && !_dismissToolWarning;
 
     return Scaffold(
       backgroundColor: ZiteraColors.background,
@@ -200,6 +284,11 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
         ),
         title: Text('LAB $owaspCode // ${title.toUpperCase()}'),
         actions: [
+          if (_isChallengeSolved)
+            const Padding(
+              padding: EdgeInsets.only(right: 12.0),
+              child: StatusBadge(status: 'CHALLENGE SOLVED'),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: StatusBadge(status: isRunning ? 'RUNNING' : (_status?.status ?? 'STOPPED')),
@@ -208,9 +297,32 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       ),
       body: Column(
         children: [
-          // Control Banner
+          // Non-blocking Recommended Tool Missing Banner (Phase 6D / 6L)
+          if (hasMissingRecommended)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              color: ZiteraColors.warning.withValues(alpha: 0.15),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: ZiteraColors.warning, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'RECOMMENDED TOOLS MISSING (${_status!.recommendedTools.join(", ")}) — Learn & Practice modes are fully functional. You may install them via Tools Manager or continue.',
+                      style: const TextStyle(color: ZiteraColors.warning, fontSize: 12),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _dismissToolWarning = true),
+                    child: const Text('Dismiss', style: TextStyle(color: ZiteraColors.textPrimary, fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+
+          // Control & Runtime Banner
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             decoration: const BoxDecoration(
               color: ZiteraColors.surface,
               border: Border(bottom: BorderSide(color: ZiteraColors.border)),
@@ -221,16 +333,27 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      port > 0 ? 'Target URL: http://127.0.0.1:$port' : 'Port: Unassigned',
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        color: ZiteraColors.cyan,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          port > 0 ? 'Target URL: http://127.0.0.1:$port' : 'Port: Unassigned',
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            color: ZiteraColors.cyan,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (port > 0) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.copy, size: 14, color: ZiteraColors.textMuted),
+                            tooltip: 'Copy URL',
+                            onPressed: () => _copyToClipboard('http://127.0.0.1:$port', 'Target URL'),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 2),
                     const Text(
                       'Security boundary: localhost only (no LAN exposure)',
                       style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11),
@@ -267,7 +390,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
             ),
           ),
 
-          // Mode Tabs
+          // Mode Tabs (Generic Learning Experience)
           Container(
             color: ZiteraColors.surface,
             child: TabBar(
@@ -275,10 +398,10 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
               indicatorColor: ZiteraColors.primary,
               labelColor: ZiteraColors.primary,
               unselectedLabelColor: ZiteraColors.textSecondary,
-              tabs: const [
-                Tab(icon: Icon(Icons.menu_book_outlined, size: 18), text: 'MODE A: LEARN'),
-                Tab(icon: Icon(Icons.explore_outlined, size: 18), text: 'MODE B: PRACTICE'),
-                Tab(icon: Icon(Icons.flag_outlined, size: 18), text: 'MODE C: CHALLENGE / CTF'),
+              tabs: [
+                Tab(icon: const Icon(Icons.menu_book_outlined, size: 18), text: 'MODE A: LEARN (${_completedSections.length} Done)'),
+                Tab(icon: Icon(_isPracticeDone ? Icons.check_circle : Icons.explore_outlined, size: 18), text: 'MODE B: PRACTICE'),
+                Tab(icon: Icon(_isChallengeSolved ? Icons.verified : Icons.flag_outlined, size: 18), text: 'MODE C: CHALLENGE / CTF'),
               ],
             ),
           ),
@@ -301,10 +424,6 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
 
   Widget _buildLearnTab() {
     final lessons = _content?.lessons ?? {};
-    final analogyText = lessons['analogy'];
-    final conceptText = lessons['concept'];
-    final remediationText = lessons['remediation'];
-    final introText = lessons['introduction'];
 
     if (lessons.isEmpty) {
       return Center(
@@ -319,53 +438,77 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       );
     }
 
+    // Dynamic section ordering
+    final keys = lessons.keys.toList();
+    // Prioritize standard keys if present
+    final preferredOrder = ['introduction', 'overview', 'analogy', 'concept', 'remediation', 'walkthrough', 'review'];
+    keys.sort((a, b) {
+      final indexA = preferredOrder.indexOf(a);
+      final indexB = preferredOrder.indexOf(b);
+      if (indexA != -1 && indexB != -1) return indexA.compareTo(indexB);
+      if (indexA != -1) return -1;
+      if (indexB != -1) return 1;
+      return a.compareTo(b);
+    });
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (introText != null && introText.isNotEmpty) ...[
-            _sectionCard(
-              title: 'Overview & Introduction',
-              icon: Icons.info_outline,
-              accentColor: ZiteraColors.primary,
-              content: introText,
+        children: keys.map((key) {
+          final content = lessons[key] ?? '';
+          final title = _formatSectionTitle(key);
+          final isCompleted = _completedSections.contains(key);
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 20.0),
+            child: ZiteraCard(
+              borderColor: isCompleted ? ZiteraColors.ready.withValues(alpha: 0.3) : ZiteraColors.border,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(_getSectionIcon(key), color: ZiteraColors.primary, size: 20),
+                          const SizedBox(width: 10),
+                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        ],
+                      ),
+                      if (isCompleted)
+                        const Row(
+                          children: [
+                            Icon(Icons.check, color: ZiteraColors.ready, size: 16),
+                            SizedBox(width: 4),
+                            Text('UNDERSTOOD', style: TextStyle(color: ZiteraColors.ready, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ],
+                        )
+                      else
+                        TextButton.icon(
+                          icon: const Icon(Icons.done, size: 14),
+                          label: const Text('Mark Understood', style: TextStyle(fontSize: 12)),
+                          onPressed: () => _toggleSectionUnderstood(key),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SelectableText(
+                    content,
+                    style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13, height: 1.6),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
-          ],
-          if (analogyText != null && analogyText.isNotEmpty) ...[
-            _sectionCard(
-              title: 'Mental Model / Real-World Analogy',
-              icon: Icons.lightbulb_outline,
-              accentColor: ZiteraColors.cyan,
-              content: analogyText,
-            ),
-            const SizedBox(height: 20),
-          ],
-          if (conceptText != null && conceptText.isNotEmpty) ...[
-            _sectionCard(
-              title: 'Technical Core Concept',
-              icon: Icons.code,
-              accentColor: ZiteraColors.primary,
-              content: conceptText,
-            ),
-            const SizedBox(height: 20),
-          ],
-          if (remediationText != null && remediationText.isNotEmpty) ...[
-            _sectionCard(
-              title: 'Secure Remediation & Defense',
-              icon: Icons.security,
-              accentColor: ZiteraColors.ready,
-              content: remediationText,
-            ),
-          ],
-        ],
+          );
+        }).toList(),
       ),
     );
   }
 
   Widget _buildPracticeTab(int port) {
-    final walkthroughText = _content?.lessons['walkthrough'];
+    final walkthroughText = _content?.lessons['walkthrough'] ?? _content?.lessons['practice'];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
@@ -384,10 +527,86 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                   fontFamily: 'monospace',
                 ),
               ),
-              StatusBadge(status: 'PORT: $port'),
+              Row(
+                children: [
+                  if (_isPracticeDone)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8.0),
+                      child: StatusBadge(status: 'PRACTICE DONE'),
+                    ),
+                  StatusBadge(status: 'PORT: $port'),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 16),
+
+          // Interactive Practice Target Verification Card (Phase 6F)
+          ZiteraCard(
+            borderColor: ZiteraColors.cyan.withValues(alpha: 0.4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.radar, color: ZiteraColors.cyan, size: 20),
+                        SizedBox(width: 10),
+                        Text(
+                          'PRACTICE RUNTIME PROBE',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
+                        ),
+                      ],
+                    ),
+                    ZiteraButton(
+                      label: _isVerifyingPractice ? 'Probing Target...' : 'Verify Local Service Health',
+                      icon: Icons.network_check,
+                      variant: ButtonVariant.secondary,
+                      onPressed: _isVerifyingPractice ? () {} : _verifyPracticeTarget,
+                    ),
+                  ],
+                ),
+                if (_practiceResult != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _practiceResult!.status == 'passed' ? ZiteraColors.readyMuted : ZiteraColors.errorMuted,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: _practiceResult!.status == 'passed' ? ZiteraColors.ready : ZiteraColors.error,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _practiceResult!.status == 'passed' ? Icons.check_circle : Icons.error_outline,
+                          color: _practiceResult!.status == 'passed' ? ZiteraColors.ready : ZiteraColors.error,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _practiceResult!.message,
+                            style: TextStyle(
+                              color: _practiceResult!.status == 'passed' ? ZiteraColors.ready : ZiteraColors.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           if (walkthroughText != null && walkthroughText.isNotEmpty)
             ZiteraCard(
               child: SelectableText(
@@ -407,6 +626,30 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                 style: TextStyle(color: ZiteraColors.textSecondary),
               ),
             ),
+
+          const SizedBox(height: 20),
+
+          // Completion action
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (!_isPracticeDone)
+                ZiteraButton(
+                  label: 'Mark Practice as Completed',
+                  icon: Icons.check_circle_outline,
+                  variant: ButtonVariant.primary,
+                  onPressed: _markPracticeCompleted,
+                )
+              else
+                const Row(
+                  children: [
+                    Icon(Icons.verified, color: ZiteraColors.ready, size: 18),
+                    SizedBox(width: 8),
+                    Text('Practice Completed & Saved', style: TextStyle(color: ZiteraColors.ready, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -424,6 +667,34 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Conquered Banner if solved
+          if (_isChallengeSolved) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: ZiteraColors.readyMuted,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: ZiteraColors.ready),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.workspace_premium, color: ZiteraColors.ready, size: 28),
+                  SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('CHALLENGE CONQUERED!', style: TextStyle(color: ZiteraColors.ready, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text('You have successfully verified and completed this cybersecurity challenge objective.', style: TextStyle(color: ZiteraColors.textPrimary, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           ZiteraCard(
             borderColor: ZiteraColors.primary.withValues(alpha: 0.5),
             child: Column(
@@ -455,21 +726,63 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
 
           const SizedBox(height: 24),
 
+          // Progressive Hints (Sequential Unlock: Hint 1 -> Hint 2 -> Hint 3)
           if (hints.isNotEmpty) ...[
             const Text(
-              'PROGRESSIVE HINTS (USE ONLY WHEN STUCK)',
+              'PROGRESSIVE HINTS (SEQUENTIAL UNLOCK)',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0, fontFamily: 'monospace'),
             ),
             const SizedBox(height: 12),
-            ...hints.map((h) => _buildHintAccordion(
-                  h.tier,
-                  'Hint ${h.tier}: ${h.type.toUpperCase()}',
-                  h.hint,
-                )),
+            ...hints.map((h) {
+              final isUnlocked = _revealedHintTier >= h.tier;
+              final canUnlock = _revealedHintTier >= (h.tier - 1);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: ZiteraCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hint ${h.tier}: ${h.type.toUpperCase()}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: isUnlocked ? Colors.white : ZiteraColors.textMuted,
+                              ),
+                            ),
+                            if (isUnlocked) ...[
+                              const SizedBox(height: 6),
+                              SelectableText(h.hint, style: const TextStyle(color: ZiteraColors.cyan, fontSize: 12)),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (!isUnlocked)
+                        TextButton(
+                          onPressed: canUnlock ? () => setState(() => _revealedHintTier = h.tier) : null,
+                          child: Text(
+                            canUnlock ? 'Unlock Hint ${h.tier}' : 'Locked (Unlock Hint ${h.tier - 1} First)',
+                            style: TextStyle(
+                              color: canUnlock ? ZiteraColors.primary : ZiteraColors.textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
             const SizedBox(height: 28),
           ],
 
-          // Flag Submission
+          // Flag Submission Card
           ZiteraCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,62 +856,47 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     );
   }
 
-  Widget _buildHintAccordion(int tier, String title, String text) {
-    final isRevealed = _revealedHintTier >= tier;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: ZiteraCard(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  if (isRevealed) ...[
-                    const SizedBox(height: 6),
-                    SelectableText(text, style: const TextStyle(color: ZiteraColors.cyan, fontSize: 12)),
-                  ],
-                ],
-              ),
-            ),
-            if (!isRevealed)
-              TextButton(
-                onPressed: () => setState(() => _revealedHintTier = tier),
-                child: const Text('Unlock Hint', style: TextStyle(color: ZiteraColors.primary, fontSize: 12)),
-              ),
-          ],
-        ),
-      ),
-    );
+  String _formatSectionTitle(String key) {
+    switch (key) {
+      case 'introduction':
+      case 'overview':
+        return 'Overview & Introduction';
+      case 'analogy':
+        return 'Mental Model / Real-World Analogy';
+      case 'concept':
+        return 'Technical Core Concept';
+      case 'remediation':
+        return 'Secure Remediation & Defense';
+      case 'walkthrough':
+        return 'Investigation Walkthrough';
+      case 'practice':
+        return 'Interactive Practice Objectives';
+      case 'review':
+        return 'Security Takeaways & Review';
+      default:
+        return key.replaceAll('_', ' ').toUpperCase();
+    }
   }
 
-  Widget _sectionCard({
-    required String title,
-    required IconData icon,
-    required Color accentColor,
-    required String content,
-  }) {
-    return ZiteraCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: accentColor, size: 20),
-              const SizedBox(width: 10),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SelectableText(
-            content,
-            style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13, height: 1.5),
-          ),
-        ],
-      ),
-    );
+  IconData _getSectionIcon(String key) {
+    switch (key) {
+      case 'introduction':
+      case 'overview':
+        return Icons.info_outline;
+      case 'analogy':
+        return Icons.lightbulb_outline;
+      case 'concept':
+        return Icons.code;
+      case 'remediation':
+        return Icons.security;
+      case 'walkthrough':
+        return Icons.format_list_numbered;
+      case 'practice':
+        return Icons.explore_outlined;
+      case 'review':
+        return Icons.rate_review_outlined;
+      default:
+        return Icons.article_outlined;
+    }
   }
 }

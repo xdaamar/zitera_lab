@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/ipc/engine_client.dart';
 import '../../core/ipc/models.dart';
 import '../../core/theme/zitera_colors.dart';
@@ -15,6 +16,7 @@ class EnvironmentView extends StatefulWidget {
 
 class _EnvironmentViewState extends State<EnvironmentView> {
   DiagnosticsResult? _diagnostics;
+  List<ToolItem> _tools = [];
   bool _isLoading = true;
 
   @override
@@ -26,14 +28,33 @@ class _EnvironmentViewState extends State<EnvironmentView> {
   Future<void> _runCheck() async {
     setState(() => _isLoading = true);
     try {
-      final diag = await ZiteraEngineClient.runDoctor();
-      setState(() {
-        _diagnostics = diag;
-        _isLoading = false;
-      });
+      final results = await Future.wait([
+        ZiteraEngineClient.runDoctor(),
+        ZiteraEngineClient.getTools(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _diagnostics = results[0] as DiagnosticsResult;
+          _tools = results[1] as List<ToolItem>;
+          _isLoading = false;
+        });
+      }
     } catch (_) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  void _copyToClipboard(String text, String label) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$label copied to clipboard!'),
+        backgroundColor: ZiteraColors.ready,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -49,6 +70,8 @@ class _EnvironmentViewState extends State<EnvironmentView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Icon(Icons.error_outline, color: ZiteraColors.error, size: 36),
+              const SizedBox(height: 12),
               const Text('Unable to query system diagnostics.', style: TextStyle(color: ZiteraColors.error)),
               const SizedBox(height: 12),
               ZiteraButton(label: 'Retry Check', icon: Icons.refresh, onPressed: _runCheck),
@@ -59,6 +82,7 @@ class _EnvironmentViewState extends State<EnvironmentView> {
     }
 
     final diag = _diagnostics!;
+    final readyTools = _tools.where((t) => t.installed).length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
@@ -72,7 +96,7 @@ class _EnvironmentViewState extends State<EnvironmentView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text(
-                    'SMART SETUP & ENVIRONMENT DIAGNOSTICS',
+                    'SMART ENVIRONMENT SETUP V2',
                     style: TextStyle(
                       color: ZiteraColors.textPrimary,
                       fontSize: 22,
@@ -83,7 +107,7 @@ class _EnvironmentViewState extends State<EnvironmentView> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Detect, classify, explain, recommend, and validate system prerequisites',
+                    'Detect, classify, explain, recommend, and validate system prerequisites & tools',
                     style: TextStyle(color: ZiteraColors.textSecondary, fontSize: 13),
                   ),
                 ],
@@ -99,14 +123,17 @@ class _EnvironmentViewState extends State<EnvironmentView> {
 
           const SizedBox(height: 24),
 
+          // Overall Readiness Banner
           ZiteraCard(
-            borderColor: diag.allReady ? ZiteraColors.ready.withValues(alpha: 0.4) : ZiteraColors.warning.withValues(alpha: 0.4),
+            borderColor: diag.allReady
+                ? ZiteraColors.ready.withValues(alpha: 0.4)
+                : ZiteraColors.warning.withValues(alpha: 0.4),
             child: Row(
               children: [
                 Icon(
                   diag.allReady ? Icons.check_circle : Icons.warning_amber,
                   color: diag.allReady ? ZiteraColors.ready : ZiteraColors.warning,
-                  size: 32,
+                  size: 36,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -114,14 +141,16 @@ class _EnvironmentViewState extends State<EnvironmentView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        diag.allReady ? 'ALL SYSTEM PREREQUISITES READY' : 'ACTION REQUIRED TO COMPLETE SETUP',
+                        diag.allReady
+                            ? 'ALL CORE SYSTEM PREREQUISITES VERIFIED READY'
+                            : 'ACTION REQUIRED TO COMPLETE ENVIRONMENT SETUP',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         diag.allReady
-                            ? 'Your Windows machine is fully configured to host, start, and reset all isolated Docker labs.'
-                            : 'Some components require setup or service startup. Review the recommendations below.',
+                            ? 'Host environment is fully configured. All containerized external labs can be launched locally.'
+                            : 'One or more system components require attention. Review guided action steps below.',
                         style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 12),
                       ),
                     ],
@@ -132,18 +161,95 @@ class _EnvironmentViewState extends State<EnvironmentView> {
             ),
           ),
 
+          const SizedBox(height: 20),
+
+          // Host Hardware Resources Card
+          Row(
+            children: [
+              Expanded(
+                child: ZiteraCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.memory, color: ZiteraColors.cyan, size: 28),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('HOST MEMORY (RAM)', style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text('${diag.memoryGb.toStringAsFixed(1)} GB Total', style: const TextStyle(color: ZiteraColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ZiteraCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.storage, color: ZiteraColors.primary, size: 28),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('SYSTEM DRIVE FREE DISK', style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text('${diag.diskFreeGb.toStringAsFixed(1)} GB Free', style: const TextStyle(color: ZiteraColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ZiteraCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.security, color: ZiteraColors.ready, size: 28),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('SECURITY TOOLS STATUS', style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text('$readyTools of ${_tools.length} Tools Ready', style: const TextStyle(color: ZiteraColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
           const SizedBox(height: 28),
 
+          // Core System Prerequisites Section
+          const Text(
+            'CORE SYSTEM PREREQUISITES',
+            style: TextStyle(
+              color: ZiteraColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(height: 12),
+
           _buildComponentCard(diag.os),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _buildComponentCard(diag.git),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _buildComponentCard(diag.wsl),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _buildComponentCard(diag.docker),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _buildComponentCard(diag.dockerDaemon),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _buildComponentCard(diag.powershell),
         ],
       ),
@@ -151,6 +257,9 @@ class _EnvironmentViewState extends State<EnvironmentView> {
   }
 
   Widget _buildComponentCard(ComponentItem comp) {
+    final isReady = comp.status == 'READY';
+    final isBlocked = comp.status == 'BLOCKED';
+
     return ZiteraCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,8 +270,12 @@ class _EnvironmentViewState extends State<EnvironmentView> {
               Row(
                 children: [
                   Icon(
-                    comp.installed ? Icons.check_circle_outline : Icons.error_outline,
-                    color: comp.installed ? ZiteraColors.ready : ZiteraColors.warning,
+                    isReady
+                        ? Icons.check_circle_outline
+                        : (isBlocked ? Icons.block : Icons.error_outline),
+                    color: isReady
+                        ? ZiteraColors.ready
+                        : (isBlocked ? ZiteraColors.error : ZiteraColors.warning),
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -170,6 +283,13 @@ class _EnvironmentViewState extends State<EnvironmentView> {
                     comp.name,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
+                  if (comp.version != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '(${comp.version})',
+                      style: const TextStyle(color: ZiteraColors.textMuted, fontSize: 12, fontFamily: 'monospace'),
+                    ),
+                  ],
                 ],
               ),
               StatusBadge(status: comp.status),
@@ -178,9 +298,9 @@ class _EnvironmentViewState extends State<EnvironmentView> {
           const SizedBox(height: 8),
           Text(comp.message, style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13)),
           if (comp.recommendation != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: ZiteraColors.surface,
                 borderRadius: BorderRadius.circular(4),
@@ -188,13 +308,19 @@ class _EnvironmentViewState extends State<EnvironmentView> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, size: 16, color: ZiteraColors.cyan),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.build_circle_outlined, size: 18, color: ZiteraColors.cyan),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Recommendation: ${comp.recommendation!}',
+                      'Recommended Action: ${comp.recommendation!}',
                       style: const TextStyle(color: ZiteraColors.cyan, fontSize: 12, fontFamily: 'monospace'),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    icon: const Icon(Icons.copy, size: 14, color: ZiteraColors.textPrimary),
+                    label: const Text('Copy Action', style: TextStyle(color: ZiteraColors.textPrimary, fontSize: 12)),
+                    onPressed: () => _copyToClipboard(comp.recommendation!, comp.name),
                   ),
                 ],
               ),

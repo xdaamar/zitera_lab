@@ -166,4 +166,19 @@ class ZiteraEngineClient {
     final data = await executeCommand(['lab', 'validate-challenge', id, flag]);
     return ChallengeResult.fromJson(data);
   }
+
+  static Future<PracticeVerificationResult> verifyPractice(String id) async {
+    final data = await executeCommand(['lab', 'practice-verify', id]);
+    return PracticeVerificationResult.fromJson(data);
+  }
+
+  static Future<ToolItem> getToolStatus(String id) async {
+    final data = await executeCommand(['tool', 'status', id]);
+    return ToolItem.fromJson(data);
+  }
+
+  static Future<ToolInstallResult> installTool(String id) async {
+    final data = await executeCommand(['tool', 'install', id]);
+    return ToolInstallResult.fromJson(data);
+  }
 }
