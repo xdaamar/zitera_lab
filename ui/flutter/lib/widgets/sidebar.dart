@@ -170,15 +170,15 @@ class Sidebar extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      // Calico Cat — enlarged to 52×52 so it's clearly visible
+                      // Calico Cat — enlarged to 58×58 so it's clearly visible
                       SizedBox(
-                        width: 52,
-                        height: 52,
+                        width: 58,
+                        height: 58,
                         child: Image.asset(
                           'assets/images/calico_cat.png',
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.pets, size: 32, color: Color(0xFFFDBA74)),
+                              const Icon(Icons.pets, size: 36, color: Color(0xFFFDBA74)),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -238,85 +238,80 @@ class Sidebar extends StatelessWidget {
     final isSelected = selectedIndex == index;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => onDestinationSelected(index),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onDestinationSelected(index),
+          borderRadius: BorderRadius.circular(8),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: stickerAsset != null ? 5 : 9,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? const Color(0xFFFCFBF8)
+                  : const Color(0xFFFCFBF8).withValues(alpha: 0.88),
               borderRadius: BorderRadius.circular(8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFFFCFBF8)
-                      : const Color(0xFFFCFBF8).withValues(alpha: 0.88),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isSelected ? const Color(0xFF2DD4BF) : ZiteraColors.border,
-                    width: isSelected ? 1.5 : 1.0,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isSelected
-                          ? const Color(0xFF2DD4BF).withValues(alpha: 0.15)
-                          : Colors.black.withValues(alpha: 0.03),
-                      blurRadius: isSelected ? 8 : 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      icon,
-                      size: 18,
-                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF5C5347),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          // Use JetBrainsMono for nav items (much more readable than Silkscreen)
-                          fontFamily: 'JetBrainsMono',
-                          color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF1E1A14),
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    // Tag — VT323 at 14px is very readable
-                    Text(
-                      tag,
-                      style: TextStyle(
-                        fontFamily: 'VT323',
-                        fontSize: 14,
-                        color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF9C9080),
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
+              border: Border.all(
+                color: isSelected ? const Color(0xFF2DD4BF) : ZiteraColors.border,
+                width: isSelected ? 1.5 : 1.0,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected
+                      ? const Color(0xFF2DD4BF).withValues(alpha: 0.15)
+                      : Colors.black.withValues(alpha: 0.03),
+                  blurRadius: isSelected ? 8 : 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF5C5347),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      // Use JetBrainsMono for nav items (much more readable than Silkscreen)
+                      fontFamily: 'JetBrainsMono',
+                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF1E1A14),
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (stickerAsset != null)
+                  SizedBox(
+                    width: 38,
+                    height: 38,
+                    child: Image.asset(
+                      stickerAsset,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                    ),
+                  )
+                else
+                  Text(
+                    tag,
+                    style: TextStyle(
+                      fontFamily: 'VT323',
+                      fontSize: 14,
+                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF9C9080),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+              ],
             ),
           ),
-          if (stickerAsset != null)
-            Positioned(
-              right: -14,
-              top: -14,
-              child: SizedBox(
-                width: 46,
-                height: 46,
-                child: Image.asset(
-                  stickerAsset,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

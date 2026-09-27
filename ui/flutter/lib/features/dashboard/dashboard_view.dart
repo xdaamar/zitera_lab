@@ -318,7 +318,7 @@ class _DashboardViewState extends State<DashboardView> {
             ),
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 28),
 
           // 4. Statistics Cards (x4 Identical Square Cards with Peeking Stickers)
           Row(
@@ -400,14 +400,7 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   const SizedBox(width: 8),
                   _pixelBarChart(),
-                  const SizedBox(width: 6),
-                  Image.asset(
-                    'assets/images/sticker_pink.png',
-                    width: 38,
-                    height: 38,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox(),
-                  ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
                   const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFF472B6)),
                 ],
               ),
@@ -432,7 +425,7 @@ class _DashboardViewState extends State<DashboardView> {
             ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 26),
 
           // Laboratory Cards (Row of 2 Cards, equal height via IntrinsicHeight)
           IntrinsicHeight(
@@ -636,13 +629,16 @@ class _DashboardViewState extends State<DashboardView> {
         ),
         if (stickerAsset != null)
           Positioned(
-            top: -22,
-            right: -10,
-            child: Image.asset(
-              stickerAsset,
-              width: 56,
-              height: 56,
-              errorBuilder: (context, error, stackTrace) => const SizedBox(),
+            top: -24,
+            right: 6,
+            child: SizedBox(
+              width: 52,
+              height: 52,
+              child: Image.asset(
+                stickerAsset,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const SizedBox(),
+              ),
             ),
           ),
       ],
@@ -828,13 +824,16 @@ class _DashboardViewState extends State<DashboardView> {
         // Yellow card has pink chibi sticker on top
         if (isYellowTheme)
           Positioned(
-            top: -22,
-            right: 110,
-            child: Image.asset(
-              'assets/images/sticker_pink.png',
-              width: 50,
-              height: 50,
-              errorBuilder: (context, error, stackTrace) => const SizedBox(),
+            top: -24,
+            right: 108,
+            child: SizedBox(
+              width: 52,
+              height: 52,
+              child: Image.asset(
+                'assets/images/sticker_pink.png',
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const SizedBox(),
+              ),
             ),
           ),
 
