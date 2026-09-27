@@ -6,6 +6,9 @@ class ZiteraCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
   final Color? borderColor;
+  final Color? backgroundColor;
+  final double borderRadius;
+  final List<BoxShadow>? boxShadow;
 
   const ZiteraCard({
     super.key,
@@ -13,6 +16,9 @@ class ZiteraCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(20),
     this.onTap,
     this.borderColor,
+    this.backgroundColor,
+    this.borderRadius = 8,
+    this.boxShadow,
   });
 
   @override
@@ -20,12 +26,19 @@ class ZiteraCard extends StatelessWidget {
     Widget content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: ZiteraColors.card,
-        borderRadius: BorderRadius.circular(8),
+        color: backgroundColor ?? ZiteraColors.card,
+        borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
           color: borderColor ?? ZiteraColors.border,
-          width: 1,
+          width: 1.2,
         ),
+        boxShadow: boxShadow ?? [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: child,
     );
@@ -33,7 +46,7 @@ class ZiteraCard extends StatelessWidget {
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(borderRadius),
         hoverColor: ZiteraColors.cardHover,
         child: content,
       );
@@ -42,3 +55,4 @@ class ZiteraCard extends StatelessWidget {
     return content;
   }
 }
+

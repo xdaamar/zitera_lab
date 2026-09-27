@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
-import '../core/theme/zitera_colors.dart';
 
 class StatusBadge extends StatelessWidget {
+
   final String status;
   final double fontSize;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final Color? borderColor;
 
   const StatusBadge({
     super.key,
     required this.status,
-    this.fontSize = 11,
+    this.fontSize = 10,
+    this.backgroundColor,
+    this.textColor,
+    this.borderColor,
   });
 
   @override
@@ -20,29 +26,37 @@ class StatusBadge extends StatelessWidget {
     final norm = status.toUpperCase();
 
     if (norm == 'READY' || norm == 'RUNNING' || norm == 'OK') {
-      bg = ZiteraColors.readyMuted;
-      fg = ZiteraColors.ready;
-      border = ZiteraColors.ready.withValues(alpha: 0.4);
+      bg = const Color(0xFFDCFCE7);
+      fg = const Color(0xFF166534);
+      border = const Color(0xFF86EFAC);
     } else if (norm == 'WARNING' || norm == 'OUTDATED' || norm == 'ATTENTION REQUIRED') {
-      bg = ZiteraColors.warningMuted;
-      fg = ZiteraColors.warning;
-      border = ZiteraColors.warning.withValues(alpha: 0.4);
+      bg = const Color(0xFFFEF3C7);
+      fg = const Color(0xFFB45309);
+      border = const Color(0xFFFCD34D);
     } else if (norm == 'BLOCKED' || norm == 'ERROR' || norm == 'FAILED') {
-      bg = ZiteraColors.errorMuted;
-      fg = ZiteraColors.error;
-      border = ZiteraColors.error.withValues(alpha: 0.4);
+      bg = const Color(0xFFFEE2E2);
+      fg = const Color(0xFFB91C1C);
+      border = const Color(0xFFFCA5A5);
     } else if (norm == 'STOPPED') {
-      bg = ZiteraColors.cyanMuted;
-      fg = ZiteraColors.cyan;
-      border = ZiteraColors.cyan.withValues(alpha: 0.4);
+      bg = const Color(0xFFE2E8F0);
+      fg = const Color(0xFF475569);
+      border = const Color(0xFFCBD5E1);
+    } else if (norm.startsWith('PORT')) {
+      bg = const Color(0xFFF1F5F9);
+      fg = const Color(0xFF334155);
+      border = const Color(0xFFCBD5E1);
     } else {
-      bg = ZiteraColors.missingMuted;
-      fg = ZiteraColors.missing;
-      border = ZiteraColors.missing.withValues(alpha: 0.3);
+      bg = const Color(0xFFF1F5F9);
+      fg = const Color(0xFF64748B);
+      border = const Color(0xFFE2E8F0);
     }
 
+    if (backgroundColor != null) bg = backgroundColor!;
+    if (textColor != null) fg = textColor!;
+    if (borderColor != null) border = borderColor!;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(4),
@@ -50,23 +64,26 @@ class StatusBadge extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Square pixel dot
           Container(
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             decoration: BoxDecoration(
               color: fg,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(1),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Text(
             norm,
             style: TextStyle(
               color: fg,
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
+              fontFamily: 'Silkscreen',
+              letterSpacing: 0.6,
             ),
           ),
         ],
@@ -74,3 +91,4 @@ class StatusBadge extends StatelessWidget {
     );
   }
 }
+
