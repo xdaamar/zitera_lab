@@ -172,10 +172,23 @@ class _DashboardViewState extends State<DashboardView> {
             ),
           ];
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/bg_dashboard.jpg',
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            color: const Color(0xFFFCFBF8).withValues(alpha: 0.90),
+          ),
+        ),
+        SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Header Section
           Row(
@@ -346,6 +359,7 @@ class _DashboardViewState extends State<DashboardView> {
                   bgColor: ZiteraColors.statLabsBg,
                   borderColor: ZiteraColors.statLabsBorder,
                   textColor: ZiteraColors.statLabsText,
+                  stickerAsset: 'assets/images/sticker_bunny.png',
                 ),
               ),
               const SizedBox(width: 14),
@@ -359,6 +373,7 @@ class _DashboardViewState extends State<DashboardView> {
                   bgColor: ZiteraColors.statRuntimesBg,
                   borderColor: ZiteraColors.statRuntimesBorder,
                   textColor: ZiteraColors.statRuntimesText,
+                  stickerAsset: 'assets/images/sticker_hamster.png',
                 ),
               ),
               const SizedBox(width: 14),
@@ -564,6 +579,8 @@ class _DashboardViewState extends State<DashboardView> {
           ),
         ],
       ),
+    ),
+      ],
     );
   }
 
@@ -577,25 +594,25 @@ class _DashboardViewState extends State<DashboardView> {
     required Color textColor,
     String? stickerAsset,
   }) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: borderColor, width: 1.4),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1.4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 title,
@@ -607,41 +624,37 @@ class _DashboardViewState extends State<DashboardView> {
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontFamily: 'SpaceGrotesk',
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E1A14),
-                    ),
+              if (stickerAsset != null)
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Image.asset(
+                    stickerAsset,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const SizedBox(),
                   ),
-                  Icon(icon, color: textColor, size: 20),
-                ],
-              ),
+                ),
             ],
           ),
-        ),
-        if (stickerAsset != null)
-          Positioned(
-            top: -26,
-            right: 8,
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Image.asset(
-                stickerAsset,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E1A14),
+                ),
               ),
-            ),
+              Icon(icon, color: textColor, size: 20),
+            ],
           ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -675,7 +688,7 @@ class _DashboardViewState extends State<DashboardView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Badges
+              // Top Badges & Cute Inside Sticker
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -685,11 +698,25 @@ class _DashboardViewState extends State<DashboardView> {
                     textColor: badgeFg,
                     borderColor: badgeFg.withValues(alpha: 0.3),
                   ),
-                  StatusBadge(
-                    status: 'PORT ${lab.port}',
-                    backgroundColor: badgeBg,
-                    textColor: badgeFg,
-                    borderColor: badgeFg.withValues(alpha: 0.3),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Image.asset(
+                          isYellowTheme ? 'assets/images/sticker_pink.png' : 'assets/images/sticker_duck.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      StatusBadge(
+                        status: 'PORT ${lab.port}',
+                        backgroundColor: badgeBg,
+                        textColor: badgeFg,
+                        borderColor: badgeFg.withValues(alpha: 0.3),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -820,22 +847,6 @@ class _DashboardViewState extends State<DashboardView> {
             ],
           ),
         ),
-
-        // Yellow card has pink chibi sticker on top
-        if (isYellowTheme)
-          Positioned(
-            top: -26,
-            right: 110,
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Image.asset(
-                'assets/images/sticker_pink.png',
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(),
-              ),
-            ),
-          ),
 
         // Corner Sparkle Accent
         Positioned(

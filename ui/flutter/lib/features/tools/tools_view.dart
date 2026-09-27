@@ -173,104 +173,153 @@ class _ToolsViewState extends State<ToolsView> {
 
     final readyCount = _tools.where((t) => t.installed).length;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/bg_tools.jpg',
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            color: const Color(0xFFFCFBF8).withValues(alpha: 0.91),
+          ),
+        ),
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'SECURITY TOOLS CAPABILITY MANAGER',
-                    style: TextStyle(
-                      color: ZiteraColors.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                      fontFamily: 'monospace',
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'SECURITY TOOLS CAPABILITY MANAGER',
+                        style: TextStyle(
+                          color: Color(0xFF1E1A14),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          fontFamily: 'SpaceGrotesk',
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Detection, bounded versioning, and safe explicit installation contracts ($readyCount/${_tools.length} Ready)',
+                        style: const TextStyle(
+                          color: Color(0xFF5C5347),
+                          fontSize: 13,
+                          fontFamily: 'JetBrainsMono',
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Detection, bounded versioning, and safe explicit installation contracts ($readyCount/${_tools.length} Ready)',
-                    style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13),
+                  ZiteraButton(
+                    label: 'Recheck Tools',
+                    icon: Icons.refresh,
+                    variant: ButtonVariant.secondary,
+                    onPressed: _loadTools,
                   ),
                 ],
               ),
-              ZiteraButton(
-                label: 'Recheck Tools',
-                icon: Icons.refresh,
-                variant: ButtonVariant.secondary,
-                onPressed: _loadTools,
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _tools.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 14),
-            itemBuilder: (context, index) {
-              final tool = _tools[index];
-              final isInstalling = _installingToolId == tool.id;
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _tools.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 14),
+                itemBuilder: (context, index) {
+                  final tool = _tools[index];
+                  final isInstalling = _installingToolId == tool.id;
+                  final toolSticker = index % 3 == 0
+                      ? 'assets/images/sticker_hamster.png'
+                      : (index % 3 == 1
+                          ? 'assets/images/sticker_shiba.png'
+                          : 'assets/images/sticker_cat_laptop.png');
 
-              return ZiteraCard(
-                borderColor: tool.installed ? ZiteraColors.ready.withValues(alpha: 0.3) : ZiteraColors.border,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  return ZiteraCard(
+                    borderColor: tool.installed ? ZiteraColors.ready.withValues(alpha: 0.3) : ZiteraColors.border,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: ZiteraColors.surface,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: ZiteraColors.border),
-                              ),
-                              child: const Icon(Icons.terminal, size: 18, color: ZiteraColors.cyan),
-                            ),
-                            const SizedBox(width: 14),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
                               children: [
-                                Row(
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE6FFFA),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFF2DD4BF)),
+                                  ),
+                                  child: const Icon(Icons.terminal, size: 18, color: Color(0xFF0F766E)),
+                                ),
+                                const SizedBox(width: 14),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      tool.name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          tool.name,
+                                          style: const TextStyle(
+                                            fontFamily: 'SpaceGrotesk',
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: Color(0xFF1E1A14),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          '// ${tool.category}',
+                                          style: const TextStyle(
+                                            fontFamily: 'JetBrainsMono',
+                                            color: Color(0xFF786F62),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      '// ${tool.category}',
-                                      style: const TextStyle(color: ZiteraColors.textMuted, fontSize: 12),
-                                    ),
+                                    if (tool.version != null) ...[
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        tool.version!,
+                                        style: const TextStyle(
+                                          color: Color(0xFF0F766E),
+                                          fontSize: 12,
+                                          fontFamily: 'JetBrainsMono',
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                                if (tool.version != null) ...[
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    tool.version!,
-                                    style: const TextStyle(color: ZiteraColors.cyan, fontSize: 12, fontFamily: 'monospace'),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: Image.asset(
+                                    toolSticker,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) => const SizedBox(),
                                   ),
-                                ],
+                                ),
+                                const SizedBox(width: 8),
+                                StatusBadge(status: tool.status),
                               ],
                             ),
                           ],
                         ),
-                        StatusBadge(status: tool.status),
-                      ],
-                    ),
 
                     if (tool.capabilities.isNotEmpty) ...[
                       const SizedBox(height: 12),
@@ -351,6 +400,8 @@ class _ToolsViewState extends State<ToolsView> {
           ),
         ],
       ),
+    ),
+      ],
     );
   }
 }

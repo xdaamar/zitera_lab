@@ -84,175 +84,228 @@ class _EnvironmentViewState extends State<EnvironmentView> {
     final diag = _diagnostics!;
     final readyTools = _tools.where((t) => t.installed).length;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/bg_environment.jpg',
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            color: const Color(0xFFFCFBF8).withValues(alpha: 0.91),
+          ),
+        ),
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'SMART ENVIRONMENT SETUP V2',
-                    style: TextStyle(
-                      color: ZiteraColors.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                      fontFamily: 'monospace',
-                    ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'SMART ENVIRONMENT SETUP V2',
+                        style: TextStyle(
+                          color: Color(0xFF1E1A14),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          fontFamily: 'SpaceGrotesk',
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Detect, classify, explain, recommend, and validate system prerequisites & tools',
+                        style: TextStyle(
+                          color: Color(0xFF5C5347),
+                          fontSize: 13,
+                          fontFamily: 'JetBrainsMono',
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Detect, classify, explain, recommend, and validate system prerequisites & tools',
-                    style: TextStyle(color: ZiteraColors.textSecondary, fontSize: 13),
+                  ZiteraButton(
+                    label: 'Recheck System',
+                    icon: Icons.refresh,
+                    variant: ButtonVariant.primary,
+                    onPressed: _runCheck,
                   ),
                 ],
               ),
-              ZiteraButton(
-                label: 'Recheck System',
-                icon: Icons.refresh,
-                variant: ButtonVariant.primary,
-                onPressed: _runCheck,
+
+              const SizedBox(height: 24),
+
+              // Overall Readiness Banner
+              ZiteraCard(
+                borderColor: diag.allReady
+                    ? ZiteraColors.ready.withValues(alpha: 0.4)
+                    : ZiteraColors.warning.withValues(alpha: 0.4),
+                child: Row(
+                  children: [
+                    Icon(
+                      diag.allReady ? Icons.check_circle : Icons.warning_amber,
+                      color: diag.allReady ? ZiteraColors.ready : ZiteraColors.warning,
+                      size: 36,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            diag.allReady
+                                ? 'ALL CORE SYSTEM PREREQUISITES VERIFIED READY'
+                                : 'ACTION REQUIRED TO COMPLETE ENVIRONMENT SETUP',
+                            style: const TextStyle(
+                              fontFamily: 'SpaceGrotesk',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Color(0xFF1E1A14),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            diag.allReady
+                                ? 'Host environment is fully configured. All containerized external labs can be launched locally.'
+                                : 'One or more system components require attention. Review guided action steps below.',
+                            style: const TextStyle(
+                              fontFamily: 'JetBrainsMono',
+                              color: Color(0xFF5C5347),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: Image.asset(
+                            'assets/images/sticker_bunny.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        StatusBadge(status: diag.allReady ? 'READY' : 'ACTION REQUIRED'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
+
+              const SizedBox(height: 20),
+
+              // Host Hardware Resources Card
+              Row(
+                children: [
+                  Expanded(
+                    child: ZiteraCard(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.memory, color: ZiteraColors.cyan, size: 28),
+                          const SizedBox(width: 14),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('HOST MEMORY (RAM)', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
+                              const SizedBox(height: 4),
+                              Text('${diag.memoryGb.toStringAsFixed(1)} GB Total', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ZiteraCard(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.storage, color: ZiteraColors.primary, size: 28),
+                          const SizedBox(width: 14),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('SYSTEM DRIVE FREE DISK', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
+                              const SizedBox(height: 4),
+                              Text('${diag.diskFreeGb.toStringAsFixed(1)} GB Free', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ZiteraCard(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.security, color: ZiteraColors.ready, size: 28),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('SECURITY TOOLS STATUS', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
+                                const SizedBox(height: 4),
+                                Text('$readyTools of ${_tools.length} Tools Ready', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: Image.asset(
+                              'assets/images/sticker_cat_laptop.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 28),
+
+              // Core System Prerequisites Section
+              const Text(
+                'CORE SYSTEM PREREQUISITES',
+                style: TextStyle(
+                  color: Color(0xFF1E1A14),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  fontFamily: 'SpaceGrotesk',
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              _buildComponentCard(diag.os),
+              const SizedBox(height: 10),
+              _buildComponentCard(diag.git),
+              const SizedBox(height: 10),
+              _buildComponentCard(diag.wsl),
+              const SizedBox(height: 10),
+              _buildComponentCard(diag.docker),
+              const SizedBox(height: 10),
+              _buildComponentCard(diag.dockerDaemon),
+              const SizedBox(height: 10),
+              _buildComponentCard(diag.powershell),
             ],
           ),
-
-          const SizedBox(height: 24),
-
-          // Overall Readiness Banner
-          ZiteraCard(
-            borderColor: diag.allReady
-                ? ZiteraColors.ready.withValues(alpha: 0.4)
-                : ZiteraColors.warning.withValues(alpha: 0.4),
-            child: Row(
-              children: [
-                Icon(
-                  diag.allReady ? Icons.check_circle : Icons.warning_amber,
-                  color: diag.allReady ? ZiteraColors.ready : ZiteraColors.warning,
-                  size: 36,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        diag.allReady
-                            ? 'ALL CORE SYSTEM PREREQUISITES VERIFIED READY'
-                            : 'ACTION REQUIRED TO COMPLETE ENVIRONMENT SETUP',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        diag.allReady
-                            ? 'Host environment is fully configured. All containerized external labs can be launched locally.'
-                            : 'One or more system components require attention. Review guided action steps below.',
-                        style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                StatusBadge(status: diag.allReady ? 'READY' : 'ACTION REQUIRED'),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Host Hardware Resources Card
-          Row(
-            children: [
-              Expanded(
-                child: ZiteraCard(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.memory, color: ZiteraColors.cyan, size: 28),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('HOST MEMORY (RAM)', style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text('${diag.memoryGb.toStringAsFixed(1)} GB Total', style: const TextStyle(color: ZiteraColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ZiteraCard(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.storage, color: ZiteraColors.primary, size: 28),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('SYSTEM DRIVE FREE DISK', style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text('${diag.diskFreeGb.toStringAsFixed(1)} GB Free', style: const TextStyle(color: ZiteraColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ZiteraCard(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.security, color: ZiteraColors.ready, size: 28),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('SECURITY TOOLS STATUS', style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text('$readyTools of ${_tools.length} Tools Ready', style: const TextStyle(color: ZiteraColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 28),
-
-          // Core System Prerequisites Section
-          const Text(
-            'CORE SYSTEM PREREQUISITES',
-            style: TextStyle(
-              color: ZiteraColors.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.0,
-              fontFamily: 'monospace',
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          _buildComponentCard(diag.os),
-          const SizedBox(height: 10),
-          _buildComponentCard(diag.git),
-          const SizedBox(height: 10),
-          _buildComponentCard(diag.wsl),
-          const SizedBox(height: 10),
-          _buildComponentCard(diag.docker),
-          const SizedBox(height: 10),
-          _buildComponentCard(diag.dockerDaemon),
-          const SizedBox(height: 10),
-          _buildComponentCard(diag.powershell),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
