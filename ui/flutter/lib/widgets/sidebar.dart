@@ -305,11 +305,11 @@ class Sidebar extends StatelessWidget {
           ),
           if (stickerAsset != null)
             Positioned(
-              right: -8,
-              top: -8,
+              right: -14,
+              top: -14,
               child: SizedBox(
-                width: 30,
-                height: 30,
+                width: 46,
+                height: 46,
                 child: Image.asset(
                   stickerAsset,
                   fit: BoxFit.contain,

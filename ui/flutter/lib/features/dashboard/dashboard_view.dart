@@ -403,12 +403,12 @@ class _DashboardViewState extends State<DashboardView> {
                   const SizedBox(width: 6),
                   Image.asset(
                     'assets/images/sticker_pink.png',
-                    width: 24,
-                    height: 24,
+                    width: 38,
+                    height: 38,
                     errorBuilder: (context, error, stackTrace) => const SizedBox(),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.auto_awesome, size: 14, color: Color(0xFFF472B6)),
+                  const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFF472B6)),
                 ],
               ),
               InkWell(
@@ -636,12 +636,12 @@ class _DashboardViewState extends State<DashboardView> {
         ),
         if (stickerAsset != null)
           Positioned(
-            top: -14,
-            right: -6,
+            top: -22,
+            right: -10,
             child: Image.asset(
               stickerAsset,
-              width: 32,
-              height: 32,
+              width: 56,
+              height: 56,
               errorBuilder: (context, error, stackTrace) => const SizedBox(),
             ),
           ),
@@ -828,12 +828,12 @@ class _DashboardViewState extends State<DashboardView> {
         // Yellow card has pink chibi sticker on top
         if (isYellowTheme)
           Positioned(
-            top: -14,
-            right: 120,
+            top: -22,
+            right: 110,
             child: Image.asset(
               'assets/images/sticker_pink.png',
-              width: 28,
-              height: 28,
+              width: 50,
+              height: 50,
               errorBuilder: (context, error, stackTrace) => const SizedBox(),
             ),
           ),
