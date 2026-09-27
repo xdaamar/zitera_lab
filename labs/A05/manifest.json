@@ -14,5 +14,10 @@
     "learn",
     "practice",
     "challenge"
-  ]
+  ],
+  "requirements": {
+    "tools": ["sqlmap"],
+    "recommended_tools": ["sqlmap"],
+    "required_tools": []
+  }
 }
