@@ -33,8 +33,17 @@ flutter:
     - assets/images/mascot_cat.jpg
     - assets/images/pixel_logo.jpg
 
-  # Offline Fonts — retro pixel aesthetic, no CDN required
+  # Offline Fonts — high-tech retro & developer typography
   fonts:
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk.ttf
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans.ttf
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono.ttf
     - family: Silkscreen
       fonts:
         - asset: assets/fonts/Silkscreen-Regular.ttf
@@ -43,6 +52,4 @@ flutter:
     - family: VT323
       fonts:
         - asset: assets/fonts/VT323-Regular.ttf
-    - family: JetBrainsMono
-      fonts:
-        - asset: assets/fonts/JetBrainsMono.ttf
+

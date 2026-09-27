@@ -9,7 +9,7 @@ class ZiteraTheme {
       primaryColor: ZiteraColors.primary,
       cardColor: ZiteraColors.card,
       dividerColor: ZiteraColors.border,
-      fontFamily: 'JetBrainsMono',
+      fontFamily: 'SpaceGrotesk',
       colorScheme: const ColorScheme.light(
         primary: ZiteraColors.primary,
         secondary: ZiteraColors.cyan,
@@ -25,7 +25,7 @@ class ZiteraTheme {
           fontSize: 16,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.2,
-          fontFamily: 'Silkscreen',
+          fontFamily: 'SpaceGrotesk',
         ),
       ),
     );

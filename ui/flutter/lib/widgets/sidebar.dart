@@ -90,18 +90,18 @@ class Sidebar extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                // "ZITERA" — keep Silkscreen but readable size/weight
+                                // "ZITERA" — SpaceGrotesk bold
                                 const Text(
                                   'ZITERA',
                                   style: TextStyle(
-                                    fontFamily: 'Silkscreen',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.normal, // avoid w900 on pixel font
+                                    fontFamily: 'SpaceGrotesk',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                     color: Color(0xFF1E1A14),
-                                    letterSpacing: 1.2,
+                                    letterSpacing: 1.0,
                                   ),
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                                   decoration: BoxDecoration(
@@ -112,9 +112,9 @@ class Sidebar extends StatelessWidget {
                                   child: const Text(
                                     'LAB',
                                     style: TextStyle(
-                                      fontFamily: 'Silkscreen',
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.normal,
+                                      fontFamily: 'SpaceGrotesk',
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
                                       color: Color(0xFF0F766E),
                                     ),
                                   ),
@@ -122,14 +122,15 @@ class Sidebar extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 2),
-                            // Subtext — VT323 is fine for retro terminal feel at larger size
+                            // Subtext — JetBrainsMono
                             const Text(
                               'CYBER LAB // RETRO',
                               style: TextStyle(
                                 color: Color(0xFF5C5347),
-                                fontSize: 13,
-                                fontFamily: 'VT323',
-                                letterSpacing: 0.5,
+                                fontSize: 11,
+                                fontFamily: 'JetBrainsMono',
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
@@ -193,9 +194,9 @@ class Sidebar extends StatelessWidget {
                                 Text(
                                   'NEKO STATUS',
                                   style: TextStyle(
-                                    fontFamily: 'Silkscreen',
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.normal,
+                                    fontFamily: 'SpaceGrotesk',
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
                                     color: Color(0xFF1E1A14),
                                     letterSpacing: 0.4,
                                   ),
@@ -203,8 +204,9 @@ class Sidebar extends StatelessWidget {
                                 Text(
                                   'READY',
                                   style: TextStyle(
-                                    fontFamily: 'VT323',
-                                    fontSize: 16,
+                                    fontFamily: 'JetBrainsMono',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
                                     color: ZiteraColors.ready,
                                     letterSpacing: 0.3,
                                   ),
@@ -280,10 +282,9 @@ class Sidebar extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      // Use JetBrainsMono for nav items (much more readable than Silkscreen)
-                      fontFamily: 'JetBrainsMono',
+                      fontFamily: 'SpaceGrotesk',
                       color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF1E1A14),
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                     ),
                   ),
@@ -302,8 +303,9 @@ class Sidebar extends StatelessWidget {
                   Text(
                     tag,
                     style: TextStyle(
-                      fontFamily: 'VT323',
-                      fontSize: 14,
+                      fontFamily: 'JetBrainsMono',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                       color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF9C9080),
                       letterSpacing: 0.3,
                     ),

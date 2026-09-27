@@ -119,8 +119,9 @@ class _PixelMascotWidgetState extends State<PixelMascotWidget> {
                       Text(
                         _isCatMode ? 'ZETA' : 'SWAP',
                         style: const TextStyle(
-                          fontFamily: 'Silkscreen',
-                          fontSize: 9, // Silkscreen ok at small badge size
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
                           color: Color(0xFF1E1A14),
                         ),
                       ),
@@ -149,15 +150,15 @@ class _PixelMascotWidgetState extends State<PixelMascotWidget> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Character name — Silkscreen at 10px is fine for a label/chip
+                      // Character name — SpaceGrotesk
                       Text(
                         characterName,
                         style: const TextStyle(
-                          fontFamily: 'Silkscreen',
-                          fontSize: 10,
-                          fontWeight: FontWeight.normal,
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
                           color: Color(0xFF1E1A14),
-                          letterSpacing: 0.6,
+                          letterSpacing: 0.5,
                         ),
                       ),
                       // CLICK FOR TIPS button
@@ -179,8 +180,9 @@ class _PixelMascotWidgetState extends State<PixelMascotWidget> {
                               Text(
                                 'CLICK FOR TIPS',
                                 style: TextStyle(
-                                  fontFamily: 'Silkscreen',
-                                  fontSize: 8,
+                                  fontFamily: 'SpaceGrotesk',
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
                                   color: Color(0xFF5C5347),
                                 ),
                               ),
@@ -191,12 +193,12 @@ class _PixelMascotWidgetState extends State<PixelMascotWidget> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // Tip text — JetBrainsMono is very readable for body
+                  // Tip text — PlusJakartaSans is super clean and natural for speech
                   Text(
                     activeTip,
                     style: const TextStyle(
-                      fontFamily: 'JetBrainsMono',
-                      fontSize: 12,
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13,
                       color: Color(0xFF1E1A14),
                       height: 1.5,
                       fontWeight: FontWeight.w500,

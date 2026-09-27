@@ -93,9 +93,9 @@ class _DashboardViewState extends State<DashboardView> {
               const Text(
                 'Engine Connection Error',
                 style: TextStyle(
-                  fontFamily: 'Silkscreen',
+                  fontFamily: 'SpaceGrotesk',
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 18,
                 ),
               ),
               const SizedBox(height: 8),
@@ -191,11 +191,11 @@ class _DashboardViewState extends State<DashboardView> {
                       const Text(
                         'SECURITY COMMAND',
                         style: TextStyle(
-                          fontFamily: 'Silkscreen',
-                          fontSize: 18,
-                          fontWeight: FontWeight.normal, // pixel font — avoid w900
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                           color: Color(0xFF1E1A14),
-                          letterSpacing: 1.2,
+                          letterSpacing: 0.8,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -209,9 +209,9 @@ class _DashboardViewState extends State<DashboardView> {
                         child: const Text(
                           'ZITERA__LAB',
                           style: TextStyle(
-                            fontFamily: 'Silkscreen',
-                            fontSize: 9,
-                            fontWeight: FontWeight.normal,
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                             color: Color(0xFF5C5347),
                             letterSpacing: 0.5,
                           ),
@@ -285,11 +285,11 @@ class _DashboardViewState extends State<DashboardView> {
                         Text(
                           diag.allReady ? 'ENVIRONMENT READY FOR LEARNING' : 'SYSTEM SETUP ACTION REQUIRED',
                           style: const TextStyle(
-                            fontFamily: 'Silkscreen',
-                            fontSize: 11,
-                            fontWeight: FontWeight.normal,
+                            fontFamily: 'SpaceGrotesk',
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
                             color: Color(0xFF1E1A14),
-                            letterSpacing: 0.5,
+                            letterSpacing: 0.3,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -391,10 +391,10 @@ class _DashboardViewState extends State<DashboardView> {
                   const Text(
                     'AVAILABLE LABORATORIES',
                     style: TextStyle(
-                      fontFamily: 'Silkscreen',
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                      letterSpacing: 0.8,
+                      fontFamily: 'SpaceGrotesk',
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.6,
                       color: Color(0xFF1E1A14),
                     ),
                   ),
@@ -411,8 +411,8 @@ class _DashboardViewState extends State<DashboardView> {
                     Text(
                       'View All Labs',
                       style: TextStyle(
-                        fontFamily: 'Silkscreen',
-                        fontSize: 11,
+                        fontFamily: 'SpaceGrotesk',
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF0F766E),
                       ),
@@ -464,10 +464,10 @@ class _DashboardViewState extends State<DashboardView> {
               const Text(
                 'SECURITY TOOLING READINESS',
                 style: TextStyle(
-                  fontFamily: 'Silkscreen',
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                  letterSpacing: 0.8,
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.6,
                   color: Color(0xFF1E1A14),
                 ),
               ),
@@ -478,8 +478,8 @@ class _DashboardViewState extends State<DashboardView> {
                     Text(
                       'Open Tools Manager',
                       style: TextStyle(
-                        fontFamily: 'Silkscreen',
-                        fontSize: 11,
+                        fontFamily: 'SpaceGrotesk',
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF0F766E),
                       ),
@@ -600,8 +600,8 @@ class _DashboardViewState extends State<DashboardView> {
               Text(
                 title,
                 style: TextStyle(
-                  fontFamily: 'Silkscreen',
-                  fontSize: 9,
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: textColor,
                   letterSpacing: 0.5,
@@ -615,9 +615,9 @@ class _DashboardViewState extends State<DashboardView> {
                   Text(
                     value,
                     style: const TextStyle(
-                      fontFamily: 'Silkscreen',
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal, // pixel font — normal weight is cleaner
+                      fontFamily: 'SpaceGrotesk',
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
                       color: Color(0xFF1E1A14),
                     ),
                   ),
@@ -629,11 +629,11 @@ class _DashboardViewState extends State<DashboardView> {
         ),
         if (stickerAsset != null)
           Positioned(
-            top: -24,
-            right: 6,
+            top: -26,
+            right: 8,
             child: SizedBox(
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               child: Image.asset(
                 stickerAsset,
                 fit: BoxFit.contain,
@@ -699,9 +699,9 @@ class _DashboardViewState extends State<DashboardView> {
               Text(
                 lab.title,
                 style: const TextStyle(
-                  fontFamily: 'Silkscreen',
-                  fontSize: 15,
-                  fontWeight: FontWeight.normal, // avoid bold on pixel font
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                   color: Color(0xFF1E1A14),
                 ),
               ),
@@ -824,11 +824,11 @@ class _DashboardViewState extends State<DashboardView> {
         // Yellow card has pink chibi sticker on top
         if (isYellowTheme)
           Positioned(
-            top: -24,
-            right: 108,
+            top: -26,
+            right: 110,
             child: SizedBox(
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               child: Image.asset(
                 'assets/images/sticker_pink.png',
                 fit: BoxFit.contain,
@@ -889,8 +889,8 @@ class _DashboardViewState extends State<DashboardView> {
                           child: Text(
                             'LAB SPEC // ${lab.id.toUpperCase()}',
                             style: const TextStyle(
-                              fontFamily: 'Silkscreen',
-                              fontSize: 10,
+                              fontFamily: 'JetBrainsMono',
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: ZiteraColors.statToolsText,
                             ),
@@ -921,8 +921,8 @@ class _DashboardViewState extends State<DashboardView> {
                 Text(
                   lab.title,
                   style: const TextStyle(
-                    fontFamily: 'Silkscreen',
-                    fontSize: 18,
+                    fontFamily: 'SpaceGrotesk',
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: ZiteraColors.textPrimary,
                   ),
@@ -964,8 +964,8 @@ class _DashboardViewState extends State<DashboardView> {
                       const Text(
                         'RECOMMENDED TOOLS: ',
                         style: TextStyle(
-                          fontFamily: 'Silkscreen',
-                          fontSize: 10,
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: ZiteraColors.textSecondary,
                         ),
@@ -1030,8 +1030,8 @@ class _DashboardViewState extends State<DashboardView> {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontFamily: 'Silkscreen',
-                      fontSize: 10,
+                      fontFamily: 'SpaceGrotesk',
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: ZiteraColors.textPrimary,
                     ),
@@ -1039,8 +1039,8 @@ class _DashboardViewState extends State<DashboardView> {
                   Text(
                     status,
                     style: TextStyle(
-                      fontFamily: 'Silkscreen',
-                      fontSize: 9,
+                      fontFamily: 'JetBrainsMono',
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                       color: _readinessColor(status),
                     ),
