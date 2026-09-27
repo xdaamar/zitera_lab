@@ -29,7 +29,7 @@ class _SidebarState extends State<Sidebar> {
       ),
       child: Stack(
         children: [
-          // 1. Sidebar Background Video/Animation (Infinite Looping WebP converted from sidebar_bg.mp4)
+          // 1. Sidebar Background Video/Animation (Original Colors - Infinite Looping)
           Positioned.fill(
             child: Image.asset(
               'assets/images/sidebar_bg.webp',
@@ -41,12 +41,6 @@ class _SidebarState extends State<Sidebar> {
                   fit: BoxFit.cover,
                 );
               },
-            ),
-          ),
-          // Warm cream wash overlay — matches off-white palette
-          Positioned.fill(
-            child: Container(
-              color: const Color(0xFFFCFBF8).withValues(alpha: 0.46),
             ),
           ),
 
