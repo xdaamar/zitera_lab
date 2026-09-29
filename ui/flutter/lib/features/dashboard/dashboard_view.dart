@@ -172,6 +172,26 @@ class _DashboardViewState extends State<DashboardView> {
             ),
           ];
 
+    // Compute dynamic Continue Learning target (PRD §17 & §68)
+    final sectionsMap = Map<String, dynamic>.from(_progress['completed_sections'] as Map? ?? {});
+    String continueLabId = 'A01';
+    String continueLabTitle = 'Broken Access Control';
+    String continueSection = 'Introduction';
+    int continuePercent = 0;
+    bool hasAnyProgress = false;
+
+    for (final l in displayLabs) {
+      final doneSecs = List<String>.from(sectionsMap[l.id] as List? ?? []);
+      if (doneSecs.isNotEmpty && !solvedChallenges.contains(l.id)) {
+        continueLabId = l.id;
+        continueLabTitle = l.title;
+        hasAnyProgress = true;
+        continuePercent = ((doneSecs.length / 6.0) * 100).clamp(0, 100).toInt();
+        continueSection = doneSecs.last.toUpperCase();
+        break;
+      }
+    }
+
     return Stack(
       children: [
         Positioned.fill(
@@ -331,7 +351,18 @@ class _DashboardViewState extends State<DashboardView> {
             ),
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 16),
+
+          // 3.5. Continue Learning / Recommended Start Card (PRD §17 & §68)
+          _buildContinueLearningCard(
+            labId: continueLabId,
+            labTitle: continueLabTitle,
+            section: continueSection,
+            percent: continuePercent,
+            hasProgress: hasAnyProgress,
+          ),
+
+          const SizedBox(height: 24),
 
           // 4. Statistics Cards (x4 Identical Square Cards with Peeking Stickers)
           Row(
@@ -1129,5 +1160,120 @@ class _DashboardViewState extends State<DashboardView> {
       default:
         return const Color(0xFFDC2626);
     }
+  }
+
+  Widget _buildContinueLearningCard({
+    required String labId,
+    required String labTitle,
+    required String section,
+    required int percent,
+    required bool hasProgress,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCFBF8),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF2DD4BF), width: 1.4),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2DD4BF).withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCCFBF1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF2DD4BF)),
+                ),
+                child: const Icon(Icons.explore_outlined, color: Color(0xFF0F766E), size: 22),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        hasProgress ? 'CONTINUE LEARNING' : 'RECOMMENDED STARTING LAB',
+                        style: const TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F766E),
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      if (hasProgress) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6FFFA),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFF2DD4BF), width: 0.8),
+                          ),
+                          child: Text(
+                            '$percent% DONE',
+                            style: const TextStyle(
+                              fontFamily: 'JetBrainsMono',
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F766E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${labId.toUpperCase()} // $labTitle — Focus: $section',
+                    style: const TextStyle(
+                      fontFamily: 'SpaceGrotesk',
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E1A14),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              SizedBox(
+                width: 30,
+                height: 30,
+                child: Image.asset(
+                  'assets/images/sticker_duck.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ZiteraButton(
+                label: hasProgress ? 'RESUME LAB' : 'BEGIN LAB',
+                icon: Icons.play_arrow,
+                variant: ButtonVariant.primary,
+                fontSize: 11,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                onPressed: () => widget.onOpenLab(labId),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
