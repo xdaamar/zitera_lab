@@ -123,6 +123,48 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   }
 
   Future<void> _handleReset() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFFCFBF8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: ZiteraColors.border, width: 1.5),
+        ),
+        title: Text(
+          'Reset Lab ${widget.labId}?',
+          style: const TextStyle(
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF1E1A14),
+          ),
+        ),
+        content: Text(
+          'This will restart Docker containers for ${widget.labId} and restore its database to original seed state. Local lesson reading progress will NOT be lost.',
+          style: const TextStyle(
+            fontFamily: 'JetBrainsMono',
+            fontSize: 12,
+            color: Color(0xFF5C5347),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'SpaceGrotesk', color: Color(0xFF5C5347))),
+          ),
+          ZiteraButton(
+            label: 'Yes, Reset Lab',
+            icon: Icons.restore,
+            variant: ButtonVariant.danger,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     try {
       await ZiteraEngineClient.resetLab(widget.labId);
       _refreshStatus();
@@ -138,6 +180,84 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Reset error: $e'), backgroundColor: ZiteraColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleUpdate() async {
+    try {
+      final res = await ZiteraEngineClient.updateLab(widget.labId);
+      _refreshStatus();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res), backgroundColor: ZiteraColors.ready),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Update error: $e'), backgroundColor: ZiteraColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRemove() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFFCFBF8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: ZiteraColors.border, width: 1.5),
+        ),
+        title: Text(
+          'Remove Lab ${widget.labId}?',
+          style: const TextStyle(
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF1E1A14),
+          ),
+        ),
+        content: Text(
+          'This stops and tears down the Docker containers and removes local repository files for ${widget.labId}. You can reinstall it anytime from the catalog.',
+          style: const TextStyle(
+            fontFamily: 'JetBrainsMono',
+            fontSize: 12,
+            color: Color(0xFF5C5347),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'SpaceGrotesk', color: Color(0xFF5C5347))),
+          ),
+          ZiteraButton(
+            label: 'Yes, Remove Lab',
+            icon: Icons.delete_forever,
+            variant: ButtonVariant.danger,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ZiteraEngineClient.removeLab(widget.labId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lab ${widget.labId} removed.'), backgroundColor: ZiteraColors.ready),
+        );
+        widget.onBack();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Remove error: $e'), backgroundColor: ZiteraColors.error),
         );
       }
     }
@@ -362,14 +482,50 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                 ),
                 Row(
                   children: [
-                    if (!isRunning)
+                    if (!isRunning) ...[
                       ZiteraButton(
                         label: 'Start Lab Environment',
                         icon: Icons.play_arrow,
                         variant: ButtonVariant.primary,
                         onPressed: _handleStart,
-                      )
-                    else ...[
+                      ),
+                      const SizedBox(width: 8),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: Color(0xFF5C5347)),
+                        tooltip: 'Lab Management',
+                        color: const Color(0xFFFCFBF8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(color: ZiteraColors.border),
+                        ),
+                        onSelected: (val) {
+                          if (val == 'update') _handleUpdate();
+                          if (val == 'remove') _handleRemove();
+                        },
+                        itemBuilder: (ctx) => [
+                          const PopupMenuItem(
+                            value: 'update',
+                            child: Row(
+                              children: [
+                                Icon(Icons.sync, size: 16, color: Color(0xFF0F766E)),
+                                SizedBox(width: 8),
+                                Text('Check & Update Lab', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'remove',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline, size: 16, color: ZiteraColors.error),
+                                SizedBox(width: 8),
+                                Text('Remove Lab', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13, color: ZiteraColors.error)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
                       ZiteraButton(
                         label: 'Stop Runtime',
                         icon: Icons.stop,
