@@ -63,6 +63,7 @@ pub fn start_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
             &project_name,
             "up",
             "-d",
+            "--build",
         ],
         compose_path.parent(),
     )?;
@@ -122,6 +123,7 @@ pub fn reset_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
             &project_name,
             "up",
             "-d",
+            "--build",
             "--force-recreate",
         ],
         compose_path.parent(),

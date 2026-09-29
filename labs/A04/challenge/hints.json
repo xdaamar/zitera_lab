@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{cryp70_f41lur35_w34k_k3y_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Unsalted hash functions like MD5 produce deterministic outputs that are indexed in public lookup tables and rainbow databases."
+    },
+    {
+      "tier": 2,
+      "type": "investigation_direction",
+      "hint": "Check the /api/audit/hashes endpoint to inspect stored password hashes for all users."
+    },
+    {
+      "tier": 3,
+      "type": "technical_area",
+      "hint": "The administrator's hash is '21232f297a57a5a743894a0e4a801fc3'. A 32-character hex string is typical for MD5."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "21232f297a57a5a743894a0e4a801fc3 is the MD5 hash of 'admin'. Log in as admin:admin and open /vault to retrieve the flag."
+    }
+  ]
+}

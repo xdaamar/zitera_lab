@@ -11,6 +11,24 @@
       "description": "Learn how authorization flaws allow unauthorized users to view, tamper with, or delete sensitive data."
     },
     {
+      "id": "A02",
+      "title": "Security Misconfiguration",
+      "repository": "xdaamar/zitera_lab_a02",
+      "version": "1.0.0",
+      "difficulty": "Beginner",
+      "owasp": "A02:2025",
+      "description": "Discover how default credentials, enabled debug pages, directory listing, and unprotected backups lead to system compromise."
+    },
+    {
+      "id": "A04",
+      "title": "Cryptographic Failures",
+      "repository": "xdaamar/zitera_lab_a04",
+      "version": "1.0.0",
+      "difficulty": "Beginner",
+      "owasp": "A04:2025",
+      "description": "Understand vulnerabilities arising from weak hashing algorithms, hardcoded secret keys, and insecure cryptographic practices."
+    },
+    {
       "id": "A05",
       "title": "Injection",
       "repository": "xdaamar/zitera_lab_a05",

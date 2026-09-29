@@ -187,10 +187,28 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
 }
 
 pub fn list_all_labs(workspace_root: &Path) -> Vec<LabStatus> {
-    let ids: Vec<String> = match crate::catalog::load_catalog(workspace_root) {
+    let mut ids: Vec<String> = match crate::catalog::load_catalog(workspace_root) {
         Ok(cat) => cat.labs.into_iter().map(|l| l.id).collect(),
-        Err(_) => vec!["A01".to_string(), "A05".to_string()],
+        Err(_) => Vec::new(),
     };
+
+    // Also scan local workspace labs directory for installed labs not yet in catalog
+    let labs_dir = workspace_root.join("labs");
+    if let Ok(entries) = fs::read_dir(labs_dir) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() && entry.path().join("manifest.json").exists() {
+                if let Some(folder_name) = entry.file_name().to_str() {
+                    let upper = folder_name.to_uppercase();
+                    if !ids.iter().any(|id| id.eq_ignore_ascii_case(&upper)) {
+                        ids.push(upper);
+                    }
+                }
+            }
+        }
+    }
+
+    ids.sort();
+
     ids.into_iter()
         .map(|id| get_lab_status(workspace_root, &id))
         .collect()

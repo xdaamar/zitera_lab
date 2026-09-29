@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Security misconfigurations often stem from leaving default credentials, sample files, or server diagnostic options enabled."
+    },
+    {
+      "tier": 2,
+      "type": "investigation_direction",
+      "hint": "Check if default administrative credentials like admin:admin work on the login page, or inspect exposed debug routes listed in the portal."
+    },
+    {
+      "tier": 3,
+      "type": "technical_area",
+      "hint": "The /backups/ route has directory browsing enabled. Web servers without disabled indexing display a list of all downloadable files."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Download /backups/backup_config.json.bak and examine the 'admin_system_key' property inside the JSON payload."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "system_name": "ZITERA_OPS_GATEWAY",
+  "environment": "production_backup",
+  "created_at": "2026-09-15T08:00:00Z",
+  "db_host": "127.0.0.1",
+  "db_user": "zitera_admin",
+  "admin_system_key": "ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}",
+  "maintenance_mode": false,
+  "debug_flags": {
+    "verbose_errors": true,
+    "directory_browsing": true
+  }
+}
