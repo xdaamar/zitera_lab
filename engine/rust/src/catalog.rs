@@ -126,6 +126,15 @@ pub fn default_catalog() -> Catalog {
                 description: "Investigate default credentials, exposed debug interfaces, and unauthenticated directory listings leaking sensitive backups.".to_string(),
             },
             CatalogLabItem {
+                id: "A03".to_string(),
+                title: "Software Supply Chain Failures".to_string(),
+                repository: "xdaamar/zitera_lab_a03".to_string(),
+                version: "1.0.0".to_string(),
+                difficulty: "Beginner".to_string(),
+                owasp: "A03:2025".to_string(),
+                description: "Understand risks from unverified third-party dependencies, malicious package scripts, and vulnerable build artifacts.".to_string(),
+            },
+            CatalogLabItem {
                 id: "A04".to_string(),
                 title: "Cryptographic Failures".to_string(),
                 repository: "xdaamar/zitera_lab_a04".to_string(),
@@ -142,6 +151,15 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A05:2025".to_string(),
                 description: "Understand SQL injection root causes, malicious query manipulation, and parameterized query remediation.".to_string(),
+            },
+            CatalogLabItem {
+                id: "A07".to_string(),
+                title: "Authentication Failures".to_string(),
+                repository: "xdaamar/zitera_lab_a07".to_string(),
+                version: "1.0.0".to_string(),
+                difficulty: "Beginner".to_string(),
+                owasp: "A07:2025".to_string(),
+                description: "Explore how weak credential requirements, lack of brute-force protection, and session fixation lead to account takeover.".to_string(),
             },
         ],
     }

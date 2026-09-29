@@ -1,0 +1,22 @@
+[
+  {
+    "tier": 1,
+    "title": "Conceptual Hint",
+    "content": "Secure authentication systems implement exponential backoff, rate limiting, and CAPTCHAs to prevent automated guessing."
+  },
+  {
+    "tier": 2,
+    "title": "Directional Hint",
+    "content": "Observe the login behavior when submitting incorrect passwords multiple times. Notice that no delays or lockouts are imposed."
+  },
+  {
+    "tier": 3,
+    "title": "Technical Hint",
+    "content": "The administrator password is a 4-digit numeric PIN representing the year this lab suite was built (2020-2030)."
+  },
+  {
+    "tier": 4,
+    "title": "Solution Clue",
+    "content": "Try logging in as `admin` with PIN `2026`. Once authenticated, the flag `ZITERA{4uth_f41lur3_brut3_f0rc3_2026}` is revealed."
+  }
+]

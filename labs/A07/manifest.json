@@ -1,0 +1,27 @@
+{
+  "id": "A07",
+  "name": "Authentication Failures",
+  "version": "1.0.0",
+  "difficulty": "Beginner",
+  "category": "Web Security",
+  "owasp": "A07:2025",
+  "description": "Explore how weak credential requirements, lack of brute-force protection, credential stuffing, and predictable session identifiers allow unauthorized account compromise.",
+  "network": {
+    "port": 8017,
+    "internal_port": 8080
+  },
+  "requirements": {
+    "required_tools": [
+      "curl"
+    ],
+    "recommended_tools": [
+      "hydra",
+      "burp"
+    ]
+  },
+  "runtime": {
+    "type": "docker-compose",
+    "compose_file": "docker/compose.yml",
+    "service": "web"
+  }
+}
