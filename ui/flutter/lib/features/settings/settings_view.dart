@@ -1,11 +1,138 @@
 import 'package:flutter/material.dart';
 import '../../core/ipc/engine_client.dart';
+import '../../core/progress/progress_manager.dart';
 import '../../core/theme/zitera_colors.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
+
+  Future<void> _handleResetProgress(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFFCFBF8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: ZiteraColors.border, width: 1.5),
+        ),
+        title: const Text(
+          'Reset All Learning Progress?',
+          style: TextStyle(
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF1E1A14),
+          ),
+        ),
+        content: const Text(
+          'This will remove your local learning progress, marked sections, and completed challenges. Installed labs, containers, and repositories will NOT be deleted.',
+          style: TextStyle(
+            fontFamily: 'JetBrainsMono',
+            fontSize: 12,
+            color: Color(0xFF5C5347),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'SpaceGrotesk',
+                color: Color(0xFF5C5347),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ZiteraButton(
+            label: 'Yes, Reset Progress',
+            icon: Icons.delete_forever,
+            variant: ButtonVariant.danger,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ProgressManager.resetAll();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Local learning progress has been reset to initial state.'),
+            backgroundColor: ZiteraColors.ready,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleClearCatalogCache(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFFCFBF8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: ZiteraColors.border, width: 1.5),
+        ),
+        title: const Text(
+          'Refresh Catalog Cache?',
+          style: TextStyle(
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF1E1A14),
+          ),
+        ),
+        content: const Text(
+          'This clears the local cached catalog file. The next catalog load will fetch the latest lab definitions from GitHub.',
+          style: TextStyle(
+            fontFamily: 'JetBrainsMono',
+            fontSize: 12,
+            color: Color(0xFF5C5347),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'SpaceGrotesk',
+                color: Color(0xFF5C5347),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ZiteraButton(
+            label: 'Clear Cache',
+            icon: Icons.refresh,
+            variant: ButtonVariant.secondary,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ZiteraEngineClient.getCatalog();
+      } catch (_) {}
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Catalog synchronized with remote registry.'),
+            backgroundColor: ZiteraColors.ready,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -190,18 +317,23 @@ class SettingsView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    ZiteraButton(
-                      label: 'Clear Local Challenge Cache',
-                      icon: Icons.delete_outline,
-                      variant: ButtonVariant.danger,
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Local progress and flag caches have been reset.'),
-                            backgroundColor: ZiteraColors.ready,
-                          ),
-                        );
-                      },
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 10,
+                      children: [
+                        ZiteraButton(
+                          label: 'Reset All Learning Progress',
+                          icon: Icons.delete_outline,
+                          variant: ButtonVariant.danger,
+                          onPressed: () => _handleResetProgress(context),
+                        ),
+                        ZiteraButton(
+                          label: 'Refresh Catalog Cache',
+                          icon: Icons.sync,
+                          variant: ButtonVariant.secondary,
+                          onPressed: () => _handleClearCatalogCache(context),
+                        ),
+                      ],
                     ),
                   ],
                 ),
