@@ -143,6 +143,32 @@ class _DashboardViewState extends State<DashboardView> {
               recommendedTools: ['curl', 'burp'],
             ),
             LabItem(
+              id: 'a02',
+              title: 'Security Misconfiguration',
+              installed: true,
+              running: false,
+              port: 8012,
+              version: '1.0.0',
+              status: 'STOPPED',
+              learnReadiness: 'READY',
+              practiceReadiness: 'READY',
+              challengeReadiness: 'READY',
+              recommendedTools: ['curl', 'dirsearch'],
+            ),
+            LabItem(
+              id: 'a04',
+              title: 'Cryptographic Failures',
+              installed: true,
+              running: false,
+              port: 8014,
+              version: '1.0.0',
+              status: 'STOPPED',
+              learnReadiness: 'READY',
+              practiceReadiness: 'READY',
+              challengeReadiness: 'READY',
+              recommendedTools: ['hashcat', 'curl'],
+            ),
+            LabItem(
               id: 'a05',
               title: 'Injection',
               installed: true,
@@ -473,31 +499,36 @@ class _DashboardViewState extends State<DashboardView> {
 
           const SizedBox(height: 26),
 
-          // Laboratory Cards (Row of 2 Cards, equal height via IntrinsicHeight)
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Card 1: A01 Broken Access Control (Mint Theme)
-                Expanded(
-                  child: _buildLabCard(
-                    lab: displayLabs.firstWhere((l) => l.id == 'a01', orElse: () => displayLabs[0]),
-                    isYellowTheme: false,
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Card 2: A05 Injection (Yellow Theme with Rainbow Button)
-                Expanded(
-                  child: _buildLabCard(
-                    lab: displayLabs.length > 1
-                        ? displayLabs.firstWhere((l) => l.id == 'a05', orElse: () => displayLabs[1])
-                        : displayLabs[0],
-                    isYellowTheme: true,
+          // Laboratory Cards (Responsive dynamic rows for all available labs)
+          Column(
+            children: [
+              for (int i = 0; i < displayLabs.length; i += 2) ...[
+                if (i > 0) const SizedBox(height: 16),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _buildLabCard(
+                          lab: displayLabs[i],
+                          themeIndex: i % 4,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      if (i + 1 < displayLabs.length)
+                        Expanded(
+                          child: _buildLabCard(
+                            lab: displayLabs[i + 1],
+                            themeIndex: (i + 1) % 4,
+                          ),
+                        )
+                      else
+                        const Expanded(child: SizedBox()),
+                    ],
                   ),
                 ),
               ],
-            ),
+            ],
           ),
 
           const SizedBox(height: 28),
@@ -689,15 +720,53 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  // --- LAB CARD BUILDER (A01 Mint & A05 Yellow) ---
+  // --- LAB CARD BUILDER (Multi-Theme Pastel Palette) ---
   Widget _buildLabCard({
     required LabItem lab,
-    required bool isYellowTheme,
+    required int themeIndex,
   }) {
-    final cardBg = isYellowTheme ? const Color(0xFFFEF9C3) : const Color(0xFFDCFCE7);
-    final cardBorder = isYellowTheme ? const Color(0xFFFDE047) : const Color(0xFF86EFAC);
-    final badgeBg = isYellowTheme ? const Color(0xFFFDE68A) : const Color(0xFFBBF7D0);
-    final badgeFg = isYellowTheme ? const Color(0xFF92400E) : const Color(0xFF166534);
+    Color cardBg;
+    Color cardBorder;
+    Color badgeBg;
+    Color badgeFg;
+    String stickerAsset;
+    ButtonVariant btnVariant;
+
+    switch (themeIndex % 4) {
+      case 1: // Yellow / Amber
+        cardBg = const Color(0xFFFEF9C3);
+        cardBorder = const Color(0xFFFDE047);
+        badgeBg = const Color(0xFFFDE68A);
+        badgeFg = const Color(0xFF92400E);
+        stickerAsset = 'assets/images/sticker_pink.png';
+        btnVariant = ButtonVariant.gradient;
+        break;
+      case 2: // Purple / Lavender
+        cardBg = const Color(0xFFF3E8FF);
+        cardBorder = const Color(0xFFD8B4FE);
+        badgeBg = const Color(0xFFE9D5FF);
+        badgeFg = const Color(0xFF6B21A8);
+        stickerAsset = 'assets/images/sticker_purple.png';
+        btnVariant = ButtonVariant.primary;
+        break;
+      case 3: // Sky Blue
+        cardBg = const Color(0xFFE0F2FE);
+        cardBorder = const Color(0xFF7DD3FC);
+        badgeBg = const Color(0xFFBAE6FD);
+        badgeFg = const Color(0xFF0369A1);
+        stickerAsset = 'assets/images/sticker_bunny.png';
+        btnVariant = ButtonVariant.secondary;
+        break;
+      case 0: // Mint Green
+      default:
+        cardBg = const Color(0xFFDCFCE7);
+        cardBorder = const Color(0xFF86EFAC);
+        badgeBg = const Color(0xFFBBF7D0);
+        badgeFg = const Color(0xFF166534);
+        stickerAsset = 'assets/images/sticker_duck.png';
+        btnVariant = ButtonVariant.mint;
+        break;
+    }
 
     return Stack(
       clipBehavior: Clip.none,
@@ -735,7 +804,7 @@ class _DashboardViewState extends State<DashboardView> {
                         width: 32,
                         height: 32,
                         child: Image.asset(
-                          isYellowTheme ? 'assets/images/sticker_pink.png' : 'assets/images/sticker_duck.png',
+                          stickerAsset,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => const SizedBox(),
                         ),
@@ -847,23 +916,14 @@ class _DashboardViewState extends State<DashboardView> {
               Row(
                 children: [
                   Expanded(
-                    child: isYellowTheme
-                        ? ZiteraButton(
-                            label: 'ENTER LABORATORY',
-                            icon: Icons.login,
-                            variant: ButtonVariant.gradient,
-                            fontSize: 10,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            onPressed: () => widget.onOpenLab(lab.id),
-                          )
-                        : ZiteraButton(
-                            label: 'ENTER LABORATORY',
-                            icon: Icons.login,
-                            variant: ButtonVariant.mint,
-                            fontSize: 10,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            onPressed: () => widget.onOpenLab(lab.id),
-                          ),
+                    child: ZiteraButton(
+                      label: 'ENTER LABORATORY',
+                      icon: Icons.login,
+                      variant: btnVariant,
+                      fontSize: 10,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      onPressed: () => widget.onOpenLab(lab.id),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   ZiteraButton(

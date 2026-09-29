@@ -347,6 +347,10 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
           _flagFeedback = res.message;
           _isVerifyingFlag = false;
         });
+
+        if (passed) {
+          _showChallengeCelebrationDialog(res.message);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -357,6 +361,184 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
         });
       }
     }
+  }
+
+  void _showChallengeCelebrationDialog(String message) {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        final labTitle = _status?.title ?? widget.labId;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 520),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: ZiteraColors.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: ZiteraColors.borderDark, width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  offset: Offset(4, 4),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: ZiteraColors.labMintBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: ZiteraColors.labMintBorder, width: 1.5),
+                      ),
+                      child: const Icon(
+                        Icons.military_tech,
+                        size: 32,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: ZiteraColors.readyMuted,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: ZiteraColors.ready),
+                            ),
+                            child: const Text(
+                              'FLAG VALIDATED • SOLVED',
+                              style: TextStyle(
+                                fontFamily: 'SpaceGrotesk',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: ZiteraColors.ready,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'CHALLENGE CONQUERED!',
+                            style: TextStyle(
+                              fontFamily: 'SpaceGrotesk',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: ZiteraColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: ZiteraColors.textSecondary),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: ZiteraColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: ZiteraColors.border, width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.school, size: 18, color: ZiteraColors.primary),
+                          SizedBox(width: 8),
+                          Text(
+                            'KEY DEFENSIVE TAKEAWAYS',
+                            style: TextStyle(
+                              fontFamily: 'SpaceGrotesk',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: ZiteraColors.primary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Lab: $labTitle',
+                        style: const TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: ZiteraColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        message.isNotEmpty ? message : 'Congratulations on solving the security challenge for this lab!',
+                        style: const TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: ZiteraColors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Always ensure secure defaults, least privilege, robust input sanitization, and continuous security audits in production environments.',
+                        style: TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: ZiteraColors.textMuted,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ZiteraColors.labMintBtn,
+                    foregroundColor: ZiteraColors.textPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: const BorderSide(color: ZiteraColors.labMintBorder, width: 1.5),
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text(
+                    'CONTINUE LEARNING',
+                    style: TextStyle(
+                      fontFamily: 'SpaceGrotesk',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _copyToClipboard(String text, String label) {
@@ -907,14 +1089,23 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                             Text(
                               'Hint ${h.tier}: ${h.type.toUpperCase()}',
                               style: TextStyle(
+                                fontFamily: 'SpaceGrotesk',
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
-                                color: isUnlocked ? Colors.white : ZiteraColors.textMuted,
+                                color: isUnlocked ? const Color(0xFF1E1A14) : const Color(0xFF786F62),
                               ),
                             ),
                             if (isUnlocked) ...[
                               const SizedBox(height: 6),
-                              SelectableText(h.hint, style: const TextStyle(color: ZiteraColors.cyan, fontSize: 12)),
+                              SelectableText(
+                                h.hint,
+                                style: const TextStyle(
+                                  fontFamily: 'JetBrainsMono',
+                                  color: Color(0xFF0F766E),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ],
                         ),
@@ -925,7 +1116,9 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                           child: Text(
                             canUnlock ? 'Unlock Hint ${h.tier}' : 'Locked (Unlock Hint ${h.tier - 1} First)',
                             style: TextStyle(
-                              color: canUnlock ? ZiteraColors.primary : ZiteraColors.textMuted,
+                              fontFamily: 'SpaceGrotesk',
+                              fontWeight: FontWeight.bold,
+                              color: canUnlock ? const Color(0xFF0F766E) : const Color(0xFF9C9080),
                               fontSize: 12,
                             ),
                           ),
@@ -945,7 +1138,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
               children: [
                 const Text(
                   'SUBMIT CHALLENGE FLAG',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.0, fontFamily: 'monospace'),
+                  style: TextStyle(fontFamily: 'SpaceGrotesk', fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -953,12 +1146,12 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                     Expanded(
                       child: TextField(
                         controller: _flagController,
-                        style: const TextStyle(fontFamily: 'monospace', color: Colors.white),
+                        style: const TextStyle(fontFamily: 'JetBrainsMono', color: Color(0xFF1E1A14), fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           hintText: 'ZITERA{...}',
-                          hintStyle: const TextStyle(color: ZiteraColors.textMuted),
+                          hintStyle: const TextStyle(fontFamily: 'JetBrainsMono', color: Color(0xFF9C9080)),
                           filled: true,
-                          fillColor: ZiteraColors.surface,
+                          fillColor: const Color(0xFFF7F5F0),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(6),
                             borderSide: const BorderSide(color: ZiteraColors.border),
