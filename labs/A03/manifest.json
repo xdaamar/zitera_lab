@@ -1,27 +1,23 @@
 {
+  "schema_version": 1,
   "id": "A03",
-  "name": "Software Supply Chain Failures",
-  "version": "1.0.0",
-  "difficulty": "Beginner",
-  "category": "Web Security",
+  "slug": "software-supply-chain-failures",
+  "title": "Software Supply Chain Failures",
   "owasp": "A03:2025",
-  "description": "Understand security risks from unverified third-party dependencies, typosquatting packages, poisoned build pipelines, and malicious package scripts.",
-  "network": {
-    "port": 8013,
-    "internal_port": 8080
-  },
+  "version": "1.0.1",
+  "difficulty": "Beginner",
+  "runtime": "docker",
+  "entrypoint": "docker/compose.yml",
+  "default_port": 8013,
+  "estimated_minutes": 45,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
   "requirements": {
-    "required_tools": [
-      "curl"
-    ],
-    "recommended_tools": [
-      "nmap",
-      "npm"
-    ]
-  },
-  "runtime": {
-    "type": "docker-compose",
-    "compose_file": "docker/compose.yml",
-    "service": "web"
+    "tools": ["curl"],
+    "required_tools": ["curl"],
+    "recommended_tools": ["nmap"]
   }
 }

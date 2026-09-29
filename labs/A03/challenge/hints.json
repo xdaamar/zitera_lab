@@ -1,22 +1,25 @@
-[
-  {
-    "tier": 1,
-    "title": "Conceptual Hint",
-    "content": "Modern applications rely on lockfiles (such as package-lock.json or poetry.lock) to freeze dependency trees. Attackers frequently sneak in malicious code via compromised transitive dependencies."
-  },
-  {
-    "tier": 2,
-    "title": "Directional Hint",
-    "content": "Look at the web interface or make a GET request to find where the automated CI/CD dependency audit report is published."
-  },
-  {
-    "tier": 3,
-    "title": "Technical Hint",
-    "content": "Access `/packages/audit/package_lock_audit.json` and look through the `dependencies` object for any non-standard packages from untrusted authors."
-  },
-  {
-    "tier": 4,
-    "title": "Solution Clue",
-    "content": "Examine the `apex-internal-telemetry` package metadata inside the audit report. The `exfiltrated_pipeline_token` contains the flag in standard `ZITERA{...}` format."
-  }
-]
+{
+  "flag": "ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Modern applications rely on lockfiles (such as package-lock.json or poetry.lock) to freeze dependency trees. Attackers frequently sneak in malicious code via compromised transitive dependencies."
+    },
+    {
+      "tier": 2,
+      "type": "directional",
+      "hint": "Look at the web interface or make a GET request to find where the automated CI/CD dependency audit report is published."
+    },
+    {
+      "tier": 3,
+      "type": "technical",
+      "hint": "Access /packages/audit/package_lock_audit.json and look through the dependencies object for any non-standard packages from untrusted authors."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Examine the apex-internal-telemetry package metadata inside the audit report. The exfiltrated_pipeline_token contains the flag in standard ZITERA{...} format."
+    }
+  ]
+}

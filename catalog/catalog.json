@@ -23,7 +23,7 @@
       "id": "A03",
       "title": "Software Supply Chain Failures",
       "repository": "xdaamar/zitera_lab_a03",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "difficulty": "Beginner",
       "owasp": "A03:2025",
       "description": "Understand risks from unverified third-party dependencies, malicious package scripts, and vulnerable build artifacts."
