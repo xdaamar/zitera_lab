@@ -96,38 +96,42 @@ class _SidebarState extends State<Sidebar> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Row(
-                              children: [
-                                // "ZITERA" — SpaceGrotesk bold
-                                const Text(
-                                  'ZITERA',
-                                  style: TextStyle(
-                                    fontFamily: 'SpaceGrotesk',
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1E1A14),
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFCCFBF1),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: const Color(0xFF2DD4BF), width: 0.8),
-                                  ),
-                                  child: const Text(
-                                    'LAB',
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                children: [
+                                  // "ZITERA" — SpaceGrotesk bold
+                                  const Text(
+                                    'ZITERA',
                                     style: TextStyle(
                                       fontFamily: 'SpaceGrotesk',
-                                      fontSize: 9,
+                                      fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF0F766E),
+                                      color: Color(0xFF1E1A14),
+                                      letterSpacing: 1.0,
                                     ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFCCFBF1),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: const Color(0xFF2DD4BF), width: 0.8),
+                                    ),
+                                    child: const Text(
+                                      'LAB',
+                                      style: TextStyle(
+                                        fontFamily: 'SpaceGrotesk',
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0F766E),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 2),
                             // Subtext — JetBrainsMono (RETRO removed)
@@ -262,30 +266,35 @@ class _SidebarState extends State<Sidebar> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'NEKO STATUS',
-                                  style: TextStyle(
-                                    fontFamily: 'SpaceGrotesk',
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1E1A14),
-                                    letterSpacing: 0.4,
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'NEKO STATUS',
+                                    style: TextStyle(
+                                      fontFamily: 'SpaceGrotesk',
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1E1A14),
+                                      letterSpacing: 0.4,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  'READY',
-                                  style: TextStyle(
-                                    fontFamily: 'JetBrainsMono',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: ZiteraColors.ready,
-                                    letterSpacing: 0.3,
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'READY',
+                                    style: TextStyle(
+                                      fontFamily: 'JetBrainsMono',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: ZiteraColors.ready,
+                                      letterSpacing: 0.3,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                             SizedBox(height: 2),
                             Text(

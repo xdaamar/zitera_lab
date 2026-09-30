@@ -4,7 +4,7 @@
   "slug": "security-misconfiguration",
   "title": "Security Misconfiguration",
   "owasp": "A02:2025",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "difficulty": "Beginner",
   "runtime": "docker",
   "entrypoint": "docker/compose.yml",

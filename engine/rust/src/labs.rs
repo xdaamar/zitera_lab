@@ -18,7 +18,26 @@ pub fn read_manifest(lab_dir: &Path) -> Result<LabManifest, String> {
     }
     let data = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read manifest at {:?}: {}", manifest_path, e))?;
-    serde_json::from_str(&data).map_err(|e| format!("Failed to parse manifest JSON: {}", e))
+    let manifest: LabManifest =
+        serde_json::from_str(&data).map_err(|e| format!("Failed to parse manifest JSON: {}", e))?;
+
+    if manifest.id.trim().is_empty() {
+        return Err("Lab manifest 'id' cannot be empty.".to_string());
+    }
+    if manifest.title.trim().is_empty() {
+        return Err("Lab manifest 'title' cannot be empty.".to_string());
+    }
+    if manifest.default_port == 0 {
+        return Err("Lab manifest 'default_port' must be greater than 0.".to_string());
+    }
+    if manifest.runtime != "docker" {
+        return Err(format!(
+            "Unsupported lab runtime '{}'. Only 'docker' is supported.",
+            manifest.runtime
+        ));
+    }
+
+    Ok(manifest)
 }
 
 pub fn validate_lab_id(lab_id: &str) -> Result<(), String> {
@@ -323,15 +342,31 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         .ok_or_else(|| format!("Lab {} not found in catalog.", lab_id))?;
 
     if lab_dir.join(".git").exists() {
+        let rev_out = crate::process::run_cmd("git", &["rev-parse", "HEAD"], Some(&lab_dir))?;
+        let previous_head = rev_out.stdout.trim().to_string();
+
         let pull_out = crate::process::run_cmd("git", &["pull"], Some(&lab_dir))?;
         if !pull_out.success {
             return Err(format!("Failed to update lab via git: {}", pull_out.stderr));
         }
-        let updated_manifest = read_manifest(&lab_dir)?;
-        Ok(format!(
-            "Lab {} updated from v{} to v{}.",
-            lab_id, current_manifest.version, updated_manifest.version
-        ))
+
+        match read_manifest(&lab_dir) {
+            Ok(updated_manifest) => Ok(format!(
+                "Lab {} updated from v{} to v{}.",
+                lab_id, current_manifest.version, updated_manifest.version
+            )),
+            Err(e) => {
+                let _ = crate::process::run_cmd(
+                    "git",
+                    &["reset", "--hard", &previous_head],
+                    Some(&lab_dir),
+                );
+                Err(format!(
+                    "Update rejected due to invalid manifest: {}. Rolled back to previous valid state.",
+                    e
+                ))
+            }
+        }
     } else {
         if current_manifest.version == item.version {
             Ok(format!(
