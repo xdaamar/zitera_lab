@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{1n53cur3_d351gn_fl4w3d_w0rkfl0w}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Review the mental model in the lesson: consider how Insecure Design differs from standard coding bugs."
+    },
+    {
+      "tier": 2,
+      "type": "investigation_direction",
+      "hint": "Inspect the web dashboard and explore the available API routes using browser developer tools or curl."
+    },
+    {
+      "tier": 3,
+      "type": "technical_area",
+      "hint": "Look at the requests sent to port 8016. The vulnerability lies in how input parameters or exception states dictate business decisions."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Trigger the vulnerable transition or exception condition directly via POST request to receive the authoritative flag in the response payload."
+    }
+  ]
+}

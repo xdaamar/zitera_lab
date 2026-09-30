@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "A06",
+  "slug": "insecure-design",
+  "title": "Insecure Design",
+  "owasp": "A06:2025",
+  "version": "1.0.1",
+  "difficulty": "Intermediate",
+  "runtime": "docker",
+  "entrypoint": "docker/compose.yml",
+  "default_port": 8016,
+  "estimated_minutes": 45,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "requirements": {
+    "required_tools": [],
+    "recommended_tools": [
+      "curl"
+    ]
+  }
+}

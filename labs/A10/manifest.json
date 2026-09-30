@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "A10",
+  "slug": "mishandling-exceptional-conditions",
+  "title": "Mishandling of Exceptional Conditions",
+  "owasp": "A10:2025",
+  "version": "1.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "docker",
+  "entrypoint": "docker/compose.yml",
+  "default_port": 8020,
+  "estimated_minutes": 45,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "requirements": {
+    "required_tools": [],
+    "recommended_tools": [
+      "curl"
+    ]
+  }
+}
