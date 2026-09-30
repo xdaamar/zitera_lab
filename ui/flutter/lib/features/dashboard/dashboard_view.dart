@@ -476,6 +476,14 @@ class _DashboardViewState extends State<DashboardView> {
             ],
           ),
 
+          const SizedBox(height: 24),
+
+          // 4.5. OWASP Top 10:2025 Curriculum Navigation View (PRD §48)
+          _buildOwaspCurriculumView(
+            labs: displayLabs,
+            solvedChallenges: solvedChallenges,
+          ),
+
           const SizedBox(height: 28),
 
           // 5. Available Laboratories Section Header
@@ -1357,6 +1365,214 @@ class _DashboardViewState extends State<DashboardView> {
                 onPressed: () => widget.onOpenLab(labId),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// OWASP Top 10:2025 Curriculum Navigation Widget (Phase 11 / PRD §48).
+  Widget _buildOwaspCurriculumView({
+    required List<LabItem> labs,
+    required List<String> solvedChallenges,
+  }) {
+    const categories = [
+      {'id': 'A01', 'num': '01', 'title': 'Broken Access Control'},
+      {'id': 'A02', 'num': '02', 'title': 'Security Misconfiguration'},
+      {'id': 'A03', 'num': '03', 'title': 'Supply Chain Failures'},
+      {'id': 'A04', 'num': '04', 'title': 'Cryptographic Failures'},
+      {'id': 'A05', 'num': '05', 'title': 'Injection'},
+      {'id': 'A06', 'num': '06', 'title': 'Insecure Design'},
+      {'id': 'A07', 'num': '07', 'title': 'Authentication Failures'},
+      {'id': 'A08', 'num': '08', 'title': 'Data Integrity Failures'},
+      {'id': 'A09', 'num': '09', 'title': 'Logging & Alerting'},
+      {'id': 'A10', 'num': '10', 'title': 'Exceptional Conditions'},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCFBF8),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ZiteraColors.border, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'OWASP TOP 10:2025 CURRICULUM',
+                    style: TextStyle(
+                      fontFamily: 'SpaceGrotesk',
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.6,
+                      color: Color(0xFF1E1A14),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFF86EFAC), width: 1),
+                    ),
+                    child: const Text(
+                      '10/10 MODULES ONLINE',
+                      style: TextStyle(
+                        fontFamily: 'JetBrainsMono',
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () => widget.onNavigate(1),
+                child: const Row(
+                  children: [
+                    Text(
+                      'Explore All',
+                      style: TextStyle(
+                        fontFamily: 'SpaceGrotesk',
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F766E),
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_forward, size: 13, color: Color(0xFF0F766E)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: categories.map((cat) {
+              final lab = labs.firstWhere(
+                (l) => l.id.toUpperCase() == cat['id'],
+                orElse: () => LabItem(
+                  id: cat['id']!,
+                  title: cat['title']!,
+                  installed: false,
+                  running: false,
+                  port: 0,
+                  version: '1.0.0',
+                  status: 'NOT_INSTALLED',
+                  learnReadiness: 'READY',
+                  practiceReadiness: 'READY',
+                  challengeReadiness: 'READY',
+                ),
+              );
+
+              final isSolved = solvedChallenges.any((s) => s.toUpperCase() == cat['id']);
+              final isRunning = lab.running;
+              final isInstalled = lab.installed;
+
+              Color bg;
+              Color border;
+              Color textColor;
+              String statusIcon;
+
+              if (isSolved) {
+                bg = const Color(0xFFDCFCE7);
+                border = const Color(0xFF86EFAC);
+                textColor = const Color(0xFF166534);
+                statusIcon = 'OK';
+              } else if (isRunning) {
+                bg = const Color(0xFFFEF9C3);
+                border = const Color(0xFFFDE047);
+                textColor = const Color(0xFF854D0E);
+                statusIcon = 'RUN';
+              } else if (isInstalled) {
+                bg = const Color(0xFFF1F5F9);
+                border = const Color(0xFFCBD5E1);
+                textColor = const Color(0xFF334155);
+                statusIcon = 'LIVE';
+              } else {
+                bg = const Color(0xFFF8FAFC);
+                border = const Color(0xFFE2E8F0);
+                textColor = const Color(0xFF94A3B8);
+                statusIcon = 'IDLE';
+              }
+
+              return InkWell(
+                onTap: () {
+                  if (lab.installed) {
+                    widget.onOpenLab(lab.id);
+                  } else {
+                    widget.onNavigate(1);
+                  }
+                },
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: border, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        cat['num']!,
+                        style: TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        cat['title']!,
+                        style: TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: border.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Text(
+                          statusIcon,
+                          style: TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
