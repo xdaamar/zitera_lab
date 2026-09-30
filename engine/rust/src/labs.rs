@@ -112,9 +112,18 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
 
     let lab_dir = get_lab_dir(workspace_root, lab_id);
     if !lab_dir.exists() {
+        let title = match crate::catalog::load_catalog(workspace_root) {
+            Ok(cat) => cat
+                .labs
+                .iter()
+                .find(|l| l.id.eq_ignore_ascii_case(lab_id))
+                .map(|l| l.title.clone())
+                .unwrap_or_else(|| lab_id.to_string()),
+            Err(_) => lab_id.to_string(),
+        };
         return LabStatus {
             id: lab_id.to_uppercase(),
-            title: lab_id.to_string(),
+            title,
             installed: false,
             running: false,
             port: 0,
@@ -525,6 +534,31 @@ pub fn verify_practice(
 
     let manifest = read_manifest(&lab_dir)?;
     let port = manifest.default_port;
+
+    // 1. Authoritative Practice Verification Endpoint (Contract V2)
+    // If the laboratory service exposes a stateful practice verification endpoint, query it.
+    let practice_url = format!("http://127.0.0.1:{}/practice/verify", port);
+    let practice_probe =
+        crate::process::run_cmd("curl.exe", &["-s", "--max-time", "3", &practice_url], None);
+
+    if let Ok(pout) = practice_probe {
+        if pout.success && !pout.stdout.trim().is_empty() {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&pout.stdout) {
+                if let (Some(status_val), Some(msg_val)) = (
+                    json.get("status").and_then(|s| s.as_str()),
+                    json.get("message").and_then(|m| m.as_str()),
+                ) {
+                    return Ok(crate::models::PracticeVerification {
+                        lab_id: lab_id.to_uppercase(),
+                        status: status_val.to_string(),
+                        message: msg_val.to_string(),
+                    });
+                }
+            }
+        }
+    }
+
+    // 2. Fallback to health probe
     let url = format!("http://127.0.0.1:{}/health", port);
 
     // Fast bounded curl probe (3 seconds max)

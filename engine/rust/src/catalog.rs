@@ -55,22 +55,7 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
 pub fn load_catalog(workspace_root: &Path) -> Result<Catalog, String> {
     let local_path = get_catalog_path(workspace_root);
 
-    // 1. Try remote fetch if curl is available
-    if let Ok(remote_catalog) = fetch_remote_catalog(REMOTE_CATALOG_URL) {
-        if let Ok(()) = validate_catalog(&remote_catalog) {
-            // Safe atomic write / update to local cache
-            if let Ok(serialized) = serde_json::to_string_pretty(&remote_catalog) {
-                if let Some(parent) = local_path.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
-                let _ = fs::write(&local_path, serialized);
-            }
-            return Ok(remote_catalog);
-        }
-        // If remote is invalid or malformed, proceed to local cache without overwriting
-    }
-
-    // 2. Fall back to local cache
+    // 1. Check local catalog cache first (ensures offline reliability and local authority)
     if local_path.exists() {
         if let Ok(content) = fs::read_to_string(&local_path) {
             if let Ok(cached) = serde_json::from_str::<Catalog>(&content) {
@@ -81,7 +66,20 @@ pub fn load_catalog(workspace_root: &Path) -> Result<Catalog, String> {
         }
     }
 
-    // 3. Built-in fallback
+    // 2. Try remote fetch if local cache is missing or corrupt
+    if let Ok(remote_catalog) = fetch_remote_catalog(REMOTE_CATALOG_URL) {
+        if let Ok(()) = validate_catalog(&remote_catalog) {
+            if let Ok(serialized) = serde_json::to_string_pretty(&remote_catalog) {
+                if let Some(parent) = local_path.parent() {
+                    let _ = fs::create_dir_all(parent);
+                }
+                let _ = fs::write(&local_path, serialized);
+            }
+            return Ok(remote_catalog);
+        }
+    }
+
+    // 3. Built-in default catalog fallback
     Ok(default_catalog())
 }
 
@@ -153,6 +151,15 @@ pub fn default_catalog() -> Catalog {
                 description: "Understand SQL injection root causes, malicious query manipulation, and parameterized query remediation.".to_string(),
             },
             CatalogLabItem {
+                id: "A06".to_string(),
+                title: "Insecure Design".to_string(),
+                repository: "xdaamar/zitera_lab_a06".to_string(),
+                version: "1.0.0".to_string(),
+                difficulty: "Intermediate".to_string(),
+                owasp: "A06:2025".to_string(),
+                description: "Analyze flawed business logic, unverified workflow state transitions, and missing architectural security controls.".to_string(),
+            },
+            CatalogLabItem {
                 id: "A07".to_string(),
                 title: "Authentication Failures".to_string(),
                 repository: "xdaamar/zitera_lab_a07".to_string(),
@@ -160,6 +167,33 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A07:2025".to_string(),
                 description: "Explore how weak credential requirements, lack of brute-force protection, and session fixation lead to account takeover.".to_string(),
+            },
+            CatalogLabItem {
+                id: "A08".to_string(),
+                title: "Software or Data Integrity Failures".to_string(),
+                repository: "xdaamar/zitera_lab_a08".to_string(),
+                version: "1.0.0".to_string(),
+                difficulty: "Intermediate".to_string(),
+                owasp: "A08:2025".to_string(),
+                description: "Understand vulnerabilities from accepting unverified, untrusted software or configuration artifacts without cryptographic signatures.".to_string(),
+            },
+            CatalogLabItem {
+                id: "A09".to_string(),
+                title: "Security Logging & Alerting Failures".to_string(),
+                repository: "xdaamar/zitera_lab_a09".to_string(),
+                version: "1.0.0".to_string(),
+                difficulty: "Beginner".to_string(),
+                owasp: "A09:2025".to_string(),
+                description: "Discover how insufficient security telemetry, missing audit trails, and silent failures prevent incident detection.".to_string(),
+            },
+            CatalogLabItem {
+                id: "A10".to_string(),
+                title: "Mishandling of Exceptional Conditions".to_string(),
+                repository: "xdaamar/zitera_lab_a10".to_string(),
+                version: "1.0.0".to_string(),
+                difficulty: "Intermediate".to_string(),
+                owasp: "A10:2025".to_string(),
+                description: "Examine dangerous fail-open exception handling where upstream service errors accidentally bypass authorization boundaries.".to_string(),
             },
         ],
     }
