@@ -277,10 +277,23 @@ pub fn list_all_labs(workspace_root: &Path) -> Vec<LabStatus> {
 pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     validate_lab_id(lab_id)?;
     let lab_dir = get_lab_dir(workspace_root, lab_id);
+    if !lab_dir.exists() {
+        return Err(format!(
+            "Lab {} is not installed. Please install it first.",
+            lab_id
+        ));
+    }
     let manifest = read_manifest(&lab_dir)?;
-    if !crate::system::is_port_available(manifest.default_port)
-        && !docker::get_lab_container_status(lab_id)
-    {
+
+    // Idempotent: If already running, return success deterministically
+    if docker::get_lab_container_status(lab_id) {
+        return Ok(format!(
+            "Lab {} is already running on port {}.",
+            lab_id, manifest.default_port
+        ));
+    }
+
+    if !crate::system::is_port_available(manifest.default_port) {
         return Err(format!(
             "Port {} is already in use by another process. Please free the port before starting lab {}.",
             manifest.default_port, lab_id
@@ -293,6 +306,15 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
 pub fn stop_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     validate_lab_id(lab_id)?;
     let lab_dir = get_lab_dir(workspace_root, lab_id);
+    if !lab_dir.exists() {
+        return Err(format!("Lab {} is not installed.", lab_id));
+    }
+
+    // Idempotent: If already stopped, return success deterministically
+    if !docker::get_lab_container_status(lab_id) {
+        return Ok(format!("Lab {} is already stopped.", lab_id));
+    }
+
     let manifest = read_manifest(&lab_dir)?;
     let compose_path = lab_dir.join(&manifest.entrypoint);
     docker::stop_lab(&compose_path, &manifest.id)
@@ -301,6 +323,12 @@ pub fn stop_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
 pub fn reset_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     validate_lab_id(lab_id)?;
     let lab_dir = get_lab_dir(workspace_root, lab_id);
+    if !lab_dir.exists() {
+        return Err(format!(
+            "Lab {} is not installed. Please install it first.",
+            lab_id
+        ));
+    }
     let manifest = read_manifest(&lab_dir)?;
     let compose_path = lab_dir.join(&manifest.entrypoint);
     docker::reset_lab(&compose_path, &manifest.id)
@@ -312,6 +340,11 @@ pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String
     if lab_dir.exists() && lab_dir.join("manifest.json").exists() {
         return Ok(format!("Lab {} is already installed.", lab_id));
     }
+    // Clean up partial/corrupt previous directory before installing
+    if lab_dir.exists() {
+        let _ = fs::remove_dir_all(&lab_dir);
+    }
+
     let cat = crate::catalog::load_catalog(workspace_root)?;
     let item = cat
         .labs
@@ -385,9 +418,21 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
     if lab_dir.join(".git").exists() {
         let rev_out = crate::process::run_cmd("git", &["rev-parse", "HEAD"], Some(&lab_dir))?;
         let previous_head = rev_out.stdout.trim().to_string();
+        if previous_head.is_empty() {
+            return Err("Unable to determine current repository commit for rollback safety.".to_string());
+        }
+
+        // Staged update: Fetch first without altering working tree
+        let fetch_out = crate::process::run_cmd("git", &["fetch", "--depth", "1"], Some(&lab_dir))?;
+        if !fetch_out.success {
+            return Err(format!("Update network fetch failed: {}", fetch_out.stderr));
+        }
 
         let pull_out = crate::process::run_cmd("git", &["pull"], Some(&lab_dir))?;
         if !pull_out.success {
+            // Restore immediately if pull was interrupted
+            let _ = crate::process::run_cmd("git", &["reset", "--hard", &previous_head], Some(&lab_dir));
+            let _ = crate::process::run_cmd("git", &["clean", "-fd"], Some(&lab_dir));
             return Err(format!("Failed to update lab via git: {}", pull_out.stderr));
         }
 
@@ -397,11 +442,13 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
                 lab_id, current_manifest.version, updated_manifest.version
             )),
             Err(e) => {
+                // Atomic rollback on manifest or contract integrity violation
                 let _ = crate::process::run_cmd(
                     "git",
                     &["reset", "--hard", &previous_head],
                     Some(&lab_dir),
                 );
+                let _ = crate::process::run_cmd("git", &["clean", "-fd"], Some(&lab_dir));
                 Err(format!(
                     "Update rejected due to invalid manifest: {}. Rolled back to previous valid state.",
                     e
@@ -790,6 +837,26 @@ mod tests {
         assert!(validate_repo_url("http://github.com/owner/repo.git").is_err());
         assert!(validate_repo_url("https://evil.com/owner/repo.git").is_err());
         assert!(validate_repo_url("https://github.com/owner/repo;touch /tmp/pwn").is_err());
+    }
+
+    #[test]
+    fn test_lifecycle_uninstalled_lab_fails_gracefully() {
+        let dummy_root = Path::new("C:/dummy_zitera_nonexistent_workspace");
+        let start_res = start_lab(dummy_root, "A99");
+        assert!(start_res.is_err());
+        assert!(start_res.unwrap_err().contains("not installed"));
+
+        let reset_res = reset_lab(dummy_root, "A99");
+        assert!(reset_res.is_err());
+        assert!(reset_res.unwrap_err().contains("not installed"));
+
+        let stop_res = stop_lab(dummy_root, "A99");
+        assert!(stop_res.is_err());
+        assert!(stop_res.unwrap_err().contains("not installed"));
+
+        let remove_res = remove_lab(dummy_root, "A99");
+        assert!(remove_res.is_ok());
+        assert!(remove_res.unwrap().contains("not installed"));
     }
 }
 
