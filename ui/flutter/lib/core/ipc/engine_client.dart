@@ -32,28 +32,39 @@ class ZiteraEngineClient {
     return 'zitera-engine.exe';
   }
 
-  static Future<Map<String, dynamic>> executeCommand(List<String> args) async {
+  static Future<dynamic> executeCommandRaw(List<String> args) async {
     final engine = findEngineExecutable();
     final fullArgs = ['--json', ...args];
 
     try {
       final result = await Process.run(engine, fullArgs);
       if (result.stdout == null || result.stdout.toString().trim().isEmpty) {
-        throw Exception('Engine produced empty response. Stderr: ${result.stderr}');
+        final err = result.stderr.toString().trim();
+        throw Exception(err.isNotEmpty ? err : 'Engine produced empty response.');
       }
 
       final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
       final success = jsonMap['success'] as bool? ?? false;
       if (!success) {
         final err = jsonMap['error'] as Map<String, dynamic>?;
-        final msg = err?['message'] ?? 'Unknown engine error occurred';
+        final msg = err?['message'] ?? 'Engine operation failed.';
         throw Exception(msg);
       }
 
-      return jsonMap['data'] as Map<String, dynamic>? ?? {};
+      return jsonMap['data'];
+    } on FormatException {
+      throw Exception('Failed to parse response from ZITERA engine.');
     } catch (e) {
       rethrow;
     }
+  }
+
+  static Future<Map<String, dynamic>> executeCommand(List<String> args) async {
+    final raw = await executeCommandRaw(args);
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+    return <String, dynamic>{};
   }
 
   static Future<DiagnosticsResult> runDoctor() async {
@@ -62,18 +73,14 @@ class ZiteraEngineClient {
   }
 
   static Future<List<ToolItem>> getTools() async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'tool', 'list']);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    final list = jsonMap['data'] as List<dynamic>? ?? [];
+    final data = await executeCommandRaw(['tool', 'list']);
+    final list = data as List<dynamic>? ?? [];
     return list.map((item) => ToolItem.fromJson(item as Map<String, dynamic>)).toList();
   }
 
   static Future<List<LabItem>> getLabs() async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'lab', 'list']);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    final list = jsonMap['data'] as List<dynamic>? ?? [];
+    final data = await executeCommandRaw(['lab', 'list']);
+    final list = data as List<dynamic>? ?? [];
     return list.map((item) => LabItem.fromJson(item as Map<String, dynamic>)).toList();
   }
 
@@ -83,76 +90,38 @@ class ZiteraEngineClient {
   }
 
   static Future<String> startLab(String id) async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'lab', 'start', id]);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    if (jsonMap['success'] == true) {
-      return jsonMap['data'] as String? ?? 'Lab started.';
-    }
-    final err = jsonMap['error'] as Map<String, dynamic>?;
-    throw Exception(err?['message'] ?? 'Failed to start lab.');
+    final data = await executeCommandRaw(['lab', 'start', id]);
+    return data as String? ?? 'Lab started.';
   }
 
   static Future<String> stopLab(String id) async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'lab', 'stop', id]);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    if (jsonMap['success'] == true) {
-      return jsonMap['data'] as String? ?? 'Lab stopped.';
-    }
-    final err = jsonMap['error'] as Map<String, dynamic>?;
-    throw Exception(err?['message'] ?? 'Failed to stop lab.');
+    final data = await executeCommandRaw(['lab', 'stop', id]);
+    return data as String? ?? 'Lab stopped.';
   }
 
   static Future<String> resetLab(String id) async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'lab', 'reset', id]);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    if (jsonMap['success'] == true) {
-      return jsonMap['data'] as String? ?? 'Lab reset.';
-    }
-    final err = jsonMap['error'] as Map<String, dynamic>?;
-    throw Exception(err?['message'] ?? 'Failed to reset lab.');
+    final data = await executeCommandRaw(['lab', 'reset', id]);
+    return data as String? ?? 'Lab reset.';
   }
 
   static Future<String> installLab(String id) async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'lab', 'install', id]);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    if (jsonMap['success'] == true) {
-      return jsonMap['data'] as String? ?? 'Lab installed.';
-    }
-    final err = jsonMap['error'] as Map<String, dynamic>?;
-    throw Exception(err?['message'] ?? 'Failed to install lab.');
+    final data = await executeCommandRaw(['lab', 'install', id]);
+    return data as String? ?? 'Lab installed.';
   }
 
   static Future<String> updateLab(String id) async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'lab', 'update', id]);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    if (jsonMap['success'] == true) {
-      return jsonMap['data'] as String? ?? 'Lab updated.';
-    }
-    final err = jsonMap['error'] as Map<String, dynamic>?;
-    throw Exception(err?['message'] ?? 'Failed to update lab.');
+    final data = await executeCommandRaw(['lab', 'update', id]);
+    return data as String? ?? 'Lab updated.';
   }
 
   static Future<String> removeLab(String id) async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'lab', 'remove', id]);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    if (jsonMap['success'] == true) {
-      return jsonMap['data'] as String? ?? 'Lab removed.';
-    }
-    final err = jsonMap['error'] as Map<String, dynamic>?;
-    throw Exception(err?['message'] ?? 'Failed to remove lab.');
+    final data = await executeCommandRaw(['lab', 'remove', id]);
+    return data as String? ?? 'Lab removed.';
   }
 
   static Future<List<CatalogEntry>> getCatalog() async {
-    final engine = findEngineExecutable();
-    final result = await Process.run(engine, ['--json', 'catalog']);
-    final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
-    final catData = jsonMap['data'] as Map<String, dynamic>? ?? {};
+    final data = await executeCommandRaw(['catalog']);
+    final catData = data as Map<String, dynamic>? ?? {};
     final list = catData['labs'] as List<dynamic>? ?? [];
     return list.map((item) => CatalogEntry.fromJson(item as Map<String, dynamic>)).toList();
   }

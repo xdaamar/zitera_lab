@@ -12,93 +12,136 @@ class ProgressManager {
     return File(_fileName);
   }
 
+  static Future<void> _atomicWrite(Map<String, dynamic> data) async {
+    final file = _getProgressFile();
+    final tmpFile = File('${file.path}.tmp');
+    final jsonStr = jsonEncode(data);
+    await tmpFile.writeAsString(jsonStr, flush: true);
+    if (file.existsSync()) {
+      await file.delete();
+    }
+    await tmpFile.rename(file.path);
+  }
+
   static Future<Map<String, dynamic>> loadProgress() async {
     final file = _getProgressFile();
     if (!file.existsSync()) {
-      return {
-        'completed_labs': <String>[],
-        'completed_challenges': <String>[],
-        'completed_practice': <String>[],
-        'completed_sections': <String, dynamic>{},
-        'last_updated': DateTime.now().toIso8601String(),
-      };
+      return _defaultProgress();
     }
     try {
       final text = await file.readAsString();
+      if (text.trim().isEmpty) {
+        return _defaultProgress();
+      }
       final decoded = jsonDecode(text) as Map<String, dynamic>;
       // Sanitize: ensure legacy 'solved_flags' with secret plain texts is purged
       decoded.remove('solved_flags');
+
+      // Deduplicate lists and ensure valid schema
+      final labs = (decoded['completed_labs'] as List? ?? [])
+          .map((e) => e.toString().toUpperCase().trim())
+          .where((id) => id.isNotEmpty && id.length <= 16)
+          .toSet()
+          .toList();
+      final challenges = (decoded['completed_challenges'] as List? ?? [])
+          .map((e) => e.toString().toUpperCase().trim())
+          .where((id) => id.isNotEmpty && id.length <= 16)
+          .toSet()
+          .toList();
+      final practice = (decoded['completed_practice'] as List? ?? [])
+          .map((e) => e.toString().toUpperCase().trim())
+          .where((id) => id.isNotEmpty && id.length <= 16)
+          .toSet()
+          .toList();
+
+      decoded['completed_labs'] = labs;
+      decoded['completed_challenges'] = challenges;
+      decoded['completed_practice'] = practice;
       return decoded;
     } catch (_) {
-      return {
-        'completed_labs': <String>[],
-        'completed_challenges': <String>[],
-        'completed_practice': <String>[],
-        'completed_sections': <String, dynamic>{},
-        'last_updated': DateTime.now().toIso8601String(),
-      };
+      // Automatic corruption recovery: backup corrupted file and fallback to default
+      try {
+        if (file.existsSync()) {
+          file.copySync('${file.path}.bak');
+        }
+      } catch (_) {}
+      return _defaultProgress();
     }
   }
 
+  static Map<String, dynamic> _defaultProgress() {
+    return {
+      'completed_labs': <String>[],
+      'completed_challenges': <String>[],
+      'completed_practice': <String>[],
+      'completed_sections': <String, dynamic>{},
+      'last_updated': DateTime.now().toIso8601String(),
+    };
+  }
+
   static Future<void> markLabCompleted(String labId) async {
+    final cleanId = labId.toUpperCase().trim();
     final data = await loadProgress();
     final list = List<String>.from(data['completed_labs'] as List? ?? []);
-    if (!list.contains(labId)) {
-      list.add(labId);
+    if (!list.contains(cleanId)) {
+      list.add(cleanId);
       data['completed_labs'] = list;
       data['last_updated'] = DateTime.now().toIso8601String();
-      await _getProgressFile().writeAsString(jsonEncode(data));
+      await _atomicWrite(data);
     }
   }
 
   /// Authoritative challenge pass recorded without ever saving the flag string.
   static Future<void> markChallengeCompleted(String labId) async {
+    final cleanId = labId.toUpperCase().trim();
     final data = await loadProgress();
     final challenges = List<String>.from(data['completed_challenges'] as List? ?? []);
     final labs = List<String>.from(data['completed_labs'] as List? ?? []);
     var changed = false;
 
-    if (!challenges.contains(labId)) {
-      challenges.add(labId);
+    if (!challenges.contains(cleanId)) {
+      challenges.add(cleanId);
       data['completed_challenges'] = challenges;
       changed = true;
     }
-    if (!labs.contains(labId)) {
-      labs.add(labId);
+    if (!labs.contains(cleanId)) {
+      labs.add(cleanId);
       data['completed_labs'] = labs;
       changed = true;
     }
 
     if (changed) {
       data['last_updated'] = DateTime.now().toIso8601String();
-      await _getProgressFile().writeAsString(jsonEncode(data));
+      await _atomicWrite(data);
     }
   }
 
   /// Mark practice mode completed for a given lab.
   static Future<void> markPracticeCompleted(String labId) async {
+    final cleanId = labId.toUpperCase().trim();
     final data = await loadProgress();
     final practice = List<String>.from(data['completed_practice'] as List? ?? []);
-    if (!practice.contains(labId)) {
-      practice.add(labId);
+    if (!practice.contains(cleanId)) {
+      practice.add(cleanId);
       data['completed_practice'] = practice;
       data['last_updated'] = DateTime.now().toIso8601String();
-      await _getProgressFile().writeAsString(jsonEncode(data));
+      await _atomicWrite(data);
     }
   }
 
   /// Mark learning section viewed/completed for interaction-based progress.
   static Future<void> markSectionCompleted(String labId, String section) async {
+    final cleanId = labId.toUpperCase().trim();
     final data = await loadProgress();
     final sectionsMap = Map<String, dynamic>.from(data['completed_sections'] as Map? ?? {});
-    final labSections = List<String>.from(sectionsMap[labId] as List? ?? []);
+    final labSections = List<String>.from(sectionsMap[cleanId] as List? ?? []);
 
     if (!labSections.contains(section)) {
       labSections.add(section);
-      sectionsMap[labId] = labSections;
+      sectionsMap[cleanId] = labSections;
       data['completed_sections'] = sectionsMap;
       data['last_updated'] = DateTime.now().toIso8601String();
-      await _getProgressFile().writeAsString(jsonEncode(data));
+      await _atomicWrite(data);
     }
   }
 
