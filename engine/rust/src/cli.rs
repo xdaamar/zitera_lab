@@ -526,6 +526,7 @@ fn handle_catalog(workspace_root: &Path, json: bool) {
 }
 
 fn find_workspace_root() -> PathBuf {
+    // 1. Check relative to current working directory (development & standard execution)
     let mut current = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     loop {
         if current.join("catalog").join("catalog.json").exists() || current.join(".git").exists() {
@@ -537,6 +538,24 @@ fn find_workspace_root() -> PathBuf {
             break;
         }
     }
+
+    // 2. Check relative to current executable location (portable release package)
+    if let Ok(exe_path) = env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let mut check = exe_dir.to_path_buf();
+            loop {
+                if check.join("catalog").join("catalog.json").exists() || check.join(".git").exists() {
+                    return check;
+                }
+                if let Some(parent) = check.parent() {
+                    check = parent.to_path_buf();
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
     env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
 

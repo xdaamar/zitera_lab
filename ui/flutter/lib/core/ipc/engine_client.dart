@@ -10,15 +10,22 @@ class ZiteraEngineClient {
       return _cachedEnginePath!;
     }
 
+    final exeDir = File(Platform.resolvedExecutable).parent.path;
     final currentDir = Directory.current.path;
     final candidates = [
-      // Running from workspace root
+      // Sibling in release package (relative to executable)
+      '$exeDir\\zitera-engine.exe',
+      '$exeDir\\engine\\zitera-engine.exe',
+      // Sibling in working directory
+      '$currentDir\\zitera-engine.exe',
+      '$currentDir\\engine\\zitera-engine.exe',
+      // Running from workspace root (dev)
       '$currentDir\\engine\\rust\\target\\release\\zitera-engine.exe',
       '$currentDir\\engine\\rust\\target\\debug\\zitera-engine.exe',
-      // Running from ui/flutter
+      // Running from ui/flutter (dev)
       '$currentDir\\..\\..\\engine\\rust\\target\\release\\zitera-engine.exe',
       '$currentDir\\..\\..\\engine\\rust\\target\\debug\\zitera-engine.exe',
-      // Direct binary
+      // Direct binary on PATH
       'zitera-engine.exe',
     ];
 
