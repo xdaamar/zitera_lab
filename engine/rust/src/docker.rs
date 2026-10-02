@@ -137,23 +137,26 @@ pub fn reset_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
     }
 }
 
-pub fn get_lab_container_status(lab_id: &str) -> bool {
+pub fn get_running_containers() -> std::collections::HashSet<String> {
     let docker_bin = get_docker_cmd();
-    let project_name = format!("zitera_{}", lab_id.to_lowercase());
-    match run_cmd(
-        &docker_bin,
-        &[
-            "ps",
-            "--filter",
-            &format!("name={}", project_name),
-            "--format",
-            "{{.Status}}",
-        ],
-        None,
-    ) {
-        Ok(out) => out.success && out.stdout.contains("Up"),
-        Err(_) => false,
+    let mut running = std::collections::HashSet::new();
+    if let Ok(out) = run_cmd(&docker_bin, &["ps", "--format", "{{.Names}}"], None) {
+        if out.success {
+            for line in out.stdout.lines() {
+                let name = line.trim();
+                if !name.is_empty() {
+                    running.insert(name.to_lowercase());
+                }
+            }
+        }
     }
+    running
+}
+
+pub fn get_lab_container_status(lab_id: &str) -> bool {
+    let project_name = format!("zitera_{}", lab_id.to_lowercase());
+    let running = get_running_containers();
+    running.iter().any(|name| name.contains(&project_name))
 }
 
 /// Prunes dangling stopped containers and anonymous volumes associated with zitera projects.

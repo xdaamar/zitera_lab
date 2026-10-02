@@ -125,6 +125,16 @@ pub fn validate_repo_url(url: &str) -> Result<(), String> {
 }
 
 pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
+    get_lab_status_cached(workspace_root, lab_id, None, None, None)
+}
+
+pub fn get_lab_status_cached(
+    workspace_root: &Path,
+    lab_id: &str,
+    cached_cat: Option<&crate::models::Catalog>,
+    running_containers: Option<&std::collections::HashSet<String>>,
+    installed_tools: Option<&[String]>,
+) -> LabStatus {
     if validate_lab_id(lab_id).is_err() {
         return LabStatus {
             id: lab_id.to_string(),
@@ -144,14 +154,22 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
 
     let lab_dir = get_lab_dir(workspace_root, lab_id);
     if !lab_dir.exists() {
-        let title = match crate::catalog::load_catalog(workspace_root) {
-            Ok(cat) => cat
-                .labs
+        let title = if let Some(cat) = cached_cat {
+            cat.labs
                 .iter()
                 .find(|l| l.id.eq_ignore_ascii_case(lab_id))
                 .map(|l| l.title.clone())
-                .unwrap_or_else(|| lab_id.to_string()),
-            Err(_) => lab_id.to_string(),
+                .unwrap_or_else(|| lab_id.to_string())
+        } else {
+            match crate::catalog::load_catalog(workspace_root) {
+                Ok(cat) => cat
+                    .labs
+                    .iter()
+                    .find(|l| l.id.eq_ignore_ascii_case(lab_id))
+                    .map(|l| l.title.clone())
+                    .unwrap_or_else(|| lab_id.to_string()),
+                Err(_) => lab_id.to_string(),
+            }
         };
         return LabStatus {
             id: lab_id.to_uppercase(),
@@ -171,7 +189,12 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
 
     match read_manifest(&lab_dir) {
         Ok(manifest) => {
-            let is_running = docker::get_lab_container_status(lab_id);
+            let is_running = if let Some(running) = running_containers {
+                let project_name = format!("zitera_{}", lab_id.to_lowercase());
+                running.iter().any(|name| name.contains(&project_name))
+            } else {
+                docker::get_lab_container_status(lab_id)
+            };
             let status_str = if is_running { "RUNNING" } else { "STOPPED" };
             let url = if is_running {
                 Some(format!("http://127.0.0.1:{}", manifest.default_port))
@@ -181,23 +204,27 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
 
             let (challenge_readiness, recommended_tools) = if let Some(req) = &manifest.requirements
             {
-                let installed_tools: Vec<String> = crate::tools::list_tools()
-                    .into_iter()
-                    .filter(|t| t.installed)
-                    .map(|t| t.id.to_lowercase())
-                    .collect();
+                let tools_list: Vec<String> = if let Some(tools) = installed_tools {
+                    tools.to_vec()
+                } else {
+                    crate::tools::list_tools()
+                        .into_iter()
+                        .filter(|t| t.installed)
+                        .map(|t| t.id.to_lowercase())
+                        .collect()
+                };
 
                 let missing_recommended: Vec<String> = req
                     .recommended_tools
                     .iter()
-                    .filter(|t| !installed_tools.contains(&t.to_lowercase()))
+                    .filter(|t| !tools_list.contains(&t.to_lowercase()))
                     .cloned()
                     .collect();
 
                 let missing_required: Vec<String> = req
                     .required_tools
                     .iter()
-                    .filter(|t| !installed_tools.contains(&t.to_lowercase()))
+                    .filter(|t| !tools_list.contains(&t.to_lowercase()))
                     .cloned()
                     .collect();
 
@@ -247,9 +274,10 @@ pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
 }
 
 pub fn list_all_labs(workspace_root: &Path) -> Vec<LabStatus> {
-    let mut ids: Vec<String> = match crate::catalog::load_catalog(workspace_root) {
-        Ok(cat) => cat.labs.into_iter().map(|l| l.id).collect(),
-        Err(_) => Vec::new(),
+    let cat_opt = crate::catalog::load_catalog(workspace_root).ok();
+    let mut ids: Vec<String> = match &cat_opt {
+        Some(cat) => cat.labs.iter().map(|l| l.id.clone()).collect(),
+        None => Vec::new(),
     };
 
     // Also scan local workspace labs directory for installed labs not yet in catalog
@@ -269,8 +297,26 @@ pub fn list_all_labs(workspace_root: &Path) -> Vec<LabStatus> {
 
     ids.sort();
 
+    // Query running containers once in a single batch subprocess
+    let running_containers = docker::get_running_containers();
+
+    // Query installed tools once in a single batch
+    let installed_tools: Vec<String> = crate::tools::list_tools()
+        .into_iter()
+        .filter(|t| t.installed)
+        .map(|t| t.id.to_lowercase())
+        .collect();
+
     ids.into_iter()
-        .map(|id| get_lab_status(workspace_root, &id))
+        .map(|id| {
+            get_lab_status_cached(
+                workspace_root,
+                &id,
+                cat_opt.as_ref(),
+                Some(&running_containers),
+                Some(&installed_tools),
+            )
+        })
         .collect()
 }
 
