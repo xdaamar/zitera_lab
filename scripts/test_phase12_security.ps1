@@ -72,7 +72,7 @@ $traversalTests = @(
     'A01\..\..\engine',
     'A01;whoami',
     'A01|calc',
-    'A01_and_dir'
+    'A01 && dir'
 )
 
 foreach ($id in $traversalTests) {
