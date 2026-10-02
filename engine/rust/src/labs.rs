@@ -11,6 +11,30 @@ pub fn get_lab_dir(workspace_root: &Path, lab_id: &str) -> PathBuf {
     get_labs_dir(workspace_root).join(lab_id.to_uppercase())
 }
 
+/// SEC: Ensures user/manifest-controlled subpath is strictly contained within base_dir.
+/// Rejects path traversal (..), drive letters (C:), absolute paths, and UNC network shares.
+pub fn safe_subpath(base_dir: &Path, relative_subpath: impl AsRef<Path>) -> Result<PathBuf, String> {
+    let sub = relative_subpath.as_ref();
+    for comp in sub.components() {
+        match comp {
+            std::path::Component::Prefix(_) | std::path::Component::RootDir => {
+                return Err(format!(
+                    "Path traversal attempt: absolute or prefix path is forbidden: {:?}",
+                    sub
+                ));
+            }
+            std::path::Component::ParentDir => {
+                return Err(format!(
+                    "Path traversal attempt: parent directory ('..') is forbidden: {:?}",
+                    sub
+                ));
+            }
+            std::path::Component::CurDir | std::path::Component::Normal(_) => {}
+        }
+    }
+    Ok(base_dir.join(sub))
+}
+
 pub fn read_manifest(lab_dir: &Path) -> Result<LabManifest, String> {
     let manifest_path = lab_dir.join("manifest.json");
     if !manifest_path.exists() {
@@ -24,11 +48,16 @@ pub fn read_manifest(lab_dir: &Path) -> Result<LabManifest, String> {
     if manifest.id.trim().is_empty() {
         return Err("Lab manifest 'id' cannot be empty.".to_string());
     }
-    if manifest.title.trim().is_empty() {
-        return Err("Lab manifest 'title' cannot be empty.".to_string());
+    validate_lab_id(&manifest.id)?;
+
+    if manifest.title.trim().is_empty() || manifest.title.len() > 128 {
+        return Err("Lab manifest 'title' must be between 1 and 128 characters.".to_string());
     }
-    if manifest.default_port == 0 {
-        return Err("Lab manifest 'default_port' must be greater than 0.".to_string());
+    if manifest.default_port < 1024 {
+        return Err(format!(
+            "Lab manifest 'default_port' ({}) must be >= 1024.",
+            manifest.default_port
+        ));
     }
     if manifest.runtime != "docker" {
         return Err(format!(
@@ -36,6 +65,9 @@ pub fn read_manifest(lab_dir: &Path) -> Result<LabManifest, String> {
             manifest.runtime
         ));
     }
+
+    // Verify entrypoint is a safe relative subpath within lab_dir (e.g., docker-compose.yml)
+    safe_subpath(lab_dir, Path::new(&manifest.entrypoint))?;
 
     Ok(manifest)
 }
@@ -637,6 +669,16 @@ pub fn validate_challenge(
     user_submission: &str,
 ) -> Result<crate::models::ChallengeVerification, String> {
     validate_lab_id(lab_id)?;
+
+    // Bounded input length to prevent excessive comparisons or memory exhaustion
+    if user_submission.len() > 512 {
+        return Ok(crate::models::ChallengeVerification {
+            lab_id: lab_id.to_uppercase(),
+            status: "failed".to_string(),
+            message: "Submission exceeds 512 characters maximum limit.".to_string(),
+        });
+    }
+
     let lab_dir = get_lab_dir(workspace_root, lab_id);
     if !lab_dir.exists() {
         return Err(format!("Lab {} is not installed.", lab_id));
@@ -662,7 +704,15 @@ pub fn validate_challenge(
     let submission_clean = user_submission.trim();
     let expected_clean = expected_flag.trim();
 
-    if submission_clean == expected_clean {
+    // Constant-time byte comparison to eliminate timing side-channel leakage
+    let matches = submission_clean.len() == expected_clean.len()
+        && submission_clean
+            .as_bytes()
+            .iter()
+            .zip(expected_clean.as_bytes().iter())
+            .fold(0u8, |acc, (&a, &b)| acc | (a ^ b)) == 0;
+
+    if matches {
         Ok(crate::models::ChallengeVerification {
             lab_id: lab_id.to_uppercase(),
             status: "passed".to_string(),
@@ -676,3 +726,70 @@ pub fn validate_challenge(
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_lab_id_valid() {
+        assert!(validate_lab_id("A01").is_ok());
+        assert!(validate_lab_id("A10").is_ok());
+        assert!(validate_lab_id("zitera-lab").is_ok());
+        assert!(validate_lab_id("LAB_01").is_ok());
+    }
+
+    #[test]
+    fn test_validate_lab_id_path_traversals_rejected() {
+        let malicious = [
+            "../A01",
+            "../../engine",
+            r"..\..\engine",
+            r"C:\Windows",
+            r"C:\src",
+            r"\\server\share",
+            "/absolute/path",
+            "A01/../../engine",
+            r"A01\..\..\engine",
+            "A01;whoami",
+            "A01|calc",
+            "A01 && dir",
+        ];
+        for test in &malicious {
+            assert!(
+                validate_lab_id(test).is_err(),
+                "Malicious input '{}' should be rejected by validate_lab_id",
+                test
+            );
+        }
+    }
+
+    #[test]
+    fn test_safe_subpath_enforcement() {
+        let base = Path::new("C:/zitera_lab/labs/A01");
+        assert!(safe_subpath(base, "docker-compose.yml").is_ok());
+        assert!(safe_subpath(base, "sub/dir/config.json").is_ok());
+
+        assert!(safe_subpath(base, "../evil.yml").is_err());
+        assert!(safe_subpath(base, "../../engine/src").is_err());
+        assert!(safe_subpath(base, "/etc/passwd").is_err());
+        assert!(safe_subpath(base, r"C:\Windows\System32").is_err());
+        assert!(safe_subpath(base, r"\\share\file").is_err());
+    }
+
+    #[test]
+    fn test_validate_repo_url_trusted() {
+        assert!(validate_repo_url("https://github.com/xdaamar/zitera_lab_a01.git").is_ok());
+        assert!(validate_repo_url("https://github.com/owner/valid-repo_123").is_ok());
+    }
+
+    #[test]
+    fn test_validate_repo_url_untrusted() {
+        assert!(validate_repo_url("file:///etc/passwd").is_err());
+        assert!(validate_repo_url("ssh://git@github.com/owner/repo.git").is_err());
+        assert!(validate_repo_url("http://github.com/owner/repo.git").is_err());
+        assert!(validate_repo_url("https://evil.com/owner/repo.git").is_err());
+        assert!(validate_repo_url("https://github.com/owner/repo;touch /tmp/pwn").is_err());
+    }
+}
+

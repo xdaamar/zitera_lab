@@ -11,7 +11,10 @@ pub fn get_catalog_path(workspace_root: &Path) -> PathBuf {
     workspace_root.join("catalog").join("catalog.json")
 }
 
-/// Validates catalog schema, integrity, unique IDs, and field correctness (SEC-011 / Phase 11).
+pub const MAX_CATALOG_FILE_SIZE: u64 = 524_288; // 512 KB limit to prevent unbounded memory allocation
+pub const MAX_LABS_COUNT: usize = 100;
+
+/// Validates catalog schema, integrity, unique IDs, field bounds, and URL safety (Workstream B).
 pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if catalog.schema_version != 1 {
         return Err(format!(
@@ -22,6 +25,13 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if catalog.labs.is_empty() {
         return Err("Catalog contains no labs.".to_string());
     }
+    if catalog.labs.len() > MAX_LABS_COUNT {
+        return Err(format!(
+            "Catalog exceeds maximum lab capacity ({} > {}).",
+            catalog.labs.len(),
+            MAX_LABS_COUNT
+        ));
+    }
 
     let mut seen_ids = HashSet::new();
     for lab in &catalog.labs {
@@ -29,14 +39,41 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         if !seen_ids.insert(lab.id.to_uppercase()) {
             return Err(format!("Duplicate lab ID found in catalog: {}", lab.id));
         }
-        if lab.title.trim().is_empty() {
-            return Err(format!("Lab {} has an empty title.", lab.id));
+        if lab.title.trim().is_empty() || lab.title.len() > 128 {
+            return Err(format!(
+                "Lab {} has invalid title (must be 1-128 characters).",
+                lab.id
+            ));
         }
-        if lab.version.trim().is_empty() {
-            return Err(format!("Lab {} has an empty version.", lab.id));
+        if lab.version.trim().is_empty() || lab.version.len() > 32 {
+            return Err(format!(
+                "Lab {} has invalid version (must be 1-32 characters).",
+                lab.id
+            ));
         }
-        if lab.repository.trim().is_empty() {
-            return Err(format!("Lab {} has an empty repository field.", lab.id));
+        if lab.repository.trim().is_empty() || lab.repository.len() > 256 {
+            return Err(format!(
+                "Lab {} has invalid repository (must be 1-256 characters).",
+                lab.id
+            ));
+        }
+        if lab.description.len() > 1024 {
+            return Err(format!(
+                "Lab {} has description exceeding 1024 characters.",
+                lab.id
+            ));
+        }
+        if lab.owasp.len() > 64 {
+            return Err(format!(
+                "Lab {} has owasp field exceeding 64 characters.",
+                lab.id
+            ));
+        }
+        if lab.difficulty.len() > 32 {
+            return Err(format!(
+                "Lab {} has difficulty field exceeding 32 characters.",
+                lab.id
+            ));
         }
 
         // Validate repository structure (either owner/repo or full https://github.com/owner/repo.git)
@@ -57,10 +94,14 @@ pub fn load_catalog(workspace_root: &Path) -> Result<Catalog, String> {
 
     // 1. Check local catalog cache first (ensures offline reliability and local authority)
     if local_path.exists() {
-        if let Ok(content) = fs::read_to_string(&local_path) {
-            if let Ok(cached) = serde_json::from_str::<Catalog>(&content) {
-                if validate_catalog(&cached).is_ok() {
-                    return Ok(cached);
+        if let Ok(meta) = fs::metadata(&local_path) {
+            if meta.len() <= MAX_CATALOG_FILE_SIZE {
+                if let Ok(content) = fs::read_to_string(&local_path) {
+                    if let Ok(cached) = serde_json::from_str::<Catalog>(&content) {
+                        if validate_catalog(&cached).is_ok() {
+                            return Ok(cached);
+                        }
+                    }
                 }
             }
         }
@@ -94,6 +135,10 @@ pub fn fetch_remote_catalog(url: &str) -> Result<Catalog, String> {
 
     if !out.success || out.stdout.trim().is_empty() {
         return Err(format!("Remote catalog request failed: {}", out.stderr));
+    }
+
+    if out.stdout.len() as u64 > MAX_CATALOG_FILE_SIZE {
+        return Err("Remote catalog response exceeds maximum allowed size (512 KB).".to_string());
     }
 
     let catalog: Catalog = serde_json::from_str(&out.stdout)
@@ -196,5 +241,63 @@ pub fn default_catalog() -> Catalog {
                 description: "Examine dangerous fail-open exception handling where upstream service errors accidentally bypass authorization boundaries.".to_string(),
             },
         ],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_catalog_is_valid() {
+        let cat = default_catalog();
+        assert!(validate_catalog(&cat).is_ok());
+        assert_eq!(cat.labs.len(), 10);
+    }
+
+    #[test]
+    fn test_validate_catalog_duplicate_id() {
+        let mut cat = default_catalog();
+        let mut dup_lab = cat.labs[0].clone();
+        dup_lab.title = "Duplicate Item".to_string();
+        cat.labs.push(dup_lab);
+        let res = validate_catalog(&cat);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("Duplicate lab ID found"));
+    }
+
+    #[test]
+    fn test_validate_catalog_invalid_id() {
+        let mut cat = default_catalog();
+        cat.labs[0].id = "../A01".to_string();
+        let res = validate_catalog(&cat);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_validate_catalog_empty_title() {
+        let mut cat = default_catalog();
+        cat.labs[0].title = "   ".to_string();
+        let res = validate_catalog(&cat);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("invalid title"));
+    }
+
+    #[test]
+    fn test_validate_catalog_untrusted_repo() {
+        let mut cat = default_catalog();
+        cat.labs[0].repository = "https://evil.attacker.com/malicious.git".to_string();
+        let res = validate_catalog(&cat);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("not a trusted HTTPS GitHub URL"));
+    }
+
+    #[test]
+    fn test_validate_catalog_oversized_description() {
+        let mut cat = default_catalog();
+        cat.labs[0].description = "A".repeat(1025);
+        let res = validate_catalog(&cat);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("exceeding 1024 characters"));
     }
 }
