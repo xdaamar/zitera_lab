@@ -256,20 +256,39 @@ pub fn get_lab_status_cached(
                 recommended_tools,
             }
         }
-        Err(_) => LabStatus {
-            id: lab_id.to_uppercase(),
-            title: lab_id.to_string(),
-            installed: true,
-            running: false,
-            port: 0,
-            url: None,
-            version: "UNKNOWN".to_string(),
-            status: "INVALID_MANIFEST".to_string(),
-            learn_readiness: "NOT_READY".to_string(),
-            practice_readiness: "NOT_READY".to_string(),
-            challenge_readiness: "NOT_READY".to_string(),
-            recommended_tools: Vec::new(),
-        },
+        Err(_) => {
+            let title = if let Some(cat) = cached_cat {
+                cat.labs
+                    .iter()
+                    .find(|l| l.id.eq_ignore_ascii_case(lab_id))
+                    .map(|l| l.title.clone())
+                    .unwrap_or_else(|| lab_id.to_string())
+            } else {
+                match crate::catalog::load_catalog(workspace_root) {
+                    Ok(cat) => cat
+                        .labs
+                        .iter()
+                        .find(|l| l.id.eq_ignore_ascii_case(lab_id))
+                        .map(|l| l.title.clone())
+                        .unwrap_or_else(|| lab_id.to_string()),
+                    Err(_) => lab_id.to_string(),
+                }
+            };
+            LabStatus {
+                id: lab_id.to_uppercase(),
+                title,
+                installed: false,
+                running: false,
+                port: 0,
+                url: None,
+                version: "UNKNOWN".to_string(),
+                status: "INCOMPLETE_INSTALL".to_string(),
+                learn_readiness: "NOT_READY".to_string(),
+                practice_readiness: "NOT_READY".to_string(),
+                challenge_readiness: "NOT_READY".to_string(),
+                recommended_tools: Vec::new(),
+            }
+        }
     }
 }
 
@@ -352,18 +371,28 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
 pub fn stop_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     validate_lab_id(lab_id)?;
     let lab_dir = get_lab_dir(workspace_root, lab_id);
+    let is_running = docker::get_lab_container_status(lab_id);
+
     if !lab_dir.exists() {
+        if is_running {
+            return docker::stop_lab_by_project_name(lab_id);
+        }
         return Err(format!("Lab {} is not installed.", lab_id));
     }
 
     // Idempotent: If already stopped, return success deterministically
-    if !docker::get_lab_container_status(lab_id) {
+    if !is_running {
         return Ok(format!("Lab {} is already stopped.", lab_id));
     }
 
-    let manifest = read_manifest(&lab_dir)?;
-    let compose_path = lab_dir.join(&manifest.entrypoint);
-    docker::stop_lab(&compose_path, &manifest.id)
+    if let Ok(manifest) = read_manifest(&lab_dir) {
+        let compose_path = lab_dir.join(&manifest.entrypoint);
+        if compose_path.exists() {
+            return docker::stop_lab(&compose_path, &manifest.id);
+        }
+    }
+
+    docker::stop_lab_by_project_name(lab_id)
 }
 
 pub fn reset_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
@@ -462,6 +491,10 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         .ok_or_else(|| format!("Lab {} not found in catalog.", lab_id))?;
 
     if lab_dir.join(".git").exists() {
+        // Interruption recovery: abort any previously stuck merge and reset dirty index
+        let _ = crate::process::run_cmd("git", &["merge", "--abort"], Some(&lab_dir));
+        let _ = crate::process::run_cmd("git", &["clean", "-fd"], Some(&lab_dir));
+
         let rev_out = crate::process::run_cmd("git", &["rev-parse", "HEAD"], Some(&lab_dir))?;
         let previous_head = rev_out.stdout.trim().to_string();
         if previous_head.is_empty() {

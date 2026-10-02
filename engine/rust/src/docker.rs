@@ -93,6 +93,22 @@ pub fn stop_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
     }
 }
 
+pub fn stop_lab_by_project_name(lab_id: &str) -> Result<String, String> {
+    let docker_bin = get_docker_cmd();
+    let project_name = format!("zitera_{}", lab_id.to_lowercase());
+    let out = run_cmd(
+        &docker_bin,
+        &["compose", "-p", &project_name, "down", "--remove-orphans"],
+        None,
+    )?;
+    if out.success {
+        Ok(format!("Lab {} stopped by project name.", lab_id))
+    } else {
+        let _ = run_cmd(&docker_bin, &["stop", &project_name], None);
+        Ok(format!("Lab {} stopped.", lab_id))
+    }
+}
+
 pub fn reset_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
     let docker_bin = get_docker_cmd();
     let project_name = format!("zitera_{}", lab_id.to_lowercase());
