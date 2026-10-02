@@ -477,6 +477,7 @@ pub fn remove_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         return Ok(format!("Lab {} is not installed.", lab_id));
     }
     let _ = stop_lab(workspace_root, lab_id);
+    let _ = docker::cleanup_orphans();
     fs::remove_dir_all(&lab_dir).map_err(|e| format!("Failed to remove lab directory: {}", e))?;
     Ok(format!("Lab {} has been removed.", lab_id))
 }

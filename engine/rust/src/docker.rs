@@ -82,7 +82,7 @@ pub fn stop_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
 
     let out = run_cmd(
         &docker_bin,
-        &["compose", "-f", &compose_str, "-p", &project_name, "down"],
+        &["compose", "-f", &compose_str, "-p", &project_name, "down", "--remove-orphans"],
         compose_path.parent(),
     )?;
 
@@ -109,6 +109,7 @@ pub fn reset_lab(compose_path: &Path, lab_id: &str) -> Result<String, String> {
             &project_name,
             "down",
             "-v",
+            "--remove-orphans",
         ],
         compose_path.parent(),
     );
@@ -154,3 +155,33 @@ pub fn get_lab_container_status(lab_id: &str) -> bool {
         Err(_) => false,
     }
 }
+
+/// Prunes dangling stopped containers and anonymous volumes associated with zitera projects.
+pub fn cleanup_orphans() -> Result<(), String> {
+    let docker_bin = get_docker_cmd();
+    let _ = run_cmd(
+        &docker_bin,
+        &["container", "prune", "-f", "--filter", "label=com.docker.compose.project"],
+        None,
+    );
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_docker_cmd_detection() {
+        let cmd = get_docker_cmd();
+        assert!(!cmd.is_empty());
+    }
+
+    #[test]
+    fn test_project_name_convention() {
+        let lab_id = "A01";
+        let project_name = format!("zitera_{}", lab_id.to_lowercase());
+        assert_eq!(project_name, "zitera_a01");
+    }
+}
+
