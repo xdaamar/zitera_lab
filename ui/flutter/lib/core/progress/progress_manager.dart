@@ -25,6 +25,12 @@ class ProgressManager {
 
   static Future<Map<String, dynamic>> loadProgress() async {
     final file = _getProgressFile();
+    final tmpFile = File('${file.path}.tmp');
+    if (!file.existsSync() && tmpFile.existsSync()) {
+      try {
+        await tmpFile.rename(file.path);
+      } catch (_) {}
+    }
     if (!file.existsSync()) {
       return _defaultProgress();
     }

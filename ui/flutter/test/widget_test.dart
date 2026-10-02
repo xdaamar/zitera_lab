@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zitera_lab/core/progress/progress_manager.dart';
 import 'package:zitera_lab/main.dart';
 
 void main() {
@@ -30,5 +32,32 @@ void main() {
     // Allow async microtasks to settle
     await tester.pump(const Duration(milliseconds: 500));
     FlutterError.onError = originalOnError;
+  });
+
+  group('ProgressManager Recovery & Integrity Tests', () {
+    final progressFile = File('zitera_progress.json');
+    final bakFile = File('zitera_progress.json.bak');
+    final tmpFile = File('zitera_progress.json.tmp');
+
+    tearDown(() {
+      if (progressFile.existsSync()) progressFile.deleteSync();
+      if (bakFile.existsSync()) bakFile.deleteSync();
+      if (tmpFile.existsSync()) tmpFile.deleteSync();
+    });
+
+    test('Corrupted progress file creates .bak and returns clean default', () async {
+      await progressFile.writeAsString('{{{INVALID JSON CORRUPTED DATA!!!');
+      final data = await ProgressManager.loadProgress();
+      expect(data['completed_labs'], isEmpty);
+      expect(bakFile.existsSync(), isTrue);
+    });
+
+    test('Orphaned .tmp file from interrupted write is safely restored', () async {
+      final validJson = '{"completed_labs":["A01"],"completed_challenges":[],"completed_practice":[],"completed_sections":{}}';
+      await tmpFile.writeAsString(validJson);
+      final data = await ProgressManager.loadProgress();
+      expect(data['completed_labs'], contains('A01'));
+      expect(progressFile.existsSync(), isTrue);
+    });
   });
 }
