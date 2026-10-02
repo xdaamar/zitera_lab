@@ -788,6 +788,18 @@ pub fn verify_practice(
     }
 }
 
+/// Constant-time byte comparison to eliminate timing side-channel leakage.
+pub fn timing_safe_compare(a: &str, b: &str) -> bool {
+    let a_clean = a.trim();
+    let b_clean = b.trim();
+    a_clean.len() == b_clean.len()
+        && a_clean
+            .as_bytes()
+            .iter()
+            .zip(b_clean.as_bytes().iter())
+            .fold(0u8, |acc, (&x, &y)| acc | (x ^ y)) == 0
+}
+
 /// Authoritative challenge validator (Phases 18, 19).
 /// Verifies user submission against the lab repository's official challenge flag.
 pub fn validate_challenge(
@@ -828,16 +840,7 @@ pub fn validate_challenge(
         .and_then(|f| f.as_str())
         .ok_or_else(|| "Challenge does not define an expected flag.".to_string())?;
 
-    let submission_clean = user_submission.trim();
-    let expected_clean = expected_flag.trim();
-
-    // Constant-time byte comparison to eliminate timing side-channel leakage
-    let matches = submission_clean.len() == expected_clean.len()
-        && submission_clean
-            .as_bytes()
-            .iter()
-            .zip(expected_clean.as_bytes().iter())
-            .fold(0u8, |acc, (&a, &b)| acc | (a ^ b)) == 0;
+    let matches = timing_safe_compare(user_submission, expected_flag);
 
     if matches {
         Ok(crate::models::ChallengeVerification {
@@ -937,6 +940,35 @@ mod tests {
         let remove_res = remove_lab(dummy_root, "A99");
         assert!(remove_res.is_ok());
         assert!(remove_res.unwrap().contains("not installed"));
+    }
+
+    #[test]
+    fn test_incomplete_install_marked_uninstalled() {
+        let temp_dir = std::env::temp_dir().join("zitera_test_incomplete_lab");
+        let _ = fs::create_dir_all(temp_dir.join("labs").join("A01"));
+        // Notice: No manifest.json is present in the lab directory
+        let status = get_lab_status_cached(&temp_dir, "A01", None, None, None);
+        assert_eq!(status.installed, false);
+        assert_eq!(status.status, "INCOMPLETE_INSTALL");
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_challenge_candidate_oversized_rejected() {
+        let dummy_root = Path::new("C:/dummy_zitera_nonexistent_workspace");
+        let huge_input = "A".repeat(600);
+        let res = validate_challenge(dummy_root, "A01", &huge_input);
+        assert!(res.is_ok());
+        let verification = res.unwrap();
+        assert_eq!(verification.status, "failed");
+        assert!(verification.message.contains("exceeds 512 characters"));
+    }
+
+    #[test]
+    fn test_timing_safe_compare() {
+        assert!(timing_safe_compare("flag{zitera_123}", "flag{zitera_123}"));
+        assert!(!timing_safe_compare("flag{zitera_123}", "flag{zitera_456}"));
+        assert!(!timing_safe_compare("flag{zitera_123}", "short"));
     }
 }
 
