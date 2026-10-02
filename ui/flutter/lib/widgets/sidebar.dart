@@ -44,6 +44,13 @@ class _SidebarState extends State<Sidebar> {
             ),
           ),
 
+          // 1.5. Subtle Soft-White Color Filter Overlay (Gentle tint to clarify video without heavy blur)
+          Positioned.fill(
+            child: Container(
+              color: Colors.white.withValues(alpha: 0.14),
+            ),
+          ),
+
           // 2. Foreground Menu Elements
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
