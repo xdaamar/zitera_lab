@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../core/theme/zitera_colors.dart';
+import 'cute_anime_loading.dart';
 
 enum ButtonVariant { primary, secondary, danger, ghost, gradient, mint }
 
-class ZiteraButton extends StatelessWidget {
+class ZiteraButton extends StatefulWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onPressed;
@@ -44,94 +45,159 @@ class ZiteraButton extends StatelessWidget {
   );
 
   @override
+  State<ZiteraButton> createState() => _ZiteraButtonState();
+}
+
+class _ZiteraButtonState extends State<ZiteraButton> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
     Color bg;
     Color fg;
     Color border;
-    Gradient? effGradient = gradient;
+    Gradient? effGradient = widget.gradient;
 
-    switch (variant) {
+    switch (widget.variant) {
       case ButtonVariant.primary:
         bg = ZiteraColors.primary;
         fg = Colors.white;
-        border = Colors.transparent;
+        border = _isHovered ? const Color(0xFF14B8A6) : Colors.transparent;
         break;
       case ButtonVariant.secondary:
-        bg = Colors.white;
-        fg = ZiteraColors.textPrimary;
-        border = ZiteraColors.borderDark;
+        bg = _isHovered ? const Color(0xFFF8FAFC) : Colors.white;
+        fg = _isHovered ? const Color(0xFF0F766E) : ZiteraColors.textPrimary;
+        border = _isHovered ? const Color(0xFF2DD4BF) : ZiteraColors.borderDark;
         break;
       case ButtonVariant.danger:
-        bg = ZiteraColors.errorMuted;
+        bg = _isHovered ? const Color(0xFFFEE2E2) : ZiteraColors.errorMuted;
         fg = ZiteraColors.error;
-        border = ZiteraColors.error.withValues(alpha: 0.4);
+        border = _isHovered ? ZiteraColors.error : ZiteraColors.error.withValues(alpha: 0.4);
         break;
       case ButtonVariant.ghost:
-        bg = Colors.transparent;
-        fg = ZiteraColors.cyan;
-        border = Colors.transparent;
+        bg = _isHovered ? const Color(0xFFCCFBF1).withValues(alpha: 0.3) : Colors.transparent;
+        fg = _isHovered ? const Color(0xFF0F766E) : ZiteraColors.cyan;
+        border = _isHovered ? const Color(0xFF2DD4BF).withValues(alpha: 0.4) : Colors.transparent;
         break;
       case ButtonVariant.gradient:
         bg = Colors.transparent;
         fg = ZiteraColors.textPrimary;
-        border = ZiteraColors.borderDark;
-        effGradient ??= rainbowGradient;
+        border = _isHovered ? const Color(0xFFF472B6) : ZiteraColors.borderDark;
+        effGradient ??= ZiteraButton.rainbowGradient;
         break;
       case ButtonVariant.mint:
-        bg = const Color(0xFFA7F3D0);
+        bg = _isHovered ? const Color(0xFF6EE7B7) : const Color(0xFFA7F3D0);
         fg = const Color(0xFF065F46);
-        border = const Color(0xFF6EE7B7);
+        border = _isHovered ? const Color(0xFF059669) : const Color(0xFF6EE7B7);
         break;
     }
 
-    if (backgroundColor != null) bg = backgroundColor!;
-    if (textColor != null) fg = textColor!;
-    if (borderColor != null) border = borderColor!;
+    if (widget.backgroundColor != null) bg = widget.backgroundColor!;
+    if (widget.textColor != null) fg = widget.textColor!;
+    if (widget.borderColor != null) border = widget.borderColor!;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: isLoading ? null : onPressed,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          padding: padding,
+    final isClickable = widget.onPressed != null && !widget.isLoading;
+
+    Color glowColor;
+    switch (widget.variant) {
+      case ButtonVariant.danger:
+        glowColor = ZiteraColors.error.withValues(alpha: 0.35);
+        break;
+      case ButtonVariant.gradient:
+        glowColor = const Color(0xFFF472B6).withValues(alpha: 0.4);
+        break;
+      case ButtonVariant.mint:
+        glowColor = const Color(0xFF34D399).withValues(alpha: 0.4);
+        break;
+      default:
+        glowColor = const Color(0xFF2DD4BF).withValues(alpha: 0.35);
+    }
+
+    return MouseRegion(
+      cursor: isClickable ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) {
+        if (isClickable) setState(() => _isHovered = true);
+      },
+      onExit: (_) {
+        if (isClickable) setState(() {
+          _isHovered = false;
+          _isPressed = false;
+        });
+      },
+      child: GestureDetector(
+        onTapDown: (_) {
+          if (isClickable) setState(() => _isPressed = true);
+        },
+        onTapUp: (_) {
+          if (isClickable) setState(() => _isPressed = false);
+        },
+        onTapCancel: () {
+          if (isClickable) setState(() => _isPressed = false);
+        },
+        onTap: isClickable ? widget.onPressed : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          transform: Matrix4.identity()
+            ..translate(0.0, _isPressed ? 1.2 : (_isHovered ? -2.2 : 0.0))
+            ..scale(_isHovered ? 1.02 : 1.0),
+          padding: widget.padding,
           decoration: BoxDecoration(
             color: effGradient == null ? bg : null,
             gradient: effGradient,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: border, width: 1.2),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: border,
+              width: _isHovered ? 1.5 : 1.2,
+            ),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
+              if (_isHovered)
+                BoxShadow(
+                  color: glowColor,
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 3),
+                )
+              else
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (isLoading)
-                SizedBox(
-                  width: fontSize + 2,
-                  height: fontSize + 2,
-                  child: const CircularProgressIndicator(strokeWidth: 2, color: ZiteraColors.textPrimary),
+              if (widget.isLoading)
+                const Padding(
+                  padding: EdgeInsets.only(right: 8.0),
+                  child: CuteAnimeLoading(compact: true),
                 )
-              else if (icon != null) ...[
-                Icon(icon, size: fontSize + 4, color: fg),
+              else if (widget.icon != null) ...[
+                Icon(widget.icon, size: widget.fontSize + 4, color: fg),
                 const SizedBox(width: 8),
               ],
               Text(
-                label,
+                widget.label,
                 style: TextStyle(
                   color: fg,
-                  fontSize: fontSize,
+                  fontSize: widget.fontSize,
                   fontWeight: FontWeight.w700,
                   fontFamily: 'SpaceGrotesk',
                   letterSpacing: 0.5,
                 ),
               ),
+              if (_isHovered && isClickable) ...[
+                const SizedBox(width: 5),
+                Icon(
+                  Icons.auto_awesome,
+                  size: widget.fontSize + 1,
+                  color: fg.withValues(alpha: 0.8),
+                ),
+              ],
             ],
           ),
         ),
@@ -139,4 +205,3 @@ class ZiteraButton extends StatelessWidget {
     );
   }
 }
-
