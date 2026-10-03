@@ -10,28 +10,61 @@ class ZiteraEngineClient {
       return _cachedEnginePath!;
     }
 
-    final exeDir = File(Platform.resolvedExecutable).parent.path;
-    final currentDir = Directory.current.path;
-    final candidates = [
-      // Sibling in release package (relative to executable)
-      '$exeDir\\zitera-engine.exe',
-      '$exeDir\\engine\\zitera-engine.exe',
-      // Sibling in working directory
-      '$currentDir\\zitera-engine.exe',
-      '$currentDir\\engine\\zitera-engine.exe',
-      // Running from workspace root (dev)
-      '$currentDir\\engine\\rust\\target\\release\\zitera-engine.exe',
-      '$currentDir\\engine\\rust\\target\\debug\\zitera-engine.exe',
-      // Running from ui/flutter (dev)
-      '$currentDir\\..\\..\\engine\\rust\\target\\release\\zitera-engine.exe',
-      '$currentDir\\..\\..\\engine\\rust\\target\\debug\\zitera-engine.exe',
-      // Direct binary on PATH
-      'zitera-engine.exe',
-    ];
+    // 1. Search next to and upwards from Platform.resolvedExecutable (most reliable for compiled runner)
+    try {
+      Directory? exeDir = File(Platform.resolvedExecutable).parent;
+      for (int i = 0; i < 6 && exeDir != null; i++) {
+        final candidates = [
+          File('${exeDir.path}\\zitera-engine.exe'),
+          File('${exeDir.path}\\engine\\zitera-engine.exe'),
+          File('${exeDir.path}\\engine\\rust\\target\\release\\zitera-engine.exe'),
+          File('${exeDir.path}\\engine\\rust\\target\\debug\\zitera-engine.exe'),
+        ];
+        for (final f in candidates) {
+          if (f.existsSync()) {
+            _cachedEnginePath = f.absolute.path;
+            return _cachedEnginePath!;
+          }
+        }
+        final parent = exeDir.parent;
+        if (parent.path == exeDir.path) break;
+        exeDir = parent;
+      }
+    } catch (_) {}
 
-    for (final path in candidates) {
-      if (File(path).existsSync()) {
-        _cachedEnginePath = File(path).absolute.path;
+    // 2. Search upwards from Directory.current (reliable when running from terminal or IDE)
+    try {
+      Directory? dir = Directory.current;
+      for (int i = 0; i < 6 && dir != null; i++) {
+        final candidates = [
+          File('${dir.path}\\zitera-engine.exe'),
+          File('${dir.path}\\engine\\zitera-engine.exe'),
+          File('${dir.path}\\engine\\rust\\target\\release\\zitera-engine.exe'),
+          File('${dir.path}\\engine\\rust\\target\\debug\\zitera-engine.exe'),
+        ];
+        for (final f in candidates) {
+          if (f.existsSync()) {
+            _cachedEnginePath = f.absolute.path;
+            return _cachedEnginePath!;
+          }
+        }
+        final parent = dir.parent;
+        if (parent.path == dir.path) break;
+        dir = parent;
+      }
+    } catch (_) {}
+
+    // 3. Known project workspace paths
+    final knownPaths = [
+      r'c:\Users\Damar\Documents\project_pribadi\zitera_lab\ui\flutter\zitera-engine.exe',
+      r'c:\Users\Damar\Documents\project_pribadi\zitera_lab\engine\rust\target\release\zitera-engine.exe',
+      r'c:\Users\Damar\Documents\project_pribadi\zitera_lab\engine\rust\target\debug\zitera-engine.exe',
+      r'c:\Users\Damar\Documents\project_pribadi\zitera_lab\zitera-engine.exe',
+    ];
+    for (final p in knownPaths) {
+      final f = File(p);
+      if (f.existsSync()) {
+        _cachedEnginePath = f.absolute.path;
         return _cachedEnginePath!;
       }
     }
