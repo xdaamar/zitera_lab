@@ -6,6 +6,7 @@ import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_loading.dart';
+import '../../widgets/hacker_tilix_entrance.dart';
 
 class LabsView extends StatefulWidget {
   final Function(String) onSelectLab;
@@ -257,74 +258,80 @@ class _LabsViewState extends State<LabsView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'SECURITY LABS CATALOG',
-                        style: TextStyle(
-                          color: Color(0xFF1E1A14),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                          fontFamily: 'SpaceGrotesk',
+              HackerTilixEntrance(
+                delay: Duration.zero,
+                direction: TilixSlideDirection.down,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'SECURITY LABS CATALOG',
+                          style: TextStyle(
+                            color: Color(0xFF1E1A14),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            fontFamily: 'SpaceGrotesk',
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'OWASP Top 10:2025 local isolated vulnerability environments (${_labs.length} available)',
-                        style: const TextStyle(
-                          color: Color(0xFF5C5347),
-                          fontSize: 13,
-                          fontFamily: 'JetBrainsMono',
+                        const SizedBox(height: 4),
+                        Text(
+                          'OWASP Top 10:2025 local isolated vulnerability environments (${_labs.length} available)',
+                          style: const TextStyle(
+                            color: Color(0xFF5C5347),
+                            fontSize: 13,
+                            fontFamily: 'JetBrainsMono',
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE6FFFA),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFF2DD4BF)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.wifi, size: 14, color: Color(0xFF0F766E)),
-                            SizedBox(width: 6),
-                            Text(
-                              'CATALOG SYNCED',
-                              style: TextStyle(
-                                fontFamily: 'JetBrainsMono',
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F766E),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6FFFA),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFF2DD4BF)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.wifi, size: 14, color: Color(0xFF0F766E)),
+                              SizedBox(width: 6),
+                              Text(
+                                'CATALOG SYNCED',
+                                style: TextStyle(
+                                  fontFamily: 'JetBrainsMono',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0F766E),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      ZiteraButton(
-                        label: 'Refresh Labs',
-                        icon: Icons.refresh,
-                        variant: ButtonVariant.secondary,
-                        onPressed: _loadLabs,
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 10),
+                        ZiteraButton(
+                          label: 'Refresh Labs',
+                          icon: Icons.refresh,
+                          variant: ButtonVariant.secondary,
+                          onPressed: _loadLabs,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 18),
 
               // Search & Filter Toolbar
-              Row(
+              HackerTilixEntrance(
+                delay: const Duration(milliseconds: 60),
+                child: Row(
                 children: [
                   Expanded(
                     child: Container(
@@ -391,7 +398,7 @@ class _LabsViewState extends State<LabsView> {
                       }).toList(),
                     ),
                   ),
-                ],
+                ),
               ),
 
               const SizedBox(height: 20),
@@ -469,7 +476,9 @@ class _LabsViewState extends State<LabsView> {
                         )
                         .description;
 
-                    return ZiteraCard(
+                    return HackerTilixEntrance(
+                      delay: Duration(milliseconds: 100 + index * 45),
+                      child: ZiteraCard(
                       borderColor: lab.running ? const Color(0xFF2DD4BF) : ZiteraColors.border,
                       child: Row(
                         children: [
@@ -616,6 +625,7 @@ class _LabsViewState extends State<LabsView> {
                           ),
                         ],
                       ),
+                    ),
                     );
                   },
                 ),

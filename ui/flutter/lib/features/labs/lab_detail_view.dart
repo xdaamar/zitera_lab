@@ -8,6 +8,7 @@ import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_loading.dart';
+import '../../widgets/hacker_tilix_entrance.dart';
 
 class LabDetailView extends StatefulWidget {
   final String labId;
@@ -629,124 +630,132 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
             ),
 
           // Control & Runtime Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            decoration: const BoxDecoration(
-              color: ZiteraColors.surface,
-              border: Border(bottom: BorderSide(color: ZiteraColors.border)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          port > 0 ? 'Target URL: http://127.0.0.1:$port' : 'Port: Unassigned',
-                          style: const TextStyle(
-                            fontFamily: 'monospace',
-                            color: ZiteraColors.cyan,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (port > 0) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.copy, size: 14, color: ZiteraColors.textMuted),
-                            tooltip: 'Copy URL',
-                            onPressed: () => _copyToClipboard('http://127.0.0.1:$port', 'Target URL'),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const Text(
-                      'Security boundary: localhost only (no LAN exposure)',
-                      style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    if (!isRunning) ...[
-                      ZiteraButton(
-                        label: 'Start Lab Environment',
-                        icon: Icons.play_arrow,
-                        variant: ButtonVariant.primary,
-                        onPressed: _handleStart,
-                      ),
-                      const SizedBox(width: 8),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert, color: Color(0xFF5C5347)),
-                        tooltip: 'Lab Management',
-                        color: const Color(0xFFFCFBF8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: const BorderSide(color: ZiteraColors.border),
-                        ),
-                        onSelected: (val) {
-                          if (val == 'update') _handleUpdate();
-                          if (val == 'remove') _handleRemove();
-                        },
-                        itemBuilder: (ctx) => [
-                          const PopupMenuItem(
-                            value: 'update',
-                            child: Row(
-                              children: [
-                                Icon(Icons.sync, size: 16, color: Color(0xFF0F766E)),
-                                SizedBox(width: 8),
-                                Text('Check & Update Lab', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13)),
-                              ],
+          HackerTilixEntrance(
+            delay: Duration.zero,
+            direction: TilixSlideDirection.down,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: const BoxDecoration(
+                color: ZiteraColors.surface,
+                border: Border(bottom: BorderSide(color: ZiteraColors.border)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            port > 0 ? 'Target URL: http://127.0.0.1:$port' : 'Port: Unassigned',
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              color: ZiteraColors.cyan,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                             ),
                           ),
-                          const PopupMenuItem(
-                            value: 'remove',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_outline, size: 16, color: ZiteraColors.error),
-                                SizedBox(width: 8),
-                                Text('Remove Lab', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13, color: ZiteraColors.error)),
-                              ],
+                          if (port > 0) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.copy, size: 14, color: ZiteraColors.textMuted),
+                              tooltip: 'Copy URL',
+                              onPressed: () => _copyToClipboard('http://127.0.0.1:$port', 'Target URL'),
                             ),
-                          ),
+                          ],
                         ],
                       ),
-                    ] else ...[
-                      ZiteraButton(
-                        label: 'Stop Runtime',
-                        icon: Icons.stop,
-                        variant: ButtonVariant.danger,
-                        onPressed: _handleStop,
-                      ),
-                      const SizedBox(width: 8),
-                      ZiteraButton(
-                        label: 'Deterministic Reset',
-                        icon: Icons.restore,
-                        variant: ButtonVariant.secondary,
-                        onPressed: _handleReset,
+                      const Text(
+                        'Security boundary: localhost only (no LAN exposure)',
+                        style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11),
                       ),
                     ],
-                  ],
-                ),
-              ],
+                  ),
+                  Row(
+                    children: [
+                      if (!isRunning) ...[
+                        ZiteraButton(
+                          label: 'Start Lab Environment',
+                          icon: Icons.play_arrow,
+                          variant: ButtonVariant.primary,
+                          onPressed: _handleStart,
+                        ),
+                        const SizedBox(width: 8),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, color: Color(0xFF5C5347)),
+                          tooltip: 'Lab Management',
+                          color: const Color(0xFFFCFBF8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: const BorderSide(color: ZiteraColors.border),
+                          ),
+                          onSelected: (val) {
+                            if (val == 'update') _handleUpdate();
+                            if (val == 'remove') _handleRemove();
+                          },
+                          itemBuilder: (ctx) => [
+                            const PopupMenuItem(
+                              value: 'update',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.sync, size: 16, color: Color(0xFF0F766E)),
+                                  SizedBox(width: 8),
+                                  Text('Check & Update Lab', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'remove',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline, size: 16, color: ZiteraColors.error),
+                                  SizedBox(width: 8),
+                                  Text('Remove Lab', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13, color: ZiteraColors.error)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        ZiteraButton(
+                          label: 'Stop Runtime',
+                          icon: Icons.stop,
+                          variant: ButtonVariant.danger,
+                          onPressed: _handleStop,
+                        ),
+                        const SizedBox(width: 8),
+                        ZiteraButton(
+                          label: 'Deterministic Reset',
+                          icon: Icons.restore,
+                          variant: ButtonVariant.secondary,
+                          onPressed: _handleReset,
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
 
           // Mode Tabs (Generic Learning Experience)
-          Container(
-            color: ZiteraColors.surface,
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: ZiteraColors.primary,
-              labelColor: ZiteraColors.primary,
-              unselectedLabelColor: ZiteraColors.textSecondary,
-              tabs: [
-                Tab(icon: const Icon(Icons.menu_book_outlined, size: 18), text: 'MODE A: LEARN (${_completedSections.length} Done)'),
-                Tab(icon: Icon(_isPracticeDone ? Icons.check_circle : Icons.explore_outlined, size: 18), text: 'MODE B: PRACTICE'),
-                Tab(icon: Icon(_isChallengeSolved ? Icons.verified : Icons.flag_outlined, size: 18), text: 'MODE C: CHALLENGE / CTF'),
-              ],
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 50),
+            direction: TilixSlideDirection.up,
+            child: Container(
+              color: ZiteraColors.surface,
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: ZiteraColors.primary,
+                labelColor: ZiteraColors.primary,
+                unselectedLabelColor: ZiteraColors.textSecondary,
+                tabs: [
+                  Tab(icon: const Icon(Icons.menu_book_outlined, size: 18), text: 'MODE A: LEARN (${_completedSections.length} Done)'),
+                  Tab(icon: Icon(_isPracticeDone ? Icons.check_circle : Icons.explore_outlined, size: 18), text: 'MODE B: PRACTICE'),
+                  Tab(icon: Icon(_isChallengeSolved ? Icons.verified : Icons.flag_outlined, size: 18), text: 'MODE C: CHALLENGE / CTF'),
+                ],
+              ),
             ),
           ),
 
@@ -799,50 +808,56 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: keys.map((key) {
+        children: keys.asMap().entries.map((entry) {
+          final index = entry.key;
+          final key = entry.value;
           final content = lessons[key] ?? '';
           final title = _formatSectionTitle(key);
           final isCompleted = _completedSections.contains(key);
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 20.0),
-            child: ZiteraCard(
-              borderColor: isCompleted ? ZiteraColors.ready.withValues(alpha: 0.3) : ZiteraColors.border,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(_getSectionIcon(key), color: ZiteraColors.primary, size: 20),
-                          const SizedBox(width: 10),
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        ],
-                      ),
-                      if (isCompleted)
-                        const Row(
+            child: HackerTilixEntrance(
+              delay: Duration(milliseconds: 80 + index * 50),
+              direction: TilixSlideDirection.up,
+              child: ZiteraCard(
+                borderColor: isCompleted ? ZiteraColors.ready.withValues(alpha: 0.3) : ZiteraColors.border,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
                           children: [
-                            Icon(Icons.check, color: ZiteraColors.ready, size: 16),
-                            SizedBox(width: 4),
-                            Text('UNDERSTOOD', style: TextStyle(color: ZiteraColors.ready, fontSize: 11, fontWeight: FontWeight.bold)),
+                            Icon(_getSectionIcon(key), color: ZiteraColors.primary, size: 20),
+                            const SizedBox(width: 10),
+                            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                           ],
-                        )
-                      else
-                        TextButton.icon(
-                          icon: const Icon(Icons.done, size: 14),
-                          label: const Text('Mark Understood', style: TextStyle(fontSize: 12)),
-                          onPressed: () => _toggleSectionUnderstood(key),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SelectableText(
-                    content,
-                    style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13, height: 1.6),
-                  ),
-                ],
+                        if (isCompleted)
+                          const Row(
+                            children: [
+                              Icon(Icons.check, color: ZiteraColors.ready, size: 16),
+                              SizedBox(width: 4),
+                              Text('UNDERSTOOD', style: TextStyle(color: ZiteraColors.ready, fontSize: 11, fontWeight: FontWeight.bold)),
+                            ],
+                          )
+                        else
+                          TextButton.icon(
+                            icon: const Icon(Icons.done, size: 14),
+                            label: const Text('Mark Understood', style: TextStyle(fontSize: 12)),
+                            onPressed: () => _toggleSectionUnderstood(key),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SelectableText(
+                      content,
+                      style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13, height: 1.6),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -859,140 +874,155 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'GUIDED PRACTICE INVESTIGATION (STEP-BY-STEP)',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  fontFamily: 'monospace',
+          HackerTilixEntrance(
+            delay: Duration.zero,
+            direction: TilixSlideDirection.down,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'GUIDED PRACTICE INVESTIGATION (STEP-BY-STEP)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    fontFamily: 'monospace',
+                  ),
                 ),
-              ),
-              Row(
-                children: [
-                  if (_isPracticeDone)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8.0),
-                      child: StatusBadge(status: 'PRACTICE DONE'),
-                    ),
-                  StatusBadge(status: 'PORT: $port'),
-                ],
-              ),
-            ],
+                Row(
+                  children: [
+                    if (_isPracticeDone)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8.0),
+                        child: StatusBadge(status: 'PRACTICE DONE'),
+                      ),
+                    StatusBadge(status: 'PORT: $port'),
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
           // Interactive Practice Target Verification Card (Phase 6F)
-          ZiteraCard(
-            borderColor: ZiteraColors.cyan.withValues(alpha: 0.4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.radar, color: ZiteraColors.cyan, size: 20),
-                        SizedBox(width: 10),
-                        Text(
-                          'PRACTICE RUNTIME PROBE',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
-                        ),
-                      ],
-                    ),
-                    ZiteraButton(
-                      label: _isVerifyingPractice ? 'Probing Target...' : 'Verify Local Service Health',
-                      icon: Icons.network_check,
-                      variant: ButtonVariant.secondary,
-                      onPressed: _isVerifyingPractice ? () {} : _verifyPracticeTarget,
-                    ),
-                  ],
-                ),
-                if (_practiceResult != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _practiceResult!.status == 'passed' ? ZiteraColors.readyMuted : ZiteraColors.errorMuted,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: _practiceResult!.status == 'passed' ? ZiteraColors.ready : ZiteraColors.error,
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 60),
+            direction: TilixSlideDirection.up,
+            child: ZiteraCard(
+              borderColor: ZiteraColors.cyan.withValues(alpha: 0.4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.radar, color: ZiteraColors.cyan, size: 20),
+                          SizedBox(width: 10),
+                          Text(
+                            'PRACTICE RUNTIME PROBE',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
+                          ),
+                        ],
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _practiceResult!.status == 'passed' ? Icons.check_circle : Icons.error_outline,
+                      ZiteraButton(
+                        label: _isVerifyingPractice ? 'Probing Target...' : 'Verify Local Service Health',
+                        icon: Icons.network_check,
+                        variant: ButtonVariant.secondary,
+                        onPressed: _isVerifyingPractice ? () {} : _verifyPracticeTarget,
+                      ),
+                    ],
+                  ),
+                  if (_practiceResult != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _practiceResult!.status == 'passed' ? ZiteraColors.readyMuted : ZiteraColors.errorMuted,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
                           color: _practiceResult!.status == 'passed' ? ZiteraColors.ready : ZiteraColors.error,
-                          size: 18,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _practiceResult!.message,
-                            style: TextStyle(
-                              color: _practiceResult!.status == 'passed' ? ZiteraColors.ready : ZiteraColors.error,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _practiceResult!.status == 'passed' ? Icons.check_circle : Icons.error_outline,
+                            color: _practiceResult!.status == 'passed' ? ZiteraColors.ready : ZiteraColors.error,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _practiceResult!.message,
+                              style: TextStyle(
+                                color: _practiceResult!.status == 'passed' ? ZiteraColors.ready : ZiteraColors.error,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
 
           const SizedBox(height: 16),
 
-          if (walkthroughText != null && walkthroughText.isNotEmpty)
-            ZiteraCard(
-              child: SelectableText(
-                walkthroughText,
-                style: const TextStyle(
-                  color: ZiteraColors.textPrimary,
-                  fontSize: 13,
-                  height: 1.6,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            )
-          else
-            const ZiteraCard(
-              child: Text(
-                'Practice walkthrough not specified in lab repository.',
-                style: TextStyle(color: ZiteraColors.textSecondary),
-              ),
-            ),
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 120),
+            direction: TilixSlideDirection.up,
+            child: walkthroughText != null && walkthroughText.isNotEmpty
+                ? ZiteraCard(
+                    child: SelectableText(
+                      walkthroughText,
+                      style: const TextStyle(
+                        color: ZiteraColors.textPrimary,
+                        fontSize: 13,
+                        height: 1.6,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  )
+                : const ZiteraCard(
+                    child: Text(
+                      'Practice walkthrough not specified in lab repository.',
+                      style: TextStyle(color: ZiteraColors.textSecondary),
+                    ),
+                  ),
+          ),
 
           const SizedBox(height: 20),
 
           // Completion action
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (!_isPracticeDone)
-                ZiteraButton(
-                  label: 'Mark Practice as Completed',
-                  icon: Icons.check_circle_outline,
-                  variant: ButtonVariant.primary,
-                  onPressed: _markPracticeCompleted,
-                )
-              else
-                const Row(
-                  children: [
-                    Icon(Icons.verified, color: ZiteraColors.ready, size: 18),
-                    SizedBox(width: 8),
-                    Text('Practice Completed & Saved', style: TextStyle(color: ZiteraColors.ready, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-            ],
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 180),
+            direction: TilixSlideDirection.up,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (!_isPracticeDone)
+                  ZiteraButton(
+                    label: 'Mark Practice as Completed',
+                    icon: Icons.check_circle_outline,
+                    variant: ButtonVariant.primary,
+                    onPressed: _markPracticeCompleted,
+                  )
+                else
+                  const Row(
+                    children: [
+                      Icon(Icons.verified, color: ZiteraColors.ready, size: 18),
+                      SizedBox(width: 8),
+                      Text('Practice Completed & Saved', style: TextStyle(color: ZiteraColors.ready, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1013,58 +1043,66 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
         children: [
           // Conquered Banner if solved
           if (_isChallengeSolved) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: ZiteraColors.readyMuted,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: ZiteraColors.ready),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.workspace_premium, color: ZiteraColors.ready, size: 28),
-                  SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('CHALLENGE CONQUERED!', style: TextStyle(color: ZiteraColors.ready, fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('You have successfully verified and completed this cybersecurity challenge objective.', style: TextStyle(color: ZiteraColors.textPrimary, fontSize: 12)),
-                      ],
+            HackerTilixEntrance(
+              delay: Duration.zero,
+              direction: TilixSlideDirection.down,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: ZiteraColors.readyMuted,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: ZiteraColors.ready),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.workspace_premium, color: ZiteraColors.ready, size: 28),
+                    SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('CHALLENGE CONQUERED!', style: TextStyle(color: ZiteraColors.ready, fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text('You have successfully verified and completed this cybersecurity challenge objective.', style: TextStyle(color: ZiteraColors.textPrimary, fontSize: 12)),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
 
-          ZiteraCard(
-            borderColor: ZiteraColors.primary.withValues(alpha: 0.5),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'MISSION OBJECTIVE',
-                      style: TextStyle(
-                        color: ZiteraColors.primary,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                        fontFamily: 'monospace',
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 40),
+            direction: TilixSlideDirection.up,
+            child: ZiteraCard(
+              borderColor: ZiteraColors.primary.withValues(alpha: 0.5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'MISSION OBJECTIVE',
+                        style: TextStyle(
+                          color: ZiteraColors.primary,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                          fontFamily: 'monospace',
+                        ),
                       ),
-                    ),
-                    StatusBadge(status: 'DIFFICULTY: $difficulty'),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SelectableText(
-                  objective,
-                  style: const TextStyle(color: ZiteraColors.textPrimary, fontSize: 13, height: 1.5),
-                ),
-              ],
+                      StatusBadge(status: 'DIFFICULTY: $difficulty'),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SelectableText(
+                    objective,
+                    style: const TextStyle(color: ZiteraColors.textPrimary, fontSize: 13, height: 1.5),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -1072,64 +1110,74 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
 
           // Progressive Hints (Sequential Unlock: Hint 1 -> Hint 2 -> Hint 3)
           if (hints.isNotEmpty) ...[
-            const Text(
-              'PROGRESSIVE HINTS (SEQUENTIAL UNLOCK)',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0, fontFamily: 'monospace'),
+            HackerTilixEntrance(
+              delay: const Duration(milliseconds: 90),
+              direction: TilixSlideDirection.left,
+              child: const Text(
+                'PROGRESSIVE HINTS (SEQUENTIAL UNLOCK)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0, fontFamily: 'monospace'),
+              ),
             ),
             const SizedBox(height: 12),
-            ...hints.map((h) {
+            ...hints.asMap().entries.map((entry) {
+              final index = entry.key;
+              final h = entry.value;
               final isUnlocked = _revealedHintTier >= h.tier;
               final canUnlock = _revealedHintTier >= (h.tier - 1);
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                child: ZiteraCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Hint ${h.tier}: ${h.type.toUpperCase()}',
+                child: HackerTilixEntrance(
+                  delay: Duration(milliseconds: 120 + index * 40),
+                  direction: TilixSlideDirection.up,
+                  child: ZiteraCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hint ${h.tier}: ${h.type.toUpperCase()}',
+                                style: TextStyle(
+                                  fontFamily: 'SpaceGrotesk',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: isUnlocked ? const Color(0xFF1E1A14) : const Color(0xFF786F62),
+                                ),
+                              ),
+                              if (isUnlocked) ...[
+                                const SizedBox(height: 6),
+                                SelectableText(
+                                  h.hint,
+                                  style: const TextStyle(
+                                    fontFamily: 'JetBrainsMono',
+                                    color: Color(0xFF0F766E),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (!isUnlocked)
+                          TextButton(
+                            onPressed: canUnlock ? () => setState(() => _revealedHintTier = h.tier) : null,
+                            child: Text(
+                              canUnlock ? 'Unlock Hint ${h.tier}' : 'Locked (Unlock Hint ${h.tier - 1} First)',
                               style: TextStyle(
                                 fontFamily: 'SpaceGrotesk',
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: isUnlocked ? const Color(0xFF1E1A14) : const Color(0xFF786F62),
+                                color: canUnlock ? const Color(0xFF0F766E) : const Color(0xFF9C9080),
+                                fontSize: 12,
                               ),
-                            ),
-                            if (isUnlocked) ...[
-                              const SizedBox(height: 6),
-                              SelectableText(
-                                h.hint,
-                                style: const TextStyle(
-                                  fontFamily: 'JetBrainsMono',
-                                  color: Color(0xFF0F766E),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (!isUnlocked)
-                        TextButton(
-                          onPressed: canUnlock ? () => setState(() => _revealedHintTier = h.tier) : null,
-                          child: Text(
-                            canUnlock ? 'Unlock Hint ${h.tier}' : 'Locked (Unlock Hint ${h.tier - 1} First)',
-                            style: TextStyle(
-                              fontFamily: 'SpaceGrotesk',
-                              fontWeight: FontWeight.bold,
-                              color: canUnlock ? const Color(0xFF0F766E) : const Color(0xFF9C9080),
-                              fontSize: 12,
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -1138,72 +1186,76 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
           ],
 
           // Flag Submission Card
-          ZiteraCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'SUBMIT CHALLENGE FLAG',
-                  style: TextStyle(fontFamily: 'SpaceGrotesk', fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.8),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _flagController,
-                        style: const TextStyle(fontFamily: 'JetBrainsMono', color: Color(0xFF1E1A14), fontWeight: FontWeight.bold),
-                        decoration: InputDecoration(
-                          hintText: 'ZITERA{...}',
-                          hintStyle: const TextStyle(fontFamily: 'JetBrainsMono', color: Color(0xFF9C9080)),
-                          filled: true,
-                          fillColor: const Color(0xFFF7F5F0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: const BorderSide(color: ZiteraColors.border),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    ZiteraButton(
-                      label: _isVerifyingFlag ? 'Verifying...' : 'Verify Flag',
-                      icon: Icons.verified_outlined,
-                      variant: ButtonVariant.primary,
-                      onPressed: _isVerifyingFlag ? () {} : _verifyFlag,
-                    ),
-                  ],
-                ),
-                if (_flagFeedback != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _flagSuccess ? ZiteraColors.readyMuted : ZiteraColors.errorMuted,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _flagSuccess ? Icons.check_circle : Icons.error,
-                          color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _flagFeedback!,
-                            style: TextStyle(
-                              color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error,
-                              fontWeight: FontWeight.bold,
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 200),
+            direction: TilixSlideDirection.up,
+            child: ZiteraCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'SUBMIT CHALLENGE FLAG',
+                    style: TextStyle(fontFamily: 'SpaceGrotesk', fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.8),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _flagController,
+                          style: const TextStyle(fontFamily: 'JetBrainsMono', color: Color(0xFF1E1A14), fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            hintText: 'ZITERA{...}',
+                            hintStyle: const TextStyle(fontFamily: 'JetBrainsMono', color: Color(0xFF9C9080)),
+                            filled: true,
+                            fillColor: const Color(0xFFF7F5F0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide: const BorderSide(color: ZiteraColors.border),
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 16),
+                      ZiteraButton(
+                        label: _isVerifyingFlag ? 'Verifying...' : 'Verify Flag',
+                        icon: Icons.verified_outlined,
+                        variant: ButtonVariant.primary,
+                        onPressed: _isVerifyingFlag ? () {} : _verifyFlag,
+                      ),
+                    ],
                   ),
+                  if (_flagFeedback != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _flagSuccess ? ZiteraColors.readyMuted : ZiteraColors.errorMuted,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _flagSuccess ? Icons.check_circle : Icons.error,
+                            color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _flagFeedback!,
+                              style: TextStyle(
+                                color: _flagSuccess ? ZiteraColors.ready : ZiteraColors.error,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],

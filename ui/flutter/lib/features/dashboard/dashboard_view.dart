@@ -7,6 +7,7 @@ import '../../widgets/pixel_mascot_widget.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/cute_anime_loading.dart';
+import '../../widgets/hacker_tilix_entrance.dart';
 
 class DashboardView extends StatefulWidget {
   final Function(int) onNavigate;
@@ -267,97 +268,169 @@ class _DashboardViewState extends State<DashboardView> {
             crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Header Section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'SECURITY COMMAND',
-                        style: TextStyle(
-                          fontFamily: 'SpaceGrotesk',
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E1A14),
-                          letterSpacing: 0.8,
+          HackerTilixEntrance(
+            delay: Duration.zero,
+            direction: TilixSlideDirection.down,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'SECURITY COMMAND',
+                          style: TextStyle(
+                            fontFamily: 'SpaceGrotesk',
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E1A14),
+                            letterSpacing: 0.8,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0EDE8),
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: const Color(0xFF2DD4BF), width: 1),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ClipOval(
-                              child: Image.asset(
-                                'assets/images/zitera_logo.png',
-                                width: 16,
-                                height: 16,
-                                fit: BoxFit.cover,
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0EDE8),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: const Color(0xFF2DD4BF), width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ClipOval(
+                                child: Image.asset(
+                                  'assets/images/zitera_logo.png',
+                                  width: 16,
+                                  height: 16,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 5),
-                            const Text(
-                              'ZITERA__LAB',
-                              style: TextStyle(
-                                fontFamily: 'JetBrainsMono',
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F766E),
-                                letterSpacing: 0.5,
+                              const SizedBox(width: 5),
+                              const Text(
+                                'ZITERA__LAB',
+                                style: TextStyle(
+                                  fontFamily: 'JetBrainsMono',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0F766E),
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Educational cybersecurity laboratory with real external git repositories & Docker runtimes',
-                    style: TextStyle(
-                      fontFamily: 'JetBrainsMono',
-                      color: ZiteraColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              ZiteraButton(
-                label: 'REFRESH STATUS',
-                icon: Icons.refresh,
-                variant: ButtonVariant.secondary,
-                fontSize: 11,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                onPressed: _loadDashboardData,
-              ),
-            ],
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Educational cybersecurity laboratory with real external git repositories & Docker runtimes',
+                      style: TextStyle(
+                        fontFamily: 'JetBrainsMono',
+                        color: ZiteraColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                ZiteraButton(
+                  label: 'REFRESH STATUS',
+                  icon: Icons.refresh,
+                  variant: ButtonVariant.secondary,
+                  fontSize: 11,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  onPressed: _loadDashboardData,
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 18),
 
           // 2. Welcome Card (Zeta Mascot)
-          const PixelMascotWidget(),
+          const HackerTilixEntrance(
+            delay: Duration(milliseconds: 60),
+            child: PixelMascotWidget(),
+          ),
 
           const SizedBox(height: 18),
 
           // 3. Environment Check Card (Soft Pastel Mint)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: BoxDecoration(
-              color: ZiteraColors.envBg,
-              borderRadius: BorderRadius.circular(10),
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 120),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              decoration: BoxDecoration(
+                color: ZiteraColors.envBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: ZiteraColors.envBorder, width: 1.4),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF22C55E),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            diag.allReady ? 'ENVIRONMENT READY FOR LEARNING' : 'SYSTEM SETUP ACTION REQUIRED',
+                            style: const TextStyle(
+                              fontFamily: 'SpaceGrotesk',
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E1A14),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Windows: ${diag.os.status} • Git: ${diag.git.status} • WSL2: ${diag.wsl.status} • Docker: ${diag.docker.status} (${diag.dockerDaemon.status})',
+                            style: const TextStyle(
+                              fontFamily: 'JetBrainsMono',
+                              fontSize: 11,
+                              color: Color(0xFF334155),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  ZiteraButton(
+                    label: 'MANAGE ENVIRONMENT',
+                    icon: Icons.settings_suggest,
+                    variant: ButtonVariant.gradient,
+                    fontSize: 11,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    onPressed: () => widget.onNavigate(2),
+                  ),
+                ],
+              ),
+            ),
+          ),
               border: Border.all(color: ZiteraColors.envBorder, width: 1.4),
               boxShadow: [
                 BoxShadow(
@@ -424,18 +497,23 @@ class _DashboardViewState extends State<DashboardView> {
           const SizedBox(height: 16),
 
           // 3.5. Continue Learning / Recommended Start Card (PRD §17 & §68)
-          _buildContinueLearningCard(
-            labId: continueLabId,
-            labTitle: continueLabTitle,
-            section: continueSection,
-            percent: continuePercent,
-            hasProgress: hasAnyProgress,
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 180),
+            child: _buildContinueLearningCard(
+              labId: continueLabId,
+              labTitle: continueLabTitle,
+              section: continueSection,
+              percent: continuePercent,
+              hasProgress: hasAnyProgress,
+            ),
           ),
 
           const SizedBox(height: 24),
 
           // 4. Statistics Cards (x4 Identical Square Cards with Peeking Stickers)
-          Row(
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 240),
+            child: Row(
             children: [
               // Card 1: CHALLENGES (Peach)
               Expanded(
@@ -493,60 +571,68 @@ class _DashboardViewState extends State<DashboardView> {
               ),
             ],
           ),
+        ),
 
           const SizedBox(height: 24),
 
           // 4.5. OWASP Top 10:2025 Curriculum Navigation View (PRD §48)
-          _buildOwaspCurriculumView(
-            labs: displayLabs,
-            solvedChallenges: solvedChallenges,
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 300),
+            child: _buildOwaspCurriculumView(
+              labs: displayLabs,
+              solvedChallenges: solvedChallenges,
+            ),
           ),
 
           const SizedBox(height: 28),
 
           // 5. Available Laboratories Section Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    'AVAILABLE LABORATORIES',
-                    style: TextStyle(
-                      fontFamily: 'SpaceGrotesk',
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.6,
-                      color: Color(0xFF1E1A14),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _pixelBarChart(),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFF472B6)),
-                ],
-              ),
-              InkWell(
-                onTap: () => widget.onNavigate(1),
-                child: const Row(
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 340),
+            direction: TilixSlideDirection.left,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      'View All Labs',
+                    const Text(
+                      'AVAILABLE LABORATORIES',
                       style: TextStyle(
                         fontFamily: 'SpaceGrotesk',
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F766E),
+                        letterSpacing: 0.6,
+                        color: Color(0xFF1E1A14),
                       ),
                     ),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, size: 14, color: Color(0xFF0F766E)),
+                    const SizedBox(width: 8),
+                    _pixelBarChart(),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFF472B6)),
                   ],
                 ),
-              ),
-            ],
+                InkWell(
+                  onTap: () => widget.onNavigate(1),
+                  child: const Row(
+                    children: [
+                      Text(
+                        'View All Labs',
+                        style: TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F766E),
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward, size: 14, color: Color(0xFF0F766E)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 26),
@@ -556,27 +642,30 @@ class _DashboardViewState extends State<DashboardView> {
             children: [
               for (int i = 0; i < displayLabs.length; i += 2) ...[
                 if (i > 0) const SizedBox(height: 16),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: _buildLabCard(
-                          lab: displayLabs[i],
-                          themeIndex: i % 4,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      if (i + 1 < displayLabs.length)
+                HackerTilixEntrance(
+                  delay: Duration(milliseconds: 380 + (i ~/ 2) * 60),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                         Expanded(
                           child: _buildLabCard(
-                            lab: displayLabs[i + 1],
-                            themeIndex: (i + 1) % 4,
+                            lab: displayLabs[i],
+                            themeIndex: i % 4,
                           ),
-                        )
-                      else
-                        const Expanded(child: SizedBox()),
-                    ],
+                        ),
+                        const SizedBox(width: 16),
+                        if (i + 1 < displayLabs.length)
+                          Expanded(
+                            child: _buildLabCard(
+                              lab: displayLabs[i + 1],
+                              themeIndex: (i + 1) % 4,
+                            ),
+                          )
+                        else
+                          const Expanded(child: SizedBox()),
+                      ],
+                    ),
                   ),
                 ),
               ],

@@ -7,6 +7,7 @@ import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_loading.dart';
+import '../../widgets/hacker_tilix_entrance.dart';
 
 class ToolsView extends StatefulWidget {
   const ToolsView({super.key});
@@ -421,86 +422,94 @@ class _ToolsViewState extends State<ToolsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'SECURITY TOOLS CAPABILITY MANAGER',
-                        style: TextStyle(
-                          color: Color(0xFF1E1A14),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                          fontFamily: 'SpaceGrotesk',
+              HackerTilixEntrance(
+                delay: Duration.zero,
+                direction: TilixSlideDirection.down,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'SECURITY TOOLS CAPABILITY MANAGER',
+                          style: TextStyle(
+                            color: Color(0xFF1E1A14),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            fontFamily: 'SpaceGrotesk',
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Detection, bounded versioning, and safe explicit installation contracts ($readyCount/${_tools.length} Ready)',
-                        style: const TextStyle(
-                          color: Color(0xFF5C5347),
-                          fontSize: 13,
-                          fontFamily: 'JetBrainsMono',
+                        const SizedBox(height: 4),
+                        Text(
+                          'Detection, bounded versioning, and safe explicit installation contracts ($readyCount/${_tools.length} Ready)',
+                          style: const TextStyle(
+                            color: Color(0xFF5C5347),
+                            fontSize: 13,
+                            fontFamily: 'JetBrainsMono',
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  ZiteraButton(
-                    label: 'Recheck Tools',
-                    icon: Icons.refresh,
-                    variant: ButtonVariant.secondary,
-                    onPressed: _loadTools,
-                  ),
-                ],
+                      ],
+                    ),
+                    ZiteraButton(
+                      label: 'Recheck Tools',
+                      icon: Icons.refresh,
+                      variant: ButtonVariant.secondary,
+                      onPressed: _loadTools,
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 18),
 
               // Category Filter Chips
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    'ALL',
-                    'Scanning',
-                    'Vulnerability',
-                    'Fuzzing',
-                    'Discovery',
-                    'Privilege Escalation',
-                    'Proxy',
-                  ].map((cat) {
-                    final isSelected = _selectedCategory == cat;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: InkWell(
-                        onTap: () => setState(() => _selectedCategory = cat),
-                        borderRadius: BorderRadius.circular(6),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFCCFBF1) : const Color(0xFFFCFBF8),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isSelected ? const Color(0xFF2DD4BF) : ZiteraColors.border,
-                              width: 1.0,
+              HackerTilixEntrance(
+                delay: const Duration(milliseconds: 60),
+                direction: TilixSlideDirection.right,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      'ALL',
+                      'Scanning',
+                      'Vulnerability',
+                      'Fuzzing',
+                      'Discovery',
+                      'Privilege Escalation',
+                      'Proxy',
+                    ].map((cat) {
+                      final isSelected = _selectedCategory == cat;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedCategory = cat),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFFCCFBF1) : const Color(0xFFFCFBF8),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFF2DD4BF) : ZiteraColors.border,
+                                width: 1.0,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            cat,
-                            style: TextStyle(
-                              fontFamily: 'SpaceGrotesk',
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                              fontSize: 12,
-                              color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF5C5347),
+                            child: Text(
+                              cat,
+                              style: TextStyle(
+                                fontFamily: 'SpaceGrotesk',
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                fontSize: 12,
+                                color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF5C5347),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
 
@@ -527,7 +536,10 @@ class _ToolsViewState extends State<ToolsView> {
                           ? 'assets/images/sticker_shiba.png'
                           : 'assets/images/sticker_cat_laptop.png');
 
-                  return ZiteraCard(
+                  return HackerTilixEntrance(
+                    delay: Duration(milliseconds: 100 + index * 40),
+                    direction: TilixSlideDirection.up,
+                    child: ZiteraCard(
                     borderColor: tool.installed ? ZiteraColors.ready.withValues(alpha: 0.3) : ZiteraColors.border,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -690,6 +702,7 @@ class _ToolsViewState extends State<ToolsView> {
                       ],
                     ),
                   ],
+                ),
                 ),
               );
             },

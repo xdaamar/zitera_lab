@@ -109,7 +109,10 @@ class _MainShellState extends State<MainShell> {
             onDestinationSelected: _navigateToTab,
           ),
           Expanded(
-            child: activeContent,
+            child: KeyedSubtree(
+              key: ValueKey('tab-$_selectedIndex-lab-$_activeLabId'),
+              child: activeContent,
+            ),
           ),
         ],
       ),

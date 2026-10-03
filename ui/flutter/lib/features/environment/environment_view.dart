@@ -7,6 +7,7 @@ import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_loading.dart';
+import '../../widgets/hacker_tilix_entrance.dart';
 
 class EnvironmentView extends StatefulWidget {
   const EnvironmentView({super.key});
@@ -108,206 +109,222 @@ class _EnvironmentViewState extends State<EnvironmentView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'SMART ENVIRONMENT SETUP V2',
-                        style: TextStyle(
-                          color: Color(0xFF1E1A14),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                          fontFamily: 'SpaceGrotesk',
+              HackerTilixEntrance(
+                delay: Duration.zero,
+                direction: TilixSlideDirection.down,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'SMART ENVIRONMENT SETUP V2',
+                          style: TextStyle(
+                            color: Color(0xFF1E1A14),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            fontFamily: 'SpaceGrotesk',
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Detect, classify, explain, recommend, and validate system prerequisites & tools',
-                        style: TextStyle(
-                          color: Color(0xFF5C5347),
-                          fontSize: 13,
-                          fontFamily: 'JetBrainsMono',
+                        SizedBox(height: 4),
+                        Text(
+                          'Detect, classify, explain, recommend, and validate system prerequisites & tools',
+                          style: TextStyle(
+                            color: Color(0xFF5C5347),
+                            fontSize: 13,
+                            fontFamily: 'JetBrainsMono',
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  ZiteraButton(
-                    label: 'Recheck System',
-                    icon: Icons.refresh,
-                    variant: ButtonVariant.primary,
-                    onPressed: _runCheck,
-                  ),
-                ],
+                      ],
+                    ),
+                    ZiteraButton(
+                      label: 'Recheck System',
+                      icon: Icons.refresh,
+                      variant: ButtonVariant.primary,
+                      onPressed: _runCheck,
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 24),
 
               // Overall Readiness Banner
-              ZiteraCard(
-                borderColor: diag.allReady
-                    ? ZiteraColors.ready.withValues(alpha: 0.4)
-                    : ZiteraColors.warning.withValues(alpha: 0.4),
-                child: Row(
-                  children: [
-                    Icon(
-                      diag.allReady ? Icons.check_circle : Icons.warning_amber,
-                      color: diag.allReady ? ZiteraColors.ready : ZiteraColors.warning,
-                      size: 36,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              HackerTilixEntrance(
+                delay: const Duration(milliseconds: 70),
+                direction: TilixSlideDirection.up,
+                child: ZiteraCard(
+                  borderColor: diag.allReady
+                      ? ZiteraColors.ready.withValues(alpha: 0.4)
+                      : ZiteraColors.warning.withValues(alpha: 0.4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        diag.allReady ? Icons.check_circle : Icons.warning_amber,
+                        color: diag.allReady ? ZiteraColors.ready : ZiteraColors.warning,
+                        size: 36,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              diag.allReady
+                                  ? 'ALL CORE SYSTEM PREREQUISITES VERIFIED READY'
+                                  : 'ACTION REQUIRED TO COMPLETE ENVIRONMENT SETUP',
+                              style: const TextStyle(
+                                fontFamily: 'SpaceGrotesk',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: Color(0xFF1E1A14),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              diag.allReady
+                                  ? 'Host environment is fully configured. All containerized external labs can be launched locally.'
+                                  : 'One or more system components require attention. Review guided action steps below.',
+                              style: const TextStyle(
+                                fontFamily: 'JetBrainsMono',
+                                color: Color(0xFF5C5347),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
                         children: [
-                          Text(
-                            diag.allReady
-                                ? 'ALL CORE SYSTEM PREREQUISITES VERIFIED READY'
-                                : 'ACTION REQUIRED TO COMPLETE ENVIRONMENT SETUP',
-                            style: const TextStyle(
-                              fontFamily: 'SpaceGrotesk',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: Color(0xFF1E1A14),
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: Image.asset(
+                              'assets/images/sticker_bunny.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const SizedBox(),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            diag.allReady
-                                ? 'Host environment is fully configured. All containerized external labs can be launched locally.'
-                                : 'One or more system components require attention. Review guided action steps below.',
-                            style: const TextStyle(
-                              fontFamily: 'JetBrainsMono',
-                              color: Color(0xFF5C5347),
-                              fontSize: 12,
-                            ),
-                          ),
+                          const SizedBox(width: 10),
+                          StatusBadge(status: diag.allReady ? 'READY' : 'ACTION REQUIRED'),
                         ],
                       ),
-                    ),
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 34,
-                          height: 34,
-                          child: Image.asset(
-                            'assets/images/sticker_bunny.png',
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const SizedBox(),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        StatusBadge(status: diag.allReady ? 'READY' : 'ACTION REQUIRED'),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
               const SizedBox(height: 20),
 
               // Host Hardware Resources Card
-              Row(
-                children: [
-                  Expanded(
-                    child: ZiteraCard(
-                      child: Row(
-                        children: [
-                          const Icon(Icons.memory, color: ZiteraColors.cyan, size: 28),
-                          const SizedBox(width: 14),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('HOST MEMORY (RAM)', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
-                              const SizedBox(height: 4),
-                              Text('${diag.memoryGb.toStringAsFixed(1)} GB Total', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ZiteraCard(
-                      child: Row(
-                        children: [
-                          const Icon(Icons.storage, color: ZiteraColors.primary, size: 28),
-                          const SizedBox(width: 14),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('SYSTEM DRIVE FREE DISK', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
-                              const SizedBox(height: 4),
-                              Text('${diag.diskFreeGb.toStringAsFixed(1)} GB Free', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ZiteraCard(
-                      child: Row(
-                        children: [
-                          const Icon(Icons.security, color: ZiteraColors.ready, size: 28),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
+              HackerTilixEntrance(
+                delay: const Duration(milliseconds: 140),
+                direction: TilixSlideDirection.up,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ZiteraCard(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.memory, color: ZiteraColors.cyan, size: 28),
+                            const SizedBox(width: 14),
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('SECURITY TOOLS STATUS', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
+                                const Text('HOST MEMORY (RAM)', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
                                 const SizedBox(height: 4),
-                                Text('$readyTools of ${_tools.length} Tools Ready', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
+                                Text('${diag.memoryGb.toStringAsFixed(1)} GB Total', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
                               ],
                             ),
-                          ),
-                          SizedBox(
-                            width: 32,
-                            height: 32,
-                            child: Image.asset(
-                              'assets/images/sticker_cat_laptop.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => const SizedBox(),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ZiteraCard(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.storage, color: ZiteraColors.primary, size: 28),
+                            const SizedBox(width: 14),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('SYSTEM DRIVE FREE DISK', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
+                                const SizedBox(height: 4),
+                                Text('${diag.diskFreeGb.toStringAsFixed(1)} GB Free', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ZiteraCard(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.security, color: ZiteraColors.ready, size: 28),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('SECURITY TOOLS STATUS', style: TextStyle(color: Color(0xFF5C5347), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk')),
+                                  const SizedBox(height: 4),
+                                  Text('$readyTools of ${_tools.length} Tools Ready', style: const TextStyle(color: Color(0xFF1E1A14), fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'SpaceGrotesk')),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: Image.asset(
+                                'assets/images/sticker_cat_laptop.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 28),
 
               // Core System Prerequisites Section
-              const Text(
-                'CORE SYSTEM PREREQUISITES',
-                style: TextStyle(
-                  color: Color(0xFF1E1A14),
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                  fontFamily: 'SpaceGrotesk',
+              HackerTilixEntrance(
+                delay: const Duration(milliseconds: 200),
+                direction: TilixSlideDirection.left,
+                child: const Text(
+                  'CORE SYSTEM PREREQUISITES',
+                  style: TextStyle(
+                    color: Color(0xFF1E1A14),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    fontFamily: 'SpaceGrotesk',
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
 
-              _buildComponentCard(diag.os),
+              _buildComponentCard(diag.os, delay: const Duration(milliseconds: 240)),
               const SizedBox(height: 10),
-              _buildComponentCard(diag.git),
+              _buildComponentCard(diag.git, delay: const Duration(milliseconds: 280)),
               const SizedBox(height: 10),
-              _buildComponentCard(diag.wsl),
+              _buildComponentCard(diag.wsl, delay: const Duration(milliseconds: 320)),
               const SizedBox(height: 10),
-              _buildComponentCard(diag.docker),
+              _buildComponentCard(diag.docker, delay: const Duration(milliseconds: 360)),
               const SizedBox(height: 10),
-              _buildComponentCard(diag.dockerDaemon),
+              _buildComponentCard(diag.dockerDaemon, delay: const Duration(milliseconds: 400)),
               const SizedBox(height: 10),
-              _buildComponentCard(diag.powershell),
+              _buildComponentCard(diag.powershell, delay: const Duration(milliseconds: 440)),
             ],
           ),
         ),
@@ -315,11 +332,14 @@ class _EnvironmentViewState extends State<EnvironmentView> {
     );
   }
 
-  Widget _buildComponentCard(ComponentItem comp) {
+  Widget _buildComponentCard(ComponentItem comp, {Duration delay = Duration.zero}) {
     final isReady = comp.status == 'READY';
     final isBlocked = comp.status == 'BLOCKED';
 
-    return ZiteraCard(
+    return HackerTilixEntrance(
+      delay: delay,
+      direction: TilixSlideDirection.up,
+      child: ZiteraCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -387,6 +407,7 @@ class _EnvironmentViewState extends State<EnvironmentView> {
           ],
         ],
       ),
+    ),
     );
   }
 }
