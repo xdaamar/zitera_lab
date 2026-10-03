@@ -116,7 +116,7 @@ class _ZiteraButtonState extends State<ZiteraButton> {
     }
 
     return MouseRegion(
-      cursor: isClickable ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      cursor: isClickable ? CuteCursorController.cursor : CuteCursorController.defaultCursor,
       onEnter: (_) {
         if (isClickable) {
           setState(() => _isHovered = true);

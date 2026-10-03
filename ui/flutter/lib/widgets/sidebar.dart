@@ -179,12 +179,13 @@ class _SidebarState extends State<Sidebar> {
                       ),
                       // Show / Hide Toggle Button
                       MouseRegion(
-                        cursor: SystemMouseCursors.click,
+                        cursor: CuteCursorController.cursor,
                         onEnter: (_) => CuteCursorController.setHover(true),
                         onExit: (_) => CuteCursorController.setHover(false),
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
+                            mouseCursor: CuteCursorController.cursor,
                             onTap: () {
                               setState(() {
                                 _isMenuVisible = !_isMenuVisible;
@@ -397,7 +398,7 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
       child: MouseRegion(
-        cursor: SystemMouseCursors.click,
+        cursor: CuteCursorController.cursor,
         onEnter: (_) {
           setState(() => _isHovered = true);
           CuteCursorController.setHover(true);

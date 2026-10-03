@@ -85,7 +85,7 @@ class _ZiteraCardState extends State<ZiteraCard> {
     );
 
     return MouseRegion(
-      cursor: isClickable ? SystemMouseCursors.click : MouseCursor.defer,
+      cursor: isClickable ? CuteCursorController.cursor : CuteCursorController.defaultCursor,
       onEnter: (_) {
         if (hasHover) setState(() => _isHovered = true);
         if (isClickable) CuteCursorController.setHover(true);

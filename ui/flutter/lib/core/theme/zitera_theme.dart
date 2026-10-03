@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'zitera_colors.dart';
+import '../../widgets/cute_anime_cursor.dart';
 
 class ZiteraTheme {
   static ThemeData get lightTheme {
@@ -15,6 +16,34 @@ class ZiteraTheme {
         secondary: ZiteraColors.cyan,
         surface: ZiteraColors.surface,
         error: ZiteraColors.error,
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          mouseCursor: WidgetStateProperty.resolveWith(
+            (_) => CuteCursorController.cursor,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: ButtonStyle(
+          mouseCursor: WidgetStateProperty.resolveWith(
+            (_) => CuteCursorController.cursor,
+          ),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ButtonStyle(
+          mouseCursor: WidgetStateProperty.resolveWith(
+            (_) => CuteCursorController.cursor,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(
+          mouseCursor: WidgetStateProperty.resolveWith(
+            (_) => CuteCursorController.cursor,
+          ),
+        ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: ZiteraColors.background,

@@ -11,6 +11,15 @@ class CuteCursorController {
       isHoveringClickable.value = hover;
     }
   }
+
+  /// When custom cursor is enabled, returns SystemMouseCursors.none so Windows
+  /// completely removes/hides its default pointing hand / arrow cursor,
+  /// letting our custom kawaii cat paw cursor render full and unobstructed!
+  static MouseCursor get cursor =>
+      isEnabled.value ? SystemMouseCursors.none : SystemMouseCursors.click;
+
+  static MouseCursor get defaultCursor =>
+      isEnabled.value ? SystemMouseCursors.none : MouseCursor.defer;
 }
 
 class CuteAnimeCursor extends StatefulWidget {
