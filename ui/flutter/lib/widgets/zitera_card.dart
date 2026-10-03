@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/zitera_colors.dart';
+import 'cute_anime_cursor.dart';
 
 class ZiteraCard extends StatefulWidget {
   final Widget child;
@@ -87,9 +88,11 @@ class _ZiteraCardState extends State<ZiteraCard> {
       cursor: isClickable ? SystemMouseCursors.click : MouseCursor.defer,
       onEnter: (_) {
         if (hasHover) setState(() => _isHovered = true);
+        if (isClickable) CuteCursorController.setHover(true);
       },
       onExit: (_) {
         if (hasHover) setState(() => _isHovered = false);
+        if (isClickable) CuteCursorController.setHover(false);
       },
       child: isClickable
           ? GestureDetector(

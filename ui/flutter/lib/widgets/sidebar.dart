@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/zitera_colors.dart';
+import 'cute_anime_cursor.dart';
 
 class Sidebar extends StatefulWidget {
   final int selectedIndex;
@@ -177,29 +178,34 @@ class _SidebarState extends State<Sidebar> {
                         ),
                       ),
                       // Show / Hide Toggle Button
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              _isMenuVisible = !_isMenuVisible;
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(6),
-                          child: Container(
-                            padding: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              color: _isMenuVisible ? const Color(0xFFE6FFFA) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: _isMenuVisible ? const Color(0xFF2DD4BF) : ZiteraColors.border,
-                                width: 1.0,
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        onEnter: (_) => CuteCursorController.setHover(true),
+                        onExit: (_) => CuteCursorController.setHover(false),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _isMenuVisible = !_isMenuVisible;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: _isMenuVisible ? const Color(0xFFE6FFFA) : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: _isMenuVisible ? const Color(0xFF2DD4BF) : ZiteraColors.border,
+                                  width: 1.0,
+                                ),
                               ),
-                            ),
-                            child: Icon(
-                              _isMenuVisible ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                              size: 18,
-                              color: _isMenuVisible ? const Color(0xFF0F766E) : const Color(0xFF5C5347),
+                              child: Icon(
+                                _isMenuVisible ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                size: 18,
+                                color: _isMenuVisible ? const Color(0xFF0F766E) : const Color(0xFF5C5347),
+                              ),
                             ),
                           ),
                         ),
@@ -348,35 +354,88 @@ class _SidebarState extends State<Sidebar> {
   }
 
   Widget _navItem(int index, String label, IconData icon, String tag, String? stickerAsset) {
-    final isSelected = widget.selectedIndex == index;
+    return _SidebarNavItem(
+      index: index,
+      label: label,
+      icon: icon,
+      tag: tag,
+      stickerAsset: stickerAsset,
+      isSelected: widget.selectedIndex == index,
+      onSelect: widget.onDestinationSelected,
+    );
+  }
+}
+
+class _SidebarNavItem extends StatefulWidget {
+  final int index;
+  final String label;
+  final IconData icon;
+  final String tag;
+  final String? stickerAsset;
+  final bool isSelected;
+  final Function(int) onSelect;
+
+  const _SidebarNavItem({
+    required this.index,
+    required this.label,
+    required this.icon,
+    required this.tag,
+    required this.stickerAsset,
+    required this.isSelected,
+    required this.onSelect,
+  });
+
+  @override
+  State<_SidebarNavItem> createState() => _SidebarNavItemState();
+}
+
+class _SidebarNavItemState extends State<_SidebarNavItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => widget.onDestinationSelected(index),
-          borderRadius: BorderRadius.circular(8),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) {
+          setState(() => _isHovered = true);
+          CuteCursorController.setHover(true);
+        },
+        onExit: (_) {
+          setState(() => _isHovered = false);
+          CuteCursorController.setHover(false);
+        },
+        child: GestureDetector(
+          onTap: () => widget.onSelect(widget.index),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            transform: Matrix4.identity()
+              ..translate(_isHovered ? 4.0 : 0.0, 0.0),
             padding: EdgeInsets.symmetric(
               horizontal: 12,
-              vertical: stickerAsset != null ? 5 : 9,
+              vertical: widget.stickerAsset != null ? 5 : 9,
             ),
             decoration: BoxDecoration(
-              color: isSelected
+              color: widget.isSelected
                   ? const Color(0xFFFCFBF8)
-                  : const Color(0xFFFCFBF8).withValues(alpha: 0.88),
+                  : (_isHovered
+                      ? const Color(0xFFF0FDFA)
+                      : const Color(0xFFFCFBF8).withValues(alpha: 0.88)),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? const Color(0xFF2DD4BF) : ZiteraColors.border,
-                width: isSelected ? 1.5 : 1.0,
+                color: widget.isSelected
+                    ? const Color(0xFF2DD4BF)
+                    : (_isHovered ? const Color(0xFF2DD4BF) : ZiteraColors.border),
+                width: (widget.isSelected || _isHovered) ? 1.5 : 1.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isSelected
-                      ? const Color(0xFF2DD4BF).withValues(alpha: 0.15)
+                  color: (widget.isSelected || _isHovered)
+                      ? const Color(0xFF2DD4BF).withValues(alpha: 0.18)
                       : Colors.black.withValues(alpha: 0.03),
-                  blurRadius: isSelected ? 8 : 4,
+                  blurRadius: (widget.isSelected || _isHovered) ? 8 : 4,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -384,40 +443,48 @@ class _SidebarState extends State<Sidebar> {
             child: Row(
               children: [
                 Icon(
-                  icon,
+                  widget.icon,
                   size: 18,
-                  color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF5C5347),
+                  color: (widget.isSelected || _isHovered)
+                      ? const Color(0xFF0F766E)
+                      : const Color(0xFF5C5347),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    label,
+                    widget.label,
                     style: TextStyle(
                       fontFamily: 'SpaceGrotesk',
-                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF1E1A14),
+                      color: (widget.isSelected || _isHovered)
+                          ? const Color(0xFF0F766E)
+                          : const Color(0xFF1E1A14),
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight: (widget.isSelected || _isHovered)
+                          ? FontWeight.bold
+                          : FontWeight.w500,
                     ),
                   ),
                 ),
-                if (stickerAsset != null)
+                if (widget.stickerAsset != null)
                   SizedBox(
                     width: 34,
                     height: 34,
                     child: Image.asset(
-                      stickerAsset,
+                      widget.stickerAsset!,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => const SizedBox(),
                     ),
                   )
                 else
                   Text(
-                    tag,
+                    widget.tag,
                     style: TextStyle(
                       fontFamily: 'JetBrainsMono',
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF9C9080),
+                      color: (widget.isSelected || _isHovered)
+                          ? const Color(0xFF0F766E)
+                          : const Color(0xFF9C9080),
                       letterSpacing: 0.3,
                     ),
                   ),

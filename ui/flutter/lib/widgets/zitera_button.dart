@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/zitera_colors.dart';
 import 'cute_anime_loading.dart';
+import 'cute_anime_cursor.dart';
 
 enum ButtonVariant { primary, secondary, danger, ghost, gradient, mint }
 
@@ -117,13 +118,19 @@ class _ZiteraButtonState extends State<ZiteraButton> {
     return MouseRegion(
       cursor: isClickable ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: (_) {
-        if (isClickable) setState(() => _isHovered = true);
+        if (isClickable) {
+          setState(() => _isHovered = true);
+          CuteCursorController.setHover(true);
+        }
       },
       onExit: (_) {
-        if (isClickable) setState(() {
-          _isHovered = false;
-          _isPressed = false;
-        });
+        if (isClickable) {
+          setState(() {
+            _isHovered = false;
+            _isPressed = false;
+          });
+          CuteCursorController.setHover(false);
+        }
       },
       child: GestureDetector(
         onTapDown: (_) {
