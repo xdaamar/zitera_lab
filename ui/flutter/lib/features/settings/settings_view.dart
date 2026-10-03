@@ -4,6 +4,7 @@ import '../../core/progress/progress_manager.dart';
 import '../../core/theme/zitera_colors.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
+import '../../widgets/cute_anime_cursor.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -242,6 +243,77 @@ class SettingsView extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Kawaii Cyber Cursor Setting
+              ValueListenableBuilder<bool>(
+                valueListenable: CuteCursorController.isEnabled,
+                builder: (context, isCursorEnabled, _) {
+                  return ZiteraCard(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'KAWAII ANIME CURSOR',
+                                    style: TextStyle(
+                                      fontFamily: 'SpaceGrotesk',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Color(0xFF1E1A14),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFCE7F3),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: const Color(0xFFF472B6), width: 0.8),
+                                    ),
+                                    child: const Text(
+                                      'NEKO PAW',
+                                      style: TextStyle(
+                                        fontFamily: 'JetBrainsMono',
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFBE185D),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Interactive anime cursor with sparkling star trail, transforming into a kawaii cat paw with jelly bean pads on hover.',
+                                style: TextStyle(
+                                  color: Color(0xFF5C5347),
+                                  fontSize: 12,
+                                  fontFamily: 'JetBrainsMono',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: isCursorEnabled,
+                          activeColor: const Color(0xFF2DD4BF),
+                          activeTrackColor: const Color(0xFFCCFBF1),
+                          onChanged: (val) {
+                            CuteCursorController.isEnabled.value = val;
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 20),
