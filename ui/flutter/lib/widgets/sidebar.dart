@@ -137,6 +137,27 @@ class _SidebarState extends State<Sidebar> {
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    width: 22,
+                                    height: 22,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: const Color(0xFF2DD4BF), width: 1.2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF2DD4BF).withValues(alpha: 0.35),
+                                          blurRadius: 6,
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipOval(
+                                      child: Image.asset(
+                                        'assets/images/zitera_logo.png',
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

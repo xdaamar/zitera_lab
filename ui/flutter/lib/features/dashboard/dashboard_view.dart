@@ -285,21 +285,35 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                       const SizedBox(width: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF0EDE8),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFCEC8BF), width: 1),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: const Color(0xFF2DD4BF), width: 1),
                         ),
-                        child: const Text(
-                          'ZITERA__LAB',
-                          style: TextStyle(
-                            fontFamily: 'JetBrainsMono',
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF5C5347),
-                            letterSpacing: 0.5,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ClipOval(
+                              child: Image.asset(
+                                'assets/images/zitera_logo.png',
+                                width: 16,
+                                height: 16,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            const Text(
+                              'ZITERA__LAB',
+                              style: TextStyle(
+                                fontFamily: 'JetBrainsMono',
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F766E),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

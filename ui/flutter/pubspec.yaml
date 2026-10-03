@@ -40,6 +40,8 @@ flutter:
     - assets/images/sticker_shiba.png
     - assets/images/sticker_hamster.png
     - assets/images/sticker_duck.png
+    - assets/images/zitera_logo.png
+    - assets/images/zitera_logo.jpg
 
   # Offline Fonts — high-tech retro & developer typography
   fonts:
