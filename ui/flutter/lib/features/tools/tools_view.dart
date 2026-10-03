@@ -6,6 +6,7 @@ import '../../core/theme/zitera_colors.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
+import '../../widgets/cute_anime_loading.dart';
 
 class ToolsView extends StatefulWidget {
   const ToolsView({super.key});
@@ -392,7 +393,12 @@ class _ToolsViewState extends State<ToolsView> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: ZiteraColors.primary));
+      return const Center(
+        child: CuteAnimeLoading(
+          message: 'INITIALIZING CYBER TOOLS...',
+          subMessage: '( •̀ ω •́ )✧ VERIFYING LOCAL SECURITY PACKAGES',
+        ),
+      );
     }
 
     final readyCount = _tools.where((t) => t.installed).length;

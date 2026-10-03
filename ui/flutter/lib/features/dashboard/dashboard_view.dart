@@ -6,6 +6,7 @@ import '../../core/theme/zitera_colors.dart';
 import '../../widgets/pixel_mascot_widget.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
+import '../../widgets/cute_anime_loading.dart';
 
 class DashboardView extends StatefulWidget {
   final Function(int) onNavigate;
@@ -72,7 +73,10 @@ class _DashboardViewState extends State<DashboardView> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: ZiteraColors.primary),
+        child: CuteAnimeLoading(
+          message: 'INITIALIZING CYBER DASHBOARD...',
+          subMessage: '( •̀ ω •́ )✧ NEKO CORE ONLINE',
+        ),
       );
     }
 

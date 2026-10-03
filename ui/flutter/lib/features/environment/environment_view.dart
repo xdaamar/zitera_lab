@@ -6,6 +6,7 @@ import '../../core/theme/zitera_colors.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
+import '../../widgets/cute_anime_loading.dart';
 
 class EnvironmentView extends StatefulWidget {
   const EnvironmentView({super.key});
@@ -60,7 +61,12 @@ class _EnvironmentViewState extends State<EnvironmentView> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: ZiteraColors.primary));
+      return const Center(
+        child: CuteAnimeLoading(
+          message: 'AUDITING SYSTEM PREREQUISITES...',
+          subMessage: '( •̀ ω •́ )✧ CHECKING DOCKER & SUBSYSTEMS',
+        ),
+      );
     }
 
     if (_diagnostics == null) {

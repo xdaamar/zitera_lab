@@ -5,6 +5,7 @@ import '../../core/theme/zitera_colors.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
+import '../../widgets/cute_anime_loading.dart';
 
 class LabsView extends StatefulWidget {
   final Function(String) onSelectLab;
@@ -206,7 +207,10 @@ class _LabsViewState extends State<LabsView> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: ZiteraColors.primary),
+        child: CuteAnimeLoading(
+          message: 'EXPLORING OWASP CYBER LABS...',
+          subMessage: '( •̀ ω •́ )✧ DISCOVERING LAB REPOSITORIES',
+        ),
       );
     }
 

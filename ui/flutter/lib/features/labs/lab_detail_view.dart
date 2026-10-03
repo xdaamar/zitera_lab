@@ -7,6 +7,7 @@ import '../../core/theme/zitera_colors.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
+import '../../widgets/cute_anime_loading.dart';
 
 class LabDetailView extends StatefulWidget {
   final String labId;
@@ -553,7 +554,12 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: ZiteraColors.background,
-        body: Center(child: CircularProgressIndicator(color: ZiteraColors.primary)),
+        body: Center(
+          child: CuteAnimeLoading(
+            message: 'LOADING LAB WORKSPACE & CURRICULUM...',
+            subMessage: '( •̀ ω •́ )✧ PARSING ZERO-RECOMPILE MARKDOWN',
+          ),
+        ),
       );
     }
 
