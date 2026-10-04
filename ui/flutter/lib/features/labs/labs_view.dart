@@ -564,7 +564,7 @@ class _LabsViewState extends State<LabsView> {
                                 const SizedBox(height: 6),
                                 Text(
                                   lab.installed
-                                      ? 'Runtime: Docker (WSL2) | Port: ${lab.port > 0 ? lab.port : 'Dynamic'} | Binding: 127.0.0.1 (Local Only)'
+                                      ? 'Runtime: Native Sandboxed | Port: ${lab.port > 0 ? lab.port : 'Auto'} | Binding: 127.0.0.1 (Local Only)'
                                       : 'Source: GitHub Remote Repository | Status: Ready to Install',
                                   style: const TextStyle(
                                     color: Color(0xFF786F62),

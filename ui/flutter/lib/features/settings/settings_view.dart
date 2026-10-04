@@ -520,7 +520,7 @@ class SettingsView extends StatelessWidget {
                       const SizedBox(height: 12),
                       _settingRow('Catalog Source', 'catalog/catalog.json'),
                       _settingRow('Local Labs Root', 'labs/'),
-                      _settingRow('Architecture', 'Windows x64 / WSL2 Docker Backend'),
+                      _settingRow('Architecture', 'Windows x64 (Native Runtime Baseline)'),
                       _settingRow('Product Version', 'ZITERA_LAB v1.0.0 (Foundation Milestone)'),
                     ],
                   ),

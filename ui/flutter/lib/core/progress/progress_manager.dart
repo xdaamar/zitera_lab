@@ -26,16 +26,46 @@ class ProgressManager {
   static Future<Map<String, dynamic>> loadProgress() async {
     final file = _getProgressFile();
     final tmpFile = File('${file.path}.tmp');
-    if (!file.existsSync() && tmpFile.existsSync()) {
+
+    String? rawJson;
+
+    if (tmpFile.existsSync()) {
       try {
-        await tmpFile.rename(file.path);
+        final tmpText = tmpFile.readAsStringSync();
+        if (tmpText.trim().isNotEmpty) {
+          rawJson = tmpText;
+          try {
+            if (file.existsSync()) {
+              try {
+                file.deleteSync();
+              } catch (_) {}
+            }
+            tmpFile.copySync(file.path);
+            try {
+              tmpFile.deleteSync();
+            } catch (_) {}
+          } catch (_) {
+            try {
+              tmpFile.renameSync(file.path);
+            } catch (_) {}
+          }
+        }
       } catch (_) {}
     }
-    if (!file.existsSync()) {
-      return _defaultProgress();
+
+    if (rawJson == null) {
+      if (!file.existsSync()) {
+        return _defaultProgress();
+      }
+      try {
+        rawJson = await file.readAsString();
+      } catch (_) {
+        return _defaultProgress();
+      }
     }
+
     try {
-      final text = await file.readAsString();
+      final text = rawJson;
       if (text.trim().isEmpty) {
         return _defaultProgress();
       }
@@ -65,10 +95,13 @@ class ProgressManager {
       decoded['completed_practice'] = practice;
       return decoded;
     } catch (_) {
-      // Automatic corruption recovery: backup corrupted file and fallback to default
+      // Automatic corruption recovery: backup corrupted file and fallback to clean state
       try {
         if (file.existsSync()) {
           file.copySync('${file.path}.bak');
+          try {
+            file.deleteSync();
+          } catch (_) {}
         }
       } catch (_) {}
       return _defaultProgress();

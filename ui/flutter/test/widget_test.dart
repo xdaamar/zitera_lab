@@ -39,22 +39,29 @@ void main() {
     final bakFile = File('zitera_progress.json.bak');
     final tmpFile = File('zitera_progress.json.tmp');
 
-    tearDown(() {
-      if (progressFile.existsSync()) progressFile.deleteSync();
-      if (bakFile.existsSync()) bakFile.deleteSync();
-      if (tmpFile.existsSync()) tmpFile.deleteSync();
-    });
+    void cleanTestFiles() {
+      for (final f in [progressFile, bakFile, tmpFile]) {
+        try {
+          if (f.existsSync()) f.deleteSync();
+        } catch (_) {}
+      }
+    }
+
+    setUp(cleanTestFiles);
+    tearDown(cleanTestFiles);
 
     test('Corrupted progress file creates .bak and returns clean default', () async {
-      await progressFile.writeAsString('{{{INVALID JSON CORRUPTED DATA!!!');
+      cleanTestFiles();
+      await progressFile.writeAsString('{{{INVALID JSON CORRUPTED DATA!!!', flush: true);
       final data = await ProgressManager.loadProgress();
       expect(data['completed_labs'], isEmpty);
       expect(bakFile.existsSync(), isTrue);
     });
 
     test('Orphaned .tmp file from interrupted write is safely restored', () async {
+      cleanTestFiles();
       final validJson = '{"completed_labs":["A01"],"completed_challenges":[],"completed_practice":[],"completed_sections":{}}';
-      await tmpFile.writeAsString(validJson);
+      await tmpFile.writeAsString(validJson, flush: true);
       final data = await ProgressManager.loadProgress();
       expect(data['completed_labs'], contains('A01'));
       expect(progressFile.existsSync(), isTrue);

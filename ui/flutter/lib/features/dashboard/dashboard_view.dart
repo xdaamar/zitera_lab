@@ -407,7 +407,7 @@ class _DashboardViewState extends State<DashboardView> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Windows: ${diag.os.status} • Git: ${diag.git.status} • WSL2: ${diag.wsl.status} • Docker: ${diag.docker.status} (${diag.dockerDaemon.status})',
+                            'Host: ${diag.os.status} • Git: ${diag.git.status} • PowerShell: ${diag.powershell.status} • Memory: ${diag.memoryGb.toStringAsFixed(1)} GB',
                             style: const TextStyle(
                               fontFamily: 'JetBrainsMono',
                               fontSize: 11,

@@ -92,7 +92,7 @@ class _CuteAnimeLoadingState extends State<CuteAnimeLoading>
       child: Container(
         height: widget.height,
         constraints: const BoxConstraints(maxWidth: 420),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: const Color(0xFFFCFBF8).withValues(alpha: 0.94),
           borderRadius: BorderRadius.circular(16),
@@ -109,14 +109,16 @@ class _CuteAnimeLoadingState extends State<CuteAnimeLoading>
           animation: _controller,
           builder: (context, child) {
             final t = _controller.value;
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // 1. Curved sinusoidal wavy track with animated mascot head
                 SizedBox(
                   height: 60,
-                  width: double.infinity,
+                  width: 320,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final width = constraints.maxWidth;
@@ -220,8 +222,9 @@ class _CuteAnimeLoadingState extends State<CuteAnimeLoading>
                   ),
                 ],
               ],
-            );
-          },
+            ),
+          );
+        },
         ),
       ),
     );

@@ -335,6 +335,20 @@ class _EnvironmentViewState extends State<EnvironmentView> {
   Widget _buildComponentCard(ComponentItem comp, {Duration delay = Duration.zero}) {
     final isReady = comp.status == 'READY';
     final isBlocked = comp.status == 'BLOCKED';
+    final isNotRequired = comp.status == 'NOT_REQUIRED';
+
+    IconData statusIcon = Icons.error_outline;
+    Color statusColor = ZiteraColors.warning;
+    if (isReady) {
+      statusIcon = Icons.check_circle_outline;
+      statusColor = ZiteraColors.ready;
+    } else if (isNotRequired) {
+      statusIcon = Icons.info_outline;
+      statusColor = const Color(0xFF64748B);
+    } else if (isBlocked) {
+      statusIcon = Icons.block;
+      statusColor = ZiteraColors.error;
+    }
 
     return HackerTilixEntrance(
       delay: delay,
@@ -349,12 +363,8 @@ class _EnvironmentViewState extends State<EnvironmentView> {
               Row(
                 children: [
                   Icon(
-                    isReady
-                        ? Icons.check_circle_outline
-                        : (isBlocked ? Icons.block : Icons.error_outline),
-                    color: isReady
-                        ? ZiteraColors.ready
-                        : (isBlocked ? ZiteraColors.error : ZiteraColors.warning),
+                    statusIcon,
+                    color: statusColor,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
