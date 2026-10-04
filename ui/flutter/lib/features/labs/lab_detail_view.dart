@@ -9,6 +9,9 @@ import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_loading.dart';
 import '../../widgets/hacker_tilix_entrance.dart';
+import '../../widgets/zitera_rich_content.dart';
+import '../../core/i18n/language_controller.dart';
+import '../../core/i18n/lab_localization.dart';
 
 class LabDetailView extends StatefulWidget {
   final String labId;
@@ -584,15 +587,56 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     final isRunning = _status?.running ?? false;
     final hasMissingRecommended = _status?.challengeReadiness == 'PARTIAL' && !_dismissToolWarning;
 
-    return Scaffold(
-      backgroundColor: ZiteraColors.background,
-      appBar: AppBar(
+    return ValueListenableBuilder<String>(
+      valueListenable: AppLanguageController.currentLanguage,
+      builder: (context, _, _) {
+        return Scaffold(
+          backgroundColor: ZiteraColors.background,
+          appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: widget.onBack,
         ),
         title: Text('LAB $owaspCode // ${title.toUpperCase()}'),
         actions: [
+          ValueListenableBuilder<String>(
+            valueListenable: AppLanguageController.currentLanguage,
+            builder: (context, lang, _) {
+              final isId = lang == 'id';
+              return InkWell(
+                onTap: () => AppLanguageController.toggle(),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: isId ? const Color(0xFFCCFBF1) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isId ? const Color(0xFF2DD4BF) : const Color(0xFFCBD5E1),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.language, size: 14, color: Color(0xFF0F766E)),
+                      const SizedBox(width: 5),
+                      Text(
+                        isId ? 'ID (BAHASA)' : 'EN (ENGLISH)',
+                        style: const TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F766E),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           if (_isChallengeSolved)
             const Padding(
               padding: EdgeInsets.only(right: 12.0),
@@ -773,6 +817,8 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
         ],
       ),
     );
+      },
+    );
   }
 
   Widget _buildLearnTab() {
@@ -791,8 +837,11 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       );
     }
 
-    // Dynamic section ordering
-    final keys = lessons.keys.toList();
+    final isIndonesian = AppLanguageController.isIndonesian;
+    // Dynamic section ordering - filter out locale keys (.id, _id)
+    final keys = lessons.keys
+        .where((k) => !k.endsWith('.id') && !k.endsWith('_id'))
+        .toList();
     // Prioritize standard keys if present
     final preferredOrder = ['introduction', 'overview', 'analogy', 'concept', 'remediation', 'walkthrough', 'review'];
     keys.sort((a, b) {
@@ -811,7 +860,12 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
         children: keys.asMap().entries.map((entry) {
           final index = entry.key;
           final key = entry.value;
-          final content = lessons[key] ?? '';
+          final content = LabLocalization.getLessonContent(
+            labId: widget.labId,
+            sectionKey: key,
+            lessons: lessons,
+            isIndonesian: isIndonesian,
+          );
           final title = _formatSectionTitle(key);
           final isCompleted = _completedSections.contains(key);
 
@@ -852,9 +906,8 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                       ],
                     ),
                     const SizedBox(height: 12),
-                    SelectableText(
-                      content,
-                      style: const TextStyle(color: ZiteraColors.textSecondary, fontSize: 13, height: 1.6),
+                    ZiteraRichContent(
+                      rawContent: content,
                     ),
                   ],
                 ),
@@ -979,13 +1032,11 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
             direction: TilixSlideDirection.up,
             child: walkthroughText != null && walkthroughText.isNotEmpty
                 ? ZiteraCard(
-                    child: SelectableText(
-                      walkthroughText,
-                      style: const TextStyle(
-                        color: ZiteraColors.textPrimary,
-                        fontSize: 13,
-                        height: 1.6,
-                        fontFamily: 'monospace',
+                    child: ZiteraRichContent(
+                      rawContent: LabLocalization.getWalkthroughText(
+                        labId: widget.labId,
+                        lessons: _content?.lessons ?? {},
+                        isIndonesian: AppLanguageController.isIndonesian,
                       ),
                     ),
                   )
@@ -1030,11 +1081,21 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   }
 
   Widget _buildChallengeTab() {
-    final objective = (_content != null && _content!.challengeObjective.isNotEmpty)
+    final isIndonesian = AppLanguageController.isIndonesian;
+    final rawObjective = (_content != null && _content!.challengeObjective.isNotEmpty)
         ? _content!.challengeObjective
         : 'Complete the mission objective in the target application.';
+    final objective = LabLocalization.getChallengeObjective(
+      labId: widget.labId,
+      defaultObjective: rawObjective,
+      isIndonesian: isIndonesian,
+    );
     final difficulty = _content?.manifest.difficulty.toUpperCase() ?? 'BEGINNER';
-    final hints = _content?.hints ?? [];
+    final hints = LabLocalization.getHints(
+      labId: widget.labId,
+      defaultHints: _content?.hints ?? [],
+      isIndonesian: isIndonesian,
+    );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
@@ -1097,9 +1158,8 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                     ],
                   ),
                   const SizedBox(height: 12),
-                  SelectableText(
-                    objective,
-                    style: const TextStyle(color: ZiteraColors.textPrimary, fontSize: 13, height: 1.5),
+                  ZiteraRichContent(
+                    rawContent: objective,
                   ),
                 ],
               ),
@@ -1150,9 +1210,9 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                               ),
                               if (isUnlocked) ...[
                                 const SizedBox(height: 6),
-                                SelectableText(
-                                  h.hint,
-                                  style: const TextStyle(
+                                ZiteraRichContent(
+                                  rawContent: h.hint,
+                                  baseStyle: const TextStyle(
                                     fontFamily: 'JetBrainsMono',
                                     color: Color(0xFF0F766E),
                                     fontSize: 12,

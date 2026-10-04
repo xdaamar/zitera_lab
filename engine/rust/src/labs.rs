@@ -607,7 +607,7 @@ pub fn get_lab_content(
                     let stem_clean = stem.to_lowercase();
                     if stem_clean
                         .chars()
-                        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+                        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
                     {
                         if let Ok(text) = safe_read_file(&path) {
                             lessons.insert(stem_clean, text);

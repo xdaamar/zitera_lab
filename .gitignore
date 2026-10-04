@@ -45,3 +45,6 @@ Thumbs.db
 scratch/
 tmp/
 reports/
+zitera_progress.json
+*.tmp
+
