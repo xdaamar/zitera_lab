@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Celah Security Misconfiguration sering berakar dari kredensial default, file contoh instalasi, atau opsi diagnostik server yang lupa dimatikan."
+    },
+    {
+      "tier": 2,
+      "type": "investigation_direction",
+      "hint": "Periksa apakah kredensial default seperti admin:admin berfungsi pada form login, atau periksa path URL yang biasa digunakan untuk menyimpan data server."
+    },
+    {
+      "tier": 3,
+      "type": "technical_area",
+      "hint": "Route /backups/ mengaktifkan fitur directory browsing. Web server yang tidak mematikan fitur ini akan menampilkan daftar seluruh file yang dapat diunduh bebas."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Unduh file /backups/backup_config.json.bak dan periksa nilai pada properti 'admin_system_key' di dalam data JSON tersebut."
+    }
+  ]
+}

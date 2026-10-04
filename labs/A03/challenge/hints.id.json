@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Aplikasi modern mengandalkan file kunci (seperti package-lock.json atau poetry.lock) untuk mengunci versi dependensi. Penyerang sering menyusupkan kode jahat lewat pustaka turunan yang tidak diawasi."
+    },
+    {
+      "tier": 2,
+      "type": "directional",
+      "hint": "Perhatikan antarmuka web atau kirim request GET untuk mencari letak laporan audit dependensi otomatis dari build pipeline."
+    },
+    {
+      "tier": 3,
+      "type": "technical",
+      "hint": "Akses endpoint /packages/audit/package_lock_audit.json dan telusuri daftar objek dependencies untuk mencari paket non-standar dari pembuat yang tidak resmi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Periksa metadata paket apex-internal-telemetry di dalam laporan audit tersebut. Nilai properti exfiltrated_pipeline_token memuat flag dalam format standar ZITERA{...}."
+    }
+  ]
+}
