@@ -10,7 +10,7 @@ ZITERA_LAB is an educational cyber security laboratory platform combining:
 - **Investigation walkthroughs** (Practice Mode)
 - **CTF-style assessments** (Challenge Mode)
 - **Smart system diagnostics & tool manager** (Setup Engine)
-- **Isolated local runtime** (Docker Desktop + WSL2)
+- **Local runtime** (Windows Native Runtime Baseline — legacy Docker/WSL deprecated for ZITERA 2.0)
 - **Lightweight systems engine** (Rust)
 - **Polished desktop interface** (Flutter)
 
@@ -32,7 +32,8 @@ ZITERA_LAB is an educational cyber security laboratory platform combining:
                │               │
        ┌───────┴───────┐       ▼
        ▼               ▼     GitHub (Catalog & Lab Repos)
-      Git           Docker (WSL2)
+      Git     [OLD] Docker/WSL (Deprecated)
+              [NEW] Windows AppContainer / Job Object (Phase 16+)
                        │
                        ▼
                Lab Runtime (127.0.0.1)
