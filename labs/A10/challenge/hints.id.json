@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{f41l_0p3n_3xc3pt10n5_un4uth0r1z3d}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pelajari model mental pada materi: perhatikan bagaimana kegagalan penanganan exception fail-open membuka akses yang tidak sah."
+    },
+    {
+      "tier": 2,
+      "type": "investigation_direction",
+      "hint": "Periksa dashboard web dan telusuri route API yang tersedia menggunakan Developer Tools browser atau curl."
+    },
+    {
+      "tier": 3,
+      "type": "technical_area",
+      "hint": "Amati request yang dikirimkan ke port 8020. Celah keamanan terletak pada bagaimana server merespons kondisi error yang tidak terduga."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Picu exception kondisi tak terduga via request POST untuk menerima flag resmi di response payload."
+    }
+  ]
+}

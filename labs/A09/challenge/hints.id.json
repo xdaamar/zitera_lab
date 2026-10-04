@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pelajari model mental pada materi: perhatikan bagaimana kegagalan pencatatan log dan ketiadaan alert membiarkan penyerang beroperasi tanpa terdeteksi."
+    },
+    {
+      "tier": 2,
+      "type": "investigation_direction",
+      "hint": "Periksa dashboard web dan telusuri route API yang tersedia menggunakan Developer Tools browser atau curl."
+    },
+    {
+      "tier": 3,
+      "type": "technical_area",
+      "hint": "Amati request yang dikirimkan ke port 8019. Celah keamanan terletak pada ketiadaan notifikasi alarm saat parameter exception diakses."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Kirimkan request ke endpoint laporan audit yang tidak diawasi untuk memicu pengembalian flag resmi di respons JSON."
+    }
+  ]
+}

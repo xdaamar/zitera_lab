@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{1nt3gr1ty_f41lur3_un51gn3d_p4ck4g3}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pelajari model mental pada materi: perhatikan bagaimana kegagalan integritas data dan software berbeda dari bug sintaksis biasa."
+    },
+    {
+      "tier": 2,
+      "type": "investigation_direction",
+      "hint": "Periksa dashboard web dan telusuri route API yang tersedia menggunakan Developer Tools browser atau curl."
+    },
+    {
+      "tier": 3,
+      "type": "technical_area",
+      "hint": "Amati request yang dikirimkan ke port 8018. Celah keamanan terletak pada penerimaan paket tanpa validasi tanda tangan kriptografi atau hash checksum."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Picu deployment atau instalasi paket langsung via request POST ke endpoint manajemen paket untuk menerima flag resmi di response payload."
+    }
+  ]
+}
