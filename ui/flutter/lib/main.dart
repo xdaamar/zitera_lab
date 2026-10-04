@@ -8,9 +8,11 @@ import 'features/settings/settings_view.dart';
 import 'features/tools/tools_view.dart';
 import 'widgets/sidebar.dart';
 import 'widgets/cute_anime_cursor.dart';
+import 'core/i18n/language_controller.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppLanguageController.init();
   runApp(const ZiteraLabApp());
 }
 

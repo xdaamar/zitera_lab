@@ -77,12 +77,25 @@ class ProgressManager {
 
   static Map<String, dynamic> _defaultProgress() {
     return {
+      'language': 'en',
       'completed_labs': <String>[],
       'completed_challenges': <String>[],
       'completed_practice': <String>[],
       'completed_sections': <String, dynamic>{},
       'last_updated': DateTime.now().toIso8601String(),
     };
+  }
+
+  static Future<String> getLanguage() async {
+    final data = await loadProgress();
+    return (data['language'] as String?) ?? 'en';
+  }
+
+  static Future<void> setLanguage(String code) async {
+    final data = await loadProgress();
+    data['language'] = code;
+    data['last_updated'] = DateTime.now().toIso8601String();
+    await _atomicWrite(data);
   }
 
   static Future<void> markLabCompleted(String labId) async {
