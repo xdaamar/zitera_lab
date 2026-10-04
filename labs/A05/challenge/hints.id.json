@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{5q1_1nj3ct10n_m45t3r_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Coba cari tahu berapa jumlah kolom yang dikembalikan oleh perintah SELECT asli sebelum menyusun operator UNION."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Query produk mengembalikan 3 kolom: name, category, dan price. Query UNION yang kamu buat wajib memiliki jumlah kolom yang sama persis."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Pada SQLite, kamu bisa melihat nama tabel dari tabel sqlite_master di mana type='table', atau langsung periksa tabel 'vault_secrets'."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Injeksi payload berikut: ' UNION SELECT secret_name, secret_data, 0 FROM vault_secrets --"
+    }
+  ]
+}
