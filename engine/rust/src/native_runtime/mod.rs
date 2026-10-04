@@ -1,10 +1,15 @@
 pub mod error;
+pub mod job;
 pub mod probe;
 pub mod process;
 pub mod profile;
 
 pub use error::NativeRuntimeError;
-pub use process::{run_sandboxed, ProcessOutput, SandboxedProcessConfig};
+pub use job::{JobLimits, JobObject};
+pub use process::{
+    run_sandboxed, run_sandboxed_with_job, spawn_sandboxed_process, ProcessOutput,
+    SandboxedProcessConfig, SandboxedProcessHandle,
+};
 pub use profile::{
     AppContainerProfile, AppContainerProfileConfig, LabIdentity, MAX_PROFILE_NAME_LEN,
     PROFILE_NAME_PREFIX,
@@ -380,6 +385,136 @@ mod tests {
 
         // Clean up
         let _ = fs::remove_dir_all(&test_base);
+        let _ = AppContainerProfile::delete(&identity);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_job_object_containment_and_kill_on_close() {
+        let identity = LabIdentity::new("JOB_KILL_TEST").unwrap();
+        let _ = AppContainerProfile::create_or_open(&identity);
+
+        let job = JobObject::create(None).expect("Creating JobObject must succeed");
+        let mut limits = JobLimits::default();
+        limits.kill_on_job_close = true;
+        job.set_limits(&limits).unwrap();
+
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        let config = SandboxedProcessConfig {
+            executable: probe_exe,
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--sleep-ms".to_string(),
+                "15000".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: HashMap::new(),
+        };
+
+        let handle = spawn_sandboxed_process(&identity, &config, Some(&job))
+            .expect("Spawning sandboxed process into JobObject must succeed");
+
+        // Verify process is registered in the job
+        let pids = job.query_process_ids().unwrap();
+        assert!(pids.contains(&handle.pid), "Job must track the spawned process PID");
+
+        // Terminate JobObject explicitly with code 42
+        job.terminate(42).unwrap();
+
+        // Process must have been terminated with exit code 42
+        let output = handle.wait().unwrap();
+        assert_eq!(output.exit_code, 42);
+
+        let _ = AppContainerProfile::delete(&identity);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_job_object_process_tree_containment() {
+        let identity = LabIdentity::new("JOB_TREE_TEST").unwrap();
+        let _ = AppContainerProfile::create_or_open(&identity);
+
+        let job = JobObject::create(None).expect("Creating JobObject must succeed");
+        let limits = JobLimits::default();
+        job.set_limits(&limits).unwrap();
+
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        // Parent process spawns a child that sleeps
+        let config = SandboxedProcessConfig {
+            executable: probe_exe.clone(),
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--spawn-child".to_string(),
+                probe_exe.to_string_lossy().to_string(),
+                "sandbox-probe".to_string(),
+                "--sleep-ms".to_string(),
+                "15000".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: HashMap::new(),
+        };
+
+        let handle = spawn_sandboxed_process(&identity, &config, Some(&job)).unwrap();
+
+        // Give child a moment to spawn
+        std::thread::sleep(std::time::Duration::from_millis(500));
+
+        // Terminate entire job tree
+        job.terminate(99).unwrap();
+
+        let output = handle.wait().unwrap();
+        assert_eq!(output.exit_code, 99);
+
+        let _ = AppContainerProfile::delete(&identity);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_job_object_resource_limits_and_abnormal_exit_recovery() {
+        let identity = LabIdentity::new("JOB_RECOVERY").unwrap();
+        let _ = AppContainerProfile::create_or_open(&identity);
+
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        // 1. Crash/Abnormal exit code verification
+        let config_crash = SandboxedProcessConfig {
+            executable: probe_exe.clone(),
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--exit-with-code".to_string(),
+                "137".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: HashMap::new(),
+        };
+        let out_crash = run_sandboxed(&identity, &config_crash).unwrap();
+        assert_eq!(out_crash.exit_code, 137);
+
+        // 2. Immediate clean recovery: next run still succeeds normally
+        let config_recovery = SandboxedProcessConfig {
+            executable: probe_exe,
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--exit-with-code".to_string(),
+                "0".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: HashMap::new(),
+        };
+        let out_recovery = run_sandboxed(&identity, &config_recovery).unwrap();
+        assert_eq!(out_recovery.exit_code, 0);
+
         let _ = AppContainerProfile::delete(&identity);
     }
 }

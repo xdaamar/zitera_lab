@@ -222,6 +222,51 @@ pub fn handle_probe_cli(args: &[String]) {
                 }
             }
         }
+        "--sleep-ms" => {
+            let ms: u64 = if args.len() >= 2 {
+                args[1].parse().unwrap_or(1000)
+            } else {
+                1000
+            };
+            println!("SLEEPING_MS: {}", ms);
+            std::thread::sleep(Duration::from_millis(ms));
+            println!("AWAKE");
+            exit(0);
+        }
+        "--allocate-mb" => {
+            let mb: usize = if args.len() >= 2 {
+                args[1].parse().unwrap_or(10)
+            } else {
+                10
+            };
+            let mut data: Vec<u8> = vec![0; mb * 1024 * 1024];
+            for i in (0..data.len()).step_by(4096) {
+                data[i] = 0xAA;
+            }
+            println!("ALLOCATED_MB: {}", mb);
+            exit(0);
+        }
+        "--spawn-child" => {
+            if args.len() < 2 {
+                eprintln!("Missing executable for --spawn-child");
+                exit(1);
+            }
+            let child_exe = &args[1];
+            let child_args = &args[2..];
+            let mut child = match std::process::Command::new(child_exe)
+                .args(child_args)
+                .spawn()
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("Failed to spawn child: {}", e);
+                    exit(1);
+                }
+            };
+            println!("CHILD_PID: {}", child.id());
+            let status = child.wait().unwrap();
+            exit(status.code().unwrap_or(0));
+        }
         "--exit-with-code" => {
             let code: i32 = if args.len() >= 2 {
                 args[1].parse().unwrap_or(0)

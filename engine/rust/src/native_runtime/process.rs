@@ -1,4 +1,5 @@
 use super::error::NativeRuntimeError;
+use super::job::JobObject;
 use super::profile::LabIdentity;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -20,11 +21,98 @@ pub struct ProcessOutput {
     pub stderr: String,
 }
 
+/// Handle to an active running sandboxed process.
+pub struct SandboxedProcessHandle {
+    pub pid: u32,
+    #[cfg(windows)]
+    h_process: windows_sys::Win32::Foundation::HANDLE,
+    #[cfg(windows)]
+    h_thread: windows_sys::Win32::Foundation::HANDLE,
+    #[cfg(windows)]
+    stdout_read: windows_sys::Win32::Foundation::HANDLE,
+    #[cfg(windows)]
+    stderr_read: windows_sys::Win32::Foundation::HANDLE,
+}
+
 #[cfg(windows)]
-pub fn run_sandboxed(
+impl SandboxedProcessHandle {
+    /// Returns the raw Win32 process handle.
+    pub fn raw_process_handle(&self) -> windows_sys::Win32::Foundation::HANDLE {
+        self.h_process
+    }
+
+    /// Waits for the process to exit and captures all stdout and stderr.
+    pub fn wait(self) -> Result<ProcessOutput, NativeRuntimeError> {
+        use std::io::Read;
+        use std::os::windows::io::FromRawHandle;
+        use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Threading::{
+            GetExitCodeProcess, WaitForSingleObject, INFINITE,
+        };
+
+        unsafe {
+            WaitForSingleObject(self.h_process, INFINITE);
+        }
+
+        let mut exit_code: u32 = 0;
+        unsafe {
+            GetExitCodeProcess(self.h_process, &mut exit_code);
+            CloseHandle(self.h_process);
+            CloseHandle(self.h_thread);
+        }
+
+        let mut stdout_file = unsafe { std::fs::File::from_raw_handle(self.stdout_read as _) };
+        let mut stdout_buf = Vec::new();
+        let _ = stdout_file.read_to_end(&mut stdout_buf);
+
+        let mut stderr_file = unsafe { std::fs::File::from_raw_handle(self.stderr_read as _) };
+        let mut stderr_buf = Vec::new();
+        let _ = stderr_file.read_to_end(&mut stderr_buf);
+
+        Ok(ProcessOutput {
+            exit_code: exit_code as i32,
+            stdout: String::from_utf8_lossy(&stdout_buf).to_string(),
+            stderr: String::from_utf8_lossy(&stderr_buf).to_string(),
+        })
+    }
+
+    /// Forcibly terminates the running process.
+    pub fn terminate(&self, exit_code: u32) -> Result<(), NativeRuntimeError> {
+        use windows_sys::Win32::Foundation::GetLastError;
+        use windows_sys::Win32::System::Threading::TerminateProcess;
+
+        let res = unsafe { TerminateProcess(self.h_process, exit_code) };
+        if res == 0 {
+            let err = unsafe { GetLastError() };
+            return Err(NativeRuntimeError::ProcessLaunchFailed {
+                os_code: err,
+                message: format!("TerminateProcess failed with code {}", err),
+            });
+        }
+        Ok(())
+    }
+}
+
+#[cfg(not(windows))]
+impl SandboxedProcessHandle {
+    pub fn wait(self) -> Result<ProcessOutput, NativeRuntimeError> {
+        Ok(ProcessOutput {
+            exit_code: 0,
+            stdout: String::new(),
+            stderr: String::new(),
+        })
+    }
+    pub fn terminate(&self, _exit_code: u32) -> Result<(), NativeRuntimeError> {
+        Ok(())
+    }
+}
+
+#[cfg(windows)]
+pub fn spawn_sandboxed_process(
     identity: &LabIdentity,
     config: &SandboxedProcessConfig,
-) -> Result<ProcessOutput, NativeRuntimeError> {
+    job: Option<&JobObject>,
+) -> Result<SandboxedProcessHandle, NativeRuntimeError> {
     use windows_sys::Win32::Foundation::{
         CloseHandle, GetLastError, SetHandleInformation, BOOL, HANDLE, HANDLE_FLAG_INHERIT, S_OK,
     };
@@ -34,11 +122,11 @@ pub fn run_sandboxed(
         SECURITY_CAPABILITIES, TOKEN_QUERY,
     };
     use windows_sys::Win32::System::Threading::{
-        CreateProcessW, DeleteProcThreadAttributeList, GetCurrentProcess, GetExitCodeProcess,
-        InitializeProcThreadAttributeList, OpenProcessToken, UpdateProcThreadAttribute,
-        WaitForSingleObject, CREATE_NO_WINDOW, CREATE_UNICODE_ENVIRONMENT,
-        EXTENDED_STARTUPINFO_PRESENT, INFINITE, PROCESS_INFORMATION, STARTF_USESTDHANDLES,
-        STARTUPINFOEXW,
+        CreateProcessW, DeleteProcThreadAttributeList, GetCurrentProcess,
+        InitializeProcThreadAttributeList, OpenProcessToken, ResumeThread,
+        UpdateProcThreadAttribute, CREATE_NO_WINDOW, CREATE_SUSPENDED,
+        CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION,
+        STARTF_USESTDHANDLES, STARTUPINFOEXW,
     };
 
     extern "system" {
@@ -135,9 +223,6 @@ pub fn run_sandboxed(
     }
 
     // 4. Initialize Attribute List
-    // Win32 Constants:
-    // PROC_THREAD_ATTRIBUTE_HANDLE_LIST = 0x00020002
-    // PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = 0x00020009
     const PROC_THREAD_ATTRIBUTE_HANDLE_LIST: usize = 0x00020002;
     const PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES: usize = 0x00020009;
 
@@ -237,7 +322,6 @@ pub fn run_sandboxed(
     }
 
     // 5. Build Environment Block (Cleaned, explicit allowlist, Rule 27)
-    // Win32 requires Unicode environment blocks to be sorted alphabetically by key
     let mut env_block: Vec<u16> = Vec::new();
     let mut env_map = config.environment.clone();
     if !env_map.contains_key("SystemRoot") {
@@ -258,7 +342,7 @@ pub fn run_sandboxed(
         let entry = format!("{}={}\0", k, v);
         env_block.extend(entry.encode_utf16());
     }
-    env_block.push(0); // Double null-terminator for Win32 environment block
+    env_block.push(0);
 
     // 6. Build Command Line
     let mut cmd_line_str = format!("\"{}\"", config.executable.to_string_lossy());
@@ -284,6 +368,12 @@ pub fn run_sandboxed(
 
     let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
 
+    // Always create suspended if a Job Object is provided, to ensure atomic containment
+    let creation_flags = EXTENDED_STARTUPINFO_PRESENT
+        | CREATE_NO_WINDOW
+        | CREATE_UNICODE_ENVIRONMENT
+        | if job.is_some() { CREATE_SUSPENDED } else { 0 };
+
     let create_res = unsafe {
         CreateProcessW(
             std::ptr::null(),
@@ -291,7 +381,7 @@ pub fn run_sandboxed(
             std::ptr::null(),
             std::ptr::null(),
             1, // Inherit handles (for pipes)
-            EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
+            creation_flags,
             env_block.as_ptr() as _,
             wide_working_dir.as_ptr(),
             &si_ex.StartupInfo,
@@ -324,42 +414,56 @@ pub fn run_sandboxed(
         });
     }
 
-    // 8. Wait for process exit and read outputs
-    unsafe {
-        WaitForSingleObject(pi.hProcess, INFINITE);
+    // 8. If Job Object is provided, assign the process BEFORE resuming execution
+    if let Some(j) = job {
+        if let Err(e) = j.assign_process(pi.hProcess) {
+            unsafe {
+                windows_sys::Win32::System::Threading::TerminateProcess(pi.hProcess, 1);
+                CloseHandle(pi.hProcess);
+                CloseHandle(pi.hThread);
+                CloseHandle(stdout_read);
+                CloseHandle(stderr_read);
+            }
+            return Err(e);
+        }
+        // Resume thread to start execution inside the Job Object
+        unsafe {
+            ResumeThread(pi.hThread);
+        }
     }
 
-    let mut exit_code: u32 = 0;
-    unsafe {
-        GetExitCodeProcess(pi.hProcess, &mut exit_code);
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-    }
-
-    use std::io::Read;
-    use std::os::windows::io::FromRawHandle;
-
-    let mut stdout_file = unsafe { std::fs::File::from_raw_handle(stdout_read as _) };
-    let mut stdout_buf = Vec::new();
-    let _ = stdout_file.read_to_end(&mut stdout_buf);
-
-    let mut stderr_file = unsafe { std::fs::File::from_raw_handle(stderr_read as _) };
-    let mut stderr_buf = Vec::new();
-    let _ = stderr_file.read_to_end(&mut stderr_buf);
-
-    Ok(ProcessOutput {
-        exit_code: exit_code as i32,
-        stdout: String::from_utf8_lossy(&stdout_buf).to_string(),
-        stderr: String::from_utf8_lossy(&stderr_buf).to_string(),
+    Ok(SandboxedProcessHandle {
+        pid: pi.dwProcessId,
+        h_process: pi.hProcess,
+        h_thread: pi.hThread,
+        stdout_read,
+        stderr_read,
     })
 }
 
 #[cfg(not(windows))]
-pub fn run_sandboxed(
+pub fn spawn_sandboxed_process(
     _identity: &LabIdentity,
     _config: &SandboxedProcessConfig,
-) -> Result<ProcessOutput, NativeRuntimeError> {
+    _job: Option<&JobObject>,
+) -> Result<SandboxedProcessHandle, NativeRuntimeError> {
     Err(NativeRuntimeError::SecurityBoundaryViolation(
         "Native runtime process launching is only supported on Windows".to_string(),
     ))
+}
+
+pub fn run_sandboxed(
+    identity: &LabIdentity,
+    config: &SandboxedProcessConfig,
+) -> Result<ProcessOutput, NativeRuntimeError> {
+    run_sandboxed_with_job(identity, config, None)
+}
+
+pub fn run_sandboxed_with_job(
+    identity: &LabIdentity,
+    config: &SandboxedProcessConfig,
+    job: Option<&JobObject>,
+) -> Result<ProcessOutput, NativeRuntimeError> {
+    let handle = spawn_sandboxed_process(identity, config, job)?;
+    handle.wait()
 }
