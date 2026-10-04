@@ -926,7 +926,7 @@ mod tests {
         let _ = fs::create_dir_all(temp_dir.join("labs").join("A01"));
         // Notice: No manifest.json is present in the lab directory
         let status = get_lab_status_cached(&temp_dir, "A01", None, None, None);
-        assert_eq!(status.installed, false);
+        assert!(!status.installed);
         assert_eq!(status.status, "INCOMPLETE_INSTALL");
         let _ = fs::remove_dir_all(&temp_dir);
     }
