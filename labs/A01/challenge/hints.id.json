@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{b10k3n_4cc355_c0ntr01_m45t3r}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pikirkan bagaimana cara server menentukan faktur mana yang akan ditampilkan saat menerima request dari peramban (browser)."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan identifier angka (ID numerik) yang tercantum pada path URL atau query parameter saat membuka halaman faktur."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Faktur pengguna biasa dimulai dari ID 1 dan 2. Catatan internal administrator sering kali ditempatkan pada indeks khusus atau angka khusus seperti 42 atau 99."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Coba akses langsung URL /invoice/42 atau periksa endpoint ekspor data administratif /api/invoice/42 saat kamu login sebagai akun Alice."
+    }
+  ]
+}
