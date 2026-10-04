@@ -922,9 +922,11 @@ mod tests {
 
     #[test]
     fn test_incomplete_install_marked_uninstalled() {
-        let temp_dir = std::env::temp_dir().join("zitera_test_incomplete_lab");
-        let _ = fs::create_dir_all(temp_dir.join("labs").join("A01"));
-        // Notice: No manifest.json is present in the lab directory
+        let temp_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("test_incomplete_lab");
+        let lab_dir = temp_dir.join("labs").join("A01");
+        let _ = fs::create_dir_all(&lab_dir);
         let status = get_lab_status_cached(&temp_dir, "A01", None, None, None);
         assert!(!status.installed);
         assert_eq!(status.status, "INCOMPLETE_INSTALL");
