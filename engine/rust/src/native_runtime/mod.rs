@@ -3,11 +3,11 @@ pub mod profile;
 
 pub use error::NativeRuntimeError;
 pub use profile::{
-    AppContainerProfileConfig, LabIdentity, MAX_PROFILE_NAME_LEN, PROFILE_NAME_PREFIX,
+    AppContainerProfile, AppContainerProfileConfig, LabIdentity, MAX_PROFILE_NAME_LEN,
+    PROFILE_NAME_PREFIX,
 };
 
 /// Abstract lifecycle interface for managing AppContainer profiles.
-/// Concrete Win32 implementation is provided in Checkpoint 2.
 pub trait AppContainerProfileLifecycle {
     /// Creates or opens an existing deterministic per-user profile.
     fn ensure_profile(&self, config: &AppContainerProfileConfig) -> Result<(), NativeRuntimeError>;
@@ -17,6 +17,24 @@ pub trait AppContainerProfileLifecycle {
 
     /// Safely deletes the AppContainer profile and associated per-user metadata.
     fn delete_profile(&self, identity: &LabIdentity) -> Result<(), NativeRuntimeError>;
+}
+
+/// Concrete Windows implementation of AppContainer lifecycle.
+pub struct WindowsAppContainerLifecycle;
+
+impl AppContainerProfileLifecycle for WindowsAppContainerLifecycle {
+    fn ensure_profile(&self, config: &AppContainerProfileConfig) -> Result<(), NativeRuntimeError> {
+        let _ = AppContainerProfile::create_or_open(&config.identity)?;
+        Ok(())
+    }
+
+    fn profile_exists(&self, identity: &LabIdentity) -> Result<bool, NativeRuntimeError> {
+        AppContainerProfile::exists(identity)
+    }
+
+    fn delete_profile(&self, identity: &LabIdentity) -> Result<(), NativeRuntimeError> {
+        AppContainerProfile::delete(identity)
+    }
 }
 
 #[cfg(test)]
@@ -67,7 +85,6 @@ mod tests {
         let id2 = LabIdentity::new("A01").unwrap();
         let id3 = LabIdentity::new("a-01").unwrap();
 
-        // Normalization ensures identical profile name for case variations
         assert_eq!(id1.profile_name(), id2.profile_name());
         assert_eq!(id1.profile_name(), "ZiteraLab_A01");
         assert_eq!(id3.profile_name(), "ZiteraLab_A_01");
@@ -97,11 +114,50 @@ mod tests {
 
     #[test]
     fn test_no_system_modification_during_foundation_instantiation() {
-        // Assert that instantiating identities and configs does not create or mutate files,
-        // registry, or services.
         let identity = LabIdentity::new("a05").unwrap();
         let workspace = Path::new("C:\\non_existent_test_workspace");
         let config = AppContainerProfileConfig::new(identity, workspace, true);
         assert!(config.is_ok());
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_appcontainer_profile_proof_lifecycle() {
+        let identity = LabIdentity::new("FEASIBILITY_P16").unwrap();
+
+        // Ensure clean starting slate
+        let _ = AppContainerProfile::delete(&identity);
+
+        // 1. CREATE: Profile created as standard non-elevated user
+        let profile = AppContainerProfile::create_or_open(&identity)
+            .expect("AppContainer profile creation MUST succeed without Administrator privileges");
+
+        assert!(
+            profile.sid_string.starts_with("S-1-15-2-"),
+            "AppContainer SID MUST adhere to Windows S-1-15-2- namespace, got: {}",
+            profile.sid_string
+        );
+
+        // 2. REOPEN: Reopening resolves deterministically to the identical SID
+        let reopen = AppContainerProfile::create_or_open(&identity)
+            .expect("Reopening existing AppContainer profile MUST succeed deterministically");
+        assert_eq!(reopen.sid_string, profile.sid_string);
+
+        // Lookup profile SID independently
+        let derived = AppContainerProfile::derive_sid(&identity)
+            .expect("DeriveAppContainerSidFromAppContainerName MUST succeed");
+        assert!(derived.starts_with("S-1-15-2-"));
+
+        // 3. CLEANUP: Delete profile safely
+        let cleanup_res = AppContainerProfile::delete(&identity);
+        assert!(cleanup_res.is_ok(), "Profile cleanup MUST succeed");
+
+        // 4. RECREATE: Same lab can recreate safely
+        let recreate = AppContainerProfile::create_or_open(&identity)
+            .expect("Recreating cleaned AppContainer profile MUST succeed");
+        assert_eq!(recreate.sid_string, profile.sid_string);
+
+        // Final cleanup
+        let _ = AppContainerProfile::delete(&identity);
     }
 }
