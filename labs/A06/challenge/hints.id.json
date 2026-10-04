@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{1n53cur3_d351gn_fl4w3d_w0rkfl0w}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pelajari model mental pada materi: pahami bagaimana celah Insecure Design berbeda secara fundamental dari bug kodingan biasa."
+    },
+    {
+      "tier": 2,
+      "type": "investigation_direction",
+      "hint": "Periksa dashboard web dan telusuri route API yang tersedia menggunakan Developer Tools browser atau curl."
+    },
+    {
+      "tier": 3,
+      "type": "technical_area",
+      "hint": "Amati request yang dikirimkan ke port 8016. Celah keamanan terletak pada bagaimana parameter input atau kondisi exception menentukan keputusan alur bisnis."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Picu transisi rentan atau kondisi exception secara langsung via request POST untuk menerima flag resmi di dalam respons payload."
+    }
+  ]
+}
