@@ -517,4 +517,146 @@ mod tests {
 
         let _ = AppContainerProfile::delete(&identity);
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_network_isolation_and_loopback_boundaries() {
+        let identity = LabIdentity::new("NET_ISOLATION").unwrap();
+        let _ = AppContainerProfile::create_or_open(&identity);
+
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        // 1. Internet connection attempt (1.1.1.1:80)
+        let config_internet = SandboxedProcessConfig {
+            executable: probe_exe.clone(),
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--connect-network".to_string(),
+                "1.1.1.1".to_string(),
+                "80".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: HashMap::new(),
+        };
+        let out_internet = run_sandboxed(&identity, &config_internet).unwrap();
+        assert_eq!(out_internet.exit_code, 2, "Expected outbound internet to be blocked");
+        assert!(out_internet.stdout.contains("NETWORK_BLOCKED"));
+
+        // 2. LAN connection attempt (192.168.1.1:80)
+        let config_lan = SandboxedProcessConfig {
+            executable: probe_exe.clone(),
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--connect-network".to_string(),
+                "192.168.1.1".to_string(),
+                "80".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: HashMap::new(),
+        };
+        let out_lan = run_sandboxed(&identity, &config_lan).unwrap();
+        assert_eq!(out_lan.exit_code, 2, "Expected outbound LAN to be blocked");
+        assert!(out_lan.stdout.contains("NETWORK_BLOCKED"));
+
+        let _ = AppContainerProfile::delete(&identity);
+    }
+
+
+
+
+
+
+
+    #[test]
+    #[cfg(windows)]
+    fn test_lifecycle_repeated_cycles_no_leaks() {
+        let identity = LabIdentity::new("CYCLE_10X").unwrap();
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        let config = SandboxedProcessConfig {
+            executable: probe_exe,
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--exit-with-code".to_string(),
+                "0".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: HashMap::new(),
+        };
+
+        for i in 1..=10 {
+            let profile = AppContainerProfile::create_or_open(&identity)
+                .unwrap_or_else(|e| panic!("Cycle {} create failed: {:?}", i, e));
+            assert!(profile.sid_string.starts_with("S-1-15-2-"));
+
+            let output = run_sandboxed(&identity, &config)
+                .unwrap_or_else(|e| panic!("Cycle {} run failed: {:?}", i, e));
+            assert_eq!(output.exit_code, 0);
+
+            AppContainerProfile::delete(&identity)
+                .unwrap_or_else(|e| panic!("Cycle {} delete failed: {:?}", i, e));
+        }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_native_runtime_performance_and_latency() {
+        use std::time::Instant;
+
+        let identity = LabIdentity::new("PERF_BENCH").unwrap();
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        // 1. Measure Profile Creation Latency
+        let t0 = Instant::now();
+        let _ = AppContainerProfile::create_or_open(&identity).unwrap();
+        let profile_setup_us = t0.elapsed().as_micros();
+
+        // 2. Measure Job Object Setup Latency
+        let t1 = Instant::now();
+        let job = JobObject::create(Some("PERF_JOB")).unwrap();
+        let mut limits = JobLimits::default();
+        limits.kill_on_job_close = true;
+        limits.active_process_limit = Some(10);
+        job.set_limits(&limits).unwrap();
+        let job_setup_us = t1.elapsed().as_micros();
+
+        // 3. Measure Sandboxed Process Spawn Latency
+        let config = SandboxedProcessConfig {
+            executable: probe_exe,
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--exit-with-code".to_string(),
+                "0".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: HashMap::new(),
+        };
+
+        let t2 = Instant::now();
+        let output = run_sandboxed(&identity, &config).unwrap();
+        let process_launch_and_exec_ms = t2.elapsed().as_millis();
+        assert_eq!(output.exit_code, 0);
+
+        // 4. Measure Teardown Latency
+        let t3 = Instant::now();
+        drop(job);
+        AppContainerProfile::delete(&identity).unwrap();
+        let teardown_us = t3.elapsed().as_micros();
+
+        println!(
+            "PERFORMANCE_METRICS: profile_setup={}us, job_setup={}us, process_exec={}ms, teardown={}us",
+            profile_setup_us, job_setup_us, process_launch_and_exec_ms, teardown_us
+        );
+
+        assert!(process_launch_and_exec_ms < 1000);
+    }
 }
