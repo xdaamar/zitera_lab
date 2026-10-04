@@ -6,6 +6,7 @@ import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_cursor.dart';
 import '../../widgets/hacker_tilix_entrance.dart';
+import '../../core/i18n/language_controller.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -261,6 +262,147 @@ class SettingsView extends StatelessWidget {
 
               const SizedBox(height: 20),
 
+              // Language Preference Setting (PRD §44 & User Spec)
+              HackerTilixEntrance(
+                delay: const Duration(milliseconds: 100),
+                direction: TilixSlideDirection.up,
+                child: ValueListenableBuilder<String>(
+                  valueListenable: AppLanguageController.currentLanguage,
+                  builder: (context, lang, _) {
+                    final isIndonesian = lang == 'id';
+                    return ZiteraCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'CONTENT & INSTRUCTION LANGUAGE',
+                                    style: TextStyle(
+                                      fontFamily: 'SpaceGrotesk',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Color(0xFF1E1A14),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFCCFBF1),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: const Color(0xFF2DD4BF), width: 0.8),
+                                    ),
+                                    child: const Text(
+                                      'BILINGUAL',
+                                      style: TextStyle(
+                                        fontFamily: 'JetBrainsMono',
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0F766E),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  _buildLanguageTabButton(
+                                    label: 'English',
+                                    code: 'en',
+                                    isSelected: !isIndonesian,
+                                    onTap: () => AppLanguageController.setLanguage('en'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildLanguageTabButton(
+                                    label: 'Bahasa Indonesia',
+                                    code: 'id',
+                                    isSelected: isIndonesian,
+                                    onTap: () => AppLanguageController.setLanguage('id'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFBF8F2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isIndonesian ? const Color(0xFF2DD4BF) : const Color(0xFFE5DECE),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      isIndonesian ? Icons.auto_stories : Icons.info_outline,
+                                      size: 16,
+                                      color: const Color(0xFF0F766E),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'CATATAN PENTING MODE BAHASA INDONESIA',
+                                      style: TextStyle(
+                                        fontFamily: 'SpaceGrotesk',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1E1A14),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  '• Mode Bahasa Indonesia dirancang khusus untuk mempermudah kamu memahami seluruh materi belajar, konsep teori, analogi dunia nyata, panduan praktik (walkthrough), dan instruksi misi CTF tanpa kendala bahasa.',
+                                  style: TextStyle(
+                                    fontFamily: 'SpaceGrotesk',
+                                    fontSize: 12,
+                                    color: Color(0xFF4A4235),
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  '• Tombol aksi, kartu menu, judul laboratorium, status sistem, dan navigasi tetap dipertahankan dalam Bahasa Inggris agar tampilan tetap rapi, profesional, dan membiasakan kamu dengan terminologi standar industri global.',
+                                  style: TextStyle(
+                                    fontFamily: 'SpaceGrotesk',
+                                    fontSize: 12,
+                                    color: Color(0xFF4A4235),
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  '• Istilah teknis keamanan siber (seperti SQL Injection, Broken Access Control, JWT, Payload, IDOR, Bypass) tetap ditulis dengan istilah aslinya disertai penjelasan maknanya dalam Bahasa Indonesia agar mudah dipahami.',
+                                  style: TextStyle(
+                                    fontFamily: 'SpaceGrotesk',
+                                    fontSize: 12,
+                                    color: Color(0xFF4A4235),
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
               // Kawaii Cyber Cursor Setting
               HackerTilixEntrance(
                 delay: const Duration(milliseconds: 120),
@@ -468,6 +610,53 @@ class SettingsView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageTabButton({
+    required String label,
+    required String code,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFCCFBF1) : const Color(0xFFF5F3EF),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF2DD4BF) : const Color(0xFFD6CFC3),
+            width: isSelected ? 1.4 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              code.toUpperCase(),
+              style: TextStyle(
+                fontFamily: 'JetBrainsMono',
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF786F62),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'SpaceGrotesk',
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF4A4235),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
