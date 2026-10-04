@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../core/theme/zitera_colors.dart';
 
 class CuteAnimeLoading extends StatefulWidget {
   final String? message;
@@ -74,7 +73,7 @@ class _CuteAnimeLoadingState extends State<CuteAnimeLoading>
                       width: 18,
                       height: 18,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, _, _) => const Icon(
                         Icons.pets,
                         size: 14,
                         color: Color(0xFF2DD4BF),
@@ -175,7 +174,7 @@ class _CuteAnimeLoadingState extends State<CuteAnimeLoading>
                                   child: Image.asset(
                                     'assets/images/zeta_avatar.png',
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Image.asset(
+                                    errorBuilder: (_, _, _) => Image.asset(
                                       'assets/images/calico_cat.png',
                                       fit: BoxFit.cover,
                                     ),

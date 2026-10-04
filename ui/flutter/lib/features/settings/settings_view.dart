@@ -321,7 +321,7 @@ class SettingsView extends StatelessWidget {
                           ),
                           Switch(
                             value: isCursorEnabled,
-                            activeColor: const Color(0xFF2DD4BF),
+                            activeThumbColor: const Color(0xFF2DD4BF),
                             activeTrackColor: const Color(0xFFCCFBF1),
                             onChanged: (val) {
                               CuteCursorController.isEnabled.value = val;

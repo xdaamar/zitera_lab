@@ -398,8 +398,9 @@ class _LabsViewState extends State<LabsView> {
                       }).toList(),
                     ),
                   ),
-                ),
+                ],
               ),
+            ),
 
               const SizedBox(height: 20),
 
