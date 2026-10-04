@@ -1,7 +1,10 @@
 pub mod error;
+pub mod probe;
+pub mod process;
 pub mod profile;
 
 pub use error::NativeRuntimeError;
+pub use process::{run_sandboxed, ProcessOutput, SandboxedProcessConfig};
 pub use profile::{
     AppContainerProfile, AppContainerProfileConfig, LabIdentity, MAX_PROFILE_NAME_LEN,
     PROFILE_NAME_PREFIX,
@@ -40,7 +43,9 @@ impl AppContainerProfileLifecycle for WindowsAppContainerLifecycle {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
+    use std::collections::HashMap;
+    use std::fs;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn test_valid_lab_identities() {
@@ -158,6 +163,223 @@ mod tests {
         assert_eq!(recreate.sid_string, profile.sid_string);
 
         // Final cleanup
+        let _ = AppContainerProfile::delete(&identity);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_sandboxed_probe_launch_and_token_identity() {
+        let identity = LabIdentity::new("PROBE_TOKEN_TEST").unwrap();
+        let _ = AppContainerProfile::create_or_open(&identity);
+
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        let mut env_map = HashMap::new();
+        env_map.insert("ZITERA_ALLOWED_KEY".to_string(), "ALLOWED_VALUE".to_string());
+
+        let config = SandboxedProcessConfig {
+            executable: probe_exe,
+            arguments: vec!["sandbox-probe".to_string(), "--inspect-token".to_string()],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: env_map,
+        };
+
+        let output = run_sandboxed(&identity, &config)
+            .expect("Launching process under AppContainer MUST succeed");
+
+        assert_eq!(
+            output.exit_code, 0,
+            "Probe must exit with 0 on token inspection, stderr: {}",
+            output.stderr
+        );
+        assert!(
+            output.stdout.contains("IS_APPCONTAINER: true"),
+            "stdout must confirm IS_APPCONTAINER: true, got:\n{}",
+            output.stdout
+        );
+        assert!(
+            output.stdout.contains("ELEVATED: false"),
+            "AppContainer process must NOT possess elevation: {}",
+            output.stdout
+        );
+        assert!(
+            output.stdout.contains("APPCONTAINER_SID: S-1-15-2-"),
+            "AppContainer SID must be reported in token output: {}",
+            output.stdout
+        );
+
+        let _ = AppContainerProfile::delete(&identity);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_environment_sanitization_and_secret_isolation() {
+        let identity = LabIdentity::new("PROBE_ENV_TEST").unwrap();
+        let _ = AppContainerProfile::create_or_open(&identity);
+
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        // Explicitly set an ambient host secret that must NOT leak into the sandbox
+        std::env::set_var("GITHUB_TOKEN", "ghp_leaked_super_secret_host_token_999");
+        std::env::set_var("AWS_SECRET_ACCESS_KEY", "AKIA_LEAKED_HOST_SECRET_KEY");
+
+        // Pass only an explicitly allowlisted variable to the sandbox
+        let mut clean_env = HashMap::new();
+        clean_env.insert("ZITERA_LAB_TEST_VAR".to_string(), "SAFE_VALUE_123".to_string());
+
+        let config_allow = SandboxedProcessConfig {
+            executable: probe_exe.clone(),
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--check-env".to_string(),
+                "ZITERA_LAB_TEST_VAR".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: clean_env.clone(),
+        };
+
+        let out_allow = run_sandboxed(&identity, &config_allow).unwrap();
+        assert_eq!(out_allow.exit_code, 0);
+        assert!(
+            out_allow.stdout.contains("ENV_PRESENT: ZITERA_LAB_TEST_VAR=SAFE_VALUE_123"),
+            "Explicitly allowlisted environment variable must be present"
+        );
+
+        // Verify that unallowed host secret is absent inside the sandboxed process
+        let config_secret = SandboxedProcessConfig {
+            executable: probe_exe,
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--check-env".to_string(),
+                "GITHUB_TOKEN".to_string(),
+            ],
+            working_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            environment: clean_env,
+        };
+
+        let out_secret = run_sandboxed(&identity, &config_secret).unwrap();
+        assert_eq!(out_secret.exit_code, 0);
+        assert!(
+            out_secret.stdout.contains("ENV_ABSENT: GITHUB_TOKEN"),
+            "Host secret GITHUB_TOKEN must NOT leak into sandboxed environment: {}",
+            out_secret.stdout
+        );
+
+        let _ = AppContainerProfile::delete(&identity);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_filesystem_isolation_boundary() {
+        let identity = LabIdentity::new("PROBE_FS_TEST").unwrap();
+        let _profile = AppContainerProfile::create_or_open(&identity)
+            .expect("Creating profile for filesystem test must succeed");
+
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("debug")
+            .join("zitera-engine.exe");
+
+        let test_base = repo_root.join("dev_internal").join("test_artifacts").join("sandbox_probe");
+        let allowed_dir = test_base.join("allowed_dir");
+
+        let _ = fs::create_dir_all(&allowed_dir);
+
+        // Grant AppContainer access (*S-1-15-2-1 ALL APPLICATION PACKAGES) to allowed_dir
+        let _ = std::process::Command::new("icacls")
+            .arg(&allowed_dir)
+            .arg("/grant")
+            .arg("*S-1-15-2-1:(OI)(CI)F")
+            .arg("/T")
+            .output();
+
+        // Prepare test files
+        let allowed_file = allowed_dir.join("disposable_allowed.txt");
+        let _ = fs::write(&allowed_file, "ZITERA_ALLOWED_PAYLOAD");
+
+        // 1. Read allowed file inside AppContainer profile storage
+        let config_read_allowed = SandboxedProcessConfig {
+            executable: probe_exe.clone(),
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--read-file".to_string(),
+                allowed_file.to_string_lossy().to_string(),
+            ],
+            working_dir: allowed_dir.clone(),
+            environment: HashMap::new(),
+        };
+        let out_read_allowed = run_sandboxed(&identity, &config_read_allowed).unwrap();
+        assert_eq!(out_read_allowed.exit_code, 0);
+        assert!(out_read_allowed.stdout.contains("ALLOWED_READ: ZITERA_ALLOWED_PAYLOAD"));
+
+        // 2. Write allowed file inside AppContainer profile storage
+        let new_file = allowed_dir.join("child_created.txt");
+        let config_write_allowed = SandboxedProcessConfig {
+            executable: probe_exe.clone(),
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--write-file".to_string(),
+                new_file.to_string_lossy().to_string(),
+                "CHILD_CONTENT_OK".to_string(),
+            ],
+            working_dir: allowed_dir.clone(),
+            environment: HashMap::new(),
+        };
+        let out_write_allowed = run_sandboxed(&identity, &config_write_allowed).unwrap();
+        assert_eq!(out_write_allowed.exit_code, 0);
+        assert!(out_write_allowed.stdout.contains("ALLOWED_WRITE"));
+        assert_eq!(fs::read_to_string(&new_file).unwrap(), "CHILD_CONTENT_OK");
+
+        // 3. Attempt to read protected host security file (MUST BE DENIED by Windows OS security)
+        let config_read_denied = SandboxedProcessConfig {
+            executable: probe_exe.clone(),
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--read-file".to_string(),
+                "C:\\Windows\\System32\\config\\SAM".to_string(),
+            ],
+            working_dir: allowed_dir.clone(),
+            environment: HashMap::new(),
+        };
+        let out_read_denied = run_sandboxed(&identity, &config_read_denied).unwrap();
+        assert_eq!(
+            out_read_denied.exit_code, 2,
+            "Reading host system security database must be denied by OS, got: {:?}",
+            out_read_denied
+        );
+        assert!(out_read_denied.stdout.contains("DENIED_READ"));
+
+        // 4. Attempt to write to Windows system directory (MUST BE DENIED by OS)
+        let config_write_system = SandboxedProcessConfig {
+            executable: probe_exe,
+            arguments: vec![
+                "sandbox-probe".to_string(),
+                "--write-file".to_string(),
+                "C:\\Windows\\zitera_malicious_probe.txt".to_string(),
+                "FAIL".to_string(),
+            ],
+            working_dir: allowed_dir,
+            environment: HashMap::new(),
+        };
+        let out_write_system = run_sandboxed(&identity, &config_write_system).unwrap();
+        assert_eq!(out_write_system.exit_code, 2, "Writing to C:\\Windows must be denied by OS");
+        assert!(out_write_system.stdout.contains("DENIED_WRITE"));
+
+        // Clean up
+        let _ = fs::remove_dir_all(&test_base);
         let _ = AppContainerProfile::delete(&identity);
     }
 }

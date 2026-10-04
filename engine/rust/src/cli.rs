@@ -23,6 +23,9 @@ pub fn run() {
         "tool" => handle_tool(&filtered_args[1..], json_mode),
         "lab" => handle_lab(&filtered_args[1..], &workspace_root, json_mode),
         "catalog" => handle_catalog(&workspace_root, json_mode),
+        "sandbox-probe" => {
+            crate::native_runtime::probe::handle_probe_cli(&filtered_args[1..]);
+        }
         "help" | "--help" | "-h" => print_help(json_mode),
         other => {
             if json_mode {
