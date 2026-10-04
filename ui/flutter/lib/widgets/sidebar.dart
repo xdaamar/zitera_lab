@@ -412,8 +412,7 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 140),
             curve: Curves.easeOutCubic,
-            transform: Matrix4.identity()
-              ..translate(_isHovered ? 4.0 : 0.0, 0.0),
+            transform: Matrix4.translationValues(_isHovered ? 4.0 : 0.0, 0.0, 0.0),
             padding: EdgeInsets.symmetric(
               horizontal: 12,
               vertical: widget.stickerAsset != null ? 5 : 9,

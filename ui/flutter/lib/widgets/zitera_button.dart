@@ -147,8 +147,8 @@ class _ZiteraButtonState extends State<ZiteraButton> {
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
           transform: Matrix4.identity()
-            ..translate(0.0, _isPressed ? 1.2 : (_isHovered ? -2.2 : 0.0))
-            ..scale(_isHovered ? 1.02 : 1.0),
+            ..translateByDouble(0.0, _isPressed ? 1.2 : (_isHovered ? -2.2 : 0.0), 0.0, 1.0)
+            ..scaleByDouble(_isHovered ? 1.02 : 1.0, _isHovered ? 1.02 : 1.0, 1.0, 1.0),
           padding: widget.padding,
           decoration: BoxDecoration(
             color: effGradient == null ? bg : null,

@@ -66,8 +66,7 @@ class _ZiteraCardState extends State<ZiteraCard> {
     final cardContent = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
-      transform: Matrix4.identity()
-        ..translate(0.0, (hasHover && _isHovered) ? -4.0 : 0.0),
+      transform: Matrix4.translationValues(0.0, (hasHover && _isHovered) ? -4.0 : 0.0, 0.0),
       padding: widget.padding,
       decoration: BoxDecoration(
         color: widget.backgroundColor ??
