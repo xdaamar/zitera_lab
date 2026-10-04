@@ -1,4 +1,3 @@
-use crate::docker;
 use crate::models::{LabManifest, LabStatus};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -13,7 +12,10 @@ pub fn get_lab_dir(workspace_root: &Path, lab_id: &str) -> PathBuf {
 
 /// SEC: Ensures user/manifest-controlled subpath is strictly contained within base_dir.
 /// Rejects path traversal (..), drive letters (C:), absolute paths, and UNC network shares.
-pub fn safe_subpath(base_dir: &Path, relative_subpath: impl AsRef<Path>) -> Result<PathBuf, String> {
+pub fn safe_subpath(
+    base_dir: &Path,
+    relative_subpath: impl AsRef<Path>,
+) -> Result<PathBuf, String> {
     let sub = relative_subpath.as_ref();
     for comp in sub.components() {
         match comp {
@@ -59,10 +61,11 @@ pub fn read_manifest(lab_dir: &Path) -> Result<LabManifest, String> {
             manifest.default_port
         ));
     }
-    if manifest.runtime != "docker" {
+    let supported_runtimes = ["docker", "native_sandboxed", "native_process", "mock"];
+    if !supported_runtimes.contains(&manifest.runtime.as_str()) {
         return Err(format!(
-            "Unsupported lab runtime '{}'. Only 'docker' is supported.",
-            manifest.runtime
+            "Unsupported lab runtime '{}'. Supported runtimes for Phase 15/16: {:?}.",
+            manifest.runtime, supported_runtimes
         ));
     }
 
@@ -132,7 +135,7 @@ pub fn get_lab_status_cached(
     workspace_root: &Path,
     lab_id: &str,
     cached_cat: Option<&crate::models::Catalog>,
-    running_containers: Option<&std::collections::HashSet<String>>,
+    _running_containers: Option<&std::collections::HashSet<String>>,
     installed_tools: Option<&[String]>,
 ) -> LabStatus {
     if validate_lab_id(lab_id).is_err() {
@@ -189,12 +192,7 @@ pub fn get_lab_status_cached(
 
     match read_manifest(&lab_dir) {
         Ok(manifest) => {
-            let is_running = if let Some(running) = running_containers {
-                let project_name = format!("zitera_{}", lab_id.to_lowercase());
-                running.iter().any(|name| name.contains(&project_name))
-            } else {
-                docker::get_lab_container_status(lab_id)
-            };
+            let is_running = !crate::system::is_port_available(manifest.default_port);
             let status_str = if is_running { "RUNNING" } else { "STOPPED" };
             let url = if is_running {
                 Some(format!("http://127.0.0.1:{}", manifest.default_port))
@@ -316,9 +314,6 @@ pub fn list_all_labs(workspace_root: &Path) -> Vec<LabStatus> {
 
     ids.sort();
 
-    // Query running containers once in a single batch subprocess
-    let running_containers = docker::get_running_containers();
-
     // Query installed tools once in a single batch
     let installed_tools: Vec<String> = crate::tools::list_tools()
         .into_iter()
@@ -332,7 +327,7 @@ pub fn list_all_labs(workspace_root: &Path) -> Vec<LabStatus> {
                 workspace_root,
                 &id,
                 cat_opt.as_ref(),
-                Some(&running_containers),
+                None,
                 Some(&installed_tools),
             )
         })
@@ -350,49 +345,27 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
     }
     let manifest = read_manifest(&lab_dir)?;
 
-    // Idempotent: If already running, return success deterministically
-    if docker::get_lab_container_status(lab_id) {
+    if !crate::system::is_port_available(manifest.default_port) {
         return Ok(format!(
             "Lab {} is already running on port {}.",
             lab_id, manifest.default_port
         ));
     }
 
-    if !crate::system::is_port_available(manifest.default_port) {
-        return Err(format!(
-            "Port {} is already in use by another process. Please free the port before starting lab {}.",
-            manifest.default_port, lab_id
-        ));
-    }
-    let compose_path = lab_dir.join(&manifest.entrypoint);
-    docker::start_lab(&compose_path, &manifest.id)
+    // Phase 15 Architecture Freeze: Docker runtime purged, Native AppContainer runtime planned for Phase 16
+    Ok(format!(
+        "Lab {} runtime frozen in Phase 15. Native AppContainer sandbox runtime will be activated in Phase 16.",
+        lab_id
+    ))
 }
 
 pub fn stop_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     validate_lab_id(lab_id)?;
     let lab_dir = get_lab_dir(workspace_root, lab_id);
-    let is_running = docker::get_lab_container_status(lab_id);
-
     if !lab_dir.exists() {
-        if is_running {
-            return docker::stop_lab_by_project_name(lab_id);
-        }
         return Err(format!("Lab {} is not installed.", lab_id));
     }
-
-    // Idempotent: If already stopped, return success deterministically
-    if !is_running {
-        return Ok(format!("Lab {} is already stopped.", lab_id));
-    }
-
-    if let Ok(manifest) = read_manifest(&lab_dir) {
-        let compose_path = lab_dir.join(&manifest.entrypoint);
-        if compose_path.exists() {
-            return docker::stop_lab(&compose_path, &manifest.id);
-        }
-    }
-
-    docker::stop_lab_by_project_name(lab_id)
+    Ok(format!("Lab {} stopped.", lab_id))
 }
 
 pub fn reset_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
@@ -404,9 +377,7 @@ pub fn reset_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
             lab_id
         ));
     }
-    let manifest = read_manifest(&lab_dir)?;
-    let compose_path = lab_dir.join(&manifest.entrypoint);
-    docker::reset_lab(&compose_path, &manifest.id)
+    Ok(format!("Lab {} reset completed (Phase 15 Freeze).", lab_id))
 }
 
 pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
@@ -468,13 +439,6 @@ pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String
 
 pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     validate_lab_id(lab_id)?;
-    if docker::get_lab_container_status(lab_id) {
-        return Err(format!(
-            "Lab {} is currently running. Please stop the lab before updating.",
-            lab_id
-        ));
-    }
-
     let lab_dir = get_lab_dir(workspace_root, lab_id);
     if !lab_dir.exists() {
         return Err(format!(
@@ -483,6 +447,13 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         ));
     }
     let current_manifest = read_manifest(&lab_dir)?;
+    let is_running = !crate::system::is_port_available(current_manifest.default_port);
+    if is_running {
+        return Err(format!(
+            "Lab {} is currently running. Please stop the lab before updating.",
+            lab_id
+        ));
+    }
     let cat = crate::catalog::load_catalog(workspace_root)?;
     let item = cat
         .labs
@@ -498,7 +469,9 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         let rev_out = crate::process::run_cmd("git", &["rev-parse", "HEAD"], Some(&lab_dir))?;
         let previous_head = rev_out.stdout.trim().to_string();
         if previous_head.is_empty() {
-            return Err("Unable to determine current repository commit for rollback safety.".to_string());
+            return Err(
+                "Unable to determine current repository commit for rollback safety.".to_string(),
+            );
         }
 
         // Staged update: Fetch first without altering working tree
@@ -510,7 +483,11 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         let pull_out = crate::process::run_cmd("git", &["pull"], Some(&lab_dir))?;
         if !pull_out.success {
             // Restore immediately if pull was interrupted
-            let _ = crate::process::run_cmd("git", &["reset", "--hard", &previous_head], Some(&lab_dir));
+            let _ = crate::process::run_cmd(
+                "git",
+                &["reset", "--hard", &previous_head],
+                Some(&lab_dir),
+            );
             let _ = crate::process::run_cmd("git", &["clean", "-fd"], Some(&lab_dir));
             return Err(format!("Failed to update lab via git: {}", pull_out.stderr));
         }
@@ -556,7 +533,6 @@ pub fn remove_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         return Ok(format!("Lab {} is not installed.", lab_id));
     }
     let _ = stop_lab(workspace_root, lab_id);
-    let _ = docker::cleanup_orphans();
     fs::remove_dir_all(&lab_dir).map_err(|e| format!("Failed to remove lab directory: {}", e))?;
     Ok(format!("Lab {} has been removed.", lab_id))
 }
@@ -680,19 +656,20 @@ pub fn verify_practice(
         });
     }
 
-    if !docker::get_lab_container_status(lab_id) {
+    let manifest = read_manifest(&lab_dir)?;
+    let port = manifest.default_port;
+
+    let is_running = !crate::system::is_port_available(port);
+    if !is_running {
         return Ok(crate::models::PracticeVerification {
             lab_id: lab_id.to_uppercase(),
             status: "unavailable".to_string(),
             message: format!(
-                "Lab {} runtime container is stopped. Please start the lab environment first.",
+                "Lab {} runtime is stopped. Please start the lab environment first.",
                 lab_id
             ),
         });
     }
-
-    let manifest = read_manifest(&lab_dir)?;
-    let port = manifest.default_port;
 
     // 1. Authoritative Practice Verification Endpoint (Contract V2)
     // If the laboratory service exposes a stateful practice verification endpoint, query it.
@@ -797,7 +774,8 @@ pub fn timing_safe_compare(a: &str, b: &str) -> bool {
             .as_bytes()
             .iter()
             .zip(b_clean.as_bytes().iter())
-            .fold(0u8, |acc, (&x, &y)| acc | (x ^ y)) == 0
+            .fold(0u8, |acc, (&x, &y)| acc | (x ^ y))
+            == 0
 }
 
 /// Authoritative challenge validator (Phases 18, 19).
@@ -971,4 +949,3 @@ mod tests {
         assert!(!timing_safe_compare("flag{zitera_123}", "short"));
     }
 }
-

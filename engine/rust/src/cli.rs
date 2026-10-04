@@ -544,7 +544,9 @@ fn find_workspace_root() -> PathBuf {
         if let Some(exe_dir) = exe_path.parent() {
             let mut check = exe_dir.to_path_buf();
             loop {
-                if check.join("catalog").join("catalog.json").exists() || check.join(".git").exists() {
+                if check.join("catalog").join("catalog.json").exists()
+                    || check.join(".git").exists()
+                {
                     return check;
                 }
                 if let Some(parent) = check.parent() {

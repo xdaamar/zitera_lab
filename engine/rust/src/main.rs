@@ -1,6 +1,5 @@
 mod catalog;
 mod cli;
-mod docker;
 mod labs;
 mod models;
 mod process;

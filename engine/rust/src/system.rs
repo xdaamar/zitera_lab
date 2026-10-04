@@ -10,9 +10,8 @@ pub fn diagnose_system() -> SystemDiagnostics {
     let docker_daemon_status = check_docker_daemon();
     let powershell_status = check_powershell();
 
-    let all_ready = git_status.installed
-        && (docker_status.installed && docker_daemon_status.installed)
-        && wsl_status.installed;
+    // Phase 15 Architecture Freeze: Host readiness no longer blocks on Docker/WSL
+    let all_ready = os_status.installed && powershell_status.installed;
 
     let (memory_gb, disk_free_gb) = query_resources();
 
@@ -71,101 +70,38 @@ fn check_git() -> ComponentStatus {
 }
 
 fn check_wsl() -> ComponentStatus {
-    match run_cmd("wsl.exe", &["--status"], None) {
-        Ok(out) if out.success => ComponentStatus {
-            name: "WSL2".to_string(),
-            installed: true,
-            version: Some("WSL2 Active".to_string()),
-            status: "READY".to_string(),
-            message: "Windows Subsystem for Linux is enabled and ready.".to_string(),
-            recommendation: None,
-        },
-        Ok(out) => {
-            let combined = format!("{} {}", out.stdout, out.stderr).to_lowercase();
-            let (msg, status) = if combined.contains("not installed") {
-                ("WSL is not installed on this system.", "MISSING")
-            } else {
-                (
-                    "WSL --status reported a non-zero exit code; WSL may be partially installed or blocked.",
-                    "WARNING",
-                )
-            };
-            ComponentStatus {
-                name: "WSL2".to_string(),
-                installed: false,
-                version: None,
-                status: status.to_string(),
-                message: msg.to_string(),
-                recommendation: Some(
-                    "Run 'wsl --install' in an elevated PowerShell terminal.".to_string(),
-                ),
-            }
-        }
-        Err(_) => ComponentStatus {
-            name: "WSL2".to_string(),
-            installed: false,
-            version: None,
-            status: "MISSING".to_string(),
-            message: "wsl.exe binary not found or cannot be executed.".to_string(),
-            recommendation: Some(
-                "Enable Windows Subsystem for Linux via Windows Features or 'wsl --install'."
-                    .to_string(),
-            ),
-        },
+    ComponentStatus {
+        name: "WSL2 (Legacy)".to_string(),
+        installed: false,
+        version: None,
+        status: "NOT_REQUIRED".to_string(),
+        message: "WSL2 is deprecated for ZITERA 2.0 Native Runtime and no longer required."
+            .to_string(),
+        recommendation: None,
     }
 }
 
 fn check_docker_cli() -> ComponentStatus {
-    let docker_bin = crate::docker::get_docker_cmd();
-    match run_cmd(&docker_bin, &["--version"], None) {
-        Ok(out) if out.success => {
-            let ver = out.stdout.trim().to_string();
-            ComponentStatus {
-                name: "Docker CLI".to_string(),
-                installed: true,
-                version: Some(ver),
-                status: "READY".to_string(),
-                message: "Docker CLI is installed and accessible.".to_string(),
-                recommendation: None,
-            }
-        }
-        _ => ComponentStatus {
-            name: "Docker CLI".to_string(),
-            installed: false,
-            version: None,
-            status: "MISSING".to_string(),
-            message: "Docker CLI executable not found in PATH or standard install paths.".to_string(),
-            recommendation: Some("Install Docker Desktop with WSL2 backend from https://www.docker.com/products/docker-desktop".to_string()),
-        },
+    ComponentStatus {
+        name: "Docker CLI (Legacy)".to_string(),
+        installed: false,
+        version: None,
+        status: "NOT_REQUIRED".to_string(),
+        message: "Docker CLI is deprecated for ZITERA 2.0 Native Runtime (Windows AppContainer)."
+            .to_string(),
+        recommendation: None,
     }
 }
 
 fn check_docker_daemon() -> ComponentStatus {
-    let docker_bin = crate::docker::get_docker_cmd();
-    match run_cmd(
-        &docker_bin,
-        &["info", "--format", "{{.ServerVersion}}"],
-        None,
-    ) {
-        Ok(out) if out.success && !out.stdout.is_empty() => ComponentStatus {
-            name: "Docker Engine Daemon".to_string(),
-            installed: true,
-            version: Some(out.stdout),
-            status: "READY".to_string(),
-            message: "Docker engine is running and responding.".to_string(),
-            recommendation: None,
-        },
-        _ => ComponentStatus {
-            name: "Docker Engine Daemon".to_string(),
-            installed: false,
-            version: None,
-            status: "BLOCKED".to_string(),
-            message: "Docker Desktop daemon is stopped or not running.".to_string(),
-            recommendation: Some(
-                "Launch Docker Desktop and ensure the engine icon shows green (Running)."
-                    .to_string(),
-            ),
-        },
+    ComponentStatus {
+        name: "Docker Daemon (Legacy)".to_string(),
+        installed: false,
+        version: None,
+        status: "NOT_REQUIRED".to_string(),
+        message: "Docker daemon dependency is deprecated; native runtime operates daemonless."
+            .to_string(),
+        recommendation: None,
     }
 }
 
@@ -226,7 +162,8 @@ fn query_resources() -> (f64, f64) {
             &mut free_bytes,
             &mut total_bytes,
             &mut total_free,
-        ) != 0 {
+        ) != 0
+        {
             disk_free_gb = (free_bytes as f64) / (1024.0 * 1024.0 * 1024.0);
         }
     }
