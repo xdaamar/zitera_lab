@@ -1752,4 +1752,144 @@ mod tests {
             "A03 must report stopped after stop_lab"
         );
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a04_native_sandbox_lifecycle_and_challenge() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let a04_bin = repo_root
+            .join("labs")
+            .join("A04")
+            .join("bin")
+            .join("a04-lab.exe");
+        if !a04_bin.exists() {
+            let built_bin = repo_root
+                .join("engine")
+                .join("rust")
+                .join("target")
+                .join("debug")
+                .join("a04_lab.exe");
+            if built_bin.exists() {
+                let _ = fs::create_dir_all(a04_bin.parent().unwrap());
+                let _ = fs::copy(&built_bin, &a04_bin);
+            }
+        }
+        if !a04_bin.exists() {
+            eprintln!("Skipping test: a04-lab.exe not deployed yet");
+            return;
+        }
+
+        let _ = stop_lab(&repo_root, "A04");
+
+        // 1. Status before start
+        let st_init = get_lab_status(&repo_root, "A04");
+        assert!(st_init.installed, "A04 must be installed");
+        assert!(!st_init.running, "A04 should not be running initially");
+
+        // 2. Start A04
+        let start_res = start_lab(&repo_root, "A04");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A04");
+        assert!(st_running.running, "A04 must report running");
+        assert!(st_running.url.is_some(), "A04 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. GET / -> CryptoVault portal
+        let req_root = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_root = send_req(&req_root);
+        assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_root.contains("CryptoVault"));
+
+        // 5. GET /api/audit/hashes -> Unsalted MD5 password hashes exposed
+        let req_hashes = format!(
+            "GET /session/{}/api/audit/hashes HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_hashes = send_req(&req_hashes);
+        assert!(resp_hashes.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_hashes.contains("21232f297a57a5a743894a0e4a801fc3"));
+
+        // 6. POST /login with reversed MD5 password (admin:admin)
+        let login_body = "username=admin&password=admin";
+        let req_login = format!(
+            "POST /session/{}/login HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, login_body.len(), login_body
+        );
+        let resp_login = send_req(&req_login);
+        assert!(resp_login.starts_with("HTTP/1.1 302"));
+        assert!(resp_login.contains("vault_session"));
+
+        // Extract cookie
+        let cookie_line = resp_login
+            .lines()
+            .find(|l| l.to_lowercase().starts_with("set-cookie:"))
+            .unwrap();
+        let cookie_val = cookie_line
+            .split(':')
+            .nth(1)
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap()
+            .trim();
+
+        // 7. GET /vault with authenticated session -> Flag retrieval
+        let req_vault = format!(
+            "GET /session/{}/vault HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nCookie: {}\r\n\r\n",
+            token, port, cookie_val
+        );
+        let resp_vault = send_req(&req_vault);
+        assert!(resp_vault.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_vault.contains("ZITERA{cryp70_f41lur35_w34k_k3y_2026}"));
+
+        // 8. Validate Challenge submission
+        let verif =
+            validate_challenge(&repo_root, "A04", "ZITERA{cryp70_f41lur35_w34k_k3y_2026}")
+                .unwrap();
+        assert_eq!(
+            verif.status, "passed",
+            "Challenge flag must pass validation"
+        );
+
+        // 9. Stop A04
+        let stop_res = stop_lab(&repo_root, "A04");
+        assert!(stop_res.is_ok());
+
+        // 10. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A04");
+        assert!(
+            !st_stopped.running,
+            "A04 must report stopped after stop_lab"
+        );
+    }
 }
