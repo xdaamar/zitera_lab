@@ -2287,4 +2287,102 @@ mod tests {
         let st_stopped = get_lab_status(&repo_root, "A08");
         assert!(!st_stopped.running, "A08 must report stopped after stop_lab");
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a09_native_sandbox_lifecycle_and_challenge() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = manifest_dir
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let _ = stop_lab(&repo_root, "A09");
+
+        // 1. Status before start
+        let st_init = get_lab_status(&repo_root, "A09");
+        assert!(st_init.installed, "A09 must be installed");
+        assert!(!st_init.running, "A09 should not be running initially");
+
+        // 2. Start A09
+        let start_res = start_lab(&repo_root, "A09");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A09");
+        assert!(st_running.running, "A09 must report running");
+        assert!(st_running.url.is_some(), "A09 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. GET /session/{token}/ -> Telemetry console
+        let req_index = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_index = send_req(&req_index);
+        assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_index.contains("Zitera SOC // Telemetry & Audit Console"));
+
+        // 5. Practice verification initially -> failed (no attacks yet)
+        let verif_pre = verify_practice(&repo_root, "A09").unwrap();
+        assert_eq!(verif_pre.status, "failed");
+
+        // 6. Send 5 failed login attempts to /api/auth/login
+        for i in 1..=5 {
+            let body = format!(r#"{{"username":"admin","password":"wrong_attempt_{}"}}"#, i);
+            let req_login = format!(
+                "POST /session/{}/api/auth/login HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+                token, port, body.len(), body
+            );
+            let resp_login = send_req(&req_login);
+            assert!(resp_login.starts_with("HTTP/1.1 401 Unauthorized"));
+        }
+
+        // 7. Send silent privilege escalation request
+        let esc_body = r#"{"user":"learner","role":"super_admin"}"#;
+        let req_esc = format!(
+            "POST /session/{}/api/admin/role_escalate HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, esc_body.len(), esc_body
+        );
+        let resp_esc = send_req(&req_esc);
+        assert!(resp_esc.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_esc.contains("ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}"));
+
+        // 8. Practice verification after failure reproduction -> passed
+        let verif_post = verify_practice(&repo_root, "A09").unwrap();
+        assert_eq!(verif_post.status, "passed");
+
+        // 9. Validate Challenge submission
+        let verif_chall = validate_challenge(&repo_root, "A09", "ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}").unwrap();
+        assert_eq!(verif_chall.status, "passed", "Challenge flag must pass validation");
+
+        // 10. Stop A09
+        let stop_res = stop_lab(&repo_root, "A09");
+        assert!(stop_res.is_ok());
+
+        // 11. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A09");
+        assert!(!st_stopped.running, "A09 must report stopped after stop_lab");
+    }
 }
