@@ -183,7 +183,10 @@ mod tests {
             .join("zitera-engine.exe");
 
         let mut env_map = HashMap::new();
-        env_map.insert("ZITERA_ALLOWED_KEY".to_string(), "ALLOWED_VALUE".to_string());
+        env_map.insert(
+            "ZITERA_ALLOWED_KEY".to_string(),
+            "ALLOWED_VALUE".to_string(),
+        );
 
         let config = SandboxedProcessConfig {
             executable: probe_exe,
@@ -236,7 +239,10 @@ mod tests {
 
         // Pass only an explicitly allowlisted variable to the sandbox
         let mut clean_env = HashMap::new();
-        clean_env.insert("ZITERA_LAB_TEST_VAR".to_string(), "SAFE_VALUE_123".to_string());
+        clean_env.insert(
+            "ZITERA_LAB_TEST_VAR".to_string(),
+            "SAFE_VALUE_123".to_string(),
+        );
 
         let config_allow = SandboxedProcessConfig {
             executable: probe_exe.clone(),
@@ -252,7 +258,9 @@ mod tests {
         let out_allow = run_sandboxed(&identity, &config_allow).unwrap();
         assert_eq!(out_allow.exit_code, 0);
         assert!(
-            out_allow.stdout.contains("ENV_PRESENT: ZITERA_LAB_TEST_VAR=SAFE_VALUE_123"),
+            out_allow
+                .stdout
+                .contains("ENV_PRESENT: ZITERA_LAB_TEST_VAR=SAFE_VALUE_123"),
             "Explicitly allowlisted environment variable must be present"
         );
 
@@ -298,7 +306,10 @@ mod tests {
             .join("debug")
             .join("zitera-engine.exe");
 
-        let test_base = repo_root.join("dev_internal").join("test_artifacts").join("sandbox_probe");
+        let test_base = repo_root
+            .join("dev_internal")
+            .join("test_artifacts")
+            .join("sandbox_probe");
         let allowed_dir = test_base.join("allowed_dir");
 
         let _ = fs::create_dir_all(&allowed_dir);
@@ -328,7 +339,9 @@ mod tests {
         };
         let out_read_allowed = run_sandboxed(&identity, &config_read_allowed).unwrap();
         assert_eq!(out_read_allowed.exit_code, 0);
-        assert!(out_read_allowed.stdout.contains("ALLOWED_READ: ZITERA_ALLOWED_PAYLOAD"));
+        assert!(out_read_allowed
+            .stdout
+            .contains("ALLOWED_READ: ZITERA_ALLOWED_PAYLOAD"));
 
         // 2. Write allowed file inside AppContainer profile storage
         let new_file = allowed_dir.join("child_created.txt");
@@ -380,7 +393,10 @@ mod tests {
             environment: HashMap::new(),
         };
         let out_write_system = run_sandboxed(&identity, &config_write_system).unwrap();
-        assert_eq!(out_write_system.exit_code, 2, "Writing to C:\\Windows must be denied by OS");
+        assert_eq!(
+            out_write_system.exit_code, 2,
+            "Writing to C:\\Windows must be denied by OS"
+        );
         assert!(out_write_system.stdout.contains("DENIED_WRITE"));
 
         // Clean up
@@ -395,8 +411,10 @@ mod tests {
         let _ = AppContainerProfile::create_or_open(&identity);
 
         let job = JobObject::create(None).expect("Creating JobObject must succeed");
-        let mut limits = JobLimits::default();
-        limits.kill_on_job_close = true;
+        let limits = JobLimits {
+            kill_on_job_close: true,
+            ..Default::default()
+        };
         job.set_limits(&limits).unwrap();
 
         let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -420,7 +438,10 @@ mod tests {
 
         // Verify process is registered in the job
         let pids = job.query_process_ids().unwrap();
-        assert!(pids.contains(&handle.pid), "Job must track the spawned process PID");
+        assert!(
+            pids.contains(&handle.pid),
+            "Job must track the spawned process PID"
+        );
 
         // Terminate JobObject explicitly with code 42
         job.terminate(42).unwrap();
@@ -542,7 +563,10 @@ mod tests {
             environment: HashMap::new(),
         };
         let out_internet = run_sandboxed(&identity, &config_internet).unwrap();
-        assert_eq!(out_internet.exit_code, 2, "Expected outbound internet to be blocked");
+        assert_eq!(
+            out_internet.exit_code, 2,
+            "Expected outbound internet to be blocked"
+        );
         assert!(out_internet.stdout.contains("NETWORK_BLOCKED"));
 
         // 2. LAN connection attempt (192.168.1.1:80)
@@ -563,12 +587,6 @@ mod tests {
 
         let _ = AppContainerProfile::delete(&identity);
     }
-
-
-
-
-
-
 
     #[test]
     #[cfg(windows)]
@@ -623,9 +641,11 @@ mod tests {
         // 2. Measure Job Object Setup Latency
         let t1 = Instant::now();
         let job = JobObject::create(Some("PERF_JOB")).unwrap();
-        let mut limits = JobLimits::default();
-        limits.kill_on_job_close = true;
-        limits.active_process_limit = Some(10);
+        let limits = JobLimits {
+            kill_on_job_close: true,
+            active_process_limit: Some(10),
+            ..Default::default()
+        };
         job.set_limits(&limits).unwrap();
         let job_setup_us = t1.elapsed().as_micros();
 

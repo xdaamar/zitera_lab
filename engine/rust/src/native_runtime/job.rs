@@ -39,9 +39,8 @@ impl JobObject {
         use windows_sys::Win32::Foundation::GetLastError;
         use windows_sys::Win32::System::JobObjects::CreateJobObjectW;
 
-        let wide_name: Option<Vec<u16>> = name.map(|n| {
-            n.encode_utf16().chain(std::iter::once(0)).collect()
-        });
+        let wide_name: Option<Vec<u16>> =
+            name.map(|n| n.encode_utf16().chain(std::iter::once(0)).collect());
 
         let name_ptr = match &wide_name {
             Some(w) => w.as_ptr(),
@@ -69,11 +68,10 @@ impl JobObject {
     pub fn set_limits(&self, limits: &JobLimits) -> Result<(), NativeRuntimeError> {
         use windows_sys::Win32::Foundation::GetLastError;
         use windows_sys::Win32::System::JobObjects::{
-            SetInformationJobObject, JobObjectExtendedLimitInformation,
-            JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-            JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION,
-            JOB_OBJECT_LIMIT_JOB_MEMORY, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
-            JOB_OBJECT_LIMIT_PROCESS_MEMORY,
+            JobObjectExtendedLimitInformation, SetInformationJobObject,
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
+            JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, JOB_OBJECT_LIMIT_JOB_MEMORY,
+            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, JOB_OBJECT_LIMIT_PROCESS_MEMORY,
         };
 
         let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { std::mem::zeroed() };
@@ -121,7 +119,10 @@ impl JobObject {
     }
 
     /// Assigns an existing process to this Job Object.
-    pub fn assign_process(
+    ///
+    /// # Safety
+    /// `process_handle` must be a valid, unclosed Win32 process handle with PROCESS_SET_QUOTA and PROCESS_TERMINATE rights.
+    pub unsafe fn assign_process(
         &self,
         process_handle: windows_sys::Win32::Foundation::HANDLE,
     ) -> Result<(), NativeRuntimeError> {
@@ -159,8 +160,7 @@ impl JobObject {
     pub fn query_process_ids(&self) -> Result<Vec<u32>, NativeRuntimeError> {
         use windows_sys::Win32::Foundation::GetLastError;
         use windows_sys::Win32::System::JobObjects::{
-            QueryInformationJobObject, JobObjectBasicProcessIdList,
-            JOBOBJECT_BASIC_PROCESS_ID_LIST,
+            JobObjectBasicProcessIdList, QueryInformationJobObject, JOBOBJECT_BASIC_PROCESS_ID_LIST,
         };
 
         // Allocate buffer for header + up to 128 PIDs
@@ -226,7 +226,7 @@ impl JobObject {
     pub fn set_limits(&self, _limits: &JobLimits) -> Result<(), NativeRuntimeError> {
         Ok(())
     }
-    pub fn assign_process(&self, _process_handle: usize) -> Result<(), NativeRuntimeError> {
+    pub unsafe fn assign_process(&self, _process_handle: usize) -> Result<(), NativeRuntimeError> {
         Ok(())
     }
     pub fn terminate(&self, _exit_code: u32) -> Result<(), NativeRuntimeError> {

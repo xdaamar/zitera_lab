@@ -118,15 +118,14 @@ pub fn spawn_sandboxed_process(
     };
     use windows_sys::Win32::Security::Isolation::DeriveAppContainerSidFromAppContainerName;
     use windows_sys::Win32::Security::{
-        GetTokenInformation, TokenIsAppContainer, FreeSid, SECURITY_ATTRIBUTES,
+        FreeSid, GetTokenInformation, TokenIsAppContainer, SECURITY_ATTRIBUTES,
         SECURITY_CAPABILITIES, TOKEN_QUERY,
     };
     use windows_sys::Win32::System::Threading::{
         CreateProcessW, DeleteProcThreadAttributeList, GetCurrentProcess,
         InitializeProcThreadAttributeList, OpenProcessToken, ResumeThread,
-        UpdateProcThreadAttribute, CREATE_NO_WINDOW, CREATE_SUSPENDED,
-        CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION,
-        STARTF_USESTDHANDLES, STARTUPINFOEXW,
+        UpdateProcThreadAttribute, CREATE_NO_WINDOW, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT,
+        EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION, STARTF_USESTDHANDLES, STARTUPINFOEXW,
     };
 
     extern "system" {
@@ -162,9 +161,8 @@ pub fn spawn_sandboxed_process(
     // 2. Derive AppContainer SID for the process
     let wide_profile_name = to_wide(identity.profile_name());
     let mut psid: *mut core::ffi::c_void = std::ptr::null_mut();
-    let hr = unsafe {
-        DeriveAppContainerSidFromAppContainerName(wide_profile_name.as_ptr(), &mut psid)
-    };
+    let hr =
+        unsafe { DeriveAppContainerSidFromAppContainerName(wide_profile_name.as_ptr(), &mut psid) };
     if hr != S_OK || psid.is_null() {
         return Err(NativeRuntimeError::ProcessLaunchFailed {
             os_code: hr as u32,
@@ -235,9 +233,8 @@ pub fn spawn_sandboxed_process(
     let mut attr_buffer: Vec<u8> = vec![0; attr_size];
     let attr_list = attr_buffer.as_mut_ptr() as *mut std::ffi::c_void;
 
-    let init_res = unsafe {
-        InitializeProcThreadAttributeList(attr_list, attribute_count, 0, &mut attr_size)
-    };
+    let init_res =
+        unsafe { InitializeProcThreadAttributeList(attr_list, attribute_count, 0, &mut attr_size) };
     if init_res == 0 {
         unsafe {
             CloseHandle(stdin_read);
@@ -336,7 +333,7 @@ pub fn spawn_sandboxed_process(
     }
 
     let mut keys: Vec<String> = env_map.keys().cloned().collect();
-    keys.sort_by(|a, b| a.to_uppercase().cmp(&b.to_uppercase()));
+    keys.sort_by_key(|a| a.to_uppercase());
     for k in keys {
         let v = &env_map[&k];
         let entry = format!("{}={}\0", k, v);
@@ -416,7 +413,8 @@ pub fn spawn_sandboxed_process(
 
     // 8. If Job Object is provided, assign the process BEFORE resuming execution
     if let Some(j) = job {
-        if let Err(e) = j.assign_process(pi.hProcess) {
+        let assign_res = unsafe { j.assign_process(pi.hProcess) };
+        if let Err(e) = assign_res {
             unsafe {
                 windows_sys::Win32::System::Threading::TerminateProcess(pi.hProcess, 1);
                 CloseHandle(pi.hProcess);
