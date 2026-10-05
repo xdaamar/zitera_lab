@@ -276,9 +276,95 @@ pub fn handle_probe_cli(args: &[String]) {
             println!("EXITING_WITH_CODE: {}", code);
             exit(code);
         }
+        "--mock-lab" => {
+            handle_mock_lab_loop();
+        }
         other => {
             eprintln!("Unknown probe command: {}", other);
             exit(1);
         }
     }
+}
+
+fn handle_mock_lab_loop() {
+    use std::io::{BufRead, Write};
+    let stdin = std::io::stdin();
+    let mut stdout = std::io::stdout();
+
+    // 1. Send initial READY message
+    let ready = crate::broker::StdioMessage::Ready {
+        lab_id: "MOCK_LAB".to_string(),
+        version: "1.0.0".to_string(),
+    };
+    let _ = writeln!(stdout, "{}", serde_json::to_string(&ready).unwrap());
+    let _ = stdout.flush();
+
+    // 2. Loop processing incoming stdio messages
+    let mut lines = stdin.lock().lines();
+    while let Some(Ok(line)) = lines.next() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        match serde_json::from_str::<crate::broker::StdioMessage>(trimmed) {
+            Ok(crate::broker::StdioMessage::HttpRequest {
+                id,
+                method: _,
+                path,
+                headers: _,
+                body,
+            }) => {
+                let (status, resp_headers, resp_body) = if path == "/" || path.is_empty() {
+                    let mut h = std::collections::HashMap::new();
+                    h.insert("Content-Type".to_string(), "text/plain".to_string());
+                    (200, h, "ZITERA MOCK LAB".to_string())
+                } else if path == "/status" {
+                    let mut h = std::collections::HashMap::new();
+                    h.insert("Content-Type".to_string(), "application/json".to_string());
+                    let json = serde_json::json!({
+                        "status": "ok",
+                        "runtime": "appcontainer_sandboxed",
+                        "lab": "MOCK_LAB",
+                        "pid": std::process::id()
+                    });
+                    (200, h, json.to_string())
+                } else if path == "/echo" {
+                    let mut h = std::collections::HashMap::new();
+                    h.insert("Content-Type".to_string(), "text/plain".to_string());
+                    (200, h, body)
+                } else {
+                    let mut h = std::collections::HashMap::new();
+                    h.insert("Content-Type".to_string(), "text/plain".to_string());
+                    (404, h, "Not Found".to_string())
+                };
+
+                let resp = crate::broker::StdioMessage::HttpResponse {
+                    id,
+                    status,
+                    headers: resp_headers,
+                    body: resp_body,
+                };
+                let _ = writeln!(stdout, "{}", serde_json::to_string(&resp).unwrap());
+                let _ = stdout.flush();
+            }
+            Ok(crate::broker::StdioMessage::Health { id }) => {
+                let resp = crate::broker::StdioMessage::Status {
+                    id,
+                    status: "ok".to_string(),
+                    lab_id: "MOCK_LAB".to_string(),
+                };
+                let _ = writeln!(stdout, "{}", serde_json::to_string(&resp).unwrap());
+                let _ = stdout.flush();
+            }
+            Ok(crate::broker::StdioMessage::Stop) => {
+                let resp = crate::broker::StdioMessage::CleanExit;
+                let _ = writeln!(stdout, "{}", serde_json::to_string(&resp).unwrap());
+                let _ = stdout.flush();
+                exit(0);
+            }
+            _ => {}
+        }
+    }
+    exit(0);
 }

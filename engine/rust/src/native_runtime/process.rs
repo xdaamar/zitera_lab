@@ -29,6 +29,8 @@ pub struct SandboxedProcessHandle {
     #[cfg(windows)]
     h_thread: windows_sys::Win32::Foundation::HANDLE,
     #[cfg(windows)]
+    stdin_write: windows_sys::Win32::Foundation::HANDLE,
+    #[cfg(windows)]
     stdout_read: windows_sys::Win32::Foundation::HANDLE,
     #[cfg(windows)]
     stderr_read: windows_sys::Win32::Foundation::HANDLE,
@@ -41,8 +43,28 @@ impl SandboxedProcessHandle {
         self.h_process
     }
 
+    /// Extracts the standard input and standard output streams for bidirectional communication.
+    pub fn take_io(&mut self) -> (Option<std::fs::File>, Option<std::fs::File>) {
+        use std::os::windows::io::FromRawHandle;
+        let stdin = if self.stdin_write != 0 as _ {
+            let h = self.stdin_write;
+            self.stdin_write = 0 as _;
+            Some(unsafe { std::fs::File::from_raw_handle(h as _) })
+        } else {
+            None
+        };
+        let stdout = if self.stdout_read != 0 as _ {
+            let h = self.stdout_read;
+            self.stdout_read = 0 as _;
+            Some(unsafe { std::fs::File::from_raw_handle(h as _) })
+        } else {
+            None
+        };
+        (stdin, stdout)
+    }
+
     /// Waits for the process to exit and captures all stdout and stderr.
-    pub fn wait(self) -> Result<ProcessOutput, NativeRuntimeError> {
+    pub fn wait(mut self) -> Result<ProcessOutput, NativeRuntimeError> {
         use std::io::Read;
         use std::os::windows::io::FromRawHandle;
         use windows_sys::Win32::Foundation::CloseHandle;
@@ -51,6 +73,10 @@ impl SandboxedProcessHandle {
         };
 
         unsafe {
+            if self.stdin_write != 0 as _ {
+                CloseHandle(self.stdin_write);
+                self.stdin_write = 0 as _;
+            }
             WaitForSingleObject(self.h_process, INFINITE);
         }
 
@@ -58,14 +84,18 @@ impl SandboxedProcessHandle {
         unsafe {
             GetExitCodeProcess(self.h_process, &mut exit_code);
             CloseHandle(self.h_process);
+            self.h_process = 0 as _;
             CloseHandle(self.h_thread);
+            self.h_thread = 0 as _;
         }
 
         let mut stdout_file = unsafe { std::fs::File::from_raw_handle(self.stdout_read as _) };
+        self.stdout_read = 0 as _;
         let mut stdout_buf = Vec::new();
         let _ = stdout_file.read_to_end(&mut stdout_buf);
 
         let mut stderr_file = unsafe { std::fs::File::from_raw_handle(self.stderr_read as _) };
+        self.stderr_read = 0 as _;
         let mut stderr_buf = Vec::new();
         let _ = stderr_file.read_to_end(&mut stderr_buf);
 
@@ -93,8 +123,40 @@ impl SandboxedProcessHandle {
     }
 }
 
+#[cfg(windows)]
+impl Drop for SandboxedProcessHandle {
+    fn drop(&mut self) {
+        unsafe {
+            use windows_sys::Win32::Foundation::CloseHandle;
+            if self.stdin_write != 0 as _ {
+                CloseHandle(self.stdin_write);
+                self.stdin_write = 0 as _;
+            }
+            if self.stdout_read != 0 as _ {
+                CloseHandle(self.stdout_read);
+                self.stdout_read = 0 as _;
+            }
+            if self.stderr_read != 0 as _ {
+                CloseHandle(self.stderr_read);
+                self.stderr_read = 0 as _;
+            }
+            if self.h_thread != 0 as _ {
+                CloseHandle(self.h_thread);
+                self.h_thread = 0 as _;
+            }
+            if self.h_process != 0 as _ {
+                CloseHandle(self.h_process);
+                self.h_process = 0 as _;
+            }
+        }
+    }
+}
+
 #[cfg(not(windows))]
 impl SandboxedProcessHandle {
+    pub fn take_io(&mut self) -> (Option<std::fs::File>, Option<std::fs::File>) {
+        (None, None)
+    }
     pub fn wait(self) -> Result<ProcessOutput, NativeRuntimeError> {
         Ok(ProcessOutput {
             exit_code: 0,
@@ -386,12 +448,11 @@ pub fn spawn_sandboxed_process(
         )
     };
 
-    // Free attribute list and derived SID handle, close parent's copies of write/stdin handles
+    // Free attribute list and derived SID handle, close parent's copies of child-inherited handles
     unsafe {
         DeleteProcThreadAttributeList(attr_list);
         FreeSid(psid);
         CloseHandle(stdin_read);
-        CloseHandle(stdin_write);
         CloseHandle(stdout_write);
         CloseHandle(stderr_write);
     }
@@ -399,6 +460,7 @@ pub fn spawn_sandboxed_process(
     if create_res == 0 {
         let err = unsafe { GetLastError() };
         unsafe {
+            CloseHandle(stdin_write);
             CloseHandle(stdout_read);
             CloseHandle(stderr_read);
         }
@@ -419,6 +481,7 @@ pub fn spawn_sandboxed_process(
                 windows_sys::Win32::System::Threading::TerminateProcess(pi.hProcess, 1);
                 CloseHandle(pi.hProcess);
                 CloseHandle(pi.hThread);
+                CloseHandle(stdin_write);
                 CloseHandle(stdout_read);
                 CloseHandle(stderr_read);
             }
@@ -434,6 +497,7 @@ pub fn spawn_sandboxed_process(
         pid: pi.dwProcessId,
         h_process: pi.hProcess,
         h_thread: pi.hThread,
+        stdin_write,
         stdout_read,
         stderr_read,
     })

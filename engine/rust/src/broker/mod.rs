@@ -1,6 +1,7 @@
 pub mod http;
 pub mod server;
 pub mod session;
+pub mod transport;
 
 pub use http::{
     parse_http_request, HttpParseError, HttpResponse, ParsedRequest, MAX_BODY_SIZE,
@@ -8,6 +9,7 @@ pub use http::{
 };
 pub use server::{BrokerError, BrokerServer, LabRequestHandler};
 pub use session::{BrokerSession, BrokerSessionManager, SessionError};
+pub use transport::{StdioLabChannel, StdioMessage};
 
 #[cfg(test)]
 mod tests {
