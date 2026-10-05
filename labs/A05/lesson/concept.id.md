@@ -14,8 +14,8 @@ cursor.execute(sql)
 Perintah `UNION` dalam SQL digunakan untuk menggabungkan hasil dari dua atau lebih perintah `SELECT` menjadi satu set hasil akhir.
 
 Agar serangan `UNION` berhasil:
-1. **Jumlah Kolom Harus Sama:** Query yang diinjeksi harus memiliki jumlah kolom yang sama persis dengan query asli aplikasi.
-2. **Tipe Data Harus Kompatibel:** Tipe data kolom pada query kedua harus cocok dengan kolom pada query pertama.
+1. Jumlah Kolom Harus Sama: Query yang diinjeksi harus memiliki jumlah kolom yang sama persis dengan query asli aplikasi.
+2. Tipe Data Harus Kompatibel: Tipe data kolom pada query kedua harus cocok dengan kolom pada query pertama.
 
 ### Contoh Payload:
 Jika query asli mengambil 3 kolom (`name`, `category`, `price`), penyerang dapat menyuntikkan:

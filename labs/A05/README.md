@@ -2,21 +2,21 @@
 
 [![OWASP](https://img.shields.io/badge/OWASP-A05%3A2025-red)](https://owasp.org/Top10/A03_2021-Injection/)
 [![Difficulty](https://img.shields.io/badge/Difficulty-Beginner-blue)]()
-[![Runtime](https://img.shields.io/badge/Runtime-Docker-informational)]()
+[![Runtime](https://img.shields.io/badge/Runtime-Native%20Sandboxed-informational)]()
 
-A self-contained cybersecurity training lab for **OWASP A05:2025 — Injection** (SQL Injection focus).
+A self-contained cybersecurity training lab for OWASP A05:2025 — Injection (SQL Injection focus).
 
 ---
 
 ## Scope
 
-This lab is **intentionally vulnerable**. All challenge data is synthetic. It contains:
+This lab is intentionally vulnerable. All challenge data is synthetic. It contains:
 - No real user credentials
 - No real database records
 - No external network connections
-- One deliberately insecure Python Flask application bound only to `127.0.0.1:8015`
+- One deliberately insecure hardware catalog query service bound locally to ephemeral session port via stdio broker
 
-**Do not expose this application to an untrusted network.**
+Do not expose this application to an untrusted network.
 
 ---
 
@@ -31,7 +31,7 @@ This lab is **intentionally vulnerable**. All challenge data is synthetic. It co
 
 ## Challenge
 
-Use SQL injection techniques to extract the hidden admin credentials and retrieve the secret flag in `ZITERA{...}` format.
+Use SQL injection techniques (UNION-based injection) to extract the hidden records from the `vault_secrets` table and retrieve the secret flag in `ZITERA{...}` format.
 
 ---
 
@@ -42,8 +42,8 @@ Use SQL injection techniques to extract the hidden admin credentials and retriev
 | Schema Version | 1 |
 | Lab ID | A05 |
 | OWASP Ref | A05:2025 |
-| Port | 8015 (127.0.0.1 only) |
-| Runtime | Docker / Python Flask |
+| Port | 8015 (Ephemeral brokered session) |
+| Runtime | Native Sandboxed (`AppContainer + JobObject + stdio broker`) |
 | Modes | learn, practice, challenge |
 | Engine Compat | ≥0.1.0 |
 
@@ -51,18 +51,18 @@ Use SQL injection techniques to extract the hidden admin credentials and retriev
 
 ## Installation via ZITERA Engine
 
-```
+```bash
 zitera lab install A05
 zitera lab start A05
 ```
 
-Then open `http://127.0.0.1:8015` in your browser.
+Access the application in your browser via the displayed ephemeral brokered session URL.
 
 ---
 
 ## Reset
 
-```
+```bash
 zitera lab reset A05
 ```
 
@@ -72,27 +72,25 @@ This deterministically restores the lab to its initial state.
 
 ## Stop
 
-```
+```bash
 zitera lab stop A05
 ```
 
 ---
 
-## Manual Docker Usage
+## Running Standalone
 
-```
-cd docker
-docker compose -f compose.yml -p zitera_a05 up -d
+```bash
+cargo run --bin a05_lab
 ```
 
 ---
 
 ## Security Expectations
 
-- Container bound to `127.0.0.1:8015` only — not exposed to LAN
-- No privileged container mode
-- No Docker socket mount
-- No host filesystem bind mounts
+- Process isolated inside Windows AppContainer profile `ZITERA_LAB_A05`
+- Strict JobObject resource enforcement
+- No Docker/WSL or administrative elevation required
 - Challenge data is 100% synthetic
 - Reset is deterministic and non-destructive to any other resource
 
@@ -103,11 +101,8 @@ docker compose -f compose.yml -p zitera_a05 up -d
 ```
 manifest.json          — ZITERA lab contract
 README.md              — this file
-docker/
-  Dockerfile           — Python 3.11-slim image definition
-  compose.yml          — Docker Compose service definition
-  app.py               — Flask application (intentionally vulnerable to SQL injection)
+bin/
+  a05-lab.exe          — Native sandboxed lab binary
 lesson/                — Learning materials
 challenge/             — Challenge-specific assets
-assets/                — Static assets
 ```

@@ -7,8 +7,8 @@ The military hardware warehouse portal at `http://127.0.0.1:8015` allows employe
 Perform a SQL Injection attack (e.g. UNION-based injection) to extract the secret key flag stored in the database.
 
 ### TARGET ENVIRONMENT
-- **Base URL:** `http://127.0.0.1:8015`
-- **Vulnerable Surface:** Product Search query input
+- Base URL: `http://127.0.0.1:8015`
+- Vulnerable Surface: Product Search query input
 
 ### SUBMISSION FORMAT
 The flag follows the standard format:

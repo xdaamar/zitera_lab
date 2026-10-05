@@ -7,8 +7,8 @@ Portal inventaris gudang perangkat keras militer di `http://127.0.0.1:8015` memu
 Lakukan serangan SQL Injection (teknik UNION-based injection) pada kolom pencarian untuk mengekstrak flag rahasia dari tabel database target.
 
 ### LINGKUNGAN TARGET
-- **Base URL:** `http://127.0.0.1:8015`
-- **Bidang Serangan:** Kolom Input Pencarian Produk (Product Search)
+- Base URL: `http://127.0.0.1:8015`
+- Bidang Serangan: Kolom Input Pencarian Produk (Product Search)
 
 ### FORMAT SUBMISSION FLAG
 `ZITERA{...}`
