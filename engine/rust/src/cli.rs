@@ -23,6 +23,7 @@ pub fn run() {
         "tool" => handle_tool(&filtered_args[1..], json_mode),
         "lab" => handle_lab(&filtered_args[1..], &workspace_root, json_mode),
         "catalog" => handle_catalog(&workspace_root, json_mode),
+        "terminal" => handle_terminal(&filtered_args[1..], &workspace_root, json_mode),
         "sandbox-probe" => {
             crate::native_runtime::probe::handle_probe_cli(&filtered_args[1..]);
         }
@@ -535,6 +536,83 @@ fn handle_catalog(workspace_root: &Path, json: bool) {
     }
 }
 
+fn handle_terminal(args: &[String], workspace_root: &Path, json: bool) {
+    if args.is_empty() {
+        if json {
+            let resp: ApiResponse<()> = ApiResponse::err(
+                "terminal",
+                "MISSING_COMMAND",
+                "No terminal command provided".to_string(),
+                false,
+            );
+            println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+        } else {
+            eprintln!("Usage: zitera terminal [--lab <id>] <command...>");
+        }
+        return;
+    }
+
+    let mut lab_id: Option<String> = None;
+    let mut cmd_args: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == "--lab" && i + 1 < args.len() {
+            lab_id = Some(args[i + 1].clone());
+            i += 2;
+        } else {
+            cmd_args.push(args[i].clone());
+            i += 1;
+        }
+    }
+
+    if cmd_args.is_empty() {
+        if json {
+            let resp: ApiResponse<()> = ApiResponse::err(
+                "terminal",
+                "MISSING_COMMAND",
+                "No terminal command specified after flags".to_string(),
+                false,
+            );
+            println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+        } else {
+            eprintln!("Error: no command provided to execute.");
+        }
+        return;
+    }
+
+    let sandbox_root = if let Some(ref id) = lab_id {
+        let lab_dir = workspace_root.join("labs").join(id);
+        if lab_dir.exists() {
+            lab_dir
+        } else {
+            workspace_root.to_path_buf()
+        }
+    } else {
+        let default_sandbox = workspace_root.join("sandbox");
+        let _ = std::fs::create_dir_all(&default_sandbox);
+        default_sandbox
+    };
+
+    let mut session = crate::terminal::TerminalSession::new(sandbox_root);
+    let command_line = cmd_args.join(" ");
+    let result = session.execute(&command_line);
+
+    if json {
+        let resp = ApiResponse::ok("terminal.execute", result);
+        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+    } else {
+        if !result.stdout.is_empty() {
+            print!("{}", result.stdout);
+        }
+        if !result.stderr.is_empty() {
+            eprint!("{}", result.stderr);
+        }
+        if result.exit_code != 0 {
+            std::process::exit(result.exit_code);
+        }
+    }
+}
+
 fn find_workspace_root() -> PathBuf {
     // 1. Check relative to current working directory (development & standard execution)
     let mut current = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -592,6 +670,7 @@ fn print_help(json: bool) {
         println!("  lab reset <id>         Deterministically reset a lab environment");
         println!("  lab update <id>        Update a lab environment to latest version");
         println!("  lab remove <id>        Remove an installed lab");
+        println!("  terminal [--lab <id>] <cmd> Execute safe command in Zitera Terminal");
         println!("  catalog                Show central catalog");
     }
 }
