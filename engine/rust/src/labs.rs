@@ -2017,4 +2017,153 @@ mod tests {
             "A05 must report stopped after stop_lab"
         );
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a07_native_sandbox_lifecycle_and_challenge() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let a07_bin = repo_root
+            .join("labs")
+            .join("A07")
+            .join("bin")
+            .join("a07-lab.exe");
+        let built_bin = repo_root
+            .join("engine")
+            .join("rust")
+            .join("target")
+            .join("debug")
+            .join("a07_lab.exe");
+        if built_bin.exists() {
+            let _ = fs::create_dir_all(a07_bin.parent().unwrap());
+            let _ = fs::copy(&built_bin, &a07_bin);
+        }
+        if !a07_bin.exists() {
+            eprintln!("Skipping test: a07-lab.exe not deployed yet");
+            return;
+        }
+
+        let _ = stop_lab(&repo_root, "A07");
+
+        // 1. Status before start
+        let st_init = get_lab_status(&repo_root, "A07");
+        assert!(st_init.installed, "A07 must be installed");
+        assert!(!st_init.running, "A07 should not be running initially");
+
+        // 2. Start A07
+        let start_res = start_lab(&repo_root, "A07");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A07");
+        assert!(st_running.running, "A07 must report running");
+        assert!(st_running.url.is_some(), "A07 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. GET /session/{token}/login -> Gateway portal
+        let req_login_get = format!(
+            "GET /session/{}/login HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_login_get = send_req(&req_login_get);
+        assert!(resp_login_get.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_login_get.contains("OmniAuth // Admin Gateway"));
+
+        // 5. POST /session/{token}/login with wrong password -> 200 OK with error (no lockout)
+        let fail_body = "username=admin&password=0000";
+        let req_login_fail = format!(
+            "POST /session/{}/login HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, fail_body.len(), fail_body
+        );
+        let resp_login_fail = send_req(&req_login_fail);
+        assert!(resp_login_fail.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_login_fail.contains("Invalid credentials"));
+
+        // 6. POST /session/{token}/api/login with wrong credentials -> 401 Unauthorized
+        let api_fail_body = r#"{"username":"admin","password":"9999"}"#;
+        let req_api_fail = format!(
+            "POST /session/{}/api/login HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, api_fail_body.len(), api_fail_body
+        );
+        let resp_api_fail = send_req(&req_api_fail);
+        assert!(resp_api_fail.starts_with("HTTP/1.1 401 Unauthorized"));
+        assert!(resp_api_fail.contains(r#""status":"failed""#));
+
+        // 7. POST /session/{token}/login with correct PIN (admin:2026) -> 302 Redirect with cookie
+        let success_body = "username=admin&password=2026";
+        let req_login_success = format!(
+            "POST /session/{}/login HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, success_body.len(), success_body
+        );
+        let resp_login_success = send_req(&req_login_success);
+        assert!(resp_login_success.starts_with("HTTP/1.1 302"));
+        assert!(resp_login_success.contains("auth_session="));
+
+        // Extract cookie
+        let cookie_line = resp_login_success
+            .lines()
+            .find(|l| l.to_lowercase().starts_with("set-cookie:"))
+            .unwrap();
+        let cookie_val = cookie_line
+            .split(':')
+            .nth(1)
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap()
+            .trim();
+
+        // 8. GET /session/{token}/admin with cookie -> Flag retrieval
+        let req_admin = format!(
+            "GET /session/{}/admin HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nCookie: {}\r\n\r\n",
+            token, port, cookie_val
+        );
+        let resp_admin = send_req(&req_admin);
+        assert!(resp_admin.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_admin.contains("ZITERA{4uth_f41lur3_brut3_f0rc3_2026}"));
+
+        // 9. Validate Challenge submission
+        let verif =
+            validate_challenge(&repo_root, "A07", "ZITERA{4uth_f41lur3_brut3_f0rc3_2026}")
+                .unwrap();
+        assert_eq!(
+            verif.status, "passed",
+            "Challenge flag must pass validation"
+        );
+
+        // 10. Stop A07
+        let stop_res = stop_lab(&repo_root, "A07");
+        assert!(stop_res.is_ok());
+
+        // 11. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A07");
+        assert!(
+            !st_stopped.running,
+            "A07 must report stopped after stop_lab"
+        );
+    }
 }
