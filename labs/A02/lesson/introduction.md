@@ -1,6 +1,6 @@
 # A02: Security Misconfiguration
 
-Security Misconfiguration is ranked **#2 in the OWASP Top 10:2025**. It represents the most common and pervasive class of vulnerabilities found across modern web stacks.
+Security Misconfiguration is ranked #2 in the OWASP Top 10:2025. It represents the most common and pervasive class of vulnerabilities found across modern web stacks.
 
 ## What is Security Misconfiguration?
 Security misconfiguration occurs when security controls are inaccurately defined, configured with insecure defaults, left incomplete, or poorly maintained across any part of the application stack.

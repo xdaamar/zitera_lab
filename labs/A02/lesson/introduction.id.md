@@ -1,6 +1,6 @@
 # A02: Security Misconfiguration (Kesalahan Konfigurasi Keamanan)
 
-Security Misconfiguration menempati peringkat ke-2 (**#2**) dalam daftar risiko keamanan web OWASP Top 10:2025. Kerentanan ini merupakan salah satu jenis celah keamanan paling umum dan paling sering ditemukan di berbagai infrastruktur teknologi modern.
+Security Misconfiguration menempati peringkat ke-2 (#2) dalam daftar risiko keamanan web OWASP Top 10:2025. Kerentanan ini merupakan salah satu jenis celah keamanan paling umum dan paling sering ditemukan di berbagai infrastruktur teknologi modern.
 
 ## Apa yang Dimaksud dengan Security Misconfiguration?
 Security Misconfiguration terjadi ketika kontrol keamanan tidak dikonfigurasi secara tepat, dibiarkan menggunakan nilai bawaan (*default*) yang tidak aman, tidak lengkap, atau tidak dirawat dengan baik pada lapisan sistem aplikasi.
