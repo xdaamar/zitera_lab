@@ -1634,4 +1634,122 @@ mod tests {
             "A02 must report stopped after stop_lab"
         );
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a03_native_sandbox_lifecycle_and_challenge() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let a03_bin = repo_root
+            .join("labs")
+            .join("A03")
+            .join("bin")
+            .join("a03-lab.exe");
+        if !a03_bin.exists() {
+            let built_bin = repo_root
+                .join("engine")
+                .join("rust")
+                .join("target")
+                .join("debug")
+                .join("a03_lab.exe");
+            if built_bin.exists() {
+                let _ = fs::create_dir_all(a03_bin.parent().unwrap());
+                let _ = fs::copy(&built_bin, &a03_bin);
+            }
+        }
+        if !a03_bin.exists() {
+            eprintln!("Skipping test: a03-lab.exe not deployed yet");
+            return;
+        }
+
+        let _ = stop_lab(&repo_root, "A03");
+
+        // 1. Status before start
+        let st_init = get_lab_status(&repo_root, "A03");
+        assert!(st_init.installed, "A03 must be installed");
+        assert!(!st_init.running, "A03 should not be running initially");
+
+        // 2. Start A03
+        let start_res = start_lab(&repo_root, "A03");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A03");
+        assert!(st_running.running, "A03 must report running");
+        assert!(st_running.url.is_some(), "A03 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. GET / -> ApexCorp portal
+        let req_root = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_root = send_req(&req_root);
+        assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_root.contains("ApexCorp"));
+
+        // 5. GET /packages/audit/package_lock_audit.json -> Supply chain audit manifest
+        let req_audit = format!(
+            "GET /session/{}/packages/audit/package_lock_audit.json HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_audit = send_req(&req_audit);
+        assert!(resp_audit.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_audit.contains("apex-internal-telemetry"));
+        assert!(resp_audit.contains("ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}"));
+
+        // 6. POST /api/supply-chain/verify -> Verify compromised token
+        let verify_body = "token=ZITERA%7B5upply_ch41n_p0150n1ng_d3p_2026%7D";
+        let req_verify = format!(
+            "POST /session/{}/api/supply-chain/verify HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, verify_body.len(), verify_body
+        );
+        let resp_verify = send_req(&req_verify);
+        assert!(resp_verify.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_verify.contains("\"status\":\"passed\"") || resp_verify.contains("\"status\": \"passed\""));
+
+        // 7. Validate Challenge submission
+        let verif =
+            validate_challenge(&repo_root, "A03", "ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}")
+                .unwrap();
+        assert_eq!(
+            verif.status, "passed",
+            "Challenge flag must pass validation"
+        );
+
+        // 8. Stop A03
+        let stop_res = stop_lab(&repo_root, "A03");
+        assert!(stop_res.is_ok());
+
+        // 9. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A03");
+        assert!(
+            !st_stopped.running,
+            "A03 must report stopped after stop_lab"
+        );
+    }
 }
