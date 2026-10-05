@@ -506,4 +506,12 @@ mod tests {
         let ok_sanitized = sanitize_lab_response_headers(ok_headers, token);
         assert_eq!(ok_sanitized[0].1, valid_target);
     }
+
+    #[test]
+    fn test_parse_http_request_with_query() {
+        let raw = b"GET /session/0123456789abcdef0123456789abcdef/?q=Server HTTP/1.1\r\nHost: 127.0.0.1:8000\r\n\r\n";
+        let parsed = parse_http_request(raw).unwrap();
+        assert_eq!(parsed.subpath, "/");
+        assert_eq!(parsed.query, Some("q=Server".to_string()));
+    }
 }

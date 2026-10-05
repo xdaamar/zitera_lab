@@ -121,16 +121,22 @@ impl LabRequestHandler for StdioLabChannel {
     ) -> Result<HttpResponse, BrokerError> {
         let req_id = self.counter.fetch_add(1, Ordering::SeqCst);
 
-        let subpath = if req.subpath.is_empty() {
+        let mut subpath = if req.subpath.is_empty() {
             "/".to_string()
         } else {
             req.subpath.clone()
         };
+        if let Some(ref q) = req.query {
+            if !q.is_empty() {
+                subpath.push('?');
+                subpath.push_str(q);
+            }
+        }
 
         let msg = StdioMessage::HttpRequest {
             id: req_id,
             method: req.method.clone(),
-            path: subpath,
+            path: subpath.clone(),
             headers: req.headers.clone(),
             body: String::from_utf8_lossy(&req.body).to_string(),
         };

