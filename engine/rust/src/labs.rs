@@ -557,8 +557,17 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
         let current_exe = std::env::current_exe()
             .map_err(|e| format!("Failed to locate zitera-engine executable: {}", e))?;
 
+        let is_engine_binary = current_exe
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(|n| {
+                n.eq_ignore_ascii_case("zitera-engine.exe")
+                    || n.eq_ignore_ascii_case("zitera-engine")
+            })
+            .unwrap_or(false);
+
         let candidate_debug = workspace_root.join("engine/rust/target/debug/zitera-engine.exe");
-        let engine_exe = if current_exe.exists() {
+        let engine_exe = if is_engine_binary && current_exe.exists() {
             current_exe
         } else if candidate_debug.exists() {
             candidate_debug
