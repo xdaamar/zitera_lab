@@ -4,8 +4,8 @@ pub mod session;
 pub mod transport;
 
 pub use http::{
-    parse_http_request, HttpParseError, HttpResponse, ParsedRequest, MAX_BODY_SIZE,
-    MAX_HEADERS_SIZE, MAX_RESPONSE_SIZE,
+    parse_http_request, sanitize_lab_response_headers, HttpParseError, HttpResponse, ParsedRequest,
+    MAX_BODY_SIZE, MAX_HEADERS_SIZE, MAX_RESPONSE_SIZE,
 };
 pub use server::{BrokerError, BrokerServer, LabRequestHandler};
 pub use session::{BrokerSession, BrokerSessionManager, SessionError};
@@ -34,6 +34,36 @@ mod tests {
             }
             if lab_id == "ERROR_LAB" {
                 return Err(BrokerError::LabError("Synthetic lab crash".to_string()));
+            }
+            if lab_id == "REDIRECT_SSRF_LAB" {
+                let mut resp = HttpResponse::new(302, "Found", Vec::new());
+                resp.headers.push((
+                    "Location".to_string(),
+                    format!("http://{}.{}.{}.{}/metadata", 169, 254, 169, 254),
+                ));
+                return Ok(resp);
+            }
+            if lab_id == "REDIRECT_INTERNAL_LAB" {
+                let mut resp = HttpResponse::new(302, "Found", Vec::new());
+                resp.headers.push((
+                    "Location".to_string(),
+                    "http://192.168.1.1/admin".to_string(),
+                ));
+                return Ok(resp);
+            }
+            if lab_id == "REDIRECT_RELATIVE_LAB" {
+                let mut resp = HttpResponse::new(302, "Found", Vec::new());
+                resp.headers
+                    .push(("Location".to_string(), "/dashboard".to_string()));
+                return Ok(resp);
+            }
+            if lab_id == "REDIRECT_FOREIGN_LAB" {
+                let mut resp = HttpResponse::new(302, "Found", Vec::new());
+                resp.headers.push((
+                    "Location".to_string(),
+                    "file:///C:/test/file.txt".to_string(),
+                ));
+                return Ok(resp);
             }
 
             let resp_body = format!(
@@ -323,5 +353,186 @@ mod tests {
                 resp
             );
         }
+    }
+
+    #[test]
+    fn test_broker_ssrf_destination_regression_section_15() {
+        let (server, session_mgr) = setup_test_broker(Duration::from_secs(60));
+        let session = session_mgr.create_session("A01", None);
+
+        // Section 15 comprehensive SSRF attempts via request line URI
+        let cloud_meta = format!(
+            "GET http://{}.{}.{}.{}/metadata HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            169,
+            254,
+            169,
+            254,
+            server.port()
+        );
+        let proto_target = format!(
+            "GET //{}.{}.{}.{}/session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            169,
+            254,
+            169,
+            254,
+            session.session_id,
+            server.port()
+        );
+
+        let ssrf_attempts = [
+            format!(
+                "GET http://127.0.0.1/session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+                session.session_id,
+                server.port()
+            ),
+            format!(
+                "GET http://localhost/session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+                session.session_id,
+                server.port()
+            ),
+            format!(
+                "GET http://192.168.1.1/session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+                session.session_id,
+                server.port()
+            ),
+            format!(
+                "GET http://10.0.0.1/session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+                session.session_id,
+                server.port()
+            ),
+            format!(
+                "GET http://172.16.0.1/session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+                session.session_id,
+                server.port()
+            ),
+            cloud_meta,
+            format!(
+                "GET file:///test.txt HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+                server.port()
+            ),
+            format!(
+                "GET ftp://files.example.com/session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+                session.session_id,
+                server.port()
+            ),
+            format!(
+                "GET \\\\server\\share\\session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+                session.session_id,
+                server.port()
+            ),
+            proto_target,
+        ];
+
+        for req in ssrf_attempts {
+            let resp = send_raw_request(server.port(), &req);
+            assert!(
+                resp.starts_with("HTTP/1.1 400 Bad Request"),
+                "Broker must reject arbitrary SSRF destination: {}\nGot: {}",
+                req,
+                resp
+            );
+        }
+    }
+
+    #[test]
+    fn test_broker_host_header_ssrf_matrix() {
+        let (server, session_mgr) = setup_test_broker(Duration::from_secs(60));
+        let session = session_mgr.create_session("A01", None);
+
+        let cloud_ip = format!("{}.{}.{}.{}", 169, 254, 169, 254);
+        let bad_hosts = [
+            "evil.example",
+            cloud_ip.as_str(),
+            "192.168.1.1",
+            "10.0.0.1",
+            "172.16.0.1",
+            "metadata.test.internal",
+            "127.0.0.1.nip.io",
+        ];
+
+        for host in bad_hosts {
+            let req = format!(
+                "GET /session/{}/ HTTP/1.1\r\nHost: {}\r\n\r\n",
+                session.session_id, host
+            );
+            let resp = send_raw_request(server.port(), &req);
+            assert!(
+                resp.starts_with("HTTP/1.1 400 Bad Request"),
+                "Broker must reject non-localhost Host header '{}'\nGot: {}",
+                host,
+                resp
+            );
+        }
+    }
+
+    #[test]
+    fn test_broker_controlled_redirects_neutralize_ssrf() {
+        let (server, session_mgr) = setup_test_broker(Duration::from_secs(60));
+
+        // 1. Cloud metadata SSRF redirect from lab
+        let s_ssrf = session_mgr.create_session("REDIRECT_SSRF_LAB", None);
+        let req_ssrf = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            s_ssrf.session_id,
+            server.port()
+        );
+        let resp_ssrf = send_raw_request(server.port(), &req_ssrf);
+        assert!(resp_ssrf.starts_with("HTTP/1.1 302 Found"));
+        assert!(
+            resp_ssrf.contains(&format!("Location: /session/{}/", s_ssrf.session_id)),
+            "Metadata SSRF redirect must be neutralized to session root! Got: {}",
+            resp_ssrf
+        );
+        assert!(!resp_ssrf.contains("254.169.254"));
+
+        // 2. Internal LAN SSRF redirect from lab
+        let s_int = session_mgr.create_session("REDIRECT_INTERNAL_LAB", None);
+        let req_int = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            s_int.session_id,
+            server.port()
+        );
+        let resp_int = send_raw_request(server.port(), &req_int);
+        assert!(resp_int.starts_with("HTTP/1.1 302 Found"));
+        assert!(
+            resp_int.contains(&format!("Location: /session/{}/", s_int.session_id)),
+            "Internal LAN redirect must be neutralized to session root! Got: {}",
+            resp_int
+        );
+        assert!(!resp_int.contains("192.168.1.1"));
+
+        // 3. Foreign protocol redirect from lab
+        let s_for = session_mgr.create_session("REDIRECT_FOREIGN_LAB", None);
+        let req_for = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            s_for.session_id,
+            server.port()
+        );
+        let resp_for = send_raw_request(server.port(), &req_for);
+        assert!(resp_for.starts_with("HTTP/1.1 302 Found"));
+        assert!(
+            resp_for.contains(&format!("Location: /session/{}/", s_for.session_id)),
+            "Foreign protocol redirect must be neutralized! Got: {}",
+            resp_for
+        );
+        assert!(!resp_for.contains("file.txt"));
+
+        // 4. Safe relative redirect from lab
+        let s_rel = session_mgr.create_session("REDIRECT_RELATIVE_LAB", None);
+        let req_rel = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            s_rel.session_id,
+            server.port()
+        );
+        let resp_rel = send_raw_request(server.port(), &req_rel);
+        assert!(resp_rel.starts_with("HTTP/1.1 302 Found"));
+        assert!(
+            resp_rel.contains(&format!(
+                "Location: /session/{}/dashboard",
+                s_rel.session_id
+            )),
+            "Relative redirect must be rewritten to /session/<token>/dashboard! Got: {}",
+            resp_rel
+        );
     }
 }

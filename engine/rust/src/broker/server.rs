@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::http::{
-    parse_http_request, HttpParseError, HttpResponse, ParsedRequest, MAX_BODY_SIZE,
-    MAX_HEADERS_SIZE,
+    parse_http_request, sanitize_lab_response_headers, HttpParseError, HttpResponse, ParsedRequest,
+    MAX_BODY_SIZE, MAX_HEADERS_SIZE,
 };
 use super::session::{BrokerSessionManager, SessionError};
 
@@ -227,7 +227,10 @@ fn process_parsed_request(
 
     // 2. Dispatch to Lab Request Handler
     match handler.handle_request(&session.lab_id, &parsed) {
-        Ok(resp) => resp,
+        Ok(mut resp) => {
+            resp.headers = sanitize_lab_response_headers(resp.headers, &parsed.session_token);
+            resp
+        }
         Err(BrokerError::LabTimeout) => HttpResponse::text(
             504,
             "Gateway Timeout",

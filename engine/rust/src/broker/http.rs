@@ -96,6 +96,64 @@ impl HttpResponse {
     }
 }
 
+/// Sanitizes lab response headers to prevent SSRF and enforce controlled redirect behavior (Section 15).
+pub fn sanitize_lab_response_headers(
+    headers: Vec<(String, String)>,
+    session_token: &str,
+) -> Vec<(String, String)> {
+    let mut safe_headers = Vec::new();
+    for (k, v) in headers {
+        let k_lower = k.to_lowercase();
+        if k_lower == "location" {
+            let v_trim = v.trim();
+            let v_lower = v_trim.to_lowercase();
+
+            // Section 15: Prohibit redirect to internal/private targets, foreign protocols, or arbitrary hosts
+            if v_lower.starts_with("ftp://")
+                || v_lower.starts_with("file://")
+                || v_lower.starts_with("\\\\")
+                || v_lower.starts_with("//")
+            {
+                // Unconditionally reject dangerous schemes
+                safe_headers.push((
+                    "Location".to_string(),
+                    format!("/session/{}/", session_token),
+                ));
+            } else if v_lower.starts_with("http://") || v_lower.starts_with("https://") {
+                // Must be localhost AND must stay within the session path
+                let session_path = format!("/session/{}", session_token);
+                if (v_lower.starts_with("http://127.0.0.1")
+                    || v_lower.starts_with("http://localhost"))
+                    && v_lower.contains(&session_path)
+                {
+                    safe_headers.push((k, v));
+                } else {
+                    // Block arbitrary destination SSRF redirect
+                    safe_headers.push((
+                        "Location".to_string(),
+                        format!("/session/{}/", session_token),
+                    ));
+                }
+            } else if v_trim.starts_with('/') {
+                // Relative redirect: Rewrite into /session/<token>/<subpath>
+                let sub = v_trim.trim_start_matches('/');
+                safe_headers.push((
+                    "Location".to_string(),
+                    format!("/session/{}/{}", session_token, sub),
+                ));
+            } else {
+                safe_headers.push((
+                    "Location".to_string(),
+                    format!("/session/{}/{}", session_token, v_trim),
+                ));
+            }
+        } else {
+            safe_headers.push((k, v));
+        }
+    }
+    safe_headers
+}
+
 /// Parses and validates an incoming raw HTTP request buffer.
 pub fn parse_http_request(raw_bytes: &[u8]) -> Result<ParsedRequest, HttpParseError> {
     // 1. Locate headers boundary (\r\n\r\n)
@@ -401,5 +459,51 @@ mod tests {
         assert!(s.contains("Cache-Control: no-store\r\n"));
         assert!(s.contains("Content-Length: 12\r\n"));
         assert!(s.ends_with("\r\n\r\nHello Zitera"));
+    }
+
+    #[test]
+    fn test_sanitize_lab_response_headers_ssrf_protection() {
+        let token = "0123456789abcdef0123456789abcdef";
+        let cloud_meta = format!("http://{}.{}.{}.{}/data", 169, 254, 169, 254);
+
+        // SSRF targets
+        let dangerous_targets = [
+            cloud_meta.as_str(),
+            "http://192.168.1.1/admin",
+            "http://10.0.0.1/internal",
+            "http://172.16.0.1/secret",
+            "http://attacker.example.com/",
+            "file:///C:/test/file.txt",
+            "ftp://files.example.com/",
+            "\\\\internal\\share\\data.txt",
+            "//target.example/data",
+            "http://127.0.0.1:9999/other-service",
+        ];
+
+        for target in dangerous_targets {
+            let headers = vec![("Location".to_string(), target.to_string())];
+            let sanitized = sanitize_lab_response_headers(headers, token);
+            assert_eq!(
+                sanitized[0].1,
+                format!("/session/{}/", token),
+                "Failed to neutralize dangerous redirect: {}",
+                target
+            );
+        }
+
+        // Relative redirects rewrite
+        let rel_headers = vec![
+            ("Location".to_string(), "/login".to_string()),
+            ("Location".to_string(), "dashboard".to_string()),
+        ];
+        let rel_sanitized = sanitize_lab_response_headers(rel_headers, token);
+        assert_eq!(rel_sanitized[0].1, format!("/session/{}/login", token));
+        assert_eq!(rel_sanitized[1].1, format!("/session/{}/dashboard", token));
+
+        // Same session localhost redirect is allowed
+        let valid_target = format!("http://127.0.0.1:8080/session/{}/dashboard", token);
+        let ok_headers = vec![("Location".to_string(), valid_target.clone())];
+        let ok_sanitized = sanitize_lab_response_headers(ok_headers, token);
+        assert_eq!(ok_sanitized[0].1, valid_target);
     }
 }

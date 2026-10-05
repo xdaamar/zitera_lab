@@ -130,7 +130,11 @@ impl BrokerSessionManager {
         }
 
         let lock = self.sessions.read().unwrap();
-        let session = lock.get(token).ok_or(SessionError::SessionNotFound)?;
+        // Timing-safe constant-time token comparison across active sessions (Rule 14)
+        let session = lock
+            .values()
+            .find(|s| crate::labs::timing_safe_compare(&s.session_id, token))
+            .ok_or(SessionError::SessionNotFound)?;
 
         if !session.is_active {
             return Err(SessionError::Terminated);
