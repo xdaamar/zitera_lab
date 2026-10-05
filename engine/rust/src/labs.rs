@@ -1354,4 +1354,135 @@ mod tests {
             "A01 must report stopped after stop_lab"
         );
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a06_native_sandbox_lifecycle_and_challenge() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let a06_bin = repo_root
+            .join("labs")
+            .join("A06")
+            .join("bin")
+            .join("a06-lab.exe");
+        if !a06_bin.exists() {
+            let built_bin = repo_root
+                .join("engine")
+                .join("rust")
+                .join("target")
+                .join("debug")
+                .join("a06_lab.exe");
+            if built_bin.exists() {
+                let _ = fs::create_dir_all(a06_bin.parent().unwrap());
+                let _ = fs::copy(&built_bin, &a06_bin);
+            }
+        }
+        if !a06_bin.exists() {
+            eprintln!("Skipping test: a06-lab.exe not deployed yet");
+            return;
+        }
+
+        // Stop any previous run
+        let _ = stop_lab(&repo_root, "A06");
+
+        // 1. Initial status before start
+        let st_init = get_lab_status(&repo_root, "A06");
+        assert!(st_init.installed, "A06 must be installed");
+        assert!(!st_init.running, "A06 should not be running initially");
+
+        // 2. Start A06
+        let start_res = start_lab(&repo_root, "A06");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A06");
+        assert!(st_running.running, "A06 must report running");
+        assert!(st_running.url.is_some(), "A06 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. Test GET / -> Procurement portal
+        let req_root = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_root = send_req(&req_root);
+        assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_root.contains("Zitera Procurement Workflow"));
+        assert!(resp_root.contains("Executive Datacenter Cluster"));
+
+        // 5. Test Practice Verification before exploit -> Should report failed
+        let req_verify_init = format!(
+            "GET /session/{}/practice/verify HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_verify_init = send_req(&req_verify_init);
+        assert!(resp_verify_init.starts_with("HTTP/1.1 200 OK"));
+        assert!(
+            resp_verify_init.contains("\"status\":\"failed\"")
+                || resp_verify_init.contains("\"status\": \"failed\"")
+        );
+
+        // 6. Test Insecure Design Flaw: Transition high-value order #9999 directly to DISPATCHED
+        let transition_body = "{\"target_state\": \"DISPATCHED\"}";
+        let req_transition = format!(
+            "POST /session/{}/api/orders/9999/transition HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, transition_body.len(), transition_body
+        );
+        let resp_transition = send_req(&req_transition);
+        assert!(resp_transition.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_transition.contains("DISPATCHED"));
+        assert!(resp_transition.contains("ZITERA{1n53cur3_d351gn_fl4w3d_w0rkfl0w}"));
+
+        // 7. Test Practice Verification after exploit -> Should report passed
+        let resp_verify_post = send_req(&req_verify_init);
+        assert!(resp_verify_post.starts_with("HTTP/1.1 200 OK"));
+        assert!(
+            resp_verify_post.contains("\"status\":\"passed\"")
+                || resp_verify_post.contains("\"status\": \"passed\"")
+        );
+
+        // 8. Validate Challenge submission
+        let verif =
+            validate_challenge(&repo_root, "A06", "ZITERA{1n53cur3_d351gn_fl4w3d_w0rkfl0w}")
+                .unwrap();
+        assert_eq!(
+            verif.status, "passed",
+            "Challenge flag must pass validation"
+        );
+
+        // 9. Stop A06
+        let stop_res = stop_lab(&repo_root, "A06");
+        assert!(stop_res.is_ok());
+
+        // 10. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A06");
+        assert!(
+            !st_stopped.running,
+            "A06 must report stopped after stop_lab"
+        );
+    }
 }
