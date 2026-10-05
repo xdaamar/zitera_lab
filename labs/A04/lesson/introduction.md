@@ -1,6 +1,6 @@
 # A04: Cryptographic Failures
 
-Cryptographic Failures occupies the **#4 spot in OWASP Top 10:2025** (previously known as *Sensitive Data Exposure*). It focuses on failures related to cryptography, which often lead to sensitive data exposure or complete system compromise.
+Cryptographic Failures occupies the `#4` spot in OWASP Top 10:2025 (previously known as *Sensitive Data Exposure*). It focuses on failures related to cryptography, which often lead to sensitive data exposure or complete system compromise.
 
 ## Core Problem
 Cryptography is math, but cryptographic security is implementation. Common flaws occur when developers:
