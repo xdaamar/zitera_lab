@@ -956,25 +956,46 @@ pub fn verify_practice(
     }
 
     let manifest = read_manifest(&lab_dir)?;
-    let port = manifest.default_port;
+    let is_native = manifest.runtime == "native_sandboxed";
 
-    let is_running = !crate::system::is_port_available(port);
-    if !is_running {
-        return Ok(crate::models::PracticeVerification {
-            lab_id: lab_id.to_uppercase(),
-            status: "unavailable".to_string(),
-            message: format!(
-                "Lab {} runtime is stopped. Please start the lab environment first.",
-                lab_id
+    let (port, base_url) = if is_native {
+        match get_runtime_state(&lab_dir) {
+            Some(state) => (
+                state.port,
+                state.entry_url.trim_end_matches('/').to_string(),
             ),
-        });
-    }
+            None => {
+                return Ok(crate::models::PracticeVerification {
+                    lab_id: lab_id.to_uppercase(),
+                    status: "unavailable".to_string(),
+                    message: format!(
+                        "Lab {} runtime is stopped. Please start the lab environment first.",
+                        lab_id
+                    ),
+                });
+            }
+        }
+    } else {
+        let p = manifest.default_port;
+        let is_running = !crate::system::is_port_available(p);
+        if !is_running {
+            return Ok(crate::models::PracticeVerification {
+                lab_id: lab_id.to_uppercase(),
+                status: "unavailable".to_string(),
+                message: format!(
+                    "Lab {} runtime is stopped. Please start the lab environment first.",
+                    lab_id
+                ),
+            });
+        }
+        (p, format!("http://127.0.0.1:{}", p))
+    };
 
     // 1. Authoritative Practice Verification Endpoint (Contract V2)
     // If the laboratory service exposes a stateful practice verification endpoint, query it.
-    let practice_url = format!("http://127.0.0.1:{}/practice/verify", port);
+    let practice_url = format!("{}/practice/verify", base_url);
     let practice_probe =
-        crate::process::run_cmd("curl.exe", &["-s", "--max-time", "3", &practice_url], None);
+        crate::process::run_cmd("curl.exe", &["-s", "--noproxy", "*", "--max-time", "3", &practice_url], None);
 
     if let Ok(pout) = practice_probe {
         if pout.success && !pout.stdout.trim().is_empty() {
@@ -994,13 +1015,15 @@ pub fn verify_practice(
     }
 
     // 2. Fallback to health probe
-    let url = format!("http://127.0.0.1:{}/health", port);
+    let url = format!("{}/health", base_url);
 
     // Fast bounded curl probe (3 seconds max)
     let probe = crate::process::run_cmd(
         "curl.exe",
         &[
             "-s",
+            "--noproxy",
+            "*",
             "-o",
             "nul",
             "-w",
@@ -1023,11 +1046,13 @@ pub fn verify_practice(
         }),
         _ => {
             // Check root endpoint if /health returns non-200 or 404
-            let root_url = format!("http://127.0.0.1:{}/", port);
+            let root_url = format!("{}/", base_url);
             let root_probe = crate::process::run_cmd(
                 "curl.exe",
                 &[
                     "-s",
+                    "--noproxy",
+                    "*",
                     "-o",
                     "nul",
                     "-w",
@@ -2165,5 +2190,101 @@ mod tests {
             !st_stopped.running,
             "A07 must report stopped after stop_lab"
         );
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a08_native_sandbox_lifecycle_and_challenge() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = manifest_dir
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let _ = stop_lab(&repo_root, "A08");
+
+        // 1. Status before start
+        let st_init = get_lab_status(&repo_root, "A08");
+        assert!(st_init.installed, "A08 must be installed");
+        assert!(!st_init.running, "A08 should not be running initially");
+
+        // 2. Start A08
+        let start_res = start_lab(&repo_root, "A08");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A08");
+        assert!(st_running.running, "A08 must report running");
+        assert!(st_running.url.is_some(), "A08 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. GET /session/{token}/ -> Edge Device Ingestion portal
+        let req_index = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_index = send_req(&req_index);
+        assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_index.contains("Zitera Edge // Firmware & Config Ingestion"));
+
+        // 5. GET /session/{token}/api/config -> default factory configuration
+        let req_config = format!(
+            "GET /session/{}/api/config HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_config = send_req(&req_config);
+        assert!(resp_config.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_config.contains("zitera-root-authority"));
+
+        // 6. Practice verification before tampering -> failed
+        let verif_pre = verify_practice(&repo_root, "A08").unwrap();
+        assert_eq!(verif_pre.status, "failed");
+
+        // 7. POST /session/{token}/api/deploy_update with unverified package
+        let update_payload = r#"{"version":"2.5.0-exploit","signature_verified":false,"signer":"adversary","params":{"debug_backdoor":true}}"#;
+        let req_deploy = format!(
+            "POST /session/{}/api/deploy_update HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, update_payload.len(), update_payload
+        );
+        let resp_deploy = send_req(&req_deploy);
+        assert!(resp_deploy.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_deploy.contains("ZITERA{1nt3gr1ty_f41lur3_un51gn3d_p4ck4g3}"));
+
+        // 8. Practice verification after tampering -> passed
+        let verif_post = verify_practice(&repo_root, "A08").unwrap();
+        assert_eq!(verif_post.status, "passed");
+
+        // 9. Validate Challenge submission
+        let verif_chall = validate_challenge(&repo_root, "A08", "ZITERA{1nt3gr1ty_f41lur3_un51gn3d_p4ck4g3}").unwrap();
+        assert_eq!(verif_chall.status, "passed", "Challenge flag must pass validation");
+
+        // 10. Stop A08
+        let stop_res = stop_lab(&repo_root, "A08");
+        assert!(stop_res.is_ok());
+
+        // 11. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A08");
+        assert!(!st_stopped.running, "A08 must report stopped after stop_lab");
     }
 }
