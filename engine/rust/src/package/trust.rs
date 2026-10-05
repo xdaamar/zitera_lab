@@ -166,6 +166,41 @@ pub fn verify_with_trusted_keys(
     Err("Signature does not match any trusted root public key".to_string())
 }
 
+/// Builds the canonical deterministic representation of a catalog payload.
+///
+/// Labs are sorted alphabetically by ID to guarantee identical representation
+/// regardless of original JSON ordering.
+pub fn build_canonical_catalog_payload(catalog: &crate::models::Catalog) -> String {
+    let mut sorted_labs = catalog.labs.clone();
+    sorted_labs.sort_by_key(|a| a.id.to_uppercase());
+
+    let mut lines = Vec::new();
+    lines.push(format!("schema_version:{}", catalog.schema_version));
+    lines.push(format!("labs_count:{}", sorted_labs.len()));
+
+    for lab in sorted_labs {
+        lines.push(format!(
+            "lab:{}:{}:{}:{}:{}:{}",
+            lab.id.trim().to_uppercase(),
+            lab.version.trim(),
+            lab.repository.trim(),
+            lab.owasp.trim(),
+            lab.runtime.as_deref().unwrap_or("native_sandboxed").trim(),
+            lab.architecture.as_deref().unwrap_or("x86_64").trim()
+        ));
+    }
+
+    lines.join("\n")
+}
+
+/// Signs a catalog using the private key seed, attaching the signature hex to the catalog.
+pub fn sign_catalog(catalog: &mut crate::models::Catalog, private_key_seed: &[u8; 32]) -> String {
+    let payload = build_canonical_catalog_payload(catalog);
+    let sig = sign_payload(&payload, private_key_seed);
+    catalog.signature = Some(sig.clone());
+    sig
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

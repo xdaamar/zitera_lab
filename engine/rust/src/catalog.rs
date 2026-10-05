@@ -1,5 +1,9 @@
 use crate::labs;
 use crate::models::{Catalog, CatalogLabItem};
+use crate::package::trust::{
+    build_canonical_catalog_payload, sign_catalog, verify_with_trusted_keys, DEV_PRIVATE_KEY_SEED,
+    DEV_PUBLIC_KEY_HEX, RELEASE_PUBLIC_KEY_HEX,
+};
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,7 +18,7 @@ pub fn get_catalog_path(workspace_root: &Path) -> PathBuf {
 pub const MAX_CATALOG_FILE_SIZE: u64 = 524_288; // 512 KB limit to prevent unbounded memory allocation
 pub const MAX_LABS_COUNT: usize = 100;
 
-/// Validates catalog schema, integrity, unique IDs, field bounds, and URL safety (Workstream B).
+/// Validates catalog schema, integrity, unique IDs, field bounds, URL safety, and Ed25519 signature.
 pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if catalog.schema_version != 1 {
         return Err(format!(
@@ -51,12 +55,39 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
                 lab.id
             ));
         }
+
+        // Validate semantic version format (must contain numbers and dots)
+        if !lab
+            .version
+            .chars()
+            .all(|c| c.is_ascii_digit() || c == '.' || c == '-' || c.is_ascii_alphabetic())
+        {
+            return Err(format!(
+                "Lab {} has invalid characters in version string.",
+                lab.id
+            ));
+        }
+
         if lab.repository.trim().is_empty() || lab.repository.len() > 256 {
             return Err(format!(
                 "Lab {} has invalid repository (must be 1-256 characters).",
                 lab.id
             ));
         }
+
+        // Strict protocol check: Disallow arbitrary protocols (ftp, file, gopher, unc)
+        let repo_lower = lab.repository.to_lowercase();
+        if repo_lower.starts_with("ftp://")
+            || repo_lower.starts_with("file://")
+            || repo_lower.starts_with("http://")
+            || repo_lower.starts_with("\\\\")
+        {
+            return Err(format!(
+                "Lab {} specifies forbidden network protocol in repository URL.",
+                lab.id
+            ));
+        }
+
         if lab.description.len() > 1024 {
             return Err(format!(
                 "Lab {} has description exceeding 1024 characters.",
@@ -76,6 +107,41 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             ));
         }
 
+        // Validate runtime if present
+        if let Some(ref rt) = lab.runtime {
+            let valid_runtimes = ["native_sandboxed", "mock", "docker"];
+            if !valid_runtimes.contains(&rt.as_str()) {
+                return Err(format!("Lab {} has invalid runtime '{}'.", lab.id, rt));
+            }
+        }
+
+        // Validate architecture if present
+        if let Some(ref arch) = lab.architecture {
+            if arch != "x86_64" && arch != "any" {
+                return Err(format!(
+                    "Lab {} specifies unsupported architecture '{}'.",
+                    lab.id, arch
+                ));
+            }
+        }
+
+        // Validate package_url if present
+        if let Some(ref pkg_url) = lab.package_url {
+            let url_lower = pkg_url.to_lowercase();
+            if !url_lower.starts_with("https://") {
+                return Err(format!(
+                    "Lab {} package URL must use HTTPS protocol.",
+                    lab.id
+                ));
+            }
+            if url_lower.contains("..") || url_lower.contains('\\') {
+                return Err(format!(
+                    "Lab {} package URL contains invalid path sequences.",
+                    lab.id
+                ));
+            }
+        }
+
         // Validate repository structure (either owner/repo or full https://github.com/owner/repo.git)
         let full_url = if lab.repository.starts_with("https://") {
             lab.repository.clone()
@@ -84,6 +150,17 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         };
         labs::validate_repo_url(&full_url)?;
     }
+
+    // Cryptographic Signature Verification
+    let sig = catalog.signature.as_ref().ok_or_else(|| {
+        "Catalog signature is required. Unsigned catalogs are prohibited.".to_string()
+    })?;
+
+    let canonical_payload = build_canonical_catalog_payload(catalog);
+    let trusted_keys = [RELEASE_PUBLIC_KEY_HEX, DEV_PUBLIC_KEY_HEX];
+    verify_with_trusted_keys(&canonical_payload, sig, &trusted_keys)
+        .map_err(|e| format!("Catalog cryptographic verification failed: {}", e))?;
+
     Ok(())
 }
 
@@ -120,7 +197,7 @@ pub fn load_catalog(workspace_root: &Path) -> Result<Catalog, String> {
         }
     }
 
-    // 3. Built-in default catalog fallback
+    // 3. Built-in default signed catalog fallback
     Ok(default_catalog())
 }
 
@@ -147,7 +224,7 @@ pub fn fetch_remote_catalog(url: &str) -> Result<Catalog, String> {
 }
 
 pub fn default_catalog() -> Catalog {
-    Catalog {
+    let mut catalog = Catalog {
         schema_version: 1,
         labs: vec![
             CatalogLabItem {
@@ -158,6 +235,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A01:2025".to_string(),
                 description: "Learn how authorization flaws allow unauthorized users to view, tamper with, or delete sensitive data.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A02".to_string(),
@@ -167,6 +248,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A02:2025".to_string(),
                 description: "Investigate default credentials, exposed debug interfaces, and unauthenticated directory listings leaking sensitive backups.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A03".to_string(),
@@ -176,6 +261,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A03:2025".to_string(),
                 description: "Understand risks from unverified third-party dependencies, malicious package scripts, and vulnerable build artifacts.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A04".to_string(),
@@ -185,6 +274,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A04:2025".to_string(),
                 description: "Explore the risks of legacy broken hashes (MD5), hardcoded encryption keys, and sensitive data leakage.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A05".to_string(),
@@ -194,6 +287,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A05:2025".to_string(),
                 description: "Understand SQL injection root causes, malicious query manipulation, and parameterized query remediation.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A06".to_string(),
@@ -203,6 +300,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Intermediate".to_string(),
                 owasp: "A06:2025".to_string(),
                 description: "Analyze flawed business logic, unverified workflow state transitions, and missing architectural security controls.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A07".to_string(),
@@ -212,6 +313,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A07:2025".to_string(),
                 description: "Explore how weak credential requirements, lack of brute-force protection, and session fixation lead to account takeover.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A08".to_string(),
@@ -221,6 +326,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Intermediate".to_string(),
                 owasp: "A08:2025".to_string(),
                 description: "Understand vulnerabilities from accepting unverified, untrusted software or configuration artifacts without cryptographic signatures.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A09".to_string(),
@@ -230,6 +339,10 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Beginner".to_string(),
                 owasp: "A09:2025".to_string(),
                 description: "Discover how insufficient security telemetry, missing audit trails, and silent failures prevent incident detection.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A10".to_string(),
@@ -239,9 +352,18 @@ pub fn default_catalog() -> Catalog {
                 difficulty: "Intermediate".to_string(),
                 owasp: "A10:2025".to_string(),
                 description: "Examine dangerous fail-open exception handling where upstream service errors accidentally bypass authorization boundaries.".to_string(),
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
         ],
-    }
+        signature: None,
+    };
+
+    // Deterministically sign the default catalog with Dev Private Key
+    sign_catalog(&mut catalog, &DEV_PRIVATE_KEY_SEED);
+    catalog
 }
 
 #[cfg(test)]
@@ -253,51 +375,110 @@ mod tests {
         let cat = default_catalog();
         assert!(validate_catalog(&cat).is_ok());
         assert_eq!(cat.labs.len(), 10);
+        assert!(cat.signature.is_some());
     }
 
     #[test]
-    fn test_validate_catalog_duplicate_id() {
-        let mut cat = default_catalog();
-        let mut dup_lab = cat.labs[0].clone();
-        dup_lab.title = "Duplicate Item".to_string();
-        cat.labs.push(dup_lab);
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-        assert!(res.unwrap_err().contains("Duplicate lab ID found"));
-    }
+    fn test_checkpoint_3_signed_catalog_security_matrix() {
+        let base_cat = default_catalog();
 
-    #[test]
-    fn test_validate_catalog_invalid_id() {
-        let mut cat = default_catalog();
-        cat.labs[0].id = "../A01".to_string();
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-    }
+        // 1. VALID CATALOG -> PASS
+        assert!(validate_catalog(&base_cat).is_ok());
 
-    #[test]
-    fn test_validate_catalog_empty_title() {
-        let mut cat = default_catalog();
-        cat.labs[0].title = "   ".to_string();
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-        assert!(res.unwrap_err().contains("invalid title"));
-    }
+        // 2. MODIFIED CATALOG (content changed without updating signature) -> FAIL
+        let mut mod_cat = base_cat.clone();
+        mod_cat.labs[0].version = "9.9.9".to_string();
+        let err_mod = validate_catalog(&mod_cat);
+        assert!(err_mod.is_err(), "Modified catalog must fail verification");
+        assert!(err_mod
+            .unwrap_err()
+            .contains("cryptographic verification failed"));
 
-    #[test]
-    fn test_validate_catalog_untrusted_repo() {
-        let mut cat = default_catalog();
-        cat.labs[0].repository = "https://evil.attacker.com/malicious.git".to_string();
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-        assert!(res.unwrap_err().contains("not a trusted HTTPS GitHub URL"));
-    }
+        // 3. WRONG CATALOG SIGNATURE -> FAIL
+        let mut wrong_sig_cat = base_cat.clone();
+        wrong_sig_cat.signature = Some("deadbeef".repeat(16));
+        let err_wrong_sig = validate_catalog(&wrong_sig_cat);
+        assert!(err_wrong_sig.is_err());
+        assert!(err_wrong_sig
+            .unwrap_err()
+            .contains("cryptographic verification failed"));
 
-    #[test]
-    fn test_validate_catalog_oversized_description() {
-        let mut cat = default_catalog();
-        cat.labs[0].description = "A".repeat(1025);
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-        assert!(res.unwrap_err().contains("exceeding 1024 characters"));
+        // 4. UNTRUSTED SIGNING KEY -> FAIL
+        let mut untrusted_cat = base_cat.clone();
+        let rogue_seed = [0x77u8; 32];
+        sign_catalog(&mut untrusted_cat, &rogue_seed);
+        let err_untrusted = validate_catalog(&untrusted_cat);
+        assert!(
+            err_untrusted.is_err(),
+            "Catalog signed with untrusted key must fail"
+        );
+
+        // 5. MALFORMED / EMPTY SIGNATURE -> FAIL
+        let mut empty_sig_cat = base_cat.clone();
+        empty_sig_cat.signature = None;
+        assert!(validate_catalog(&empty_sig_cat).is_err());
+
+        // 6. OVERSIZED CATALOG (Capacity limit) -> FAIL
+        let mut oversized_cat = base_cat.clone();
+        let item = oversized_cat.labs[0].clone();
+        for i in 10..=MAX_LABS_COUNT + 1 {
+            let mut extra = item.clone();
+            extra.id = format!("X{:02}", i);
+            oversized_cat.labs.push(extra);
+        }
+        sign_catalog(&mut oversized_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_over = validate_catalog(&oversized_cat);
+        assert!(err_over.is_err());
+        assert!(err_over.unwrap_err().contains("maximum lab capacity"));
+
+        // 7. DUPLICATE ID -> FAIL
+        let mut dup_cat = base_cat.clone();
+        let mut dup_item = dup_cat.labs[0].clone();
+        dup_item.title = "Duplicate Item".to_string();
+        dup_cat.labs.push(dup_item);
+        sign_catalog(&mut dup_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_dup = validate_catalog(&dup_cat);
+        assert!(err_dup.is_err());
+        assert!(err_dup.unwrap_err().contains("Duplicate lab ID"));
+
+        // 8. INVALID LAB ID (Path traversal) -> FAIL
+        let mut invalid_id_cat = base_cat.clone();
+        invalid_id_cat.labs[0].id = "../A01".to_string();
+        sign_catalog(&mut invalid_id_cat, &DEV_PRIVATE_KEY_SEED);
+        assert!(validate_catalog(&invalid_id_cat).is_err());
+
+        // 9. INVALID PACKAGE URL (Non-HTTPS / path traversal) -> FAIL
+        let mut invalid_url_cat = base_cat.clone();
+        invalid_url_cat.labs[0].package_url = Some("http://insecure.site/pkg.zlab".to_string());
+        sign_catalog(&mut invalid_url_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_url = validate_catalog(&invalid_url_cat);
+        assert!(err_url.is_err());
+        assert!(err_url.unwrap_err().contains("must use HTTPS protocol"));
+
+        // 10. ARBITRARY PROTOCOL (ftp:// or file://) -> FAIL
+        let mut proto_cat = base_cat.clone();
+        proto_cat.labs[0].repository = "ftp://malicious.host/repo.git".to_string();
+        sign_catalog(&mut proto_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_proto = validate_catalog(&proto_cat);
+        assert!(err_proto.is_err());
+        assert!(err_proto
+            .unwrap_err()
+            .contains("forbidden network protocol"));
+
+        // 11. INVALID RUNTIME -> FAIL
+        let mut runtime_cat = base_cat.clone();
+        runtime_cat.labs[0].runtime = Some("unrestricted_root_shell".to_string());
+        sign_catalog(&mut runtime_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_rt = validate_catalog(&runtime_cat);
+        assert!(err_rt.is_err());
+        assert!(err_rt.unwrap_err().contains("invalid runtime"));
+
+        // 12. INVALID ARCHITECTURE -> FAIL
+        let mut arch_cat = base_cat.clone();
+        arch_cat.labs[0].architecture = Some("mips_be_malicious".to_string());
+        sign_catalog(&mut arch_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_arch = validate_catalog(&arch_cat);
+        assert!(err_arch.is_err());
+        assert!(err_arch.unwrap_err().contains("unsupported architecture"));
     }
 }

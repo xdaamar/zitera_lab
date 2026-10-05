@@ -168,12 +168,22 @@ pub struct CatalogLabItem {
     pub difficulty: String,
     pub owasp: String,
     pub description: String,
+    #[serde(default)]
+    pub runtime: Option<String>,
+    #[serde(default)]
+    pub architecture: Option<String>,
+    #[serde(default)]
+    pub package_url: Option<String>,
+    #[serde(default)]
+    pub package_sha256: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Catalog {
     pub schema_version: u32,
     pub labs: Vec<CatalogLabItem>,
+    #[serde(default)]
+    pub signature: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
