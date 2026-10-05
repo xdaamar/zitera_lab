@@ -1498,4 +1498,140 @@ mod tests {
             "A06 must report stopped after stop_lab"
         );
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a02_native_sandbox_lifecycle_and_challenge() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let a02_bin = repo_root
+            .join("labs")
+            .join("A02")
+            .join("bin")
+            .join("a02-lab.exe");
+        if !a02_bin.exists() {
+            let built_bin = repo_root
+                .join("engine")
+                .join("rust")
+                .join("target")
+                .join("debug")
+                .join("a02_lab.exe");
+            if built_bin.exists() {
+                let _ = fs::create_dir_all(a02_bin.parent().unwrap());
+                let _ = fs::copy(&built_bin, &a02_bin);
+            }
+        }
+        if !a02_bin.exists() {
+            eprintln!("Skipping test: a02-lab.exe not deployed yet");
+            return;
+        }
+
+        let _ = stop_lab(&repo_root, "A02");
+
+        // 1. Status before start
+        let st_init = get_lab_status(&repo_root, "A02");
+        assert!(st_init.installed, "A02 must be installed");
+        assert!(!st_init.running, "A02 should not be running initially");
+
+        // 2. Start A02
+        let start_res = start_lab(&repo_root, "A02");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A02");
+        assert!(st_running.running, "A02 must report running");
+        assert!(st_running.url.is_some(), "A02 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. GET / -> OpsGateway portal
+        let req_root = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_root = send_req(&req_root);
+        assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_root.contains("OpsGateway"));
+
+        // 5. GET /debug/vars -> Unauthenticated debug endpoint (misconfiguration)
+        let req_debug = format!(
+            "GET /session/{}/debug/vars HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_debug = send_req(&req_debug);
+        assert!(resp_debug.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_debug.contains("backup_path"));
+        assert!(resp_debug.contains("debug_mode"));
+
+        // 6. GET /backups/ -> Directory listing (misconfiguration)
+        let req_backups = format!(
+            "GET /session/{}/backups/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_backups = send_req(&req_backups);
+        assert!(resp_backups.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_backups.contains("backup_config.json.bak"));
+
+        // 7. GET /backups/backup_config.json.bak -> Flag extraction
+        let req_bak = format!(
+            "GET /session/{}/backups/backup_config.json.bak HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_bak = send_req(&req_bak);
+        assert!(resp_bak.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_bak.contains("ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}"));
+
+        // 8. POST /login with default credentials -> Misconfiguration exploit
+        let login_body = "username=admin&password=admin";
+        let req_login = format!(
+            "POST /session/{}/login HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, login_body.len(), login_body
+        );
+        let resp_login = send_req(&req_login);
+        assert!(resp_login.starts_with("HTTP/1.1 302"));
+        assert!(resp_login.contains("ops_session"));
+
+        // 9. Validate Challenge submission
+        let verif =
+            validate_challenge(&repo_root, "A02", "ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}")
+                .unwrap();
+        assert_eq!(
+            verif.status, "passed",
+            "Challenge flag must pass validation"
+        );
+
+        // 10. Stop A02
+        let stop_res = stop_lab(&repo_root, "A02");
+        assert!(stop_res.is_ok());
+
+        // 11. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A02");
+        assert!(
+            !st_stopped.running,
+            "A02 must report stopped after stop_lab"
+        );
+    }
 }
