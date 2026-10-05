@@ -38,9 +38,10 @@ pub fn safe_subpath(
 }
 
 pub fn read_manifest(lab_dir: &Path) -> Result<LabManifest, String> {
-    let manifest_path = lab_dir.join("manifest.json");
+    let effective_dir = crate::package::resolve_effective_lab_dir(lab_dir);
+    let manifest_path = effective_dir.join("manifest.json");
     if !manifest_path.exists() {
-        return Err(format!("manifest.json not found in {:?}", lab_dir));
+        return Err(format!("manifest.json not found in {:?}", effective_dir));
     }
     let data = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read manifest at {:?}: {}", manifest_path, e))?;
@@ -856,9 +857,10 @@ pub fn get_lab_content(
     }
 
     let manifest = read_manifest(&lab_dir)?;
+    let effective_dir = crate::package::resolve_effective_lab_dir(&lab_dir);
 
     // Read lesson files - both standard keys and any additional dynamic markdown sections
-    let lesson_dir = lab_dir.join("lesson");
+    let lesson_dir = effective_dir.join("lesson");
     let mut lessons = std::collections::HashMap::new();
 
     if let Ok(entries) = fs::read_dir(&lesson_dir) {
@@ -881,7 +883,7 @@ pub fn get_lab_content(
     }
 
     // Read challenge objective
-    let challenge_path = lab_dir.join("challenge").join("challenge.md");
+    let challenge_path = effective_dir.join("challenge").join("challenge.md");
     let challenge_objective = if challenge_path.exists() {
         safe_read_file(&challenge_path).unwrap_or_default()
     } else {
@@ -889,7 +891,7 @@ pub fn get_lab_content(
     };
 
     // Read progressive hints (stripping secret flag)
-    let hints_path = lab_dir.join("challenge").join("hints.json");
+    let hints_path = effective_dir.join("challenge").join("hints.json");
     let mut progressive_hints = Vec::new();
     if hints_path.exists() {
         if let Ok(raw_json) = safe_read_file(&hints_path) {

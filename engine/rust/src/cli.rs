@@ -349,6 +349,56 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
             }
         }
+        "install-package" | "update-package" => {
+            let pkg_path_str = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            if pkg_path_str.is_empty() {
+                if json {
+                    let resp: ApiResponse<()> = ApiResponse::err(
+                        "lab.install_package",
+                        "MISSING_PACKAGE_PATH",
+                        "Package file path required".to_string(),
+                        false,
+                    );
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    eprintln!("Error: package file path required. Usage: zitera lab install-package <path.zlab>");
+                }
+                return;
+            }
+            let pkg_path = PathBuf::from(pkg_path_str);
+            match crate::package::install_or_update_package(&pkg_path, workspace_root) {
+                Ok(report) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok(
+                                "lab.install_package",
+                                report
+                            ))
+                            .unwrap()
+                        );
+                    } else {
+                        println!(
+                            "[SUCCESS] Installed lab {} version {} (active: {})",
+                            report.lab_id, report.new_version, report.active_path
+                        );
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err(
+                            "lab.install_package",
+                            "PACKAGE_INSTALL_FAILED",
+                            e,
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] Package installation failed: {}", e);
+                    }
+                }
+            }
+        }
         "remove" => {
             let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
             match labs::remove_lab(workspace_root, id) {
@@ -669,6 +719,7 @@ fn print_help(json: bool) {
         println!("  lab stop <id>          Stop a lab environment");
         println!("  lab reset <id>         Deterministically reset a lab environment");
         println!("  lab update <id>        Update a lab environment to latest version");
+        println!("  lab install-package <file> Install or update lab from .zlab package");
         println!("  lab remove <id>        Remove an installed lab");
         println!("  terminal [--lab <id>] <cmd> Execute safe command in Zitera Terminal");
         println!("  catalog                Show central catalog");

@@ -113,6 +113,22 @@ pub struct LabManifest {
     pub modes: Vec<String>,
     #[serde(default)]
     pub requirements: Option<LabRequirements>,
+    #[serde(default)]
+    pub architecture: Option<String>,
+    #[serde(default)]
+    pub permissions: Vec<String>,
+    #[serde(default)]
+    pub lesson: Option<String>,
+    #[serde(default)]
+    pub practice: Option<String>,
+    #[serde(default)]
+    pub challenge: Option<String>,
+    #[serde(default)]
+    pub package_size: Option<u64>,
+    #[serde(default)]
+    pub sha256: Option<String>,
+    #[serde(default)]
+    pub signature: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

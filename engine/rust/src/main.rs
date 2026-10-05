@@ -4,6 +4,7 @@ mod cli;
 mod labs;
 mod models;
 pub mod native_runtime;
+pub mod package;
 mod process;
 mod system;
 pub mod terminal;
