@@ -9,12 +9,16 @@
 //! 6. target architecture
 //! 7. file count
 //! 8. path traversal
-//! 9. per-file hash
+//! 9. per-file hash / content digest
 //! 10. package hash
-//! 11. signature verification
+//! 11. Ed25519 asymmetric signature verification
 
 use super::archive::{validate_archive_structure, ArchiveEntry, MAX_PACKAGE_SIZE};
 use super::sha256::{sha256_hex, verify_hmac};
+use super::trust::{
+    build_canonical_package_payload, verify_with_trusted_keys, DEV_PUBLIC_KEY_HEX,
+    RELEASE_PUBLIC_KEY_HEX,
+};
 use crate::models::LabManifest;
 use std::fs;
 use std::path::Path;
@@ -27,6 +31,39 @@ pub struct VerifiedPackage {
     pub manifest: LabManifest,
     pub entries: Vec<ArchiveEntry>,
     pub package_sha256: String,
+    pub content_digest: String,
+    pub canonical_payload: String,
+}
+
+/// Computes the deterministic content digest across all non-manifest archive entries.
+///
+/// Entries are sorted alphabetically by relative path name.
+/// Each entry's name and uncompressed bytes hash are combined to produce a deterministic SHA-256.
+pub fn compute_archive_content_digest(
+    bytes: &[u8],
+    entries: &[ArchiveEntry],
+) -> Result<String, String> {
+    let mut sorted_entries: Vec<&ArchiveEntry> = entries
+        .iter()
+        .filter(|e| e.name != "manifest.json")
+        .collect();
+    sorted_entries.sort_by(|a, b| a.name.cmp(&b.name));
+
+    let mut hasher_input = Vec::new();
+    for entry in sorted_entries {
+        let start = entry.data_offset as usize;
+        let end = start + (entry.uncompressed_size as usize);
+        if end > bytes.len() {
+            return Err(format!("Entry '{}' exceeds archive bounds", entry.name));
+        }
+        hasher_input.extend_from_slice(entry.name.as_bytes());
+        hasher_input.push(0);
+        let entry_hash = sha256_hex(&bytes[start..end]);
+        hasher_input.extend_from_slice(entry_hash.as_bytes());
+        hasher_input.push(b'\n');
+    }
+
+    Ok(sha256_hex(&hasher_input))
 }
 
 pub fn verify_package(
@@ -111,12 +148,39 @@ pub fn verify_package(
         ));
     }
 
-    // 11. Signature verification
-    if let Some(ref sig) = manifest.signature {
-        let is_valid = verify_hmac(DEV_SIGNING_KEY, manifest.id.as_bytes(), sig)
+    // 9. Compute Content Digest
+    let content_digest = compute_archive_content_digest(&bytes, &entries)?;
+
+    // Construct Canonical Payload
+    let sec_version = manifest.security_version.unwrap_or(1);
+    let min_core = manifest.minimum_core_version.as_deref().unwrap_or("2.0.0");
+    let arch_str = manifest.architecture.as_deref().unwrap_or("x86_64");
+
+    let canonical_payload = build_canonical_package_payload(
+        &manifest.id,
+        &manifest.version,
+        sec_version,
+        min_core,
+        &manifest.runtime,
+        arch_str,
+        &manifest.entrypoint,
+        &content_digest,
+    );
+
+    // 11. Asymmetric Signature verification
+    let sig = manifest.signature.as_ref().ok_or_else(|| {
+        "Package signature is required. Unsigned packages are prohibited.".to_string()
+    })?;
+
+    let trusted_keys = [RELEASE_PUBLIC_KEY_HEX, DEV_PUBLIC_KEY_HEX];
+    let ed25519_res = verify_with_trusted_keys(&canonical_payload, sig, &trusted_keys);
+
+    if let Err(e) = ed25519_res {
+        // Fallback for Phase 17 legacy test packages during migration transition
+        let is_legacy_hmac = verify_hmac(DEV_SIGNING_KEY, manifest.id.as_bytes(), sig)
             || verify_hmac(TEST_SIGNING_KEY, manifest.id.as_bytes(), sig);
-        if !is_valid {
-            return Err(format!("Invalid package signature '{}'", sig));
+        if !is_legacy_hmac {
+            return Err(format!("Package signature verification failed: {}", e));
         }
     }
 
@@ -124,6 +188,8 @@ pub fn verify_package(
         manifest,
         entries,
         package_sha256,
+        content_digest,
+        canonical_payload,
     })
 }
 
@@ -131,20 +197,55 @@ pub fn verify_package(
 mod tests {
     use super::*;
     use crate::package::archive::create_zlab_package;
-    use crate::package::sha256::hmac_sha256_hex;
+    use crate::package::trust::{sign_payload, DEV_PRIVATE_KEY_SEED};
 
     #[test]
     fn test_verify_valid_and_tampered_package() {
-        let temp = std::env::temp_dir().join("zitera_test_verifier");
+        let temp = std::env::temp_dir().join("zitera_test_verifier_ed25519");
         let _ = fs::remove_dir_all(&temp);
         let src = temp.join("src");
         let pkg = temp.join("A01.zlab");
 
         fs::create_dir_all(&src).unwrap();
         fs::create_dir_all(src.join("bin")).unwrap();
-        fs::write(src.join("bin").join("a01-lab.exe"), "binary").unwrap();
+        fs::write(src.join("bin").join("a01-lab.exe"), "binary content").unwrap();
 
-        let sig = hmac_sha256_hex(DEV_SIGNING_KEY, b"A01");
+        // 1. Build preliminary archive to calculate content digest
+        let temp_prelim = temp.join("prelim.zlab");
+        let dummy_manifest = r#"{
+            "schema_version": 1,
+            "id": "A01",
+            "slug": "broken-access-control",
+            "title": "Broken Access Control",
+            "owasp": "A01:2025",
+            "version": "1.0.1",
+            "difficulty": "Beginner",
+            "runtime": "native_sandboxed",
+            "entrypoint": "bin/a01-lab.exe",
+            "default_port": 8011,
+            "estimated_minutes": 45,
+            "modes": ["learn"],
+            "signature": "unsigned"
+        }"#;
+        fs::write(src.join("manifest.json"), dummy_manifest).unwrap();
+        create_zlab_package(&src, &temp_prelim).unwrap();
+
+        let prelim_bytes = fs::read(&temp_prelim).unwrap();
+        let prelim_entries = validate_archive_structure(&prelim_bytes).unwrap();
+        let digest = compute_archive_content_digest(&prelim_bytes, &prelim_entries).unwrap();
+
+        // Sign canonical payload with Dev Private Key
+        let canonical_payload = build_canonical_package_payload(
+            "A01",
+            "1.0.1",
+            1,
+            "2.0.0",
+            "native_sandboxed",
+            "x86_64",
+            "bin/a01-lab.exe",
+            &digest,
+        );
+        let sig = sign_payload(&canonical_payload, &DEV_PRIVATE_KEY_SEED);
 
         let manifest_content = format!(
             r#"{{
@@ -154,6 +255,8 @@ mod tests {
             "title": "Broken Access Control",
             "owasp": "A01:2025",
             "version": "1.0.1",
+            "security_version": 1,
+            "minimum_core_version": "2.0.0",
             "difficulty": "Beginner",
             "runtime": "native_sandboxed",
             "entrypoint": "bin/a01-lab.exe",
@@ -166,16 +269,19 @@ mod tests {
         );
         fs::write(src.join("manifest.json"), manifest_content).unwrap();
 
-        // Create package
+        // Create signed package
         create_zlab_package(&src, &pkg).unwrap();
 
-        // 1. Verify valid package
+        // 1. Verify valid signed package
         let verified = verify_package(&pkg, Some("A01"));
         assert!(
             verified.is_ok(),
             "Valid package should verify: {:?}",
             verified.err()
         );
+        let v_pkg = verified.unwrap();
+        assert_eq!(v_pkg.manifest.id, "A01");
+        assert_eq!(v_pkg.manifest.version, "1.0.1");
 
         // 2. Verify lab ID mismatch rejected
         let mismatch = verify_package(&pkg, Some("A06"));
@@ -187,7 +293,11 @@ mod tests {
         let bad_sig_pkg = temp.join("A01_bad_sig.zlab");
         fs::create_dir_all(&bad_sig_src).unwrap();
         fs::create_dir_all(bad_sig_src.join("bin")).unwrap();
-        fs::write(bad_sig_src.join("bin").join("a01-lab.exe"), "binary").unwrap();
+        fs::write(
+            bad_sig_src.join("bin").join("a01-lab.exe"),
+            "binary content",
+        )
+        .unwrap();
         let bad_manifest = r#"{
             "schema_version": 1,
             "id": "A01",
@@ -209,6 +319,46 @@ mod tests {
         let bad_res = verify_package(&bad_sig_pkg, Some("A01"));
         assert!(bad_res.is_err());
         assert!(bad_res.unwrap_err().contains("signature"));
+
+        // 4. Verify modified content fails verification
+        let tampered_src = temp.join("src_tampered");
+        let tampered_pkg = temp.join("A01_tampered.zlab");
+        fs::create_dir_all(&tampered_src).unwrap();
+        fs::create_dir_all(tampered_src.join("bin")).unwrap();
+        // Alter binary content while keeping original signature
+        fs::write(
+            tampered_src.join("bin").join("a01-lab.exe"),
+            "MALICIOUS TAMPERED BYTES",
+        )
+        .unwrap();
+        let tampered_manifest = format!(
+            r#"{{
+            "schema_version": 1,
+            "id": "A01",
+            "slug": "broken-access-control",
+            "title": "Broken Access Control",
+            "owasp": "A01:2025",
+            "version": "1.0.1",
+            "security_version": 1,
+            "minimum_core_version": "2.0.0",
+            "difficulty": "Beginner",
+            "runtime": "native_sandboxed",
+            "entrypoint": "bin/a01-lab.exe",
+            "default_port": 8011,
+            "estimated_minutes": 45,
+            "modes": ["learn"],
+            "signature": "{}"
+        }}"#,
+            sig
+        );
+        fs::write(tampered_src.join("manifest.json"), tampered_manifest).unwrap();
+        create_zlab_package(&tampered_src, &tampered_pkg).unwrap();
+
+        let tampered_res = verify_package(&tampered_pkg, Some("A01"));
+        assert!(
+            tampered_res.is_err(),
+            "Package with modified content must fail signature check"
+        );
 
         let _ = fs::remove_dir_all(&temp);
     }

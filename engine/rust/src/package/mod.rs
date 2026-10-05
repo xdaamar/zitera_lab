@@ -5,10 +5,15 @@
 pub mod archive;
 pub mod installer;
 pub mod sha256;
+pub mod trust;
 pub mod verifier;
 
 pub use archive::{create_zlab_package, extract_zlab_archive, validate_archive_structure};
 pub use installer::{install_or_update_package, resolve_effective_lab_dir};
+pub use trust::{
+    build_canonical_package_payload, sign_payload, verify_signature, verify_with_trusted_keys,
+    DEV_PRIVATE_KEY_SEED, DEV_PUBLIC_KEY_HEX, RELEASE_PUBLIC_KEY_HEX,
+};
 pub use verifier::{verify_package, DEV_SIGNING_KEY, TEST_SIGNING_KEY};
 
 #[cfg(test)]

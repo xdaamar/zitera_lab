@@ -129,6 +129,10 @@ pub struct LabManifest {
     pub sha256: Option<String>,
     #[serde(default)]
     pub signature: Option<String>,
+    #[serde(default)]
+    pub security_version: Option<u32>,
+    #[serde(default)]
+    pub minimum_core_version: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
