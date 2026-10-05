@@ -6,8 +6,8 @@
   "owasp": "A01:2025",
   "version": "1.0.1",
   "difficulty": "Beginner",
-  "runtime": "docker",
-  "entrypoint": "docker/compose.yml",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a01-lab.exe",
   "default_port": 8011,
   "estimated_minutes": 45,
   "modes": [

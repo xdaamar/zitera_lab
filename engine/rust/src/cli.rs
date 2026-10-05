@@ -241,6 +241,13 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
             }
         }
+        "serve" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            if let Err(e) = labs::serve_lab(workspace_root, id) {
+                eprintln!("[ERROR] Failed to serve lab {}: {}", id, e);
+                std::process::exit(1);
+            }
+        }
         "stop" => {
             let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
             match labs::stop_lab(workspace_root, id) {

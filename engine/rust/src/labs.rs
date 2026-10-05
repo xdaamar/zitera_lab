@@ -127,6 +127,57 @@ pub fn validate_repo_url(url: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct LabRuntimeState {
+    pub pid: u32,
+    pub broker_pid: u32,
+    pub port: u16,
+    pub session_id: String,
+    pub entry_url: String,
+    pub started_at: u64,
+}
+
+pub fn is_process_alive(pid: u32) -> bool {
+    if pid == 0 {
+        return false;
+    }
+    #[cfg(windows)]
+    unsafe {
+        use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Threading::{
+            GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+        };
+        let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if h == 0 as _ {
+            return false;
+        }
+        let mut exit_code: u32 = 0;
+        let res = GetExitCodeProcess(h, &mut exit_code);
+        CloseHandle(h);
+        res != 0 && exit_code == 259 // STILL_ACTIVE = 259
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
+pub fn get_runtime_state(lab_dir: &Path) -> Option<LabRuntimeState> {
+    let state_file = lab_dir.join(".runtime.json");
+    if !state_file.exists() {
+        return None;
+    }
+    if let Ok(content) = fs::read_to_string(&state_file) {
+        if let Ok(state) = serde_json::from_str::<LabRuntimeState>(&content) {
+            if is_process_alive(state.broker_pid) {
+                return Some(state);
+            }
+        }
+    }
+    let _ = fs::remove_file(state_file);
+    None
+}
+
 pub fn get_lab_status(workspace_root: &Path, lab_id: &str) -> LabStatus {
     get_lab_status_cached(workspace_root, lab_id, None, None, None)
 }
@@ -192,13 +243,22 @@ pub fn get_lab_status_cached(
 
     match read_manifest(&lab_dir) {
         Ok(manifest) => {
-            let is_running = !crate::system::is_port_available(manifest.default_port);
-            let status_str = if is_running { "RUNNING" } else { "STOPPED" };
-            let url = if is_running {
-                Some(format!("http://127.0.0.1:{}", manifest.default_port))
+            let (is_running, port, url) = if manifest.runtime == "native_sandboxed" {
+                if let Some(rt) = get_runtime_state(&lab_dir) {
+                    (true, rt.port, Some(rt.entry_url))
+                } else {
+                    (false, 0, None)
+                }
             } else {
-                None
+                let running = !crate::system::is_port_available(manifest.default_port);
+                let u = if running {
+                    Some(format!("http://127.0.0.1:{}", manifest.default_port))
+                } else {
+                    None
+                };
+                (running, manifest.default_port, u)
             };
+            let status_str = if is_running { "RUNNING" } else { "STOPPED" };
 
             let (challenge_readiness, recommended_tools) = if let Some(req) = &manifest.requirements
             {
@@ -244,7 +304,7 @@ pub fn get_lab_status_cached(
                 title: manifest.title,
                 installed: true,
                 running: is_running,
-                port: manifest.default_port,
+                port,
                 url,
                 version: manifest.version,
                 status: status_str.to_string(),
@@ -334,6 +394,146 @@ pub fn list_all_labs(workspace_root: &Path) -> Vec<LabStatus> {
         .collect()
 }
 
+pub fn serve_lab(workspace_root: &Path, lab_id: &str) -> Result<(), String> {
+    use crate::broker::server::BrokerServer;
+    use crate::broker::session::BrokerSessionManager;
+    use crate::broker::transport::StdioLabChannel;
+    use crate::native_runtime::job::{JobLimits, JobObject};
+    use crate::native_runtime::process::{spawn_sandboxed_process, SandboxedProcessConfig};
+    use crate::native_runtime::profile::AppContainerProfile;
+    use crate::native_runtime::LabIdentity;
+    use std::sync::Arc;
+    use std::time::Duration;
+
+    validate_lab_id(lab_id)?;
+    let lab_dir = get_lab_dir(workspace_root, lab_id);
+    if !lab_dir.exists() {
+        return Err(format!("Lab {} is not installed.", lab_id));
+    }
+    let manifest = read_manifest(&lab_dir)?;
+    if manifest.runtime != "native_sandboxed" {
+        return Err(format!(
+            "Lab {} runtime is '{}', expected 'native_sandboxed'.",
+            lab_id, manifest.runtime
+        ));
+    }
+
+    let entrypoint_path = lab_dir.join(&manifest.entrypoint);
+    if !entrypoint_path.exists() {
+        let filename = entrypoint_path.file_name().unwrap_or_default();
+        let underscore_name = filename.to_str().unwrap_or("").replace('-', "_");
+        let target_debug = workspace_root
+            .join("engine/rust/target/debug")
+            .join(filename);
+        let target_release = workspace_root
+            .join("engine/rust/target/release")
+            .join(filename);
+        let target_debug_under = workspace_root
+            .join("engine/rust/target/debug")
+            .join(&underscore_name);
+        let target_release_under = workspace_root
+            .join("engine/rust/target/release")
+            .join(&underscore_name);
+
+        let found = if target_debug.exists() {
+            Some(target_debug)
+        } else if target_release.exists() {
+            Some(target_release)
+        } else if target_debug_under.exists() {
+            Some(target_debug_under)
+        } else if target_release_under.exists() {
+            Some(target_release_under)
+        } else {
+            None
+        };
+
+        if let Some(src) = found {
+            if let Some(parent) = entrypoint_path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            let _ = fs::copy(&src, &entrypoint_path);
+        } else {
+            return Err(format!(
+                "Lab entrypoint executable not found at {:?}",
+                entrypoint_path
+            ));
+        }
+    }
+
+    let identity = LabIdentity::new(lab_id).map_err(|e| e.to_string())?;
+    AppContainerProfile::create_or_open(&identity).map_err(|e| e.to_string())?;
+
+    let job =
+        JobObject::create(Some(&format!("ZITERA_LAB_{}", lab_id))).map_err(|e| e.to_string())?;
+    let limits = JobLimits {
+        kill_on_job_close: true,
+        active_process_limit: Some(16),
+        ..Default::default()
+    };
+    job.set_limits(&limits).map_err(|e| e.to_string())?;
+
+    let config = SandboxedProcessConfig {
+        executable: entrypoint_path,
+        arguments: vec![],
+        working_dir: lab_dir.clone(),
+        environment: std::collections::HashMap::new(),
+    };
+
+    let mut handle =
+        spawn_sandboxed_process(&identity, &config, Some(&job)).map_err(|e| e.to_string())?;
+    let (stdin_opt, stdout_opt) = handle.take_io();
+    let stdin = stdin_opt.ok_or_else(|| "Failed to capture stdin of lab process".to_string())?;
+    let stdout = stdout_opt.ok_or_else(|| "Failed to capture stdout of lab process".to_string())?;
+
+    let channel = Arc::new(StdioLabChannel::new(stdin, stdout));
+    let _ = channel
+        .wait_for_ready(Duration::from_secs(5))
+        .map_err(|e| format!("Lab readiness failed: {}", e))?;
+
+    let session_mgr = Arc::new(BrokerSessionManager::new(Duration::from_secs(3600)));
+    let session = session_mgr.create_session(lab_id, None);
+
+    let mut broker = BrokerServer::start(
+        Arc::clone(&session_mgr),
+        Arc::clone(&channel) as Arc<dyn crate::broker::server::LabRequestHandler>,
+    )
+    .map_err(|e| format!("Failed to start broker: {}", e))?;
+
+    let entry_url = broker.entry_url(&session.session_id);
+
+    let now_ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let state = LabRuntimeState {
+        pid: handle.pid,
+        broker_pid: std::process::id(),
+        port: broker.port(),
+        session_id: session.session_id.clone(),
+        entry_url: entry_url.clone(),
+        started_at: now_ts,
+    };
+
+    let state_file = lab_dir.join(".runtime.json");
+    let _ = fs::write(&state_file, serde_json::to_string_pretty(&state).unwrap());
+
+    println!("[READY] Lab {} running at {}", lab_id, entry_url);
+
+    // Keep running until child process exits or stops
+    while is_process_alive(handle.pid) {
+        std::thread::sleep(Duration::from_millis(200));
+    }
+
+    // Cleanup
+    let _ = channel.send_stop();
+    broker.stop();
+    let _ = fs::remove_file(state_file);
+    let _ = handle.wait();
+    let _ = AppContainerProfile::delete(&identity);
+    Ok(())
+}
+
 pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     validate_lab_id(lab_id)?;
     let lab_dir = get_lab_dir(workspace_root, lab_id);
@@ -345,18 +545,75 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
     }
     let manifest = read_manifest(&lab_dir)?;
 
-    if !crate::system::is_port_available(manifest.default_port) {
-        return Ok(format!(
-            "Lab {} is already running on port {}.",
-            lab_id, manifest.default_port
-        ));
-    }
+    if manifest.runtime == "native_sandboxed" {
+        if let Some(state) = get_runtime_state(&lab_dir) {
+            return Ok(format!(
+                "Lab {} is already running at {}.",
+                lab_id, state.entry_url
+            ));
+        }
 
-    // Phase 15 Architecture Freeze: Docker runtime purged, Native AppContainer runtime planned for Phase 16
-    Ok(format!(
-        "Lab {} runtime frozen in Phase 15. Native AppContainer sandbox runtime will be activated in Phase 16.",
-        lab_id
-    ))
+        let current_exe = std::env::current_exe()
+            .map_err(|e| format!("Failed to locate zitera-engine executable: {}", e))?;
+
+        let candidate_debug = workspace_root.join("engine/rust/target/debug/zitera-engine.exe");
+        let candidate_release = workspace_root.join("engine/rust/target/release/zitera-engine.exe");
+        let engine_exe = if candidate_debug.exists() {
+            candidate_debug
+        } else if candidate_release.exists() {
+            candidate_release
+        } else {
+            current_exe
+        };
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            const DETACHED_PROCESS: u32 = 0x00000008;
+
+            let mut cmd = std::process::Command::new(engine_exe);
+            cmd.args(["lab", "serve", lab_id]);
+            cmd.current_dir(workspace_root);
+            cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS);
+            cmd.spawn()
+                .map_err(|e| format!("Failed to launch lab broker background process: {}", e))?;
+        }
+
+        #[cfg(not(windows))]
+        {
+            let mut cmd = std::process::Command::new(current_exe);
+            cmd.args(["lab", "serve", lab_id]);
+            cmd.current_dir(workspace_root);
+            cmd.spawn()
+                .map_err(|e| format!("Failed to launch lab broker background process: {}", e))?;
+        }
+
+        // Wait up to 5 seconds for .runtime.json to be created and healthy
+        for _ in 0..50 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            if let Some(state) = get_runtime_state(&lab_dir) {
+                return Ok(format!("Lab {} started at {}", lab_id, state.entry_url));
+            }
+        }
+
+        Err(format!(
+            "Timed out waiting for Lab {} to initialize",
+            lab_id
+        ))
+    } else {
+        if !crate::system::is_port_available(manifest.default_port) {
+            return Ok(format!(
+                "Lab {} is already running on port {}.",
+                lab_id, manifest.default_port
+            ));
+        }
+
+        Ok(format!(
+            "Lab {} uses legacy runtime '{}' which is frozen in ZITERA 2.0.",
+            lab_id, manifest.runtime
+        ))
+    }
 }
 
 pub fn stop_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
@@ -365,7 +622,34 @@ pub fn stop_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
     if !lab_dir.exists() {
         return Err(format!("Lab {} is not installed.", lab_id));
     }
-    Ok(format!("Lab {} stopped.", lab_id))
+
+    if let Some(state) = get_runtime_state(&lab_dir) {
+        #[cfg(windows)]
+        unsafe {
+            use windows_sys::Win32::Foundation::CloseHandle;
+            use windows_sys::Win32::System::Threading::{
+                OpenProcess, TerminateProcess, PROCESS_TERMINATE,
+            };
+            if state.broker_pid != 0 {
+                let h_broker = OpenProcess(PROCESS_TERMINATE, 0, state.broker_pid);
+                if h_broker != 0 as _ {
+                    let _ = TerminateProcess(h_broker, 0);
+                    CloseHandle(h_broker);
+                }
+            }
+            if state.pid != 0 {
+                let h_child = OpenProcess(PROCESS_TERMINATE, 0, state.pid);
+                if h_child != 0 as _ {
+                    let _ = TerminateProcess(h_child, 0);
+                    CloseHandle(h_child);
+                }
+            }
+        }
+        let _ = fs::remove_file(lab_dir.join(".runtime.json"));
+        Ok(format!("Lab {} stopped.", lab_id))
+    } else {
+        Ok(format!("Lab {} is not running.", lab_id))
+    }
 }
 
 pub fn reset_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
@@ -377,7 +661,9 @@ pub fn reset_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
             lab_id
         ));
     }
-    Ok(format!("Lab {} reset completed (Phase 15 Freeze).", lab_id))
+    let _ = stop_lab(workspace_root, lab_id);
+    let _ = fs::remove_file(lab_dir.join(".runtime.json"));
+    Ok(format!("Lab {} reset completed.", lab_id))
 }
 
 pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> {
@@ -949,5 +1235,123 @@ mod tests {
         assert!(timing_safe_compare("flag{zitera_123}", "flag{zitera_123}"));
         assert!(!timing_safe_compare("flag{zitera_123}", "flag{zitera_456}"));
         assert!(!timing_safe_compare("flag{zitera_123}", "short"));
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a01_native_sandbox_lifecycle_and_challenge() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let a01_bin = repo_root
+            .join("labs")
+            .join("A01")
+            .join("bin")
+            .join("a01-lab.exe");
+        if !a01_bin.exists() {
+            let built_bin = repo_root
+                .join("engine")
+                .join("rust")
+                .join("target")
+                .join("debug")
+                .join("a01_lab.exe");
+            if built_bin.exists() {
+                let _ = fs::create_dir_all(a01_bin.parent().unwrap());
+                let _ = fs::copy(&built_bin, &a01_bin);
+            }
+        }
+        if !a01_bin.exists() {
+            eprintln!("Skipping test: a01-lab.exe not deployed yet");
+            return;
+        }
+
+        // Stop any previous run
+        let _ = stop_lab(&repo_root, "A01");
+
+        // 1. Initial status before start
+        let st_init = get_lab_status(&repo_root, "A01");
+        assert!(st_init.installed, "A01 must be installed");
+        assert!(!st_init.running, "A01 should not be running initially");
+
+        // 2. Start A01
+        let start_res = start_lab(&repo_root, "A01");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A01");
+        assert!(st_running.running, "A01 must report running");
+        assert!(st_running.url.is_some(), "A01 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        // Helper to send HTTP via TCP socket to the broker port
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. Test GET / -> Login portal
+        let req_root = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_root = send_req(&req_root);
+        assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_root.contains("Internal Financial Accounting Portal"));
+
+        // 5. Test POST /login -> Authenticate as alice
+        let login_body = "username=alice&password=password123";
+        let req_login = format!(
+            "POST /session/{}/login HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, login_body.len(), login_body
+        );
+        let resp_login = send_req(&req_login);
+        assert!(resp_login.starts_with("HTTP/1.1 302"));
+        assert!(resp_login.contains("session_user=user_sess_1"));
+
+        // 6. Test IDOR vulnerability: Access unowned Invoice #42
+        let req_invoice42 = format!(
+            "GET /session/{}/invoice/42 HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nCookie: session_user=user_sess_1\r\n\r\n",
+            token, port
+        );
+        let resp_inv42 = send_req(&req_invoice42);
+        assert!(resp_inv42.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_inv42.contains("FLAG: ZITERA{b10k3n_4cc355_c0ntr01_m45t3r}"));
+
+        // 7. Validate Challenge submission
+        let verif =
+            validate_challenge(&repo_root, "A01", "ZITERA{b10k3n_4cc355_c0ntr01_m45t3r}").unwrap();
+        assert_eq!(
+            verif.status, "passed",
+            "Challenge flag must pass validation"
+        );
+
+        // 8. Stop A01
+        let stop_res = stop_lab(&repo_root, "A01");
+        assert!(stop_res.is_ok());
+
+        // 9. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A01");
+        assert!(
+            !st_stopped.running,
+            "A01 must report stopped after stop_lab"
+        );
     }
 }

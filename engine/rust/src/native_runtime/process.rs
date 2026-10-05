@@ -383,21 +383,30 @@ pub fn spawn_sandboxed_process(
     // 5. Build Environment Block (Cleaned, explicit allowlist, Rule 27)
     let mut env_block: Vec<u16> = Vec::new();
     let mut env_map = config.environment.clone();
-    if !env_map.contains_key("SystemRoot") {
-        if let Ok(sr) = std::env::var("SystemRoot") {
-            env_map.insert("SystemRoot".to_string(), sr);
-        }
-    }
-    if !env_map.contains_key("PATH") {
-        if let Ok(p) = std::env::var("PATH") {
-            env_map.insert("PATH".to_string(), p);
+    let standard_vars = [
+        "SystemRoot",
+        "SystemDrive",
+        "windir",
+        "PATH",
+        "TEMP",
+        "TMP",
+        "LOCALAPPDATA",
+        "USERPROFILE",
+        "ALLUSERSPROFILE",
+        "ProgramData",
+    ];
+    for var_name in &standard_vars {
+        if !env_map.contains_key(*var_name) {
+            if let Ok(val) = std::env::var(var_name) {
+                env_map.insert(var_name.to_string(), val);
+            }
         }
     }
 
     let mut keys: Vec<String> = env_map.keys().cloned().collect();
     keys.sort_by_key(|a| a.to_uppercase());
-    for k in keys {
-        let v = &env_map[&k];
+    for k in &keys {
+        let v = &env_map[k];
         let entry = format!("{}={}\0", k, v);
         env_block.extend(entry.encode_utf16());
     }
