@@ -7,7 +7,7 @@ Portal audit transaksi di `http://127.0.0.1:8019` memiliki kelemahan mendasar da
 Identifikasi titik buta pada sistem logging dan alerting untuk mengekstraksi flag otorisasi pemantauan.
 
 ### LINGKUNGAN TARGET
-- **Base URL:** `http://127.0.0.1:8019`
+- Base URL: `http://127.0.0.1:8019`
 
 ### FORMAT SUBMISSION FLAG
 `ZITERA{...}`
