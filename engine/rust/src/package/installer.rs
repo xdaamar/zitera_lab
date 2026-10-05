@@ -2,6 +2,8 @@
 //!
 //! Implements Contract V3 Versioned Installation & Update Model:
 //! - Full pre-extraction security verification
+//! - Anti-downgrade protection (security_version & version monotonic checks)
+//! - Minimum core version compatibility validation
 //! - Safe extraction to staging directory
 //! - Atomic version activation (`labs/<ID>/active_version.txt`)
 //! - Non-destructive rollback: old version remains intact upon any failure
@@ -9,8 +11,11 @@
 use super::archive::extract_zlab_archive;
 use super::verifier::verify_package;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+pub const CURRENT_CORE_VERSION: &str = "2.0.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstallReport {
@@ -22,24 +27,94 @@ pub struct InstallReport {
     pub active_path: String,
 }
 
+/// Parses a semantic version string into (major, minor, patch).
+pub fn parse_semver(v: &str) -> (u32, u32, u32) {
+    let clean = v.trim().trim_start_matches('v');
+    let mut parts = clean.split('.');
+    let major = parts.next().and_then(|p| p.parse().ok()).unwrap_or(0);
+    let minor = parts.next().and_then(|p| p.parse().ok()).unwrap_or(0);
+    let patch = parts
+        .next()
+        .and_then(|p| p.split('-').next().and_then(|x| x.parse().ok()))
+        .unwrap_or(0);
+    (major, minor, patch)
+}
+
+/// Compares two semantic version strings.
+pub fn compare_semver(v1: &str, v2: &str) -> Ordering {
+    let (maj1, min1, pat1) = parse_semver(v1);
+    let (maj2, min2, pat2) = parse_semver(v2);
+    (maj1, min1, pat1).cmp(&(maj2, min2, pat2))
+}
+
 pub fn install_or_update_package(
     package_path: &Path,
     workspace_root: &Path,
+) -> Result<InstallReport, String> {
+    install_or_update_package_with_policy(package_path, workspace_root, false)
+}
+
+pub fn install_or_update_package_with_policy(
+    package_path: &Path,
+    workspace_root: &Path,
+    allow_downgrade: bool,
 ) -> Result<InstallReport, String> {
     // 1. Verify package security before touching any lab state
     let verified = verify_package(package_path, None)?;
     let lab_id = verified.manifest.id.to_uppercase();
     let version = verified.manifest.version.clone();
 
+    // Check minimum core version compatibility
+    if let Some(ref min_core) = verified.manifest.minimum_core_version {
+        if compare_semver(CURRENT_CORE_VERSION, min_core) == Ordering::Less {
+            return Err(format!(
+                "Incompatible core version: package requires core version {} or higher (current: {})",
+                min_core, CURRENT_CORE_VERSION
+            ));
+        }
+    }
+
     let lab_dir = workspace_root.join("labs").join(&lab_id);
     let _ = fs::create_dir_all(&lab_dir);
 
-    // Read current active version if present
+    // Anti-Downgrade Protection: check currently active installation
     let active_marker = lab_dir.join("active_version.txt");
     let prev_version = fs::read_to_string(&active_marker)
         .ok()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
+
+    let installed_dir = resolve_effective_lab_dir(&lab_dir);
+    let installed_manifest_path = installed_dir.join("manifest.json");
+    if installed_manifest_path.exists() {
+        if let Ok(content) = fs::read_to_string(&installed_manifest_path) {
+            if let Ok(installed_manifest) =
+                serde_json::from_str::<crate::models::LabManifest>(&content)
+            {
+                let installed_sec_ver = installed_manifest.security_version.unwrap_or(1);
+                let incoming_sec_ver = verified.manifest.security_version.unwrap_or(1);
+
+                // Anti-downgrade rule 1: security_version must never decrease
+                if incoming_sec_ver < installed_sec_ver && !allow_downgrade {
+                    return Err(format!(
+                        "Anti-downgrade violation: incoming security version ({}) is lower than installed security version ({})",
+                        incoming_sec_ver, installed_sec_ver
+                    ));
+                }
+
+                // Anti-downgrade rule 2: package version must never decrease unless downgrade authorized
+                if compare_semver(&verified.manifest.version, &installed_manifest.version)
+                    == Ordering::Less
+                    && !allow_downgrade
+                {
+                    return Err(format!(
+                        "Downgrade rejected: incoming version ({}) is lower than installed version ({})",
+                        verified.manifest.version, installed_manifest.version
+                    ));
+                }
+            }
+        }
+    }
 
     // 2. Extract into staging directory
     let staging_dir = lab_dir.join(format!("staging_{}", std::process::id()));
@@ -136,4 +211,167 @@ pub fn resolve_effective_lab_dir(lab_dir: &Path) -> PathBuf {
         }
     }
     lab_dir.to_path_buf()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::package::archive::create_zlab_package;
+    use crate::package::trust::{
+        build_canonical_package_payload, sign_payload, DEV_PRIVATE_KEY_SEED,
+    };
+    use crate::package::verifier::compute_archive_content_digest;
+
+    fn build_test_package_signed(dest_pkg: &Path, id: &str, version: &str, sec_version: u32) {
+        let temp_dir = dest_pkg.with_extension("stage_build");
+        let _ = fs::remove_dir_all(&temp_dir);
+        fs::create_dir_all(temp_dir.join("bin")).unwrap();
+        fs::write(temp_dir.join("bin").join("lab.exe"), "binary").unwrap();
+
+        // 1. Prelim archive to calculate digest
+        let prelim_pkg = dest_pkg.with_extension("prelim.zlab");
+        let dummy = r#"{"schema_version":1,"id":"A05","slug":"inj","title":"Inj","owasp":"A05","version":"1.0.0","difficulty":"B","runtime":"native_sandboxed","entrypoint":"bin/lab.exe","default_port":8015,"estimated_minutes":30,"modes":["learn"],"signature":"unsigned"}"#;
+        fs::write(temp_dir.join("manifest.json"), dummy).unwrap();
+        create_zlab_package(&temp_dir, &prelim_pkg).unwrap();
+
+        let bytes = fs::read(&prelim_pkg).unwrap();
+        let entries = super::super::archive::validate_archive_structure(&bytes).unwrap();
+        let digest = compute_archive_content_digest(&bytes, &entries).unwrap();
+        let _ = fs::remove_file(&prelim_pkg);
+
+        // Sign canonical payload
+        let canonical_payload = build_canonical_package_payload(
+            id,
+            version,
+            sec_version,
+            "2.0.0",
+            "native_sandboxed",
+            "x86_64",
+            "bin/lab.exe",
+            &digest,
+        );
+        let sig = sign_payload(&canonical_payload, &DEV_PRIVATE_KEY_SEED);
+
+        let manifest = format!(
+            r#"{{
+            "schema_version": 1,
+            "id": "{}",
+            "slug": "inj",
+            "title": "Injection",
+            "owasp": "A05:2025",
+            "version": "{}",
+            "security_version": {},
+            "minimum_core_version": "2.0.0",
+            "difficulty": "Beginner",
+            "runtime": "native_sandboxed",
+            "entrypoint": "bin/lab.exe",
+            "default_port": 8015,
+            "estimated_minutes": 30,
+            "modes": ["learn"],
+            "signature": "{}"
+        }}"#,
+            id, version, sec_version, sig
+        );
+        fs::write(temp_dir.join("manifest.json"), manifest).unwrap();
+        create_zlab_package(&temp_dir, dest_pkg).unwrap();
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_checkpoint_4_anti_downgrade_matrix() {
+        let temp = std::env::temp_dir().join("zitera_anti_downgrade_test");
+        let _ = fs::remove_dir_all(&temp);
+        let workspace = temp.join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+
+        let pkg_v100_s1 = temp.join("A05_1.0.0_s1.zlab");
+        let pkg_v101_s1 = temp.join("A05_1.0.1_s1.zlab");
+        let pkg_v101_s2 = temp.join("A05_1.0.1_s2.zlab");
+        let pkg_v110_s2 = temp.join("A05_1.1.0_s2.zlab");
+        let pkg_v101_s5 = temp.join("A05_1.0.1_s5.zlab");
+        let pkg_v101_s3 = temp.join("A05_1.0.1_s3.zlab");
+
+        build_test_package_signed(&pkg_v100_s1, "A05", "1.0.0", 1);
+        build_test_package_signed(&pkg_v101_s1, "A05", "1.0.1", 1);
+        build_test_package_signed(&pkg_v101_s2, "A05", "1.0.1", 2);
+        build_test_package_signed(&pkg_v110_s2, "A05", "1.1.0", 2);
+        build_test_package_signed(&pkg_v101_s5, "A05", "1.0.1", 5);
+        build_test_package_signed(&pkg_v101_s3, "A05", "1.0.1", 3);
+
+        // 1. Initial install 1.0.0 (security_version = 1) -> PASS
+        let rep1 = install_or_update_package(&pkg_v100_s1, &workspace);
+        assert!(rep1.is_ok(), "Initial install must succeed: {:?}", rep1);
+        assert_eq!(rep1.unwrap().new_version, "1.0.0");
+
+        // 2. 1.0.0 -> 1.0.1 (security_version = 1) -> PASS
+        let rep2 = install_or_update_package(&pkg_v101_s1, &workspace);
+        assert!(
+            rep2.is_ok(),
+            "1.0.0 -> 1.0.1 upgrade must succeed: {:?}",
+            rep2
+        );
+        assert_eq!(rep2.unwrap().new_version, "1.0.1");
+
+        // 3. 1.0.1 -> 1.1.0 (security_version = 2) -> PASS
+        let rep3 = install_or_update_package(&pkg_v110_s2, &workspace);
+        assert!(
+            rep3.is_ok(),
+            "1.0.1 -> 1.1.0 upgrade must succeed: {:?}",
+            rep3
+        );
+        assert_eq!(rep3.unwrap().new_version, "1.1.0");
+
+        // 4. 1.1.0 -> 1.0.1 with security_version 2 (version downgrade attempt) -> REJECT
+        let rep4 = install_or_update_package(&pkg_v101_s2, &workspace);
+        assert!(rep4.is_err(), "1.1.0 -> 1.0.1 downgrade must be rejected");
+        assert!(rep4.unwrap_err().contains("Downgrade rejected"));
+
+        // 5. Test security_version downgrade:
+        // Install security_version 5 (with downgrade allowed for test setup)
+        let rep5 = install_or_update_package_with_policy(&pkg_v101_s5, &workspace, true);
+        assert!(rep5.is_ok());
+
+        // Now attempt normal update with security_version 3 -> REJECT
+        let rep6 = install_or_update_package(&pkg_v101_s3, &workspace);
+        assert!(
+            rep6.is_err(),
+            "security_version 5 -> 3 rollback must be rejected"
+        );
+        assert!(rep6.unwrap_err().contains("Anti-downgrade violation"));
+
+        // 6. Forged version with old signature -> REJECT at verification layer
+        let tampered_pkg = temp.join("A05_forged.zlab");
+        let stage_forged = temp.join("stage_forged");
+        fs::create_dir_all(&stage_forged).unwrap();
+        fs::create_dir_all(stage_forged.join("bin")).unwrap();
+        fs::write(stage_forged.join("bin").join("lab.exe"), "binary").unwrap();
+        // Manifest claiming 2.0.0 but using signature for 1.0.0
+        let forged_manifest = r#"{
+            "schema_version": 1,
+            "id": "A05",
+            "slug": "inj",
+            "title": "Injection",
+            "owasp": "A05:2025",
+            "version": "2.0.0",
+            "security_version": 10,
+            "minimum_core_version": "2.0.0",
+            "difficulty": "Beginner",
+            "runtime": "native_sandboxed",
+            "entrypoint": "bin/lab.exe",
+            "default_port": 8015,
+            "estimated_minutes": 30,
+            "modes": ["learn"],
+            "signature": "3a48e7badsignature1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+        }"#;
+        fs::write(stage_forged.join("manifest.json"), forged_manifest).unwrap();
+        create_zlab_package(&stage_forged, &tampered_pkg).unwrap();
+
+        let rep_forged = install_or_update_package(&tampered_pkg, &workspace);
+        assert!(
+            rep_forged.is_err(),
+            "Forged version with invalid signature must be rejected"
+        );
+
+        let _ = fs::remove_dir_all(&temp);
+    }
 }
