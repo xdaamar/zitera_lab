@@ -7,7 +7,7 @@ Layanan verifikasi sesi di `http://127.0.0.1:8020` menerapkan penanganan kondisi
 Kirimkan request beranomali untuk memicu exception pada server target dan dapatkan flag otorisasi.
 
 ### LINGKUNGAN TARGET
-- **Base URL:** `http://127.0.0.1:8020`
+- Base URL: `http://127.0.0.1:8020`
 
 ### FORMAT SUBMISSION FLAG
 `ZITERA{...}`
