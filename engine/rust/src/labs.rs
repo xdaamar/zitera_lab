@@ -2385,4 +2385,104 @@ mod tests {
         let st_stopped = get_lab_status(&repo_root, "A09");
         assert!(!st_stopped.running, "A09 must report stopped after stop_lab");
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_a10_native_sandbox_lifecycle_and_challenge() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = manifest_dir
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let _ = stop_lab(&repo_root, "A10");
+
+        // 1. Status before start
+        let st_init = get_lab_status(&repo_root, "A10");
+        assert!(st_init.installed, "A10 must be installed");
+        assert!(!st_init.running, "A10 should not be running initially");
+
+        // 2. Start A10
+        let start_res = start_lab(&repo_root, "A10");
+        assert!(start_res.is_ok(), "start_lab must succeed: {:?}", start_res);
+
+        // 3. Status when running
+        let st_running = get_lab_status(&repo_root, "A10");
+        assert!(st_running.running, "A10 must report running");
+        assert!(st_running.url.is_some(), "A10 must have URL");
+        let entry_url = st_running.url.unwrap();
+        assert!(entry_url.starts_with("http://127.0.0.1:"));
+        assert!(entry_url.contains("/session/"));
+
+        let port = st_running.port;
+        let token = entry_url
+            .split("/session/")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches('/');
+
+        let send_req = |req_str: &str| -> String {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            stream.write_all(req_str.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).to_string()
+        };
+
+        // 4. GET /session/{token}/ -> Gate console
+        let req_index = format!(
+            "GET /session/{}/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            token, port
+        );
+        let resp_index = send_req(&req_index);
+        assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_index.contains("Zitera Gate // Fail-Open Evaluation"));
+
+        // 5. Practice verification initially -> failed (no exception induced)
+        let verif_pre = verify_practice(&repo_root, "A10").unwrap();
+        assert_eq!(verif_pre.status, "failed");
+
+        // 6. Test normal unauthorized token verification -> access denied, fail_open false
+        let normal_body = r#"{"token":"normal_unauthorized_token"}"#;
+        let req_normal = format!(
+            "POST /session/{}/api/gate/verify HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, normal_body.len(), normal_body
+        );
+        let resp_normal = send_req(&req_normal);
+        assert!(resp_normal.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_normal.contains(r#""authorized":false"#));
+        assert!(resp_normal.contains(r#""fail_open_state":false"#));
+
+        // 7. Induce exceptional condition / timeout -> fails open, reveals flag
+        let exc_body = r#"{"simulate_exception":"UPSTREAM_GATEWAY_TIMEOUT"}"#;
+        let req_exc = format!(
+            "POST /session/{}/api/gate/verify HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            token, port, exc_body.len(), exc_body
+        );
+        let resp_exc = send_req(&req_exc);
+        assert!(resp_exc.starts_with("HTTP/1.1 200 OK"));
+        assert!(resp_exc.contains(r#""authorized":true"#));
+        assert!(resp_exc.contains(r#""fail_open_state":true"#));
+        assert!(resp_exc.contains("ZITERA{f41l_0p3n_3xc3pt10n5_un4uth0r1z3d}"));
+
+        // 8. Practice verification after fail-open triggered -> passed
+        let verif_post = verify_practice(&repo_root, "A10").unwrap();
+        assert_eq!(verif_post.status, "passed");
+
+        // 9. Validate Challenge submission
+        let verif_chall = validate_challenge(&repo_root, "A10", "ZITERA{f41l_0p3n_3xc3pt10n5_un4uth0r1z3d}").unwrap();
+        assert_eq!(verif_chall.status, "passed", "Challenge flag must pass validation");
+
+        // 10. Stop A10
+        let stop_res = stop_lab(&repo_root, "A10");
+        assert!(stop_res.is_ok());
+
+        // 11. Status after stop
+        let st_stopped = get_lab_status(&repo_root, "A10");
+        assert!(!st_stopped.running, "A10 must report stopped after stop_lab");
+    }
 }
