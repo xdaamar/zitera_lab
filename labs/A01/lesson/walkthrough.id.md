@@ -16,10 +16,10 @@ Dalam latihan terarah ini, kamu akan mempelajari bagaimana parameter data dikiri
 
 ### Langkah 3: Periksa Lalu Lintas Jaringan (Network Inspection)
 - Buka menu Developer Tools di browser (tekan tombol F12 atau Ctrl + Shift + I).
-- Pilih tab **Network**, lalu refresh halaman.
+- Pilih tab Network, lalu refresh halaman.
 - Amati response data dan perhatikan bahwa nilai `id: 1` adalah representasi akun milik Alice.
 
 ### Langkah 4: Uji Manipulasi Objek (Parameter Tampering)
 - Ubah nilai parameter pada URL browser dari `/invoice/1` menjadi `/invoice/2`.
-- **Hasil Pengamatan:** Data faktur tagihan rahasia milik pengguna Bob langsung muncul di layar!
-- **Akar Masalah (Root Cause):** Backend langsung menjalankan query berdasarkan ID dari URL tanpa memverifikasi apakah akun pengguna yang sedang login (`session['user_id']`) adalah pemilik sah dari faktur nomor 2 tersebut.
+- Hasil Pengamatan: Data faktur tagihan rahasia milik pengguna Bob langsung muncul di layar!
+- Akar Masalah (Root Cause): Backend langsung menjalankan query berdasarkan ID dari URL tanpa memverifikasi apakah akun pengguna yang sedang login (`session['user_id']`) adalah pemilik sah dari faktur nomor 2 tersebut.
