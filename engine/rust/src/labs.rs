@@ -558,13 +558,12 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
             .map_err(|e| format!("Failed to locate zitera-engine executable: {}", e))?;
 
         let candidate_debug = workspace_root.join("engine/rust/target/debug/zitera-engine.exe");
-        let candidate_release = workspace_root.join("engine/rust/target/release/zitera-engine.exe");
-        let engine_exe = if candidate_debug.exists() {
-            candidate_debug
-        } else if candidate_release.exists() {
-            candidate_release
-        } else {
+        let engine_exe = if current_exe.exists() {
             current_exe
+        } else if candidate_debug.exists() {
+            candidate_debug
+        } else {
+            workspace_root.join("engine/rust/target/release/zitera-engine.exe")
         };
 
         #[cfg(windows)]
@@ -576,6 +575,9 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
             let mut cmd = std::process::Command::new(engine_exe);
             cmd.args(["lab", "serve", lab_id]);
             cmd.current_dir(workspace_root);
+            cmd.stdin(std::process::Stdio::null());
+            cmd.stdout(std::process::Stdio::null());
+            cmd.stderr(std::process::Stdio::null());
             cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS);
             cmd.spawn()
                 .map_err(|e| format!("Failed to launch lab broker background process: {}", e))?;
