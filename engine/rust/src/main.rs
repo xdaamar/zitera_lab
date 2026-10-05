@@ -1,3 +1,4 @@
+pub mod broker;
 mod catalog;
 mod cli;
 mod labs;
