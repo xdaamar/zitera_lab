@@ -68,7 +68,7 @@ pub fn install_or_update_package_with_policy(
     if let Some(ref min_core) = verified.manifest.minimum_core_version {
         if compare_semver(CURRENT_CORE_VERSION, min_core) == Ordering::Less {
             return Err(format!(
-                "Incompatible core version: package requires core version {} or higher (current: {})",
+                "This lab update requires a newer ZITERA_LAB core (requires {}, current: {}). Please update ZITERA_LAB before installing this lab.",
                 min_core, CURRENT_CORE_VERSION
             ));
         }
@@ -371,6 +371,76 @@ mod tests {
             rep_forged.is_err(),
             "Forged version with invalid signature must be rejected"
         );
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_checkpoint_4_incompatible_core_version_rejection() {
+        let temp = std::env::temp_dir().join("zitera_incompatible_core_test");
+        let _ = fs::remove_dir_all(&temp);
+        let workspace = temp.join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+
+        let pkg_future_core = temp.join("A01_future.zlab");
+        let stage = temp.join("stage_future");
+        let _ = fs::create_dir_all(&stage);
+        let _ = fs::create_dir_all(stage.join("bin"));
+        fs::write(stage.join("bin").join("lab.exe"), b"binary").unwrap();
+
+        // Prelim archive to calculate digest
+        let prelim_pkg = temp.join("prelim_future.zlab");
+        let dummy = r#"{"schema_version":1,"id":"A01","slug":"a01","title":"A01","owasp":"A01","version":"1.0.0","difficulty":"B","runtime":"native_sandboxed","entrypoint":"bin/lab.exe","default_port":8011,"estimated_minutes":30,"modes":["learn"],"signature":"unsigned"}"#;
+        fs::write(stage.join("manifest.json"), dummy).unwrap();
+        create_zlab_package(&stage, &prelim_pkg).unwrap();
+
+        let bytes = fs::read(&prelim_pkg).unwrap();
+        let entries = super::super::archive::validate_archive_structure(&bytes).unwrap();
+        let digest = compute_archive_content_digest(&bytes, &entries).unwrap();
+        let _ = fs::remove_file(&prelim_pkg);
+
+        // Package declares minimum_core_version = 99.0.0 (far newer than current 2.0.0)
+        let canonical = build_canonical_package_payload(
+            "A01",
+            "1.0.0",
+            1,
+            "99.0.0",
+            "native_sandboxed",
+            "x86_64",
+            "bin/lab.exe",
+            &digest,
+        );
+        let sig = sign_payload(&canonical, &DEV_PRIVATE_KEY_SEED);
+
+        let manifest = format!(
+            r#"{{
+            "schema_version": 1,
+            "id": "A01",
+            "slug": "a01",
+            "title": "A01",
+            "owasp": "A01:2025",
+            "version": "1.0.0",
+            "security_version": 1,
+            "minimum_core_version": "99.0.0",
+            "difficulty": "Beginner",
+            "runtime": "native_sandboxed",
+            "entrypoint": "bin/lab.exe",
+            "default_port": 8011,
+            "estimated_minutes": 30,
+            "modes": ["learn"],
+            "signature": "{}"
+        }}"#,
+            sig
+        );
+        fs::write(stage.join("manifest.json"), manifest).unwrap();
+        create_zlab_package(&stage, &pkg_future_core).unwrap();
+        let _ = fs::remove_dir_all(&stage);
+
+        let install_res = install_or_update_package(&pkg_future_core, &workspace);
+        assert!(install_res.is_err());
+        let err = install_res.unwrap_err();
+        assert!(err.contains("This lab update requires a newer ZITERA_LAB core"));
+        assert!(err.contains("requires 99.0.0, current: 2.0.0"));
 
         let _ = fs::remove_dir_all(&temp);
     }
