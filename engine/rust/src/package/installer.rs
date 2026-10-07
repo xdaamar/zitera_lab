@@ -202,9 +202,53 @@ pub fn get_active_version(lab_dir: &Path) -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
+/// Scans available version directories and reconciles active_version.txt if it is missing,
+/// corrupted, or pointing to a non-existent version directory.
+pub fn reconcile_lab_version(lab_dir: &Path) -> Option<String> {
+    let current_active = get_active_version(lab_dir);
+    if let Some(ref ver) = current_active {
+        let active_dir = lab_dir.join("versions").join(ver);
+        if active_dir.join("manifest.json").exists() {
+            return Some(ver.clone());
+        }
+    }
+
+    // Active version is missing or invalid: search versions/ directory for the highest valid version
+    let versions_dir = lab_dir.join("versions");
+    if !versions_dir.exists() {
+        return None;
+    }
+
+    let mut valid_versions: Vec<String> = Vec::new();
+    if let Ok(entries) = fs::read_dir(&versions_dir) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() && entry.path().join("manifest.json").exists() {
+                if let Some(name) = entry.file_name().to_str() {
+                    valid_versions.push(name.to_string());
+                }
+            }
+        }
+    }
+
+    if valid_versions.is_empty() {
+        return None;
+    }
+
+    // Sort descending by semantic version
+    valid_versions.sort_by(|a, b| compare_semver(b, a));
+    let recovered_version = valid_versions[0].clone();
+
+    // Reconcile marker and mirror
+    let _ = fs::write(lab_dir.join("active_version.txt"), &recovered_version);
+    let recovered_dir = versions_dir.join(&recovered_version);
+    let _ = copy_dir_all(&recovered_dir, lab_dir);
+
+    Some(recovered_version)
+}
+
 /// Returns the effective root directory for a lab (pointing to active version if set).
 pub fn resolve_effective_lab_dir(lab_dir: &Path) -> PathBuf {
-    if let Some(active) = get_active_version(lab_dir) {
+    if let Some(active) = reconcile_lab_version(lab_dir) {
         let version_path = lab_dir.join("versions").join(&active);
         if version_path.join("manifest.json").exists() {
             return version_path;
@@ -441,6 +485,45 @@ mod tests {
         let err = install_res.unwrap_err();
         assert!(err.contains("This lab update requires a newer ZITERA_LAB core"));
         assert!(err.contains("requires 99.0.0, current: 2.0.0"));
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_checkpoint_6_crash_recovery_and_auto_reconciliation() {
+        let temp = std::env::temp_dir().join("zitera_crash_recovery_test");
+        let _ = fs::remove_dir_all(&temp);
+        let workspace = temp.join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+
+        let pkg_v1 = temp.join("A01_v1.zlab");
+        let pkg_v2 = temp.join("A01_v2.zlab");
+
+        build_test_package_signed(&pkg_v1, "A01", "1.0.0", 1);
+        build_test_package_signed(&pkg_v2, "A01", "1.0.1", 1);
+
+        // Install 1.0.0 and 1.0.1
+        let _ = install_or_update_package(&pkg_v1, &workspace).unwrap();
+        let _ = install_or_update_package(&pkg_v2, &workspace).unwrap();
+
+        let lab_dir = workspace.join("labs").join("A01");
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+
+        // Simulate crash/corruption 1: active_version.txt deleted
+        let _ = fs::remove_file(lab_dir.join("active_version.txt"));
+        assert_eq!(get_active_version(&lab_dir), None);
+
+        // Self-healing: resolve_effective_lab_dir must auto-reconcile and recover 1.0.1
+        let effective = resolve_effective_lab_dir(&lab_dir);
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+        assert!(effective.ends_with("1.0.1"));
+        assert!(effective.join("manifest.json").exists());
+
+        // Simulate crash/corruption 2: active_version.txt points to non-existent version
+        fs::write(lab_dir.join("active_version.txt"), "9.9.9_corrupt").unwrap();
+        let effective2 = resolve_effective_lab_dir(&lab_dir);
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+        assert!(effective2.ends_with("1.0.1"));
 
         let _ = fs::remove_dir_all(&temp);
     }
