@@ -272,6 +272,18 @@ fn handle_request(
 }
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
+        println!("Zitera Sandboxed Lab A01 (Broken Access Control) v1.0.1");
+        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
+        println!("Usage: a01-lab.exe");
+        return;
+    }
+    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
+        println!("A01 v1.0.1 (native_sandboxed)");
+        return;
+    }
+
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
 

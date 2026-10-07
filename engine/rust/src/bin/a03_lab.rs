@@ -270,6 +270,18 @@ fn urlencoding_decode(input: &str) -> String {
 }
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
+        println!("Zitera Sandboxed Lab A03 (Software Supply Chain Failures) v{}", LAB_VERSION);
+        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
+        println!("Usage: a03-lab.exe");
+        return;
+    }
+    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
+        println!("A03 v{} (native_sandboxed)", LAB_VERSION);
+        return;
+    }
+
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
 
