@@ -98,6 +98,7 @@ pub fn validate_archive_structure(bytes: &[u8]) -> Result<Vec<ArchiveEntry>, Str
     }
 
     let mut entries = Vec::with_capacity(total_entries);
+    let mut seen_names = std::collections::HashSet::new();
     let mut cursor = cd_offset;
     let mut total_uncompressed: u64 = 0;
     let mut has_manifest = false;
@@ -140,6 +141,9 @@ pub fn validate_archive_structure(bytes: &[u8]) -> Result<Vec<ArchiveEntry>, Str
 
         // Security check on entry name
         validate_entry_name(&raw_name)?;
+        if !seen_names.insert(raw_name.clone()) {
+            return Err(format!("Invalid archive: duplicate entry '{}'", raw_name));
+        }
 
         total_uncompressed = total_uncompressed.saturating_add(uncomp_size);
         if total_uncompressed > MAX_UNCOMPRESSED_SIZE {
@@ -208,6 +212,13 @@ pub fn validate_entry_name(name: &str) -> Result<(), String> {
     if name.starts_with('/') {
         return Err(format!(
             "Archive entry '{}' specifies forbidden absolute path",
+            name
+        ));
+    }
+    // Reject UNC paths
+    if name.starts_with("//") {
+        return Err(format!(
+            "Archive entry '{}' specifies forbidden UNC path",
             name
         ));
     }

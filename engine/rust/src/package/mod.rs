@@ -14,13 +14,12 @@ pub use trust::{
     build_canonical_package_payload, sign_payload, verify_signature, verify_with_trusted_keys,
     DEV_PRIVATE_KEY_SEED, DEV_PUBLIC_KEY_HEX, RELEASE_PUBLIC_KEY_HEX,
 };
-pub use verifier::{verify_package, DEV_SIGNING_KEY, TEST_SIGNING_KEY};
+pub use verifier::verify_package;
 
 #[cfg(test)]
 mod tests {
     use super::installer::*;
     use super::*;
-    use crate::package::sha256::hmac_sha256_hex;
     use std::fs;
     use std::path::PathBuf;
 
@@ -33,29 +32,6 @@ mod tests {
         (temp, workspace)
     }
 
-    fn make_test_manifest(id: &str, version: &str, lesson_text: &str) -> (String, String) {
-        let sig = hmac_sha256_hex(DEV_SIGNING_KEY, id.as_bytes());
-        let manifest = format!(
-            r#"{{
-            "schema_version": 1,
-            "id": "{}",
-            "slug": "broken-access-control",
-            "title": "Broken Access Control",
-            "owasp": "A01:2025",
-            "version": "{}",
-            "difficulty": "Beginner",
-            "runtime": "native_sandboxed",
-            "entrypoint": "bin/a01-lab.exe",
-            "default_port": 8011,
-            "estimated_minutes": 45,
-            "modes": ["learn", "practice", "challenge"],
-            "lesson": "{}",
-            "signature": "{}"
-        }}"#,
-            id, version, lesson_text, sig
-        );
-        (manifest, sig)
-    }
 
     fn build_test_package(pkg_path: &std::path::Path, id: &str, version: &str, lesson_text: &str) {
         let stage = pkg_path.with_extension("stage_dir");
@@ -74,7 +50,51 @@ mod tests {
         )
         .unwrap();
 
-        let (manifest, _) = make_test_manifest(id, version, lesson_text);
+        // 1. Prelim archive to calculate content digest
+        let prelim_pkg = pkg_path.with_extension("prelim.zlab");
+        let dummy = r#"{"schema_version":1,"id":"A01","slug":"broken-access-control","title":"Broken Access Control","owasp":"A01:2025","version":"1.0.0","difficulty":"Beginner","runtime":"native_sandboxed","entrypoint":"bin/a01-lab.exe","default_port":8011,"estimated_minutes":45,"modes":["learn"],"signature":"unsigned"}"#;
+        fs::write(stage.join("manifest.json"), dummy).unwrap();
+        create_zlab_package(&stage, &prelim_pkg).unwrap();
+
+        let bytes = fs::read(&prelim_pkg).unwrap();
+        let entries = validate_archive_structure(&bytes).unwrap();
+        let digest = verifier::compute_archive_content_digest(&bytes, &entries).unwrap();
+        let _ = fs::remove_file(&prelim_pkg);
+
+        // 2. Sign canonical payload using Ed25519 dev seed
+        let canonical = build_canonical_package_payload(
+            id,
+            version,
+            1,
+            "2.0.0",
+            "native_sandboxed",
+            "x86_64",
+            "bin/a01-lab.exe",
+            &digest,
+        );
+        let sig = sign_payload(&canonical, &DEV_PRIVATE_KEY_SEED);
+
+        let manifest = format!(
+            r#"{{
+            "schema_version": 1,
+            "id": "{}",
+            "slug": "broken-access-control",
+            "title": "Broken Access Control",
+            "owasp": "A01:2025",
+            "version": "{}",
+            "security_version": 1,
+            "minimum_core_version": "2.0.0",
+            "difficulty": "Beginner",
+            "runtime": "native_sandboxed",
+            "entrypoint": "bin/a01-lab.exe",
+            "default_port": 8011,
+            "estimated_minutes": 45,
+            "modes": ["learn", "practice", "challenge"],
+            "lesson": "{}",
+            "signature": "{}"
+        }}"#,
+            id, version, lesson_text, sig
+        );
         fs::write(stage.join("manifest.json"), manifest).unwrap();
 
         create_zlab_package(&stage, pkg_path).unwrap();
