@@ -488,7 +488,7 @@ pub fn serve_lab(workspace_root: &Path, lab_id: &str) -> Result<(), String> {
 
     let channel = Arc::new(StdioLabChannel::new(stdin, stdout));
     let _ = channel
-        .wait_for_ready(Duration::from_secs(5))
+        .wait_for_ready(Duration::from_secs(10))
         .map_err(|e| format!("Lab readiness failed: {}", e))?;
 
     let session_mgr = Arc::new(BrokerSessionManager::new(Duration::from_secs(3600)));
@@ -601,8 +601,8 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
                 .map_err(|e| format!("Failed to launch lab broker background process: {}", e))?;
         }
 
-        // Wait up to 5 seconds for .runtime.json to be created and healthy
-        for _ in 0..50 {
+        // Wait up to 10 seconds for .runtime.json to be created and healthy
+        for _ in 0..100 {
             std::thread::sleep(std::time::Duration::from_millis(100));
             if let Some(state) = get_runtime_state(&lab_dir) {
                 return Ok(format!("Lab {} started at {}", lab_id, state.entry_url));
