@@ -105,6 +105,9 @@ pub fn tokenize(input: &str) -> Result<Vec<String>, TerminalError> {
         }
     }
 
+    const MAX_TOKEN_COUNT: usize = 128;
+    const MAX_TOKEN_LENGTH: usize = 4096;
+
     let mut tokens = Vec::new();
     let mut current = String::new();
     let mut in_single_quote = false;
@@ -123,10 +126,20 @@ pub fn tokenize(input: &str) -> Result<Vec<String>, TerminalError> {
 
         if (ch == ' ' || ch == '\t') && !in_single_quote && !in_double_quote {
             if !current.is_empty() {
+                if tokens.len() >= MAX_TOKEN_COUNT {
+                    return Err(TerminalError::InvalidArguments(
+                        "command line exceeds maximum allowed token count (128)".to_string(),
+                    ));
+                }
                 tokens.push(current.clone());
                 current.clear();
             }
         } else {
+            if current.len() >= MAX_TOKEN_LENGTH {
+                return Err(TerminalError::InvalidArguments(
+                    "argument token exceeds maximum allowed length (4096 bytes)".to_string(),
+                ));
+            }
             current.push(ch);
         }
     }
@@ -136,6 +149,11 @@ pub fn tokenize(input: &str) -> Result<Vec<String>, TerminalError> {
     }
 
     if !current.is_empty() {
+        if tokens.len() >= MAX_TOKEN_COUNT {
+            return Err(TerminalError::InvalidArguments(
+                "command line exceeds maximum allowed token count (128)".to_string(),
+            ));
+        }
         tokens.push(current);
     }
 
@@ -248,5 +266,29 @@ mod tests {
             assert!(res.is_ok(), "Allowed command should parse: {}", cmd);
             assert_eq!(res.unwrap().name, cmd.to_lowercase());
         }
+    }
+
+    #[test]
+    fn test_argument_overflow_rejected() {
+        let mut overflow_cmd = "echo".to_string();
+        for i in 0..150 {
+            overflow_cmd.push_str(&format!(" arg{}", i));
+        }
+        let res = parse_command(&overflow_cmd);
+        assert!(
+            matches!(res, Err(TerminalError::InvalidArguments(_))),
+            "Expected InvalidArguments error on token count overflow"
+        );
+    }
+
+    #[test]
+    fn test_token_length_overflow_rejected() {
+        let giant_token = "a".repeat(5000);
+        let cmd = format!("echo {}", giant_token);
+        let res = parse_command(&cmd);
+        assert!(
+            matches!(res, Err(TerminalError::InvalidArguments(_))),
+            "Expected InvalidArguments error on single token length overflow"
+        );
     }
 }

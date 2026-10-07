@@ -29,6 +29,88 @@ pub struct TerminalSession {
     vfs: TerminalFilesystem,
 }
 
+pub fn validate_curl_args(args: &[String]) -> Result<(), String> {
+    if args.len() > 64 {
+        return Err("curl: too many arguments (argument overflow limit exceeded)\n".to_string());
+    }
+    for arg in args {
+        if arg.len() > 2048 {
+            return Err("curl: argument length exceeds maximum allowed limit\n".to_string());
+        }
+        if arg.starts_with("-o") || arg.starts_with("--output") || arg.contains("file://") {
+            return Err("curl: file output redirection is restricted in terminal mode\n".to_string());
+        }
+        let is_target = arg.starts_with("http://")
+            || arg.starts_with("https://")
+            || (!arg.starts_with('-')
+                && (arg.contains(':')
+                    || arg.contains("localhost")
+                    || arg.starts_with("127.")
+                    || arg.starts_with("192.")
+                    || arg.starts_with("10.")
+                    || arg.starts_with("172.")
+                    || arg.contains(".com")
+                    || arg.contains(".org")
+                    || arg.contains(".net")
+                    || arg.contains(".io")));
+
+        if is_target {
+            if arg.starts_with("https://") {
+                return Err("curl: https protocol is not supported for local sandboxed lab endpoints\n".to_string());
+            }
+            if arg.contains('@') {
+                return Err("curl: userinfo credentials in target URL are prohibited\n".to_string());
+            }
+            let without_proto = arg.trim_start_matches("http://");
+            let host_port_end = without_proto.find('/').unwrap_or(without_proto.len());
+            let host_port = &without_proto[..host_port_end];
+
+            if host_port.is_empty() {
+                return Err("curl: malformed target URL\n".to_string());
+            }
+
+            let (host, port_str) = if host_port.starts_with('[') {
+                if let Some(close_bracket) = host_port.find(']') {
+                    let h = &host_port[1..close_bracket];
+                    let rem = &host_port[close_bracket + 1..];
+                    if let Some(colon) = rem.find(':') {
+                        (h, Some(&rem[colon + 1..]))
+                    } else {
+                        (h, None)
+                    }
+                } else {
+                    return Err("curl: malformed IPv6 target address format\n".to_string());
+                }
+            } else if let Some(colon) = host_port.find(':') {
+                (&host_port[..colon], Some(&host_port[colon + 1..]))
+            } else {
+                (host_port, None)
+            };
+
+            if host.is_empty() {
+                return Err("curl: malformed target host in URL\n".to_string());
+            }
+
+            if let Some(p) = port_str {
+                match p.parse::<u16>() {
+                    Ok(val) if val > 0 => {}
+                    _ => return Err("curl: invalid port specification in target URL\n".to_string()),
+                }
+            }
+
+            let host_lower = host.to_lowercase();
+            let is_loopback = host_lower == "127.0.0.1"
+                || host_lower == "localhost"
+                || host_lower == "::1";
+
+            if !is_loopback {
+                return Err("curl: access to external network or non-localhost target is denied by sandbox policy\n".to_string());
+            }
+        }
+    }
+    Ok(())
+}
+
 impl TerminalSession {
     /// Creates a new terminal session rooted at the specified physical sandbox directory.
     pub fn new(physical_root: PathBuf) -> Self {
@@ -88,16 +170,22 @@ impl TerminalSession {
     }
 
     fn execute_tool(&self, tool: &str, args: &[String]) -> commands::CommandOutput {
-        // Enforce safe arguments for curl / nmap to prevent file overwrite escapes
-        for arg in args {
-            if arg.starts_with("-o") || arg.starts_with("--output") || arg.contains("file://") {
-                return commands::CommandOutput::err(
-                    format!(
-                        "{}: file output redirection is restricted in terminal mode\n",
-                        tool
-                    ),
-                    1,
-                );
+        if tool == "curl" {
+            if let Err(msg) = validate_curl_args(args) {
+                return commands::CommandOutput::err(msg, 1);
+            }
+        } else {
+            // Enforce safe arguments for nmap / tools to prevent file overwrite escapes
+            for arg in args {
+                if arg.starts_with("-o") || arg.starts_with("--output") || arg.contains("file://") {
+                    return commands::CommandOutput::err(
+                        format!(
+                            "{}: file output redirection is restricted in terminal mode\n",
+                            tool
+                        ),
+                        1,
+                    );
+                }
             }
         }
 
@@ -124,6 +212,10 @@ impl TerminalSession {
     }
 
     fn try_builtin_curl(&self, args: &[String]) -> Option<commands::CommandOutput> {
+        if let Err(msg) = validate_curl_args(args) {
+            return Some(commands::CommandOutput::err(msg, 1));
+        }
+
         let mut target_url = None;
         let mut method = "GET";
         let mut include_headers = false;
@@ -159,15 +251,31 @@ impl TerminalSession {
             "/"
         };
 
-        let (host, port) = if host_port.contains(':') {
+        let (host, port) = if host_port.starts_with('[') {
+            if let Some(close_bracket) = host_port.find(']') {
+                let h = &host_port[1..close_bracket];
+                let rem = &host_port[close_bracket + 1..];
+                let p = if let Some(colon) = rem.find(':') {
+                    rem[colon + 1..].parse::<u16>().ok()?
+                } else {
+                    80
+                };
+                (h, p)
+            } else {
+                return Some(commands::CommandOutput::err("curl: malformed IPv6 address\n", 1));
+            }
+        } else if host_port.contains(':') {
             let parts: Vec<&str> = host_port.split(':').collect();
             (parts[0], parts[1].parse::<u16>().ok()?)
         } else {
             (host_port, 80)
         };
 
-        if host != "127.0.0.1" && host != "localhost" {
-            return None;
+        if host != "127.0.0.1" && host != "localhost" && host != "::1" {
+            return Some(commands::CommandOutput::err(
+                "curl: access to external network or non-localhost target is denied by sandbox policy\n",
+                1,
+            ));
         }
 
         use std::io::{Read, Write};
@@ -417,6 +525,106 @@ mod tests {
 
         let uname_res = term.execute("uname");
         assert_eq!(uname_res.stdout, "Linux\n");
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_terminal_security_regression_matrix_cp02() {
+        let (temp, mut term) = setup_test_env("security_cp02");
+
+        // 1. ps process boundary verification
+        let ps_res = term.execute("ps");
+        assert_eq!(ps_res.exit_code, 0);
+        assert!(ps_res.stdout.contains("init"));
+        assert!(ps_res.stdout.contains("lab-daemon"));
+        assert!(!ps_res.stdout.contains("explorer.exe"));
+        assert!(!ps_res.stdout.contains("System"));
+
+        let ps_ext = term.execute("ps -ef");
+        assert_eq!(ps_ext.exit_code, 0);
+        assert!(ps_ext.stdout.contains("UID"));
+        assert!(ps_ext.stdout.contains("/sbin/init"));
+
+        // 2. help educational system verification
+        let help_gen = term.execute("help");
+        assert_eq!(help_gen.exit_code, 0);
+        assert!(help_gen.stdout.contains("Zitera Educational Terminal"));
+        assert!(help_gen.stdout.contains("grep"));
+
+        let help_grep = term.execute("help grep");
+        assert_eq!(help_grep.exit_code, 0);
+        assert!(help_grep.stdout.contains("COMMAND: grep"));
+
+        let help_unknown = term.execute("help evil_cmd");
+        assert_eq!(help_unknown.exit_code, 1);
+        assert!(help_unknown.stderr.contains("no educational entry found"));
+
+        // 3. curl security & loopback boundary matrix
+        // 3a. Loopback allowed
+        assert!(validate_curl_args(&["http://127.0.0.1:8080/api".to_string()]).is_ok());
+        assert!(validate_curl_args(&["http://localhost:3000/".to_string()]).is_ok());
+        assert!(validate_curl_args(&["http://[::1]:8011/session/".to_string()]).is_ok());
+
+        // 3b. External targets strictly denied
+        let ext_err = validate_curl_args(&["http://evil.com/leak".to_string()]);
+        assert!(ext_err.is_err());
+        assert!(ext_err.unwrap_err().contains("denied by sandbox policy"));
+
+        let lan_err = validate_curl_args(&["http://192.168.1.1/".to_string()]);
+        assert!(lan_err.is_err());
+
+        let metadata_err = validate_curl_args(&["http://169.254.169.254/latest/meta-data".to_string()]);
+        assert!(metadata_err.is_err());
+
+        // 3c. Userinfo credentials prohibited
+        let userinfo_err = validate_curl_args(&["http://admin:secret@127.0.0.1:8080".to_string()]);
+        assert!(userinfo_err.is_err());
+        assert!(userinfo_err.unwrap_err().contains("userinfo credentials"));
+
+        // 3d. File output redirection restricted
+        let file_out_err = validate_curl_args(&["-o".to_string(), "malware.exe".to_string()]);
+        assert!(file_out_err.is_err());
+        assert!(file_out_err.unwrap_err().contains("file output redirection is restricted"));
+
+        let file_proto_err = validate_curl_args(&["file:///C:/Windows/win.ini".to_string()]);
+        assert!(file_proto_err.is_err());
+
+        // 3e. HTTPS protocol restricted for local lab endpoints
+        let https_err = validate_curl_args(&["https://127.0.0.1:8080".to_string()]);
+        assert!(https_err.is_err());
+        assert!(https_err.unwrap_err().contains("https protocol is not supported"));
+
+        // 3f. Malformed URL & Invalid port
+        let port_err = validate_curl_args(&["http://127.0.0.1:99999".to_string()]);
+        assert!(port_err.is_err());
+        assert!(port_err.unwrap_err().contains("invalid port specification"));
+
+        // 3g. Execution through TerminalSession
+        let curl_exec_denied = term.execute("curl http://evil.com");
+        assert_eq!(curl_exec_denied.exit_code, 1);
+        assert!(curl_exec_denied.stderr.contains("denied by sandbox policy"));
+
+        // 4. Shell injection rejection
+        let inj1 = term.execute("ls; whoami");
+        assert_eq!(inj1.exit_code, 2);
+        assert!(inj1.stderr.contains("syntax error: shell operators"));
+
+        let inj2 = term.execute("cat file.txt && rm -rf /");
+        assert_eq!(inj2.exit_code, 2);
+
+        let inj3 = term.execute("echo $(id)");
+        assert_eq!(inj3.exit_code, 2);
+
+        // 5. Path traversal blocked
+        let trav1 = term.execute(r"cat C:\Windows\win.ini");
+        assert!(trav1.stderr.contains("escapes terminal sandbox boundary"));
+
+        let trav2 = term.execute(r"cat ..\..\secret");
+        assert!(trav2.stderr.contains("escapes terminal sandbox boundary"));
+
+        let trav3 = term.execute("cat ../../etc/passwd");
+        assert!(trav3.stderr.contains("No such file or directory"));
 
         let _ = fs::remove_dir_all(&temp);
     }
