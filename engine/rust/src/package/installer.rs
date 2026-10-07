@@ -524,6 +524,60 @@ mod tests {
         let effective2 = resolve_effective_lab_dir(&lab_dir);
         assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
         assert!(effective2.ends_with("1.0.1"));
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_checkpoint_17_clean_room_install_proof() {
+        let temp = std::env::temp_dir().join("zitera_clean_room_install_proof");
+        let _ = fs::remove_dir_all(&temp);
+        let isolated_workspace = temp.join("clean_workspace");
+        fs::create_dir_all(&isolated_workspace).unwrap();
+
+        // 1. Build authentic signed release package for A01
+        let pkg_v1 = temp.join("A01_release_v1.zlab");
+        let pkg_v2 = temp.join("A01_release_v2.zlab");
+        let pkg_tampered = temp.join("A01_tampered.zlab");
+
+        build_test_package_signed(&pkg_v1, "A01", "1.0.1", 1);
+        build_test_package_signed(&pkg_v2, "A01", "1.0.2", 2);
+
+        // 2. Fresh clean-room installation into completely empty workspace
+        let install_rep = install_or_update_package(&pkg_v1, &isolated_workspace)
+            .expect("Clean-room fresh install must succeed");
+        assert_eq!(install_rep.lab_id, "A01");
+        assert_eq!(install_rep.new_version, "1.0.1");
+
+        let lab_dir = isolated_workspace.join("labs").join("A01");
+        assert!(lab_dir.exists(), "Target lab directory must exist");
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+        let effective_dir = resolve_effective_lab_dir(&lab_dir);
+        assert!(effective_dir.join("manifest.json").exists());
+        assert!(effective_dir.join("bin").join("lab.exe").exists());
+
+        // 3. Clean-room atomic upgrade to v1.0.2
+        let upgrade_rep = install_or_update_package(&pkg_v2, &isolated_workspace)
+            .expect("Clean-room upgrade must succeed");
+        assert_eq!(upgrade_rep.new_version, "1.0.2");
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+        let upgraded_effective = resolve_effective_lab_dir(&lab_dir);
+        assert!(upgraded_effective.ends_with("1.0.2"));
+
+        // 4. Attempt installing tampered package -> REJECTED, previous state preserved
+        fs::copy(&pkg_v1, &pkg_tampered).unwrap();
+        // Tamper bytes
+        let mut tampered_bytes = fs::read(&pkg_tampered).unwrap();
+        if tampered_bytes.len() > 100 {
+            tampered_bytes[50] ^= 0xff;
+        }
+        fs::write(&pkg_tampered, tampered_bytes).unwrap();
+
+        let fail_res = install_or_update_package(&pkg_tampered, &isolated_workspace);
+        assert!(fail_res.is_err(), "Tampered package must be rejected");
+
+        // 5. Verification that previous version remains usable and intact
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+        assert!(upgraded_effective.join("manifest.json").exists());
 
         let _ = fs::remove_dir_all(&temp);
     }

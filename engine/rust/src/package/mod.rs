@@ -15,6 +15,121 @@ pub use trust::{
     DEV_PRIVATE_KEY_SEED, DEV_PUBLIC_KEY_HEX, RELEASE_PUBLIC_KEY_HEX,
 };
 pub use verifier::verify_package;
+use std::path::Path;
+
+/// Builds and cryptographically signs a production-ready .zlab package from a source directory.
+///
+/// Ensures deterministic file ordering, calculates content digest across all resources,
+/// signs the canonical payload using Ed25519, and verifies the generated package.
+pub fn build_signed_package_from_dir(
+    source_dir: &Path,
+    output_zlab: &Path,
+    signer_seed: &[u8; 32],
+) -> Result<verifier::VerifiedPackage, String> {
+    if !source_dir.exists() {
+        return Err(format!("Source directory {:?} does not exist", source_dir));
+    }
+    let manifest_file = source_dir.join("manifest.json");
+    if !manifest_file.exists() {
+        return Err(format!("manifest.json not found in {:?}", source_dir));
+    }
+
+    let manifest_str = std::fs::read_to_string(&manifest_file)
+        .map_err(|e| format!("Failed to read manifest.json: {}", e))?;
+    let mut manifest_val: serde_json::Value = serde_json::from_str(&manifest_str)
+        .map_err(|e| format!("Failed to parse manifest.json: {}", e))?;
+
+    let lab_id = manifest_val.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let version = manifest_val.get("version").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let sec_version = manifest_val.get("security_version").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
+    let min_core = manifest_val.get("minimum_core_version").and_then(|v| v.as_str()).unwrap_or("2.0.0").to_string();
+    let runtime = manifest_val.get("runtime").and_then(|v| v.as_str()).unwrap_or("native_sandboxed").to_string();
+    let target_arch = manifest_val.get("target_arch").and_then(|v| v.as_str()).unwrap_or("x86_64").to_string();
+    let entrypoint = manifest_val.get("entrypoint").and_then(|v| v.as_str()).unwrap_or("bin/lab.exe").to_string();
+
+    let pid = std::process::id();
+    let rand_nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let stage_dir = std::env::temp_dir().join(format!("zlab_pack_stage_{}_{}", pid, rand_nonce));
+    let _ = std::fs::remove_dir_all(&stage_dir);
+    std::fs::create_dir_all(&stage_dir)
+        .map_err(|e| format!("Failed to create staging directory: {}", e))?;
+
+    fn copy_filtered(src: &Path, dst: &Path) -> Result<(), String> {
+        for entry in std::fs::read_dir(src).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') || name == ".runtime.json" || name == "versions" || name == "active_version.txt" {
+                continue;
+            }
+            let target = dst.join(&name);
+            if path.is_dir() {
+                std::fs::create_dir_all(&target).map_err(|e| e.to_string())?;
+                copy_filtered(&path, &target)?;
+            } else {
+                std::fs::copy(&path, &target).map_err(|e| e.to_string())?;
+            }
+        }
+        Ok(())
+    }
+
+    if let Err(e) = copy_filtered(source_dir, &stage_dir) {
+        let _ = std::fs::remove_dir_all(&stage_dir);
+        return Err(format!("Failed to copy source files: {}", e));
+    }
+
+    // 1. Create preliminary archive to calculate content digest
+    let prelim_pkg = stage_dir.join("_prelim.zlab");
+    if let Err(e) = create_zlab_package(&stage_dir, &prelim_pkg) {
+        let _ = std::fs::remove_dir_all(&stage_dir);
+        return Err(format!("Failed to build preliminary archive: {}", e));
+    }
+
+    let bytes = std::fs::read(&prelim_pkg).map_err(|e| e.to_string())?;
+    let entries = validate_archive_structure(&bytes).map_err(|e| e.to_string())?;
+    let digest = verifier::compute_archive_content_digest(&bytes, &entries)?;
+    let _ = std::fs::remove_file(&prelim_pkg);
+
+    // 2. Canonicalize payload and sign
+    let canonical_payload = build_canonical_package_payload(
+        &lab_id,
+        &version,
+        sec_version,
+        &min_core,
+        &runtime,
+        &target_arch,
+        &entrypoint,
+        &digest,
+    );
+    let signature = sign_payload(&canonical_payload, signer_seed);
+
+    // 3. Inject signature, security_version, and minimum_core_version into manifest
+    manifest_val["signature"] = serde_json::Value::String(signature);
+    manifest_val["security_version"] = serde_json::Value::Number(serde_json::Number::from(sec_version));
+    manifest_val["minimum_core_version"] = serde_json::Value::String(min_core);
+
+    let final_manifest_str = serde_json::to_string_pretty(&manifest_val)
+        .map_err(|e| format!("Failed to serialize manifest: {}", e))?;
+    std::fs::write(stage_dir.join("manifest.json"), final_manifest_str)
+        .map_err(|e| format!("Failed to write final manifest: {}", e))?;
+
+    // 4. Ensure destination parent directory exists
+    if let Some(parent) = output_zlab.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
+    // 5. Build final deterministic package
+    let create_res = create_zlab_package(&stage_dir, output_zlab);
+    let _ = std::fs::remove_dir_all(&stage_dir);
+    create_res?;
+
+    // 6. Authoritative verification of generated package
+    let verified = verifier::verify_package(output_zlab, Some(&lab_id))?;
+    Ok(verified)
+}
 
 #[cfg(test)]
 mod tests {

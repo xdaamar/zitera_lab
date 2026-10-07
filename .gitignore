@@ -48,4 +48,5 @@ tmp/
 reports/
 zitera_progress.json
 *.tmp
+dist/
 
