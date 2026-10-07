@@ -495,18 +495,58 @@ class LabValidationReport {
   }
 }
 
+enum FailureCategory {
+  labCrash,
+  runtimeUnavailable,
+  packageVerificationFailure,
+  updateInterrupted,
+  rollbackOccurred,
+  storageFailure,
+  brokerUnavailable,
+  general,
+}
+
 class ZiteraException implements Exception {
   final String code;
   final String message;
   final String? recoveryAction;
   final bool recoverable;
+  final String? details;
 
   ZiteraException({
     required this.code,
     required this.message,
     this.recoveryAction,
     this.recoverable = true,
+    this.details,
   });
+
+  FailureCategory get category {
+    final c = code.toUpperCase();
+    final m = message.toLowerCase();
+    if (c.contains('CRASH') || m.contains('crash') || m.contains('timed out waiting') || c == 'LAB_START_FAILED') {
+      return FailureCategory.labCrash;
+    }
+    if (c.contains('ROLLBACK') || m.contains('rollback') || m.contains('rolled back')) {
+      return FailureCategory.rollbackOccurred;
+    }
+    if (c.contains('INTERRUPTED') || m.contains('interrupted') || m.contains('staging')) {
+      return FailureCategory.updateInterrupted;
+    }
+    if (c.contains('RUNTIME') || m.contains('runtime') || m.contains('appcontainer') || m.contains('executable not found')) {
+      return FailureCategory.runtimeUnavailable;
+    }
+    if (c.contains('VERIFICATION') || c.contains('SIGNATURE') || c.contains('DOWNGRADE') || m.contains('verification') || m.contains('signature') || m.contains('checksum')) {
+      return FailureCategory.packageVerificationFailure;
+    }
+    if (c.contains('STORAGE') || m.contains('storage') || m.contains('disk') || m.contains('permission denied')) {
+      return FailureCategory.storageFailure;
+    }
+    if (c.contains('BROKER') || m.contains('broker') || m.contains('port') || m.contains('address already in use')) {
+      return FailureCategory.brokerUnavailable;
+    }
+    return FailureCategory.general;
+  }
 
   @override
   String toString() {

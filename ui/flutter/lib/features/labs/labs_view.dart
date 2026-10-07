@@ -7,6 +7,7 @@ import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_loading.dart';
 import '../../widgets/hacker_tilix_entrance.dart';
+import '../../widgets/failure_recovery_dialog.dart';
 
 class LabsView extends StatefulWidget {
   final Function(String) onSelectLab;
@@ -95,8 +96,14 @@ class _LabsViewState extends State<LabsView> {
       await _loadLabs();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Start error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: id,
+          actionContext: 'Starting Lab $id',
+          onRestart: () => _handleStart(id),
+          onReset: () => _handleReset(id),
+          onRefresh: () => _loadLabs(),
         );
       }
     } finally {
@@ -111,8 +118,14 @@ class _LabsViewState extends State<LabsView> {
       await _loadLabs();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Stop error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: id,
+          actionContext: 'Stopping Lab $id',
+          onRestart: () => _handleStart(id),
+          onReset: () => _handleReset(id),
+          onRefresh: () => _loadLabs(),
         );
       }
     } finally {
@@ -174,8 +187,14 @@ class _LabsViewState extends State<LabsView> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Reset error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: id,
+          actionContext: 'Resetting Lab $id',
+          onRestart: () => _handleStart(id),
+          onReset: () => _handleReset(id),
+          onRefresh: () => _loadLabs(),
         );
       }
     } finally {
@@ -195,8 +214,14 @@ class _LabsViewState extends State<LabsView> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Install error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: id,
+          actionContext: 'Installing Lab $id',
+          onRestart: () => _handleInstall(id),
+          onReset: () => _handleReset(id),
+          onRefresh: () => _loadLabs(),
         );
       }
     } finally {

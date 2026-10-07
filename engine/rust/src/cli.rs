@@ -305,8 +305,9 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
+                        let (code, rec) = crate::models::classify_recovery_error("lab.start", &e);
                         let resp: ApiResponse<()> =
-                            ApiResponse::err("lab.start", "LAB_START_FAILED", e, true);
+                            ApiResponse::err_with_recovery("lab.start", code, e, rec, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -337,8 +338,9 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
+                        let (code, rec) = crate::models::classify_recovery_error("lab.stop", &e);
                         let resp: ApiResponse<()> =
-                            ApiResponse::err("lab.stop", "LAB_STOP_FAILED", e, true);
+                            ApiResponse::err_with_recovery("lab.stop", code, e, rec, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -362,8 +364,9 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
+                        let (code, rec) = crate::models::classify_recovery_error("lab.reset", &e);
                         let resp: ApiResponse<()> =
-                            ApiResponse::err("lab.reset", "LAB_RESET_FAILED", e, true);
+                            ApiResponse::err_with_recovery("lab.reset", code, e, rec, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -387,8 +390,9 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
+                        let (code, rec) = crate::models::classify_recovery_error("lab.install", &e);
                         let resp: ApiResponse<()> =
-                            ApiResponse::err("lab.install", "LAB_INSTALL_FAILED", e, true);
+                            ApiResponse::err_with_recovery("lab.install", code, e, rec, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -412,8 +416,9 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
+                        let (code, rec) = crate::models::classify_recovery_error("lab.update", &e);
                         let resp: ApiResponse<()> =
-                            ApiResponse::err("lab.update", "LAB_UPDATE_FAILED", e, true);
+                            ApiResponse::err_with_recovery("lab.update", code, e, rec, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -425,10 +430,11 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
             let pkg_path_str = args.get(1).map(|s| s.as_str()).unwrap_or("");
             if pkg_path_str.is_empty() {
                 if json {
-                    let resp: ApiResponse<()> = ApiResponse::err(
+                    let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
                         "lab.install_package",
                         "MISSING_PACKAGE_PATH",
                         "Package file path required".to_string(),
+                        "Provide a valid path to a .zlab package bundle.",
                         false,
                     );
                     println!("{}", serde_json::to_string_pretty(&resp).unwrap());
@@ -458,10 +464,13 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
-                        let resp: ApiResponse<()> = ApiResponse::err(
+                        let (code, rec) =
+                            crate::models::classify_recovery_error("lab.install_package", &e);
+                        let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
                             "lab.install_package",
-                            "PACKAGE_INSTALL_FAILED",
+                            code,
                             e,
+                            rec,
                             true,
                         );
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
@@ -487,8 +496,9 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
+                        let (code, rec) = crate::models::classify_recovery_error("lab.remove", &e);
                         let resp: ApiResponse<()> =
-                            ApiResponse::err("lab.remove", "LAB_REMOVE_FAILED", e, true);
+                            ApiResponse::err_with_recovery("lab.remove", code, e, rec, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
@@ -1081,11 +1091,15 @@ fn handle_storage(args: &[String], json: bool) {
                 }
                 Err(e) => {
                     if json {
-                        let resp: ApiResponse<()> = ApiResponse::err(
+                        let err_str = e.to_string();
+                        let (code, rec) =
+                            crate::models::classify_recovery_error("storage.purge_cache", &err_str);
+                        let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
                             "storage.purge_cache",
-                            "CACHE_PURGE_ERROR",
-                            e.to_string(),
-                            false,
+                            code,
+                            err_str,
+                            rec,
+                            true,
                         );
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {

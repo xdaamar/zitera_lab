@@ -91,11 +91,13 @@ class ZiteraEngineClient {
         final msg = err?['message'] as String? ?? 'Engine operation failed.';
         final recovery = err?['recovery_action'] as String?;
         final recoverable = err?['recoverable'] as bool? ?? true;
+        final details = err?['details'] as String?;
         throw ZiteraException(
           code: code,
           message: msg,
           recoveryAction: recovery,
           recoverable: recoverable,
+          details: details,
         );
       }
 

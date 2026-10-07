@@ -403,3 +403,134 @@ pub struct ToolInstallResult {
     pub message: String,
     pub method: String,
 }
+
+/// Classifies a raw error string into one of the canonical recovery states with actionable guidance.
+pub fn classify_recovery_error(action: &str, raw_error: &str) -> (String, String) {
+    let lower = raw_error.to_lowercase();
+    let upper_action = action.to_uppercase().replace('.', "_");
+
+    if lower.contains("timed out waiting for lab")
+        || lower.contains("crashed")
+        || lower.contains("unexpected exit")
+        || lower.contains("died")
+        || lower.contains("readiness failed")
+    {
+        (
+            "LAB_CRASH".to_string(),
+            "Restart the lab or reset its runtime state to default.".to_string(),
+        )
+    } else if lower.contains("rollback") || lower.contains("rolled back") {
+        (
+            "ROLLBACK_OCCURRED".to_string(),
+            "Check previous installed versions or reinstall the package.".to_string(),
+        )
+    } else if lower.contains("staging")
+        || lower.contains("interrupted")
+        || lower.contains("staged manifest")
+        || lower.contains("staged entrypoint")
+    {
+        (
+            "UPDATE_INTERRUPTED".to_string(),
+            "Retry the package update or clean the staging directory.".to_string(),
+        )
+    } else if lower.contains("appcontainer")
+        || lower.contains("executable not found")
+        || lower.contains("failed to locate zitera-engine")
+        || lower.contains("jobobject")
+        || lower.contains("sandbox runtime")
+        || lower.contains("runtime is")
+    {
+        (
+            "RUNTIME_UNAVAILABLE".to_string(),
+            "Verify sandbox host executable integrity or run 'zitera doctor'.".to_string(),
+        )
+    } else if lower.contains("verification")
+        || lower.contains("signature")
+        || lower.contains("digest mismatch")
+        || lower.contains("corrupted package")
+        || lower.contains("downgrade")
+        || lower.contains("checksum")
+    {
+        (
+            "PACKAGE_VERIFICATION_FAILED".to_string(),
+            "Re-download the lab package (.zlab) or verify signature.".to_string(),
+        )
+    } else if lower.contains("storage")
+        || lower.contains("permission denied")
+        || lower.contains("access is denied")
+        || lower.contains("disk full")
+        || lower.contains("file lock")
+    {
+        (
+            "STORAGE_FAILURE".to_string(),
+            "Purge cache, ensure write permissions for LocalAppData, and retry.".to_string(),
+        )
+    } else if lower.contains("broker")
+        || lower.contains("failed to start broker")
+        || lower.contains("port")
+        || lower.contains("address already in use")
+    {
+        (
+            "BROKER_UNAVAILABLE".to_string(),
+            "Check port availability and restart the lab broker.".to_string(),
+        )
+    } else if lower.contains("not installed") {
+        (
+            "LAB_NOT_INSTALLED".to_string(),
+            "Install the lab package first via catalog or 'zitera lab install'.".to_string(),
+        )
+    } else {
+        (
+            format!("{}_FAILED", upper_action),
+            "Retry the operation, reset the lab, or export diagnostic report.".to_string(),
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_failure_recovery_classification_states() {
+        // 1. Lab Crash
+        let (code1, rec1) = classify_recovery_error("lab.start", "Timed out waiting for Lab A01 to initialize");
+        assert_eq!(code1, "LAB_CRASH");
+        assert!(rec1.contains("Restart"));
+
+        // 2. Runtime Unavailable
+        let (code2, rec2) = classify_recovery_error("lab.start", "AppContainer profile creation failed");
+        assert_eq!(code2, "RUNTIME_UNAVAILABLE");
+        assert!(rec2.contains("zitera doctor"));
+
+        // 3. Package Verification Failure
+        let (code3, rec3) = classify_recovery_error("lab.install_package", "Signature verification failed: invalid key");
+        assert_eq!(code3, "PACKAGE_VERIFICATION_FAILED");
+        assert!(rec3.contains(".zlab"));
+
+        // 4. Update Interrupted
+        let (code4, rec4) = classify_recovery_error("lab.update", "Staged manifest.json not found: staging interrupted");
+        assert_eq!(code4, "UPDATE_INTERRUPTED");
+        assert!(rec4.contains("Retry"));
+
+        // 5. Rollback Occurred
+        let (code5, rec5) = classify_recovery_error("lab.update", "Post-install verification failed: rolled back to 1.0.0");
+        assert_eq!(code5, "ROLLBACK_OCCURRED");
+        assert!(rec5.contains("previous"));
+
+        // 6. Storage Failure
+        let (code6, rec6) = classify_recovery_error("storage.purge", "Storage permission denied on LocalAppData path");
+        assert_eq!(code6, "STORAGE_FAILURE");
+        assert!(rec6.contains("Purge cache"));
+
+        // 7. Broker Unavailable
+        let (code7, rec7) = classify_recovery_error("lab.start", "Failed to start broker: address already in use on port 8080");
+        assert_eq!(code7, "BROKER_UNAVAILABLE");
+        assert!(rec7.contains("port availability"));
+
+        // Fallback
+        let (code8, rec8) = classify_recovery_error("terminal.execute", "Command syntax error");
+        assert_eq!(code8, "TERMINAL_EXECUTE_FAILED");
+        assert!(rec8.contains("Retry"));
+    }
+}

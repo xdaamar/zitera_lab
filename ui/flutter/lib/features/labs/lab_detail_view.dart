@@ -13,6 +13,7 @@ import '../../widgets/zitera_rich_content.dart';
 import '../../core/i18n/language_controller.dart';
 import '../../core/i18n/lab_localization.dart';
 import '../../widgets/terminal_console_widget.dart';
+import '../../widgets/failure_recovery_dialog.dart';
 
 class LabDetailView extends StatefulWidget {
   final String labId;
@@ -111,8 +112,14 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       _refreshStatus();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Start error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: widget.labId,
+          actionContext: 'Starting Lab ${widget.labId}',
+          onRestart: () => _handleStart(),
+          onReset: () => _handleReset(),
+          onRefresh: () => _refreshStatus(),
         );
       }
     }
@@ -124,8 +131,14 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       _refreshStatus();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Stop error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: widget.labId,
+          actionContext: 'Stopping Lab ${widget.labId}',
+          onRestart: () => _handleStart(),
+          onReset: () => _handleReset(),
+          onRefresh: () => _refreshStatus(),
         );
       }
     }
@@ -187,8 +200,14 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Reset error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: widget.labId,
+          actionContext: 'Resetting Lab ${widget.labId}',
+          onRestart: () => _handleStart(),
+          onReset: () => _handleReset(),
+          onRefresh: () => _refreshStatus(),
         );
       }
     }
@@ -205,8 +224,14 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: widget.labId,
+          actionContext: 'Updating Lab ${widget.labId}',
+          onRestart: () => _handleStart(),
+          onReset: () => _handleReset(),
+          onRefresh: () => _refreshStatus(),
         );
       }
     }
@@ -265,8 +290,13 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Remove error: $e'), backgroundColor: ZiteraColors.error),
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: widget.labId,
+          actionContext: 'Removing Lab ${widget.labId}',
+          onReset: () => _handleReset(),
+          onRefresh: () => _refreshStatus(),
         );
       }
     }
@@ -577,9 +607,24 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
         backgroundColor: ZiteraColors.background,
         appBar: AppBar(leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onBack)),
         body: Center(
-          child: ZiteraCard(
-            borderColor: ZiteraColors.error,
-            child: Text('Error loading lab: $_error', style: const TextStyle(color: ZiteraColors.error)),
+          child: FailureRecoveryCard(
+            error: _error!,
+            labId: widget.labId,
+            onRetry: () => _loadLabData(),
+            onReset: () => _handleReset(),
+            onExportDiagnostics: () async {
+              try {
+                final res = await ZiteraEngineClient.exportDiagnostics();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Diagnostics exported: ${res["path"] ?? ""}'),
+                      backgroundColor: const Color(0xFF0F766E),
+                    ),
+                  );
+                }
+              } catch (_) {}
+            },
           ),
         ),
       );
