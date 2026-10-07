@@ -1,10 +1,17 @@
 {
   "schema_version": 1,
   "id": "A05",
+  "package_id": "zitera-lab-a05",
   "slug": "injection",
   "title": "Injection",
   "owasp": "A05:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A05",
+  "category_name": "Injection",
   "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
   "difficulty": "Beginner",
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a05-lab.exe",
@@ -15,6 +22,14 @@
     "practice",
     "challenge"
   ],
+  "short_description": "SQL query manipulation, string escaping breakout, and UNION extraction.",
+  "skills": ["SQL Syntax Injection", "Query Parameterization", "Database Defense"],
+  "learning_objectives": [
+    "Distinguish data from query syntax execution",
+    "Execute UNION-based database schema exfiltration",
+    "Refactor raw SQL strings into prepared statements"
+  ],
+  "prerequisites": ["Basic SQL queries"],
   "requirements": {
     "required_tools": [],
     "recommended_tools": [

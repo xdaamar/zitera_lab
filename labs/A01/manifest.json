@@ -1,10 +1,17 @@
 {
   "schema_version": 1,
   "id": "A01",
+  "package_id": "zitera-lab-a01",
   "slug": "broken-access-control",
   "title": "Broken Access Control",
   "owasp": "A01:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A01",
+  "category_name": "Broken Access Control",
   "version": "1.0.1",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
   "difficulty": "Beginner",
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a01-lab.exe",
@@ -14,5 +21,13 @@
     "learn",
     "practice",
     "challenge"
-  ]
+  ],
+  "short_description": "Insecure Direct Object References and multi-tenant boundary bypass.",
+  "skills": ["Authorization Matrix", "IDOR Detection", "Parameter Tampering"],
+  "learning_objectives": [
+    "Identify flawed object-level access controls",
+    "Audit multi-tenant boundary isolation",
+    "Implement server-side authorization enforcement"
+  ],
+  "prerequisites": ["HTTP basics", "User session concepts"]
 }

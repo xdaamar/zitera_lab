@@ -1,10 +1,17 @@
 {
   "schema_version": 1,
   "id": "A07",
+  "package_id": "zitera-lab-a07",
   "slug": "authentication-failures",
   "title": "Authentication Failures",
   "owasp": "A07:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A07",
+  "category_name": "Authentication Failures",
   "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
   "difficulty": "Beginner",
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a07-lab.exe",
@@ -15,6 +22,14 @@
     "practice",
     "challenge"
   ],
+  "short_description": "Missing lockout mechanisms, predictable PINs, and automated credential stuffing.",
+  "skills": ["Rate Limiting", "Lockout Enforcement", "Authentication Defense"],
+  "learning_objectives": [
+    "Assess authentication mechanisms against automated guessing",
+    "Identify failure modes of unrestricted login endpoints",
+    "Implement multi-layered rate limiting and progressive delays"
+  ],
+  "prerequisites": ["HTTP POST / form submissions"],
   "requirements": {
     "required_tools": [],
     "recommended_tools": [

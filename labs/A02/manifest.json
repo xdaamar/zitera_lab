@@ -1,10 +1,17 @@
 {
   "schema_version": 1,
   "id": "A02",
+  "package_id": "zitera-lab-a02",
   "slug": "security-misconfiguration",
   "title": "Security Misconfiguration",
   "owasp": "A02:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A02",
+  "category_name": "Security Misconfiguration",
   "version": "1.0.1",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
   "difficulty": "Beginner",
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a02-lab.exe",
@@ -15,6 +22,14 @@
     "practice",
     "challenge"
   ],
+  "short_description": "Default credentials, diagnostic endpoints, and backup exposures.",
+  "skills": ["Directory Listing Audit", "Credential Hardening", "Interface Lockdown"],
+  "learning_objectives": [
+    "Identify exposed debug and diagnostic endpoints",
+    "Detect dangerous unauthenticated directory browsing",
+    "Harden default server credentials and configs"
+  ],
+  "prerequisites": ["Web server basics"],
   "requirements": {
     "required_tools": [],
     "recommended_tools": [

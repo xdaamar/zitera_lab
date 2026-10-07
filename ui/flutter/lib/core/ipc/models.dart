@@ -158,32 +158,71 @@ class LabItem {
 
 class CatalogEntry {
   final String id;
+  final String packageId;
   final String title;
   final String repository;
   final String version;
   final String difficulty;
   final String owasp;
+  final String standard;
+  final String standardVersion;
+  final String categoryId;
+  final String categoryName;
   final String description;
+  final String shortDescription;
+  final int securityVersion;
+  final String minimumCoreVersion;
+  final int estimatedTime;
+  final List<String> skills;
+  final List<String> learningObjectives;
+  final List<String> prerequisites;
 
   CatalogEntry({
     required this.id,
+    required this.packageId,
     required this.title,
     required this.repository,
     required this.version,
     required this.difficulty,
     required this.owasp,
+    this.standard = 'owasp-top10',
+    this.standardVersion = '2025',
+    required this.categoryId,
+    required this.categoryName,
     required this.description,
+    required this.shortDescription,
+    this.securityVersion = 1,
+    this.minimumCoreVersion = '2.0.0',
+    this.estimatedTime = 45,
+    this.skills = const [],
+    this.learningObjectives = const [],
+    this.prerequisites = const [],
   });
 
   factory CatalogEntry.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'] as String? ?? '';
+    final rawTitle = json['title'] as String? ?? '';
+    final rawDesc = json['description'] as String? ?? '';
     return CatalogEntry(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
+      id: rawId,
+      packageId: json['package_id'] as String? ?? 'zitera-lab-${rawId.toLowerCase()}',
+      title: rawTitle,
       repository: json['repository'] as String? ?? '',
       version: json['version'] as String? ?? '1.0.0',
       difficulty: json['difficulty'] as String? ?? 'Beginner',
       owasp: json['owasp'] as String? ?? '',
-      description: json['description'] as String? ?? '',
+      standard: json['standard'] as String? ?? 'owasp-top10',
+      standardVersion: json['standard_version'] as String? ?? '2025',
+      categoryId: json['category_id'] as String? ?? rawId,
+      categoryName: json['category_name'] as String? ?? rawTitle,
+      description: rawDesc,
+      shortDescription: json['short_description'] as String? ?? rawDesc,
+      securityVersion: (json['security_version'] as num?)?.toInt() ?? 1,
+      minimumCoreVersion: json['minimum_core_version'] as String? ?? '2.0.0',
+      estimatedTime: (json['estimated_time'] as num?)?.toInt() ?? 45,
+      skills: (json['skills'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      learningObjectives: (json['learning_objectives'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      prerequisites: (json['prerequisites'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 }
@@ -191,46 +230,81 @@ class CatalogEntry {
 class LabManifest {
   final int schemaVersion;
   final String id;
+  final String packageId;
   final String slug;
   final String title;
   final String owasp;
+  final String standard;
+  final String standardVersion;
+  final String categoryId;
+  final String categoryName;
   final String version;
+  final int securityVersion;
+  final String minimumCoreVersion;
   final String difficulty;
   final String runtime;
   final String entrypoint;
   final int defaultPort;
   final int estimatedMinutes;
   final List<String> modes;
+  final String shortDescription;
+  final List<String> skills;
+  final List<String> learningObjectives;
+  final List<String> prerequisites;
 
   LabManifest({
     required this.schemaVersion,
     required this.id,
+    required this.packageId,
     required this.slug,
     required this.title,
     required this.owasp,
+    this.standard = 'owasp-top10',
+    this.standardVersion = '2025',
+    required this.categoryId,
+    required this.categoryName,
     required this.version,
+    this.securityVersion = 1,
+    this.minimumCoreVersion = '2.0.0',
     required this.difficulty,
     required this.runtime,
     required this.entrypoint,
     required this.defaultPort,
     required this.estimatedMinutes,
     required this.modes,
+    this.shortDescription = '',
+    this.skills = const [],
+    this.learningObjectives = const [],
+    this.prerequisites = const [],
   });
 
   factory LabManifest.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'] as String? ?? '';
+    final rawTitle = json['title'] as String? ?? '';
     return LabManifest(
       schemaVersion: json['schema_version'] as int? ?? 1,
-      id: json['id'] as String? ?? '',
+      id: rawId,
+      packageId: json['package_id'] as String? ?? 'zitera-lab-${rawId.toLowerCase()}',
       slug: json['slug'] as String? ?? '',
-      title: json['title'] as String? ?? '',
+      title: rawTitle,
       owasp: json['owasp'] as String? ?? '',
+      standard: json['standard'] as String? ?? 'owasp-top10',
+      standardVersion: json['standard_version'] as String? ?? '2025',
+      categoryId: json['category_id'] as String? ?? rawId,
+      categoryName: json['category_name'] as String? ?? rawTitle,
       version: json['version'] as String? ?? '1.0.0',
+      securityVersion: (json['security_version'] as num?)?.toInt() ?? 1,
+      minimumCoreVersion: json['minimum_core_version'] as String? ?? '2.0.0',
       difficulty: json['difficulty'] as String? ?? 'Beginner',
-      runtime: json['runtime'] as String? ?? 'docker',
+      runtime: json['runtime'] as String? ?? 'native_sandboxed',
       entrypoint: json['entrypoint'] as String? ?? '',
       defaultPort: json['default_port'] as int? ?? 0,
       estimatedMinutes: json['estimated_minutes'] as int? ?? 45,
       modes: (json['modes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      shortDescription: json['short_description'] as String? ?? '',
+      skills: (json['skills'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      learningObjectives: (json['learning_objectives'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      prerequisites: (json['prerequisites'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 }

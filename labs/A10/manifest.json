@@ -1,10 +1,17 @@
 {
   "schema_version": 1,
   "id": "A10",
+  "package_id": "zitera-lab-a10",
   "slug": "mishandling-exceptional-conditions",
   "title": "Mishandling of Exceptional Conditions",
   "owasp": "A10:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A10",
+  "category_name": "Mishandling of Exceptional Conditions",
   "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
   "difficulty": "Intermediate",
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a10-lab.exe",
@@ -15,6 +22,14 @@
     "practice",
     "challenge"
   ],
+  "short_description": "Fail-open exception handling allowing unauthorized security gate traversal.",
+  "skills": ["Fail-Safe Defaults", "Defensive Exception Handling", "Boundary Guarding"],
+  "learning_objectives": [
+    "Identify fail-open security flaws in exception handling blocks",
+    "Induce upstream failure states that bypass authorization checks",
+    "Enforce strict fail-closed defaults across all boundary guards"
+  ],
+  "prerequisites": ["Error/Exception handling basics"],
   "requirements": {
     "required_tools": [],
     "recommended_tools": [

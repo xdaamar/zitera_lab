@@ -1,10 +1,17 @@
 {
   "schema_version": 1,
   "id": "A06",
+  "package_id": "zitera-lab-a06",
   "slug": "insecure-design",
   "title": "Insecure Design",
   "owasp": "A06:2025",
-  "version": "1.0.1",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A06",
+  "category_name": "Insecure Design",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
   "difficulty": "Intermediate",
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a06-lab.exe",
@@ -15,6 +22,14 @@
     "practice",
     "challenge"
   ],
+  "short_description": "Flawed procurement state transitions and missing business logic controls.",
+  "skills": ["Threat Modeling", "State Machine Invariants", "Business Logic Validation"],
+  "learning_objectives": [
+    "Differentiate design flaws from implementation vulnerabilities",
+    "Detect illegal state transitions in enterprise workflows",
+    "Establish architectural security invariants in business logic"
+  ],
+  "prerequisites": ["Workflow / State machine concepts"],
   "requirements": {
     "required_tools": [],
     "recommended_tools": [
