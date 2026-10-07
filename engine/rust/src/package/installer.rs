@@ -257,6 +257,55 @@ pub fn resolve_effective_lab_dir(lab_dir: &Path) -> PathBuf {
     lab_dir.to_path_buf()
 }
 
+/// Manually activates an already-installed version from the versions/ directory.
+pub fn activate_version(lab_dir: &Path, version: &str) -> Result<(), String> {
+    let target_version_dir = lab_dir.join("versions").join(version);
+    if !target_version_dir.join("manifest.json").exists() {
+        return Err(format!(
+            "Target version '{}' does not exist or has no valid manifest.json",
+            version
+        ));
+    }
+    fs::write(lab_dir.join("active_version.txt"), version)
+        .map_err(|e| format!("Failed to update active_version marker: {}", e))?;
+    let _ = copy_dir_all(&target_version_dir, lab_dir);
+    Ok(())
+}
+
+/// Rolls back to the most recent previous installed version.
+pub fn rollback_to_previous_version(lab_dir: &Path) -> Result<String, String> {
+    let current_ver = get_active_version(lab_dir)
+        .ok_or_else(|| "No active version currently configured".to_string())?;
+
+    let versions_dir = lab_dir.join("versions");
+    if !versions_dir.exists() {
+        return Err("No versions directory found".to_string());
+    }
+
+    let mut available_versions: Vec<String> = Vec::new();
+    if let Ok(entries) = fs::read_dir(&versions_dir) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() && entry.path().join("manifest.json").exists() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name != current_ver {
+                        available_versions.push(name.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    if available_versions.is_empty() {
+        return Err("No alternative version available for rollback".to_string());
+    }
+
+    // Sort descending by semantic version so we pick the highest earlier version
+    available_versions.sort_by(|a, b| compare_semver(b, a));
+    let target_version = available_versions[0].clone();
+    activate_version(lab_dir, &target_version)?;
+    Ok(target_version)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -267,6 +316,16 @@ mod tests {
     use crate::package::verifier::compute_archive_content_digest;
 
     fn build_test_package_signed(dest_pkg: &Path, id: &str, version: &str, sec_version: u32) {
+        build_test_package_custom(dest_pkg, id, version, sec_version, "2.0.0");
+    }
+
+    fn build_test_package_custom(
+        dest_pkg: &Path,
+        id: &str,
+        version: &str,
+        sec_version: u32,
+        min_core: &str,
+    ) {
         let temp_dir = dest_pkg.with_extension("stage_build");
         let _ = fs::remove_dir_all(&temp_dir);
         fs::create_dir_all(temp_dir.join("bin")).unwrap();
@@ -288,7 +347,7 @@ mod tests {
             id,
             version,
             sec_version,
-            "2.0.0",
+            min_core,
             "native_sandboxed",
             "x86_64",
             "bin/lab.exe",
@@ -305,7 +364,7 @@ mod tests {
             "owasp": "A05:2025",
             "version": "{}",
             "security_version": {},
-            "minimum_core_version": "2.0.0",
+            "minimum_core_version": "{}",
             "difficulty": "Beginner",
             "runtime": "native_sandboxed",
             "entrypoint": "bin/lab.exe",
@@ -314,7 +373,7 @@ mod tests {
             "modes": ["learn"],
             "signature": "{}"
         }}"#,
-            id, version, sec_version, sig
+            id, version, sec_version, min_core, sig
         );
         fs::write(temp_dir.join("manifest.json"), manifest).unwrap();
         create_zlab_package(&temp_dir, dest_pkg).unwrap();
@@ -578,6 +637,229 @@ mod tests {
         // 5. Verification that previous version remains usable and intact
         assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
         assert!(upgraded_effective.join("manifest.json").exists());
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_package_full_release_lifecycle_and_tamper_matrix_cp04() {
+        let temp = std::env::temp_dir().join("zitera_pkg_lifecycle_cp04");
+        let _ = fs::remove_dir_all(&temp);
+        let workspace = temp.join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+
+        let lab_id = "A01";
+        let pkg_v1 = temp.join("A01_1.0.0.zlab");
+        let pkg_v2 = temp.join("A01_1.0.1.zlab");
+
+        build_test_package_signed(&pkg_v1, lab_id, "1.0.0", 1);
+        build_test_package_signed(&pkg_v2, lab_id, "1.0.1", 1);
+
+        // 1. VERIFY: package format and cryptographic signature
+        let verified_v1 =
+            verify_package(&pkg_v1, Some(lab_id)).expect("v1 package must verify cleanly");
+        assert_eq!(verified_v1.manifest.id, lab_id);
+        assert_eq!(verified_v1.manifest.version, "1.0.0");
+
+        // 2. INSTALL: fresh package into empty workspace
+        let install_rep = install_or_update_package(&pkg_v1, &workspace)
+            .expect("Fresh install of v1.0.0 must succeed");
+        assert_eq!(install_rep.lab_id, lab_id);
+        assert_eq!(install_rep.new_version, "1.0.0");
+        assert_eq!(install_rep.previous_version, None);
+        assert_eq!(install_rep.status, "INSTALLED_ACTIVE");
+
+        let lab_dir = workspace.join("labs").join(lab_id);
+        assert!(lab_dir.exists());
+
+        // 3. ACTIVATE: check active version and effective directory
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.0".to_string()));
+        let eff_v1 = resolve_effective_lab_dir(&lab_dir);
+        assert!(eff_v1.ends_with("1.0.0"));
+        assert!(eff_v1.join("manifest.json").exists());
+
+        // 4. START & STOP: simulate lifecycle states
+        let runtime_marker = lab_dir.join(".runtime.json");
+        fs::write(
+            &runtime_marker,
+            r#"{"pid": 1234, "port": 8011, "status": "running"}"#,
+        )
+        .unwrap();
+        assert!(runtime_marker.exists());
+        // Stop: clean runtime marker
+        fs::remove_file(&runtime_marker).unwrap();
+        assert!(!runtime_marker.exists());
+
+        // 5. UPDATE: upgrade from 1.0.0 to 1.0.1
+        let update_rep =
+            install_or_update_package(&pkg_v2, &workspace).expect("Update to v1.0.1 must succeed");
+        assert_eq!(update_rep.new_version, "1.0.1");
+        assert_eq!(update_rep.previous_version, Some("1.0.0".to_string()));
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+
+        let eff_v2 = resolve_effective_lab_dir(&lab_dir);
+        assert!(eff_v2.ends_with("1.0.1"));
+        assert!(lab_dir
+            .join("versions")
+            .join("1.0.0")
+            .join("manifest.json")
+            .exists());
+
+        // 6. RESTART: simulate start-stop cycle on upgraded version
+        fs::write(
+            &runtime_marker,
+            r#"{"pid": 1235, "port": 8011, "status": "running"}"#,
+        )
+        .unwrap();
+        assert!(runtime_marker.exists());
+        fs::remove_file(&runtime_marker).unwrap();
+
+        // 7. ROLLBACK: explicit rollback to previous version (1.0.0)
+        let rolled_back_ver = rollback_to_previous_version(&lab_dir)
+            .expect("Rollback to previous version must succeed");
+        assert_eq!(rolled_back_ver, "1.0.0");
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.0".to_string()));
+        let eff_rolled = resolve_effective_lab_dir(&lab_dir);
+        assert!(eff_rolled.ends_with("1.0.0"));
+
+        // Reactivate 1.0.1
+        activate_version(&lab_dir, "1.0.1").expect("Reactivation of 1.0.1 must succeed");
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+        assert!(resolve_effective_lab_dir(&lab_dir).ends_with("1.0.1"));
+
+        // 8. RECOVER: auto-reconcile after corrupted / missing active_version marker
+        fs::remove_file(lab_dir.join("active_version.txt")).unwrap();
+        assert_eq!(reconcile_lab_version(&lab_dir), Some("1.0.1".to_string()));
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+
+        // Corrupt marker with bogus version string
+        fs::write(lab_dir.join("active_version.txt"), "bogus.version.999").unwrap();
+        assert!(resolve_effective_lab_dir(&lab_dir).ends_with("1.0.1"));
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+
+        // --- TAMPER & FAILURE MATRIX (9 scenarios) ---
+        // Requirement: any failed update MUST keep existing installation usable and intact!
+
+        // a. Tampered archive content bytes (payload mutated after signature)
+        let pkg_tampered = temp.join("A01_tampered.zlab");
+        fs::copy(&pkg_v2, &pkg_tampered).unwrap();
+        let mut t_bytes = fs::read(&pkg_tampered).unwrap();
+        let entries = super::super::archive::validate_archive_structure(&t_bytes).unwrap();
+        let target_entry = entries
+            .iter()
+            .find(|e| e.name.contains("lab.exe"))
+            .expect("lab.exe entry must exist");
+        t_bytes[target_entry.data_offset as usize] ^= 0xaa;
+        fs::write(&pkg_tampered, t_bytes).unwrap();
+        let err_tamper = install_or_update_package(&pkg_tampered, &workspace);
+        assert!(err_tamper.is_err(), "Mutated payload must fail verification");
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+
+        // b. Missing package file
+        let pkg_missing = temp.join("non_existent_package.zlab");
+        assert!(install_or_update_package(&pkg_missing, &workspace).is_err());
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+
+        // c. Outdated / Version downgrade
+        let err_downgrade = install_or_update_package(&pkg_v1, &workspace);
+        assert!(err_downgrade.is_err());
+        assert!(err_downgrade.unwrap_err().contains("Downgrade rejected"));
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+
+        // d. Invalid security version (security_version == 0 rejected by verifier)
+        let pkg_sec0 = temp.join("A01_sec0.zlab");
+        build_test_package_signed(&pkg_sec0, lab_id, "1.0.2", 0);
+        let err_sec0 = install_or_update_package(&pkg_sec0, &workspace);
+        assert!(err_sec0.is_err());
+        assert!(err_sec0.unwrap_err().contains("Invalid security_version"));
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
+
+        // d2. Security version downgrade (install sec_version 2, then attempt sec_version 1)
+        let pkg_sec2 = temp.join("A01_sec2.zlab");
+        build_test_package_signed(&pkg_sec2, lab_id, "1.0.2", 2);
+        install_or_update_package(&pkg_sec2, &workspace)
+            .expect("Upgrade to security_version 2 must succeed");
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+
+        let pkg_sec1_downgrade = temp.join("A01_sec1_downgrade.zlab");
+        build_test_package_signed(&pkg_sec1_downgrade, lab_id, "1.0.3", 1);
+        let err_sec_down = install_or_update_package(&pkg_sec1_downgrade, &workspace);
+        assert!(err_sec_down.is_err());
+        assert!(err_sec_down
+            .unwrap_err()
+            .contains("Anti-downgrade violation"));
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+
+        // e. Incompatible core version
+        let pkg_future_core = temp.join("A01_future_core.zlab");
+        build_test_package_custom(&pkg_future_core, lab_id, "1.0.3", 2, "99.0.0");
+        let err_core = install_or_update_package(&pkg_future_core, &workspace);
+        assert!(err_core.is_err());
+        assert!(err_core
+            .unwrap_err()
+            .contains("requires a newer ZITERA_LAB core"));
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+
+        // f. Corrupt archive (completely invalid payload)
+        let pkg_corrupt = temp.join("A01_corrupt.zlab");
+        fs::write(&pkg_corrupt, b"NOT_A_VALID_ZIP_OR_ZLAB_HEADER_AT_ALL").unwrap();
+        assert!(install_or_update_package(&pkg_corrupt, &workspace).is_err());
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+
+        // g. Partial archive (truncated payload)
+        let pkg_partial = temp.join("A01_partial.zlab");
+        let v2_bytes = fs::read(&pkg_v2).unwrap();
+        fs::write(&pkg_partial, &v2_bytes[..v2_bytes.len().min(48)]).unwrap();
+        assert!(install_or_update_package(&pkg_partial, &workspace).is_err());
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+
+        // h. Invalid signature (tampered manifest signature)
+        let pkg_bad_sig = temp.join("A01_bad_sig.zlab");
+        let bad_stage = temp.join("stage_bad_sig");
+        let _ = fs::create_dir_all(bad_stage.join("bin"));
+        fs::write(bad_stage.join("bin").join("lab.exe"), "bin").unwrap();
+        let bad_manifest = format!(
+            r#"{{"schema_version":1,"id":"{}","slug":"inj","title":"Inj","owasp":"A05","version":"1.0.3","security_version":2,"minimum_core_version":"2.0.0","difficulty":"B","runtime":"native_sandboxed","entrypoint":"bin/lab.exe","default_port":8015,"estimated_minutes":30,"modes":["learn"],"signature":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}}"#,
+            lab_id
+        );
+        fs::write(bad_stage.join("manifest.json"), bad_manifest).unwrap();
+        create_zlab_package(&bad_stage, &pkg_bad_sig).unwrap();
+        let _ = fs::remove_dir_all(&bad_stage);
+        assert!(install_or_update_package(&pkg_bad_sig, &workspace).is_err());
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+
+        // i. Manifest schema violation (missing required entrypoint / invalid manifest)
+        let pkg_bad_schema = temp.join("A01_bad_schema.zlab");
+        let bad_schema_stage = temp.join("stage_bad_schema");
+        let _ = fs::create_dir_all(bad_schema_stage.join("bin"));
+        fs::write(bad_schema_stage.join("bin").join("lab.exe"), "bin").unwrap();
+        fs::write(bad_schema_stage.join("manifest.json"), r#"{"id": "A01"}"#).unwrap();
+        create_zlab_package(&bad_schema_stage, &pkg_bad_schema).unwrap();
+        let _ = fs::remove_dir_all(&bad_schema_stage);
+        assert!(install_or_update_package(&pkg_bad_schema, &workspace).is_err());
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+
+        // FINAL VERIFICATION: Active lab at 1.0.2 is 100% usable, intact, uncorrupted
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.2".to_string()));
+        let final_eff = resolve_effective_lab_dir(&lab_dir);
+        assert!(final_eff.ends_with("1.0.2"));
+        assert!(final_eff.join("manifest.json").exists());
+        assert!(final_eff.join("bin").join("lab.exe").exists());
+        assert!(lab_dir
+            .join("versions")
+            .join("1.0.0")
+            .join("manifest.json")
+            .exists());
+        assert!(lab_dir
+            .join("versions")
+            .join("1.0.1")
+            .join("manifest.json")
+            .exists());
+        assert!(lab_dir
+            .join("versions")
+            .join("1.0.2")
+            .join("manifest.json")
+            .exists());
 
         let _ = fs::remove_dir_all(&temp);
     }
