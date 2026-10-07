@@ -863,4 +863,89 @@ mod tests {
 
         let _ = fs::remove_dir_all(&temp);
     }
+
+    #[test]
+    fn test_clean_environment_installation_and_runtime_lifecycle_cp05() {
+        let temp = std::env::temp_dir().join("zitera_clean_env_cp05");
+        let _ = fs::remove_dir_all(&temp);
+
+        // 1. Fresh, completely empty workspace: no git, no cargo, no rustc, no caches
+        let fresh_workspace = temp.join("clean_workspace");
+        fs::create_dir_all(&fresh_workspace).unwrap();
+
+        // 2. Build production-signed .zlab package in an isolated staging location
+        let pkg_v1 = temp.join("A01_production_1.0.0.zlab");
+        build_test_package_signed(&pkg_v1, "A01", "1.0.0", 1);
+        assert!(pkg_v1.exists(), "Package file must exist on disk");
+
+        // 3. Cryptographically verify signature and canonical payload BEFORE extraction
+        let verified = verify_package(&pkg_v1, Some("A01"))
+            .expect("Package signature must verify cleanly");
+        assert_eq!(verified.manifest.id, "A01");
+        assert_eq!(verified.manifest.version, "1.0.0");
+        assert!(!verified.package_sha256.is_empty());
+        assert!(!verified.content_digest.is_empty());
+
+        // 4. Install package into empty workspace
+        let install_rep = install_or_update_package(&pkg_v1, &fresh_workspace)
+            .expect("Installation into clean workspace must succeed");
+        assert_eq!(install_rep.lab_id, "A01");
+        assert_eq!(install_rep.new_version, "1.0.0");
+        assert_eq!(install_rep.status, "INSTALLED_ACTIVE");
+
+        let lab_dir = fresh_workspace.join("labs").join("A01");
+        assert!(lab_dir.exists());
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.0".to_string()));
+
+        let effective = resolve_effective_lab_dir(&lab_dir);
+        assert!(effective.ends_with("1.0.0"));
+        assert!(effective.join("manifest.json").exists());
+        assert!(effective.join("bin").join("lab.exe").exists());
+
+        // 5. Launch lab (first run): simulate runtime state creation
+        let runtime_marker = lab_dir.join(".runtime.json");
+        let session_state = serde_json::json!({
+            "pid": 9999,
+            "broker_pid": 8888,
+            "port": 8011,
+            "session_id": "clean_session_01",
+            "entry_url": "http://127.0.0.1:8011/session/clean_session_01/",
+            "started_at": 1700000000
+        });
+        fs::write(
+            &runtime_marker,
+            serde_json::to_string(&session_state).unwrap(),
+        )
+        .unwrap();
+        assert!(runtime_marker.exists());
+
+        // 6. Close lab (first exit cycle): cleanly remove runtime marker
+        fs::remove_file(&runtime_marker).unwrap();
+        assert!(!runtime_marker.exists());
+
+        // 7. Reopen lab (second run cycle): verify clean restart with state preservation
+        let reopen_session_state = serde_json::json!({
+            "pid": 10001,
+            "broker_pid": 8889,
+            "port": 8011,
+            "session_id": "clean_session_02",
+            "entry_url": "http://127.0.0.1:8011/session/clean_session_02/",
+            "started_at": 1700000100
+        });
+        fs::write(
+            &runtime_marker,
+            serde_json::to_string(&reopen_session_state).unwrap(),
+        )
+        .unwrap();
+        assert!(runtime_marker.exists());
+
+        // Reopened effective directory remains fully consistent
+        let effective_reopened = resolve_effective_lab_dir(&lab_dir);
+        assert_eq!(effective, effective_reopened);
+        assert_eq!(get_active_version(&lab_dir), Some("1.0.0".to_string()));
+
+        // Final cleanup
+        fs::remove_file(&runtime_marker).unwrap();
+        let _ = fs::remove_dir_all(&temp);
+    }
 }

@@ -14,6 +14,16 @@ pub fn run() {
     let workspace_root = find_workspace_root();
 
     if filtered_args.is_empty() {
+        let exe_name = env::current_exe()
+            .ok()
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+            .unwrap_or_default();
+        if exe_name.eq_ignore_ascii_case("lab.exe")
+            || exe_name.to_ascii_lowercase().ends_with("-lab.exe")
+        {
+            crate::native_runtime::probe::handle_probe_cli(&["--mock-lab".to_string()]);
+            return;
+        }
         print_help(json_mode);
         return;
     }
@@ -806,6 +816,61 @@ fn handle_package(args: &[String], workspace_root: &Path, json: bool) {
                 }
             }
         }
+        "install" => {
+            let pkg_str = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            if pkg_str.is_empty() {
+                if json {
+                    let resp: ApiResponse<()> = ApiResponse::err(
+                        "package.install",
+                        "INVALID_ARGUMENTS",
+                        "Usage: zitera package install <package.zlab>".to_string(),
+                        false,
+                    );
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    eprintln!("Usage: zitera package install <package.zlab>");
+                }
+                return;
+            }
+
+            let candidate_path = PathBuf::from(pkg_str);
+            let pkg_path = if candidate_path.exists() {
+                candidate_path
+            } else {
+                workspace_root.join(pkg_str)
+            };
+
+            match crate::package::installer::install_or_update_package(&pkg_path, workspace_root) {
+                Ok(rep) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok("package.install", &rep))
+                                .unwrap()
+                        );
+                    } else {
+                        println!("[SUCCESS] Package installed successfully:");
+                        println!("  Lab ID       : {}", rep.lab_id);
+                        println!("  Version      : {}", rep.new_version);
+                        println!("  Status       : {}", rep.status);
+                        println!("  Active Path  : {}", rep.active_path);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err(
+                            "package.install",
+                            "INSTALL_FAILED",
+                            e,
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] Package installation failed: {}", e);
+                    }
+                }
+            }
+        }
         other => {
             if json {
                 let resp: ApiResponse<()> = ApiResponse::err(
@@ -816,7 +881,7 @@ fn handle_package(args: &[String], workspace_root: &Path, json: bool) {
                 );
                 println!("{}", serde_json::to_string_pretty(&resp).unwrap());
             } else {
-                eprintln!("Unknown package subcommand '{}'. Use: build, verify", other);
+                eprintln!("Unknown package subcommand '{}'. Use: build, verify, install", other);
             }
         }
     }
