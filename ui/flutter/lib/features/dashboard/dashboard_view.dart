@@ -28,6 +28,7 @@ class _DashboardViewState extends State<DashboardView> {
   List<LabItem> _labs = [];
   List<ToolItem> _tools = [];
   Map<String, dynamic> _progress = {};
+  List<CatalogEntry> _catalog = [];
   bool _isLoading = true;
   String? _error;
 
@@ -49,6 +50,7 @@ class _DashboardViewState extends State<DashboardView> {
         ZiteraEngineClient.getLabs(),
         ZiteraEngineClient.getTools(),
         ProgressManager.loadProgress(),
+        ZiteraEngineClient.getCatalog().catchError((_) => <CatalogEntry>[]),
       ]);
 
       if (mounted) {
@@ -57,6 +59,7 @@ class _DashboardViewState extends State<DashboardView> {
           _labs = results[1] as List<LabItem>;
           _tools = results[2] as List<ToolItem>;
           _progress = results[3] as Map<String, dynamic>;
+          _catalog = results[4] as List<CatalogEntry>;
           _isLoading = false;
         });
       }
@@ -1416,23 +1419,30 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  /// OWASP Top 10:2025 Curriculum Navigation Widget (Phase 11 / PRD §48).
+  /// OWASP Top 10:2025 Curriculum Navigation Widget (Phase 11 & Phase 19 Data-Driven).
   Widget _buildOwaspCurriculumView({
     required List<LabItem> labs,
     required List<String> solvedChallenges,
   }) {
-    const categories = [
-      {'id': 'A01', 'num': '01', 'title': 'Broken Access Control'},
-      {'id': 'A02', 'num': '02', 'title': 'Security Misconfiguration'},
-      {'id': 'A03', 'num': '03', 'title': 'Supply Chain Failures'},
-      {'id': 'A04', 'num': '04', 'title': 'Cryptographic Failures'},
-      {'id': 'A05', 'num': '05', 'title': 'Injection'},
-      {'id': 'A06', 'num': '06', 'title': 'Insecure Design'},
-      {'id': 'A07', 'num': '07', 'title': 'Authentication Failures'},
-      {'id': 'A08', 'num': '08', 'title': 'Data Integrity Failures'},
-      {'id': 'A09', 'num': '09', 'title': 'Logging & Alerting'},
-      {'id': 'A10', 'num': '10', 'title': 'Exceptional Conditions'},
-    ];
+    final categories = _catalog.isNotEmpty
+        ? _catalog.map((c) => {
+            'id': c.id.toUpperCase(),
+            'num': c.id.replaceAll(RegExp(r'[^0-9]'), ''),
+            'title': c.title,
+            'package_id': c.packageId,
+          }).toList()
+        : const [
+            {'id': 'A01', 'num': '01', 'title': 'Broken Access Control'},
+            {'id': 'A02', 'num': '02', 'title': 'Security Misconfiguration'},
+            {'id': 'A03', 'num': '03', 'title': 'Software Supply Chain Failures'},
+            {'id': 'A04', 'num': '04', 'title': 'Cryptographic Failures'},
+            {'id': 'A05', 'num': '05', 'title': 'Injection'},
+            {'id': 'A06', 'num': '06', 'title': 'Insecure Design'},
+            {'id': 'A07', 'num': '07', 'title': 'Authentication Failures'},
+            {'id': 'A08', 'num': '08', 'title': 'Software or Data Integrity Failures'},
+            {'id': 'A09', 'num': '09', 'title': 'Security Logging & Alerting Failures'},
+            {'id': 'A10', 'num': '10', 'title': 'Mishandling of Exceptional Conditions'},
+          ];
 
     return Container(
       padding: const EdgeInsets.all(16),

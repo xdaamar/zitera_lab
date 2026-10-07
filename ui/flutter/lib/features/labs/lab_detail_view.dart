@@ -81,6 +81,9 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       final sectionsMap = Map<String, dynamic>.from(progressData['completed_sections'] as Map? ?? {});
       final labSections = Set<String>.from(sectionsMap[widget.labId] as List? ?? []);
 
+      // Record lab opened in structured progress model (Phase 19 Checkpoint 6)
+      await ProgressManager.recordLabOpened(widget.labId);
+
       if (mounted) {
         setState(() {
           _status = st;
@@ -146,7 +149,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
           ),
         ),
         content: Text(
-          'This will restart Docker containers for ${widget.labId} and restore its database to original seed state. Local lesson reading progress will NOT be lost.',
+          'This will reset the native sandboxed lab ${widget.labId} and restore its runtime memory and seed state. Local lesson reading progress will NOT be lost.',
           style: const TextStyle(
             fontFamily: 'JetBrainsMono',
             fontSize: 12,
@@ -227,7 +230,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
           ),
         ),
         content: Text(
-          'This stops and tears down the Docker containers and removes local repository files for ${widget.labId}. You can reinstall it anytime from the catalog.',
+          'This terminates the native sandboxed process and removes local package files for ${widget.labId}. You can reinstall it anytime from the catalog.',
           style: const TextStyle(
             fontFamily: 'JetBrainsMono',
             fontSize: 12,
@@ -337,6 +340,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     });
 
     try {
+      await ProgressManager.recordChallengeAttempt(widget.labId);
       final res = await ZiteraEngineClient.validateChallenge(widget.labId, input);
       final passed = res.status == 'passed';
 
@@ -857,7 +861,185 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: keys.asMap().entries.map((entry) {
+        children: [
+          // Phase 19 Checkpoint 4 & 5: Curriculum Specification & Learning Objectives
+          if (_content != null) ...[
+            HackerTilixEntrance(
+              delay: const Duration(milliseconds: 40),
+              direction: TilixSlideDirection.down,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 24.0),
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFCFBF8),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF2DD4BF), width: 1.4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F766E),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${_content!.manifest.standard.toUpperCase()} : ${_content!.manifest.standardVersion}',
+                                style: const TextStyle(
+                                  fontFamily: 'JetBrainsMono',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE6FFFA),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFF2DD4BF)),
+                              ),
+                              child: Text(
+                                '${_content!.manifest.categoryId} • ${_content!.manifest.categoryName.toUpperCase()}',
+                                style: const TextStyle(
+                                  fontFamily: 'JetBrainsMono',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0F766E),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0EDE8),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: ZiteraColors.border),
+                          ),
+                          child: Text(
+                            'EST. ${_content!.manifest.estimatedMinutes} MIN',
+                            style: const TextStyle(
+                              fontFamily: 'JetBrainsMono',
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF5C5347),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_content!.manifest.shortDescription.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _content!.manifest.shortDescription,
+                        style: const TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1E1A14),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                    if (_content!.manifest.learningObjectives.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      const Text(
+                        'LEARNING OBJECTIVES',
+                        style: TextStyle(
+                          fontFamily: 'SpaceGrotesk',
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.6,
+                          color: Color(0xFF0F766E),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ..._content!.manifest.learningObjectives.map((obj) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('• ', style: TextStyle(color: Color(0xFF0F766E), fontWeight: FontWeight.bold)),
+                            Expanded(
+                              child: Text(
+                                obj,
+                                style: const TextStyle(
+                                  fontFamily: 'SpaceGrotesk',
+                                  fontSize: 12.5,
+                                  color: Color(0xFF5C5347),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                    ],
+                    if (_content!.manifest.skills.isNotEmpty || _content!.manifest.prerequisites.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          ..._content!.manifest.skills.map((s) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: Text(
+                              'Skill: $s',
+                              style: const TextStyle(
+                                fontFamily: 'SpaceGrotesk',
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1D4ED8),
+                              ),
+                            ),
+                          )),
+                          ..._content!.manifest.prerequisites.map((p) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFFDE68A)),
+                            ),
+                            child: Text(
+                              'Prereq: $p',
+                              style: const TextStyle(
+                                fontFamily: 'SpaceGrotesk',
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFB45309),
+                              ),
+                            ),
+                          )),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+          ...keys.asMap().entries.map((entry) {
           final index = entry.key;
           final key = entry.value;
           final content = LabLocalization.getLessonContent(
