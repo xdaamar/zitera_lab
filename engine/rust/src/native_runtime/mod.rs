@@ -171,16 +171,24 @@ mod tests {
         let _ = AppContainerProfile::delete(&identity);
     }
 
+    #[cfg(windows)]
+    fn get_probe_exe() -> PathBuf {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let rel = root.join("target").join("release").join("zitera-engine.exe");
+        if rel.exists() {
+            rel
+        } else {
+            root.join("target").join("debug").join("zitera-engine.exe")
+        }
+    }
+
     #[test]
     #[cfg(windows)]
     fn test_sandboxed_probe_launch_and_token_identity() {
         let identity = LabIdentity::new("PROBE_TOKEN_TEST").unwrap();
         let _ = AppContainerProfile::create_or_open(&identity);
 
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         let mut env_map = HashMap::new();
         env_map.insert(
@@ -678,5 +686,63 @@ mod tests {
         );
 
         assert!(process_launch_and_exec_ms < 1000);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_native_runtime_process_isolation_and_ps_boundary_cp03() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        // 1. Ensure lab A01 is stopped before test
+        let _ = crate::labs::stop_lab(&repo_root, "A01");
+
+        // 2. Start Lab A01 in native sandboxed runtime
+        let start_res = crate::labs::start_lab(&repo_root, "A01");
+        assert!(start_res.is_ok(), "Starting lab A01 must succeed: {:?}", start_res);
+
+        let status = crate::labs::get_lab_status(&repo_root, "A01");
+        assert!(status.running, "Lab A01 must report running in sandbox");
+        let port = status.port;
+        assert!(port > 0, "Lab A01 must have active port");
+
+        // 3. Create in-process TerminalSession rooted at A01 directory
+        let lab_dir = crate::labs::get_lab_dir(&repo_root, "A01");
+        let mut term = crate::terminal::TerminalSession::new(lab_dir.clone());
+
+        // 4. Verify ps displays ONLY simulated/sandboxed processes
+        let ps_res = term.execute("ps");
+        assert_eq!(ps_res.exit_code, 0);
+        assert!(ps_res.stdout.contains("init"));
+        assert!(ps_res.stdout.contains("lab-daemon"));
+        assert!(ps_res.stdout.contains("zitera-term"));
+
+        // Host processes must NEVER be visible in ps
+        assert!(!ps_res.stdout.contains("explorer.exe"));
+        assert!(!ps_res.stdout.contains("System"));
+        assert!(!ps_res.stdout.contains("svchost.exe"));
+        assert!(!ps_res.stdout.contains("cmd.exe"));
+        assert!(!ps_res.stdout.contains("powershell.exe"));
+
+        // 5. Extended ps -ef verification
+        let ps_ef = term.execute("ps -ef");
+        assert_eq!(ps_ef.exit_code, 0);
+        assert!(ps_ef.stdout.contains("/sbin/init"));
+        assert!(ps_ef.stdout.contains("/opt/zitera/lab-daemon"));
+        assert!(!ps_ef.stdout.contains("C:\\Windows"));
+
+        // 6. Stop the lab and verify complete termination and cleanup
+        let stop_res = crate::labs::stop_lab(&repo_root, "A01");
+        assert!(stop_res.is_ok(), "Stopping lab A01 must succeed");
+
+        let status_after = crate::labs::get_lab_status(&repo_root, "A01");
+        assert!(!status_after.running, "Lab A01 must report not running after stop");
+
+        // Runtime state file must be removed
+        assert!(!lab_dir.join(".runtime.json").exists(), ".runtime.json must be cleaned up on stop");
     }
 }
