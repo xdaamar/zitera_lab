@@ -51,14 +51,22 @@ class StoragePaths {
       '${userDir.path}${Platform.pathSeparator}$defaultProgressFileName',
     );
 
-    // If canonical already exists or userDir is custom, prioritize canonical
+    // 2. If canonical already exists or userDir is custom, prioritize canonical
     if (canonicalFile.existsSync()) {
       return canonicalFile;
     }
 
-    // If running in development/local test where legacy file exists
+    // 3. Auto-migrate legacy progress file to canonical directory if it exists
     if (legacyFile.existsSync()) {
-      return legacyFile;
+      try {
+        if (!userDir.existsSync()) {
+          userDir.createSync(recursive: true);
+        }
+        legacyFile.copySync(canonicalFile.path);
+        return canonicalFile;
+      } catch (_) {
+        return legacyFile;
+      }
     }
 
     // Otherwise, ensure directory exists and use canonical location

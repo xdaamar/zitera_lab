@@ -155,10 +155,27 @@ class ProgressManager {
       decoded['completed_challenges'] = challenges;
       decoded['completed_practice'] = practice;
 
-      // Ensure lab_records exists
-      if (!decoded.containsKey('lab_records') || decoded['lab_records'] is! Map) {
-        decoded['lab_records'] = <String, dynamic>{};
-      }
+      // Normalize and sanitize lab_records keys (e.g. zitera-lab-a01 -> A01)
+      final rawRecords = decoded['lab_records'] as Map? ?? {};
+      final normalizedRecords = <String, dynamic>{};
+      rawRecords.forEach((k, v) {
+        final normKey = normalizeId(k.toString());
+        if (normKey.isNotEmpty) {
+          normalizedRecords[normKey] = v;
+        }
+      });
+      decoded['lab_records'] = normalizedRecords;
+
+      // Normalize completed_sections keys (e.g. zitera-lab-a01 -> A01)
+      final rawSections = decoded['completed_sections'] as Map? ?? {};
+      final normalizedSections = <String, dynamic>{};
+      rawSections.forEach((k, v) {
+        final normKey = normalizeId(k.toString());
+        if (normKey.isNotEmpty) {
+          normalizedSections[normKey] = v;
+        }
+      });
+      decoded['completed_sections'] = normalizedSections;
 
       return decoded;
     } catch (_) {
