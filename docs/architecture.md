@@ -1,8 +1,8 @@
-# ZITERA_LAB Architecture Specification
+# ZITERA_LAB // System Architecture Specification
 
-## 1. System Overview
+## 1. Architectural Philosophy
 
-ZITERA_LAB is an offline-first, native cybersecurity learning platform designed to provide realistic hands-on vulnerability laboratories without requiring virtualization, administrative privileges, or containerization daemons.
+ZITERA_LAB is an offline-first, native cybersecurity learning platform designed to provide authentic, exploit-vulnerable laboratory environments on Windows workstations with **zero virtualization, zero Docker/WSL2 daemons, and zero administrative elevation**.
 
 ```text
 ┌────────────────────────────────────────────────────────┐
@@ -31,24 +31,84 @@ ZITERA_LAB is an offline-first, native cybersecurity learning platform designed 
 
 ---
 
-## 2. Component Decoupling & Principles
+## 2. Layer Decoupling & Boundaries
 
-### A. Presentation Layer (Flutter Desktop)
-- **Generic Data-Driven Architecture**: The UI contains zero hardcoded `if (lab == 'A01')` logic. All views (Lab Detail, Overview, Learn, Practice, Challenge, Hints, Progress) render dynamically from the canonical metadata contract and catalog.
-- **Zero Raw Markdown Leakage**: All educational content passes through high-fidelity styled renderers with syntax-highlighted cyber terminals and formatted tables.
-- **Human-Actionable Error System**: Errors communicate clear diagnostics (*What happened? Why? What can I do?*) instead of raw technical codes.
+### 2.1 Presentation Layer (Flutter Desktop)
+- **Generic Data-Driven Views:** Contains zero hardcoded laboratory identifiers (`if (lab == 'A01')`). Every screen (Overview, Learn, Practice, Challenge, Hints, Progress) renders dynamically from canonical curriculum contracts (`manifest.json` and `catalog.json`).
+- **Human-Actionable Failure Recovery:** Runtime errors are mapped to three human questions:
+  1. *What happened?* (Failure summary)
+  2. *Why did it happen?* (Underlying cause)
+  3. *What can I do?* (Actionable remediation button)
 
-### B. Core Orchestration Engine (Rust)
-- **Single Source of Truth**: Metadata derives strictly from `catalog.json` and laboratory `manifest.json` files.
-- **Stable Package Identity**: Package IDs (e.g., `zitera-lab-a01`) remain permanent across updates, while curriculum mappings (e.g., OWASP Top 10:2025 category `A01`) update transparently without breaking user progress.
-- **Unified Error Taxonomy**: Machine-readable codes paired with contextual remediation instructions.
+### 2.2 Orchestration Engine (Rust Native)
+- **Unified IPC Contract:** Standardized JSON envelope across all CLI commands:
+  ```json
+  {
+    "success": true,
+    "action": "lab.start",
+    "data": { ... },
+    "error": null
+  }
+  ```
+- **Error Classifier:** Categorizes faults into 7 minimal recovery states:
+  `labCrash`, `runtimeUnavailable`, `packageVerificationFailure`, `updateInterrupted`, `rollbackOccurred`, `storageFailure`, `brokerUnavailable`.
 
-### C. Security Broker & Reverse Proxy
-- **Localhost Isolation**: Lab servers bind to internal loopback interfaces (`127.0.0.1`).
-- **Session Authentication**: Every running lab receives an ephemeral, high-entropy cryptographic session token (`/session/<token>/`). Requests lacking valid tokens are dropped.
-- **SSRF Neutralization**: Outbound requests are filtered against internal metadata addresses (e.g. `169.254.169.254`), host networking ranges, and loopback escapes.
+### 2.3 Security Broker & Reverse Proxy
+- **Loopback Enforcement:** Binds strictly to `127.0.0.1`.
+- **Ephemeral Session Tokens:** Generates cryptographic session tokens (`/session/<token>/`) ensuring only authorized local requests reach the target server.
+- **SSRF Neutralization:** Filters and drops requests targeting cloud metadata (`169.254.169.254`) or private intranet ranges.
 
-### D. Educational Sandboxed Terminal
-- **Pure In-Process VFS**: Simulates Unix commands (`pwd`, `ls`, `cd`, `cat`, `grep`, `find`, `echo`, `mkdir`, `touch`, `cp`, `mv`, `rm`, `ps`, `curl`, `whoami`, `uname`) inside an in-memory virtual tree.
-- **Zero Raw Shell Passthrough**: Rejects all shell metacharacters (`;`, `&&`, `|`, `` ` ``, `$()`), forbidding `cmd.exe`, `powershell.exe`, or host process execution.
-- **Interactive Help System**: Provides comprehensive educational usage guides (`help <command>`) explaining cybersecurity relevance and attack surface analysis.
+### 2.4 Educational Sandboxed Terminal
+- **Pure In-Process VFS:** Virtualizes standard Unix utilities inside memory.
+- **Shell-Less Execution:** Syntactic parser rejects shell metacharacters (`;`, `&&`, `|`, `` ` ``, `$()`), preventing arbitrary command injection.
+- **Localhost Curl Proxy:** In-process curl implementation confined strictly to local laboratory endpoints.
+
+---
+
+## 3. Storage Hierarchy (6-Tier Separation)
+
+Storage is segregated into 6 strict isolation tiers under `%LOCALAPPDATA%`:
+
+```text
+%LOCALAPPDATA%\
+├── Programs\ZiteraLab\               [Tier 1: Immutable Application Binaries]
+│   ├── bin\zitera-engine.exe
+│   ├── catalog\catalog.json
+│   └── install_manifest.json
+│
+└── ZiteraLab\
+    ├── user\                         [Tier 2: Student Progress & Data (Guaranteed Preservation)]
+    │   ├── progress.json             (Canonical v2 Schema)
+    │   └── preferences.json
+    │
+    ├── labs\                         [Tier 3: Lab Sandboxes & Packages]
+    │   └── A01\
+    │       ├── active_version.txt
+    │       └── versions\1.0.1\
+    │
+    ├── cache\                        [Tier 4: Disposable Cache (Purged on maintenance)]
+    ├── logs\                         [Tier 5: Process & Error Logs (Size-capped)]
+    └── diagnostics\                  [Tier 6: Privacy-Scrubbed Diagnostics]
+```
+
+---
+
+## 4. Courseware Lifecycle State Machine
+
+Each courseware package transitions through deterministic states:
+
+```text
+[ Remote Feed / .zlab ]
+         │
+         ▼ (Verify Ed25519 & Anti-Downgrade)
+    [ STAGING ] ──────────── (Checksum Mismatch) ──► [ ROLLBACK / PURGE ]
+         │
+         ▼ (Atomic Extraction)
+  [ VERSIONS/<V> ]
+         │
+         ▼ (Write active_version.txt)
+    [ ACTIVE ]
+         │
+         ▼ (Spawn AppContainer / Job Object)
+    [ RUNNING ] ─────────── (Process Crash / Exit) ──► [ STOPPED / RESET ]
+```
