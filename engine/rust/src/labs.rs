@@ -699,6 +699,74 @@ pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String
         .find(|l| l.id.eq_ignore_ascii_case(lab_id))
         .ok_or_else(|| format!("Lab {} not found in catalog.", lab_id))?;
 
+    // 1. Check for local offline .zlab package bundles first (zero network, zero git)
+    let sp = crate::storage::StoragePaths::resolve();
+    let candidate_dirs = [
+        workspace_root.join("packages"),
+        workspace_root.join("dist").join("packages"),
+        sp.app_dir.join("packages"),
+        sp.labs_dir.clone(),
+        workspace_root.join("labs"),
+        workspace_root.to_path_buf(),
+    ];
+
+    let candidate_names = [
+        format!("{}.zlab", lab_id),
+        format!("{}.zlab", lab_id.to_lowercase()),
+        format!("{}.zlab", lab_id.to_uppercase()),
+        format!("zitera-lab-{}.zlab", lab_id.to_lowercase()),
+        format!("{}_1.0.0.zlab", lab_id.to_uppercase()),
+        format!("{}_1.0.1.zlab", lab_id.to_uppercase()),
+    ];
+
+    for dir in &candidate_dirs {
+        if dir.exists() {
+            // Check direct names
+            for name in &candidate_names {
+                let pkg_file = dir.join(name);
+                if pkg_file.is_file() {
+                    let rep = crate::package::install_or_update_package(&pkg_file, workspace_root)?;
+                    return Ok(format!(
+                        "Lab {} ({}) successfully installed from package bundle v{}.",
+                        lab_id, item.title, rep.new_version
+                    ));
+                }
+            }
+            // Scan directory for any matching prefix
+            if let Ok(entries) = fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("zlab") {
+                        if let Some(fname) = path.file_stem().and_then(|s| s.to_str()) {
+                            let fname_lower = fname.to_lowercase();
+                            let target_lower = lab_id.to_lowercase();
+                            if fname_lower == target_lower
+                                || fname_lower.starts_with(&format!("{}_", target_lower))
+                                || fname_lower.starts_with(&format!("{}-", target_lower))
+                                || fname_lower.contains(&format!("zitera-lab-{}", target_lower))
+                            {
+                                let rep = crate::package::install_or_update_package(&path, workspace_root)?;
+                                return Ok(format!(
+                                    "Lab {} ({}) successfully installed from package bundle v{}.",
+                                    lab_id, item.title, rep.new_version
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Check if git is available for online source installation
+    let git_status = crate::system::diagnose_system().git;
+    if !git_status.installed {
+        return Err(format!(
+            "Lab {} package bundle (.zlab) was not found in packages/ directory. Place the package bundle into packages/ to install offline.",
+            lab_id
+        ));
+    }
+
     let repo_url = if item.repository.starts_with("http") {
         item.repository
     } else {

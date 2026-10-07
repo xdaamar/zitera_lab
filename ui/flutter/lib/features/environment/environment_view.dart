@@ -185,7 +185,7 @@ class _EnvironmentViewState extends State<EnvironmentView> {
                             const SizedBox(height: 4),
                             Text(
                               diag.allReady
-                                  ? 'Host environment is fully configured. All containerized external labs can be launched locally.'
+                                  ? 'Host environment is fully configured. Native sandboxed OWASP labs are ready to launch locally.'
                                   : 'One or more system components require attention. Review guided action steps below.',
                               style: const TextStyle(
                                 fontFamily: 'JetBrainsMono',

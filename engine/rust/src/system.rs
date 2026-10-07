@@ -48,23 +48,21 @@ fn check_git() -> ComponentStatus {
         Ok(out) if out.success => {
             let ver = out.stdout.replace("git version", "").trim().to_string();
             ComponentStatus {
-                name: "Git".to_string(),
+                name: "Git (Optional)".to_string(),
                 installed: true,
                 version: Some(ver),
                 status: "READY".to_string(),
-                message: "Git is installed and accessible in PATH.".to_string(),
+                message: "Git is available (optional developer utility).".to_string(),
                 recommendation: None,
             }
         }
         _ => ComponentStatus {
-            name: "Git".to_string(),
+            name: "Git (Optional)".to_string(),
             installed: false,
             version: None,
-            status: "MISSING".to_string(),
-            message: "Git executable not found in PATH.".to_string(),
-            recommendation: Some(
-                "Install Git for Windows from https://git-scm.com/download/win".to_string(),
-            ),
+            status: "NOT_REQUIRED".to_string(),
+            message: "Git is optional; offline courseware operates without Git.".to_string(),
+            recommendation: None,
         },
     }
 }

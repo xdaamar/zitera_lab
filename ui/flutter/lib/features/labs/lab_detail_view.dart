@@ -40,6 +40,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   String? _flagFeedback;
   bool _flagSuccess = false;
   bool _isVerifyingFlag = false;
+  bool _isInstalling = false;
 
   bool _isChallengeSolved = false;
   bool _isPracticeDone = false;
@@ -103,6 +104,36 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _handleInstall() async {
+    setState(() => _isInstalling = true);
+    try {
+      final res = await ZiteraEngineClient.installLab(widget.labId);
+      await _refreshStatus();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.isNotEmpty ? res : 'Lab ${widget.labId} installed successfully!'),
+            backgroundColor: ZiteraColors.ready,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: widget.labId,
+          actionContext: 'Installing Lab ${widget.labId}',
+          onRestart: () => _handleInstall(),
+          onReset: () => _handleReset(),
+          onRefresh: () => _refreshStatus(),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isInstalling = false);
     }
   }
 
@@ -768,7 +799,14 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                   ),
                   Row(
                     children: [
-                      if (!isRunning) ...[
+                      if (_status?.installed != true) ...[
+                        ZiteraButton(
+                          label: _isInstalling ? 'Installing Package...' : 'Install Lab Package',
+                          icon: _isInstalling ? Icons.hourglass_top : Icons.download_for_offline,
+                          variant: ButtonVariant.primary,
+                          onPressed: _isInstalling ? () {} : _handleInstall,
+                        ),
+                      ] else if (!isRunning) ...[
                         ZiteraButton(
                           label: 'Start Lab Environment',
                           icon: Icons.play_arrow,
@@ -877,16 +915,83 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   }
 
   Widget _buildLearnTab() {
+    final isInstalled = _status?.installed == true;
+    if (!isInstalled) {
+      return Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 580),
+          padding: const EdgeInsets.all(32),
+          margin: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFCFBF8),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF2DD4BF), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2DD4BF).withValues(alpha: 0.1),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCCFBF1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF2DD4BF), width: 1.2),
+                ),
+                child: const Icon(Icons.school_outlined, color: Color(0xFF0F766E), size: 30),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'WELCOME TO LAB ${widget.labId.toUpperCase()}',
+                style: const TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Color(0xFF1E1A14),
+                  letterSpacing: 0.8,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${_status?.title ?? widget.labId} is ready to be set up on your machine. Install the courseware package to access lesson readings, guided security investigations, and challenge objectives.',
+                style: const TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  color: Color(0xFF5C5347),
+                  fontSize: 12.5,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 22),
+              ZiteraButton(
+                label: _isInstalling ? 'INSTALLING PACKAGE...' : 'INSTALL LAB PACKAGE',
+                icon: _isInstalling ? Icons.hourglass_top : Icons.download_for_offline,
+                variant: ButtonVariant.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                onPressed: _isInstalling ? () {} : _handleInstall,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final lessons = _content?.lessons ?? {};
 
     if (lessons.isEmpty) {
-      return Center(
+      return const Center(
         child: ZiteraCard(
           child: Text(
-            _status?.installed == true
-                ? 'Lesson content loading or not present in repository.'
-                : 'Lab not installed. Please install the lab to view lesson materials.',
-            style: const TextStyle(color: ZiteraColors.textSecondary),
+            'Lesson content loading or not present in repository.',
+            style: TextStyle(color: ZiteraColors.textSecondary),
           ),
         ),
       );
@@ -1153,6 +1258,57 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   }
 
   Widget _buildPracticeTab(int port) {
+    final isInstalled = _status?.installed == true;
+    if (!isInstalled) {
+      return Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 540),
+          padding: const EdgeInsets.all(28),
+          margin: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFCFBF8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: ZiteraColors.border, width: 1.5),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.science_outlined, size: 40, color: Color(0xFF0F766E)),
+              const SizedBox(height: 14),
+              const Text(
+                'PRACTICE ENVIRONMENT NOT INSTALLED',
+                style: TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Color(0xFF1E1A14),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Install the lab package first to unlock guided investigation walkthroughs and interactive sandbox runtime testing.',
+                style: TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  fontSize: 12,
+                  color: Color(0xFF5C5347),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              ZiteraButton(
+                label: _isInstalling ? 'INSTALLING...' : 'INSTALL LAB PACKAGE',
+                icon: _isInstalling ? Icons.hourglass_top : Icons.download,
+                variant: ButtonVariant.primary,
+                onPressed: _isInstalling ? () {} : _handleInstall,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final isRunning = _status?.running == true;
     final walkthroughText = _content?.lessons['walkthrough'] ?? _content?.lessons['practice'];
 
     return SingleChildScrollView(
@@ -1160,6 +1316,28 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (!isRunning)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Color(0xFFB45309), size: 18),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Lab environment is currently stopped. Start the lab environment using the top button to test live target connectivity.',
+                      style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 12, color: Color(0xFF92400E)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           HackerTilixEntrance(
             delay: Duration.zero,
             direction: TilixSlideDirection.down,
@@ -1314,6 +1492,57 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   }
 
   Widget _buildChallengeTab() {
+    final isInstalled = _status?.installed == true;
+    if (!isInstalled) {
+      return Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 540),
+          padding: const EdgeInsets.all(28),
+          margin: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFCFBF8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: ZiteraColors.border, width: 1.5),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.military_tech_outlined, size: 40, color: Color(0xFF0F766E)),
+              const SizedBox(height: 14),
+              const Text(
+                'CHALLENGE ENVIRONMENT NOT INSTALLED',
+                style: TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Color(0xFF1E1A14),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Install the lab package first to unpack challenge objectives, hints, and local target verification.',
+                style: TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  fontSize: 12,
+                  color: Color(0xFF5C5347),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              ZiteraButton(
+                label: _isInstalling ? 'INSTALLING...' : 'INSTALL LAB PACKAGE',
+                icon: _isInstalling ? Icons.hourglass_top : Icons.download,
+                variant: ButtonVariant.primary,
+                onPressed: _isInstalling ? () {} : _handleInstall,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final isRunning = _status?.running == true;
     final isIndonesian = AppLanguageController.isIndonesian;
     final rawObjective = (_content != null && _content!.challengeObjective.isNotEmpty)
         ? _content!.challengeObjective

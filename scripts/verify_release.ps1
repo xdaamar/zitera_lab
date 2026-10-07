@@ -56,9 +56,16 @@ function Run-Step([string]$stageName, [scriptblock]$action) {
 
 function Ensure-MsvcEnvironment {
     if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) {
-        $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-        if (Test-Path $vcvars) {
-            Write-Host "Initializing MSVC x64 build environment..." -ForegroundColor Gray
+        $candidates = @(
+            "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat",
+            "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat",
+            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat",
+            "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat",
+            "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat"
+        )
+        $vcvars = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if ($vcvars) {
+            Write-Host "Initializing MSVC x64 build environment from: $vcvars" -ForegroundColor Gray
             $env:CARGO_INCREMENTAL = "0"
             cmd.exe /c "call `"$vcvars`" && set" | ForEach-Object {
                 if ($_ -match '^(.*?)=(.*)$') {
