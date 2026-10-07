@@ -41,6 +41,21 @@ pub fn run() {
             crate::native_runtime::probe::handle_probe_cli(&filtered_args[1..]);
         }
         "help" | "--help" | "-h" => print_help(json_mode),
+        "version" | "--version" | "-v" => {
+            if json_mode {
+                let resp: ApiResponse<serde_json::Value> = ApiResponse::ok(
+                    "version",
+                    serde_json::json!({
+                        "version": "2.0.0",
+                        "product": "Zitera Lab",
+                        "target": "x86_64-pc-windows-msvc"
+                    }),
+                );
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                println!("Zitera Lab 2.0.0 (Windows Native Sandboxed Core)");
+            }
+        }
         other => {
             if json_mode {
                 let resp: ApiResponse<()> = ApiResponse::err(

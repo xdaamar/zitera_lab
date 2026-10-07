@@ -45,7 +45,7 @@ Thumbs.db
 *.log
 scratch/
 tmp/
-reports/
+!reports/*.md
 zitera_progress.json
 *.tmp
 dist/
