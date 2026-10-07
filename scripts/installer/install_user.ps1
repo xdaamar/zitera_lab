@@ -67,7 +67,8 @@ function Write-Success([string]$msg) {
 
 function Stop-RunningZiteraProcesses {
     Get-Process -Name "zitera-engine", "lab" -ErrorAction SilentlyContinue | Where-Object {
-        $_.Path -like "$script:AppDir*"
+        $procPath = $_.Path
+        $procPath -and $procPath.StartsWith($script:AppDir, [System.StringComparison]::OrdinalIgnoreCase)
     } | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Milliseconds 200
 }
@@ -112,11 +113,12 @@ function Invoke-InstallStep([bool]$isUpgrade = $false) {
     if (-not (Test-Path $progressFile)) {
         $initialProgress = @"
 {
-  "schema_version": 1,
+  "version": 2,
   "completed_labs": [],
-  "current_streak_days": 0,
-  "earned_flags": [],
-  "last_activity": null
+  "completed_challenges": [],
+  "completed_practice": [],
+  "lab_records": {},
+  "completed_sections": {}
 }
 "@
         [System.IO.File]::WriteAllText($progressFile, $initialProgress, [System.Text.UTF8Encoding]::new($false))
