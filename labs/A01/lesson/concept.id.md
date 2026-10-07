@@ -3,7 +3,7 @@
 ## Insecure Direct Object References (IDOR)
 IDOR adalah istilah yang digunakan ketika sebuah aplikasi web mengekspos referensi langsung ke suatu data internal (seperti ID database, nama file, atau kunci primer) dan mengizinkan pengguna memanipulasi referensi tersebut tanpa validasi di sisi server.
 
-Dalam konteks API modern, celah ini sering disebut sebagai **BOLA (Broken Object Level Authorization)**.
+Dalam konteks API modern, celah ini sering disebut sebagai BOLA (Broken Object Level Authorization).
 
 ### Contoh Endpoint Rentan (Vulnerable Endpoint):
 ```http

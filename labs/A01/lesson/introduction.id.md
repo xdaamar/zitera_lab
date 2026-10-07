@@ -11,7 +11,7 @@ Saat kontrol akses gagal ditegakkan oleh server, penyerang dapat:
 
 ## Memahami Perbedaan Authentication vs Authorization
 Banyak pengembang pemula keliru menganggap keduanya sama, padahal fungsinya sangat berbeda:
-- **Authentication (AuthN):** Menjawab pertanyaan *"Siapa kamu?"* (Contoh: Proses login dengan username dan password yang valid).
-- **Authorization (AuthZ):** Menjawab pertanyaan *"Apa saja hak yang boleh kamu akses?"* (Contoh: Pengguna Alice hanya diizinkan melihat tagihan milik Alice, bukan milik Bob).
+- Authentication (AuthN): Menjawab pertanyaan *"Siapa kamu?"* (Contoh: Proses login dengan username dan password yang valid).
+- Authorization (AuthZ): Menjawab pertanyaan *"Apa saja hak yang boleh kamu akses?"* (Contoh: Pengguna Alice hanya diizinkan melihat tagihan milik Alice, bukan milik Bob).
 
 Broken Access Control hampir selalu merupakan kegagalan pada lapisan Authorization, bukan pada Authentication.

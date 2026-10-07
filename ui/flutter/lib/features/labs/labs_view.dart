@@ -139,7 +139,7 @@ class _LabsViewState extends State<LabsView> {
           ),
         ),
         content: Text(
-          'This will restart Docker containers for $id and restore its database to initial seed state. External lesson notes will remain intact.',
+          'This will reset the native sandboxed lab $id and restore its runtime memory and seeded records. Local notes and progress will remain intact.',
           style: const TextStyle(
             fontFamily: 'JetBrainsMono',
             fontSize: 12,
@@ -461,21 +461,25 @@ class _LabsViewState extends State<LabsView> {
                     ];
                     final stickerAsset = stickerList[index % stickerList.length];
 
-                    // Find catalog description
-                    final catDesc = _catalog
-                        .firstWhere(
-                          (c) => c.id.toUpperCase() == lab.id.toUpperCase(),
-                          orElse: () => CatalogEntry(
-                            id: lab.id,
-                            title: lab.title,
-                            repository: 'xdaamar/zitera_lab_${lab.id.toLowerCase()}',
-                            version: lab.version,
-                            difficulty: 'Beginner',
-                            owasp: '${lab.id}:2025',
-                            description: 'Interactive containerized security environment.',
-                          ),
-                        )
-                        .description;
+                    // Find canonical catalog metadata
+                    final cat = _catalog.firstWhere(
+                      (c) => c.id.toUpperCase() == lab.id.toUpperCase(),
+                      orElse: () => CatalogEntry(
+                        id: lab.id,
+                        packageId: 'zitera-lab-${lab.id.toLowerCase()}',
+                        title: lab.title,
+                        repository: 'xdaamar/zitera_lab_${lab.id.toLowerCase()}',
+                        version: lab.version,
+                        difficulty: 'Beginner',
+                        owasp: '${lab.id}:2025',
+                        standard: 'owasp-top10',
+                        standardVersion: '2025',
+                        categoryId: lab.id,
+                        categoryName: lab.title,
+                        description: 'Interactive native sandboxed security environment.',
+                        shortDescription: 'Interactive native sandboxed security environment.',
+                      ),
+                    );
 
                     return HackerTilixEntrance(
                       delay: Duration(milliseconds: 100 + index * 45),
@@ -484,22 +488,36 @@ class _LabsViewState extends State<LabsView> {
                       child: Row(
                         children: [
                           Container(
-                            width: 54,
-                            height: 54,
+                            width: 58,
+                            height: 58,
                             decoration: BoxDecoration(
                               color: const Color(0xFFE6FFFA),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(color: const Color(0xFF2DD4BF)),
                             ),
                             alignment: Alignment.center,
-                            child: Text(
-                              lab.id,
-                              style: const TextStyle(
-                                color: Color(0xFF0F766E),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16,
-                                fontFamily: 'JetBrainsMono',
-                              ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  lab.id,
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F766E),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                    fontFamily: 'JetBrainsMono',
+                                  ),
+                                ),
+                                Text(
+                                  cat.standardVersion,
+                                  style: const TextStyle(
+                                    color: Color(0xFF0D9488),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 9,
+                                    fontFamily: 'JetBrainsMono',
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 18),
@@ -538,6 +556,24 @@ class _LabsViewState extends State<LabsView> {
                                         ),
                                       ),
                                     ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEFF6FF),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                                      ),
+                                      child: Text(
+                                        cat.difficulty.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontFamily: 'JetBrainsMono',
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1D4ED8),
+                                        ),
+                                      ),
+                                    ),
                                     const SizedBox(width: 8),
                                     SizedBox(
                                       width: 26,
@@ -552,7 +588,7 @@ class _LabsViewState extends State<LabsView> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  catDesc,
+                                  cat.shortDescription.isNotEmpty ? cat.shortDescription : cat.description,
                                   style: const TextStyle(
                                     color: Color(0xFF5C5347),
                                     fontSize: 12,
@@ -562,15 +598,31 @@ class _LabsViewState extends State<LabsView> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 6),
-                                Text(
-                                  lab.installed
-                                      ? 'Runtime: Native Sandboxed | Port: ${lab.port > 0 ? lab.port : 'Auto'} | Binding: 127.0.0.1 (Local Only)'
-                                      : 'Source: GitHub Remote Repository | Status: Ready to Install',
-                                  style: const TextStyle(
-                                    color: Color(0xFF786F62),
-                                    fontSize: 11,
-                                    fontFamily: 'JetBrainsMono',
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      lab.installed
+                                          ? 'Runtime: Native Sandboxed | Port: ${lab.port > 0 ? lab.port : 'Auto'} | 127.0.0.1 (Local)'
+                                          : 'Signed Package: ${cat.packageId} | Ready to Install',
+                                      style: const TextStyle(
+                                        color: Color(0xFF786F62),
+                                        fontSize: 11,
+                                        fontFamily: 'JetBrainsMono',
+                                      ),
+                                    ),
+                                    if (cat.skills.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '• Skills: ${cat.skills.take(2).join(", ")}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF0F766E),
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w600,
+                                          fontFamily: 'SpaceGrotesk',
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ],
                             ),

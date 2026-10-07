@@ -22,7 +22,12 @@ pub fn run() {
         "doctor" => handle_doctor(json_mode),
         "tool" => handle_tool(&filtered_args[1..], json_mode),
         "lab" => handle_lab(&filtered_args[1..], &workspace_root, json_mode),
+        "package" => handle_package(&filtered_args[1..], &workspace_root, json_mode),
         "catalog" => handle_catalog(&workspace_root, json_mode),
+        "terminal" => handle_terminal(&filtered_args[1..], &workspace_root, json_mode),
+        "sandbox-probe" => {
+            crate::native_runtime::probe::handle_probe_cli(&filtered_args[1..]);
+        }
         "help" | "--help" | "-h" => print_help(json_mode),
         other => {
             if json_mode {
@@ -238,6 +243,13 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
             }
         }
+        "serve" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            if let Err(e) = labs::serve_lab(workspace_root, id) {
+                eprintln!("[ERROR] Failed to serve lab {}: {}", id, e);
+                std::process::exit(1);
+            }
+        }
         "stop" => {
             let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
             match labs::stop_lab(workspace_root, id) {
@@ -334,6 +346,56 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] {}", e);
+                    }
+                }
+            }
+        }
+        "install-package" | "update-package" => {
+            let pkg_path_str = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            if pkg_path_str.is_empty() {
+                if json {
+                    let resp: ApiResponse<()> = ApiResponse::err(
+                        "lab.install_package",
+                        "MISSING_PACKAGE_PATH",
+                        "Package file path required".to_string(),
+                        false,
+                    );
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    eprintln!("Error: package file path required. Usage: zitera lab install-package <path.zlab>");
+                }
+                return;
+            }
+            let pkg_path = PathBuf::from(pkg_path_str);
+            match crate::package::install_or_update_package(&pkg_path, workspace_root) {
+                Ok(report) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok(
+                                "lab.install_package",
+                                report
+                            ))
+                            .unwrap()
+                        );
+                    } else {
+                        println!(
+                            "[SUCCESS] Installed lab {} version {} (active: {})",
+                            report.lab_id, report.new_version, report.active_path
+                        );
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err(
+                            "lab.install_package",
+                            "PACKAGE_INSTALL_FAILED",
+                            e,
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] Package installation failed: {}", e);
                     }
                 }
             }
@@ -458,6 +520,94 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
             }
         }
+        "validate" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            let res = labs::validate_lab(workspace_root, id);
+            if json {
+                let resp = if res.valid {
+                    ApiResponse::ok("lab.validate", res)
+                } else {
+                    ApiResponse::err_with_recovery(
+                        "lab.validate",
+                        "LAB_VALIDATION_FAILED",
+                        res.summary.clone(),
+                        "Check the failed verification points and update manifest/content accordingly.",
+                        true,
+                    )
+                };
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                println!("==================================================");
+                println!("  ZITERA_LAB — Lab Verification & Contract Check  ");
+                println!("==================================================");
+                println!("Lab ID  : {}", res.lab_id);
+                println!("Result  : {}", if res.valid { "PASSED" } else { "FAILED" });
+                println!("Summary : {}", res.summary);
+                println!("--------------------------------------------------");
+                for check in &res.checks {
+                    let mark = if check.passed { "[PASS]" } else { "[FAIL]" };
+                    println!("{} {}: {}", mark, check.name, check.message);
+                    if let Some(rem) = &check.remediation {
+                        println!("       -> Remediation: {}", rem);
+                    }
+                }
+                println!("==================================================");
+            }
+        }
+        "create" | "new" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            if id.is_empty() {
+                if json {
+                    let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
+                        "lab.create",
+                        "MISSING_LAB_ID",
+                        "Lab ID required for scaffolding",
+                        "Specify an alphanumeric lab ID (e.g., A11)",
+                        false,
+                    );
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    eprintln!("Error: Lab ID required. Usage: zitera lab create <ID> [title] [category_id]");
+                }
+                return;
+            }
+            let title = args.get(2).map(|s| s.as_str()).unwrap_or("");
+            let cat = args.get(3).map(|s| s.as_str()).unwrap_or("");
+            match labs::create_lab_template(workspace_root, id, title, cat) {
+                Ok(path) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok(
+                                "lab.create",
+                                format!("Lab {} scaffolded at {:?}", id, path)
+                            ))
+                            .unwrap()
+                        );
+                    } else {
+                        println!("[SUCCESS] Lab {} created at {:?}", id, path);
+                        println!(
+                            "Run 'zitera lab validate {}' to verify curriculum compliance.",
+                            id
+                        );
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
+                            "lab.create",
+                            "LAB_CREATE_FAILED",
+                            e,
+                            "Ensure lab ID does not already exist and is valid alphanumeric format.",
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] Failed to create lab: {}", e);
+                    }
+                }
+            }
+        }
         other => {
             if json {
                 let resp: ApiResponse<()> = ApiResponse::err(
@@ -525,6 +675,230 @@ fn handle_catalog(workspace_root: &Path, json: bool) {
     }
 }
 
+fn handle_package(args: &[String], workspace_root: &Path, json: bool) {
+    if args.is_empty() {
+        if json {
+            let resp: ApiResponse<()> = ApiResponse::err(
+                "package",
+                "MISSING_SUBCOMMAND",
+                "Subcommand required: build or verify".to_string(),
+                false,
+            );
+            println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+        } else {
+            eprintln!("Usage: zitera package <build|verify> [args...]");
+        }
+        return;
+    }
+
+    match args[0].as_str() {
+        "build" => {
+            let src_str = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            let out_str = args.get(2).map(|s| s.as_str()).unwrap_or("");
+            if src_str.is_empty() || out_str.is_empty() {
+                if json {
+                    let resp: ApiResponse<()> = ApiResponse::err(
+                        "package.build",
+                        "INVALID_ARGUMENTS",
+                        "Usage: zitera package build <source_dir> <output.zlab>".to_string(),
+                        false,
+                    );
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    eprintln!("Usage: zitera package build <source_dir> <output.zlab>");
+                }
+                return;
+            }
+
+            let src_path = workspace_root.join(src_str);
+            let out_path = workspace_root.join(out_str);
+
+            match crate::package::build_signed_package_from_dir(
+                &src_path,
+                &out_path,
+                &crate::package::trust::DEV_PRIVATE_KEY_SEED,
+            ) {
+                Ok(verified) => {
+                    if json {
+                        let resp = ApiResponse::ok("package.build", serde_json::json!({
+                            "lab_id": verified.manifest.id,
+                            "version": verified.manifest.version,
+                            "package_sha256": verified.package_sha256,
+                            "content_digest": verified.content_digest,
+                            "output_path": out_path.display().to_string(),
+                        }));
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        println!("[SUCCESS] Built and signed package {}", out_path.display());
+                        println!("  Lab ID        : {}", verified.manifest.id);
+                        println!("  Version       : {}", verified.manifest.version);
+                        println!("  Package SHA256: {}", verified.package_sha256);
+                        println!("  Content Digest: {}", verified.content_digest);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err(
+                            "package.build",
+                            "PACKAGE_BUILD_FAILED",
+                            e,
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] Package build failed: {}", e);
+                    }
+                }
+            }
+        }
+        "verify" => {
+            let pkg_str = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            if pkg_str.is_empty() {
+                if json {
+                    let resp: ApiResponse<()> = ApiResponse::err(
+                        "package.verify",
+                        "INVALID_ARGUMENTS",
+                        "Usage: zitera package verify <package.zlab>".to_string(),
+                        false,
+                    );
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    eprintln!("Usage: zitera package verify <package.zlab>");
+                }
+                return;
+            }
+
+            let pkg_path = workspace_root.join(pkg_str);
+            match crate::package::verifier::verify_package(&pkg_path, None) {
+                Ok(verified) => {
+                    if json {
+                        let resp = ApiResponse::ok("package.verify", serde_json::json!({
+                            "lab_id": verified.manifest.id,
+                            "version": verified.manifest.version,
+                            "security_version": verified.manifest.security_version,
+                            "minimum_core_version": verified.manifest.minimum_core_version,
+                            "package_sha256": verified.package_sha256,
+                            "content_digest": verified.content_digest,
+                        }));
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        println!("[VALID] Package verification PASSED for {}", pkg_path.display());
+                        println!("  Lab ID              : {}", verified.manifest.id);
+                        println!("  Version             : {}", verified.manifest.version);
+                        println!("  Security Version    : {}", verified.manifest.security_version.unwrap_or(1));
+                        println!("  Minimum Core Version: {}", verified.manifest.minimum_core_version.as_deref().unwrap_or("2.0.0"));
+                        println!("  Package SHA-256     : {}", verified.package_sha256);
+                        println!("  Content Digest      : {}", verified.content_digest);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err(
+                            "package.verify",
+                            "VERIFICATION_FAILED",
+                            e,
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[REJECTED] Package verification failed: {}", e);
+                    }
+                }
+            }
+        }
+        other => {
+            if json {
+                let resp: ApiResponse<()> = ApiResponse::err(
+                    "package",
+                    "UNKNOWN_SUBCOMMAND",
+                    format!("Unknown package subcommand '{}'", other),
+                    false,
+                );
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                eprintln!("Unknown package subcommand '{}'. Use: build, verify", other);
+            }
+        }
+    }
+}
+
+fn handle_terminal(args: &[String], workspace_root: &Path, json: bool) {
+    if args.is_empty() {
+        if json {
+            let resp: ApiResponse<()> = ApiResponse::err(
+                "terminal",
+                "MISSING_COMMAND",
+                "No terminal command provided".to_string(),
+                false,
+            );
+            println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+        } else {
+            eprintln!("Usage: zitera terminal [--lab <id>] <command...>");
+        }
+        return;
+    }
+
+    let mut lab_id: Option<String> = None;
+    let mut cmd_args: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == "--lab" && i + 1 < args.len() {
+            lab_id = Some(args[i + 1].clone());
+            i += 2;
+        } else {
+            cmd_args.push(args[i].clone());
+            i += 1;
+        }
+    }
+
+    if cmd_args.is_empty() {
+        if json {
+            let resp: ApiResponse<()> = ApiResponse::err(
+                "terminal",
+                "MISSING_COMMAND",
+                "No terminal command specified after flags".to_string(),
+                false,
+            );
+            println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+        } else {
+            eprintln!("Error: no command provided to execute.");
+        }
+        return;
+    }
+
+    let sandbox_root = if let Some(ref id) = lab_id {
+        let lab_dir = workspace_root.join("labs").join(id);
+        if lab_dir.exists() {
+            lab_dir
+        } else {
+            workspace_root.to_path_buf()
+        }
+    } else {
+        let default_sandbox = workspace_root.join("sandbox");
+        let _ = std::fs::create_dir_all(&default_sandbox);
+        default_sandbox
+    };
+
+    let mut session = crate::terminal::TerminalSession::new(sandbox_root);
+    let command_line = cmd_args.join(" ");
+    let result = session.execute(&command_line);
+
+    if json {
+        let resp = ApiResponse::ok("terminal.execute", result);
+        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+    } else {
+        if !result.stdout.is_empty() {
+            print!("{}", result.stdout);
+        }
+        if !result.stderr.is_empty() {
+            eprint!("{}", result.stderr);
+        }
+        if result.exit_code != 0 {
+            std::process::exit(result.exit_code);
+        }
+    }
+}
+
 fn find_workspace_root() -> PathBuf {
     // 1. Check relative to current working directory (development & standard execution)
     let mut current = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -581,7 +955,13 @@ fn print_help(json: bool) {
         println!("  lab stop <id>          Stop a lab environment");
         println!("  lab reset <id>         Deterministically reset a lab environment");
         println!("  lab update <id>        Update a lab environment to latest version");
+        println!("  lab install-package <file> Install or update lab from .zlab package");
+        println!("  lab validate <id>      Verify curriculum contract, content & signature compliance");
+        println!("  lab create <id>        Scaffold new lab template with curriculum contract");
         println!("  lab remove <id>        Remove an installed lab");
+        println!("  package build <src> <out.zlab> Build and sign a deterministic .zlab package");
+        println!("  package verify <file.zlab> Cryptographically verify a .zlab package");
+        println!("  terminal [--lab <id>] <cmd> Execute safe command in Zitera Terminal");
         println!("  catalog                Show central catalog");
     }
 }

@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "id": "A{{ID}}",
+  "package_id": "zitera-lab-a{{ID_LOWER}}",
+  "slug": "a{{ID_LOWER}}",
+  "title": "{{TITLE}}",
+  "owasp": "{{OWASP_CODE}}",
+  "category_id": "{{OWASP_CODE}}",
+  "category_name": "{{CATEGORY_NAME}}",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "short_description": "Interactive cybersecurity laboratory covering {{TITLE}} under OWASP Top 10:2025.",
+  "difficulty": "Intermediate",
+  "estimated_minutes": 30,
+  "estimated_time": 30,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "skills": [
+    "Vulnerability Analysis",
+    "Defensive Hardening",
+    "Secure Code Review"
+  ],
+  "learning_objectives": [
+    "Understand the underlying vulnerability mechanism and attack surface",
+    "Analyze realistic source code patterns and identify security defects",
+    "Implement and verify defense-in-depth remediations"
+  ],
+  "prerequisites": [
+    "Basic HTTP and Web Architecture",
+    "Command-Line Navigation"
+  ],
+  "default_port": 8090,
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/app.exe",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0"
+}

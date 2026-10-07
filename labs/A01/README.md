@@ -4,19 +4,19 @@
 [![Difficulty](https://img.shields.io/badge/Difficulty-Beginner-blue)]()
 [![Runtime](https://img.shields.io/badge/Runtime-Docker-informational)]()
 
-A self-contained cybersecurity training lab for **OWASP A01:2025 — Broken Access Control**.
+A self-contained cybersecurity training lab for OWASP A01:2025 — Broken Access Control.
 
 ---
 
 ## Scope
 
-This lab is **intentionally vulnerable**. All challenge data is synthetic. It contains:
+This lab is intentionally vulnerable. All challenge data is synthetic. It contains:
 - No real user credentials
 - No real financial data
 - No external network connections
 - One deliberately insecure Python Flask application bound only to `127.0.0.1:8011`
 
-**Do not expose this application to an untrusted network.**
+Do not expose this application to an untrusted network.
 
 ---
 

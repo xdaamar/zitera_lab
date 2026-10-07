@@ -1,7 +1,8 @@
 # Build artifacts
 target/
 build/
-bin/
+/bin/
+!engine/rust/src/bin/
 obj/
 *.exe
 *.dll
@@ -47,4 +48,5 @@ tmp/
 reports/
 zitera_progress.json
 *.tmp
+dist/
 

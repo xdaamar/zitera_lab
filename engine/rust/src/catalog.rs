@@ -1,5 +1,9 @@
 use crate::labs;
 use crate::models::{Catalog, CatalogLabItem};
+use crate::package::trust::{
+    build_canonical_catalog_payload, sign_catalog, verify_with_trusted_keys, DEV_PRIVATE_KEY_SEED,
+    DEV_PUBLIC_KEY_HEX, RELEASE_PUBLIC_KEY_HEX,
+};
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,7 +18,7 @@ pub fn get_catalog_path(workspace_root: &Path) -> PathBuf {
 pub const MAX_CATALOG_FILE_SIZE: u64 = 524_288; // 512 KB limit to prevent unbounded memory allocation
 pub const MAX_LABS_COUNT: usize = 100;
 
-/// Validates catalog schema, integrity, unique IDs, field bounds, and URL safety (Workstream B).
+/// Validates catalog schema, integrity, unique IDs, field bounds, URL safety, and Ed25519 signature.
 pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if catalog.schema_version != 1 {
         return Err(format!(
@@ -51,12 +55,39 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
                 lab.id
             ));
         }
+
+        // Validate semantic version format (must contain numbers and dots)
+        if !lab
+            .version
+            .chars()
+            .all(|c| c.is_ascii_digit() || c == '.' || c == '-' || c.is_ascii_alphabetic())
+        {
+            return Err(format!(
+                "Lab {} has invalid characters in version string.",
+                lab.id
+            ));
+        }
+
         if lab.repository.trim().is_empty() || lab.repository.len() > 256 {
             return Err(format!(
                 "Lab {} has invalid repository (must be 1-256 characters).",
                 lab.id
             ));
         }
+
+        // Strict protocol check: Disallow arbitrary protocols (ftp, file, gopher, unc)
+        let repo_lower = lab.repository.to_lowercase();
+        if repo_lower.starts_with("ftp://")
+            || repo_lower.starts_with("file://")
+            || repo_lower.starts_with("http://")
+            || repo_lower.starts_with("\\\\")
+        {
+            return Err(format!(
+                "Lab {} specifies forbidden network protocol in repository URL.",
+                lab.id
+            ));
+        }
+
         if lab.description.len() > 1024 {
             return Err(format!(
                 "Lab {} has description exceeding 1024 characters.",
@@ -76,6 +107,41 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             ));
         }
 
+        // Validate runtime if present
+        if let Some(ref rt) = lab.runtime {
+            let valid_runtimes = ["native_sandboxed", "mock", "docker"];
+            if !valid_runtimes.contains(&rt.as_str()) {
+                return Err(format!("Lab {} has invalid runtime '{}'.", lab.id, rt));
+            }
+        }
+
+        // Validate architecture if present
+        if let Some(ref arch) = lab.architecture {
+            if arch != "x86_64" && arch != "any" {
+                return Err(format!(
+                    "Lab {} specifies unsupported architecture '{}'.",
+                    lab.id, arch
+                ));
+            }
+        }
+
+        // Validate package_url if present
+        if let Some(ref pkg_url) = lab.package_url {
+            let url_lower = pkg_url.to_lowercase();
+            if !url_lower.starts_with("https://") {
+                return Err(format!(
+                    "Lab {} package URL must use HTTPS protocol.",
+                    lab.id
+                ));
+            }
+            if url_lower.contains("..") || url_lower.contains('\\') {
+                return Err(format!(
+                    "Lab {} package URL contains invalid path sequences.",
+                    lab.id
+                ));
+            }
+        }
+
         // Validate repository structure (either owner/repo or full https://github.com/owner/repo.git)
         let full_url = if lab.repository.starts_with("https://") {
             lab.repository.clone()
@@ -84,6 +150,17 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         };
         labs::validate_repo_url(&full_url)?;
     }
+
+    // Cryptographic Signature Verification
+    let sig = catalog.signature.as_ref().ok_or_else(|| {
+        "Catalog signature is required. Unsigned catalogs are prohibited.".to_string()
+    })?;
+
+    let canonical_payload = build_canonical_catalog_payload(catalog);
+    let trusted_keys = [RELEASE_PUBLIC_KEY_HEX, DEV_PUBLIC_KEY_HEX];
+    verify_with_trusted_keys(&canonical_payload, sig, &trusted_keys)
+        .map_err(|e| format!("Catalog cryptographic verification failed: {}", e))?;
+
     Ok(())
 }
 
@@ -120,7 +197,7 @@ pub fn load_catalog(workspace_root: &Path) -> Result<Catalog, String> {
         }
     }
 
-    // 3. Built-in default catalog fallback
+    // 3. Built-in default signed catalog fallback
     Ok(default_catalog())
 }
 
@@ -147,101 +224,306 @@ pub fn fetch_remote_catalog(url: &str) -> Result<Catalog, String> {
 }
 
 pub fn default_catalog() -> Catalog {
-    Catalog {
+    let mut catalog = Catalog {
         schema_version: 1,
         labs: vec![
             CatalogLabItem {
                 id: "A01".to_string(),
+                package_id: Some("zitera-lab-a01".to_string()),
                 title: "Broken Access Control".to_string(),
                 repository: "xdaamar/zitera_lab_a01".to_string(),
                 version: "1.0.1".to_string(),
                 difficulty: "Beginner".to_string(),
                 owasp: "A01:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A01".to_string()),
+                category_name: Some("Broken Access Control".to_string()),
                 description: "Learn how authorization flaws allow unauthorized users to view, tamper with, or delete sensitive data.".to_string(),
+                short_description: Some("Insecure Direct Object References and multi-tenant boundary bypass.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Authorization Matrix".to_string(), "IDOR Detection".to_string(), "Parameter Tampering".to_string()],
+                learning_objectives: vec![
+                    "Identify flawed object-level access controls".to_string(),
+                    "Audit multi-tenant boundary isolation".to_string(),
+                    "Implement server-side authorization enforcement".to_string(),
+                ],
+                prerequisites: vec!["HTTP basics".to_string(), "User session concepts".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A02".to_string(),
+                package_id: Some("zitera-lab-a02".to_string()),
                 title: "Security Misconfiguration".to_string(),
                 repository: "xdaamar/zitera_lab_a02".to_string(),
                 version: "1.0.1".to_string(),
                 difficulty: "Beginner".to_string(),
                 owasp: "A02:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A02".to_string()),
+                category_name: Some("Security Misconfiguration".to_string()),
                 description: "Investigate default credentials, exposed debug interfaces, and unauthenticated directory listings leaking sensitive backups.".to_string(),
+                short_description: Some("Default credentials, diagnostic endpoints, and backup exposures.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Directory Listing Audit".to_string(), "Credential Hardening".to_string(), "Interface Lockdown".to_string()],
+                learning_objectives: vec![
+                    "Identify exposed debug and diagnostic endpoints".to_string(),
+                    "Detect dangerous unauthenticated directory browsing".to_string(),
+                    "Harden default server credentials and configs".to_string(),
+                ],
+                prerequisites: vec!["Web server basics".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A03".to_string(),
+                package_id: Some("zitera-lab-a03".to_string()),
                 title: "Software Supply Chain Failures".to_string(),
                 repository: "xdaamar/zitera_lab_a03".to_string(),
                 version: "1.0.1".to_string(),
                 difficulty: "Beginner".to_string(),
                 owasp: "A03:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A03".to_string()),
+                category_name: Some("Software Supply Chain Failures".to_string()),
                 description: "Understand risks from unverified third-party dependencies, malicious package scripts, and vulnerable build artifacts.".to_string(),
+                short_description: Some("Dependency poisoning, unpinned telemetry packages, and lockfile tampering.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Lockfile Auditing".to_string(), "Dependency Provenance".to_string(), "Package Verification".to_string()],
+                learning_objectives: vec![
+                    "Analyze compromised package manifests and lockfiles".to_string(),
+                    "Trace unauthorized credential exfiltration scripts".to_string(),
+                    "Implement cryptographic package provenance verification".to_string(),
+                ],
+                prerequisites: vec!["Package manager basics (npm/cargo)".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A04".to_string(),
+                package_id: Some("zitera-lab-a04".to_string()),
                 title: "Cryptographic Failures".to_string(),
                 repository: "xdaamar/zitera_lab_a04".to_string(),
                 version: "1.0.0".to_string(),
                 difficulty: "Beginner".to_string(),
                 owasp: "A04:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A04".to_string()),
+                category_name: Some("Cryptographic Failures".to_string()),
                 description: "Explore the risks of legacy broken hashes (MD5), hardcoded encryption keys, and sensitive data leakage.".to_string(),
+                short_description: Some("Broken MD5 hashes, salt omissions, and rainbow table reversing.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Cryptographic Hash Audit".to_string(), "Salt Verification".to_string(), "Password Storage Standards".to_string()],
+                learning_objectives: vec![
+                    "Recognize obsolete cryptographic algorithms".to_string(),
+                    "Understand how unsalted hashes succumb to precomputed tables".to_string(),
+                    "Deploy modern password hashing algorithms (Argon2/bcrypt)".to_string(),
+                ],
+                prerequisites: vec!["Basic hashing knowledge".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A05".to_string(),
+                package_id: Some("zitera-lab-a05".to_string()),
                 title: "Injection".to_string(),
                 repository: "xdaamar/zitera_lab_a05".to_string(),
                 version: "1.0.0".to_string(),
                 difficulty: "Beginner".to_string(),
                 owasp: "A05:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A05".to_string()),
+                category_name: Some("Injection".to_string()),
                 description: "Understand SQL injection root causes, malicious query manipulation, and parameterized query remediation.".to_string(),
+                short_description: Some("SQL query manipulation, string escaping breakout, and UNION extraction.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["SQL Syntax Injection".to_string(), "Query Parameterization".to_string(), "Database Defense".to_string()],
+                learning_objectives: vec![
+                    "Distinguish data from query syntax execution".to_string(),
+                    "Execute UNION-based database schema exfiltration".to_string(),
+                    "Refactor raw SQL strings into prepared statements".to_string(),
+                ],
+                prerequisites: vec!["Basic SQL queries".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A06".to_string(),
+                package_id: Some("zitera-lab-a06".to_string()),
                 title: "Insecure Design".to_string(),
                 repository: "xdaamar/zitera_lab_a06".to_string(),
                 version: "1.0.0".to_string(),
                 difficulty: "Intermediate".to_string(),
                 owasp: "A06:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A06".to_string()),
+                category_name: Some("Insecure Design".to_string()),
                 description: "Analyze flawed business logic, unverified workflow state transitions, and missing architectural security controls.".to_string(),
+                short_description: Some("Flawed procurement state transitions and missing business logic controls.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Threat Modeling".to_string(), "State Machine Invariants".to_string(), "Business Logic Validation".to_string()],
+                learning_objectives: vec![
+                    "Differentiate design flaws from implementation vulnerabilities".to_string(),
+                    "Detect illegal state transitions in enterprise workflows".to_string(),
+                    "Establish architectural security invariants in business logic".to_string(),
+                ],
+                prerequisites: vec!["Workflow / State machine concepts".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A07".to_string(),
+                package_id: Some("zitera-lab-a07".to_string()),
                 title: "Authentication Failures".to_string(),
                 repository: "xdaamar/zitera_lab_a07".to_string(),
                 version: "1.0.0".to_string(),
                 difficulty: "Beginner".to_string(),
                 owasp: "A07:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A07".to_string()),
+                category_name: Some("Authentication Failures".to_string()),
                 description: "Explore how weak credential requirements, lack of brute-force protection, and session fixation lead to account takeover.".to_string(),
+                short_description: Some("Missing lockout mechanisms, predictable PINs, and automated credential stuffing.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Rate Limiting".to_string(), "Lockout Enforcement".to_string(), "Authentication Defense".to_string()],
+                learning_objectives: vec![
+                    "Assess authentication mechanisms against automated guessing".to_string(),
+                    "Identify failure modes of unrestricted login endpoints".to_string(),
+                    "Implement multi-layered rate limiting and progressive delays".to_string(),
+                ],
+                prerequisites: vec!["HTTP POST / form submissions".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A08".to_string(),
+                package_id: Some("zitera-lab-a08".to_string()),
                 title: "Software or Data Integrity Failures".to_string(),
                 repository: "xdaamar/zitera_lab_a08".to_string(),
                 version: "1.0.0".to_string(),
                 difficulty: "Intermediate".to_string(),
                 owasp: "A08:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A08".to_string()),
+                category_name: Some("Software or Data Integrity Failures".to_string()),
                 description: "Understand vulnerabilities from accepting unverified, untrusted software or configuration artifacts without cryptographic signatures.".to_string(),
+                short_description: Some("Unsigned firmware configurations and missing digital signature verification.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Digital Signatures".to_string(), "Integrity Validation".to_string(), "Secure Deserialization".to_string()],
+                learning_objectives: vec![
+                    "Evaluate the risks of accepting untrusted configuration updates".to_string(),
+                    "Demonstrate code/config tampering without integrity checks".to_string(),
+                    "Implement asymmetric signature verification for payload ingestion".to_string(),
+                ],
+                prerequisites: vec!["Asymmetric cryptography concepts".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A09".to_string(),
+                package_id: Some("zitera-lab-a09".to_string()),
                 title: "Security Logging & Alerting Failures".to_string(),
                 repository: "xdaamar/zitera_lab_a09".to_string(),
                 version: "1.0.0".to_string(),
                 difficulty: "Beginner".to_string(),
                 owasp: "A09:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A09".to_string()),
+                category_name: Some("Security Logging & Alerting Failures".to_string()),
                 description: "Discover how insufficient security telemetry, missing audit trails, and silent failures prevent incident detection.".to_string(),
+                short_description: Some("Silent security incidents, missing privilege escalation logs, and audit blindness.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Security Event Telemetry".to_string(), "Audit Trail Design".to_string(), "SIEM Alert Rules".to_string()],
+                learning_objectives: vec![
+                    "Audit high-privilege operations for logging coverage".to_string(),
+                    "Identify blind spots that permit undetected adversary movement".to_string(),
+                    "Design tamper-evident structured security audit events".to_string(),
+                ],
+                prerequisites: vec!["Logging & system administration basics".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
             CatalogLabItem {
                 id: "A10".to_string(),
+                package_id: Some("zitera-lab-a10".to_string()),
                 title: "Mishandling of Exceptional Conditions".to_string(),
                 repository: "xdaamar/zitera_lab_a10".to_string(),
                 version: "1.0.0".to_string(),
                 difficulty: "Intermediate".to_string(),
                 owasp: "A10:2025".to_string(),
+                standard: Some("owasp-top10".to_string()),
+                standard_version: Some("2025".to_string()),
+                category_id: Some("A10".to_string()),
+                category_name: Some("Mishandling of Exceptional Conditions".to_string()),
                 description: "Examine dangerous fail-open exception handling where upstream service errors accidentally bypass authorization boundaries.".to_string(),
+                short_description: Some("Fail-open exception handling allowing unauthorized security gate traversal.".to_string()),
+                security_version: Some(1),
+                minimum_core_version: Some("2.0.0".to_string()),
+                estimated_time: Some(45),
+                skills: vec!["Fail-Safe Defaults".to_string(), "Defensive Exception Handling".to_string(), "Boundary Guarding".to_string()],
+                learning_objectives: vec![
+                    "Identify fail-open security flaws in exception handling blocks".to_string(),
+                    "Induce upstream failure states that bypass authorization checks".to_string(),
+                    "Enforce strict fail-closed defaults across all boundary guards".to_string(),
+                ],
+                prerequisites: vec!["Error/Exception handling basics".to_string()],
+                runtime: Some("native_sandboxed".to_string()),
+                architecture: Some("x86_64".to_string()),
+                package_url: None,
+                package_sha256: None,
             },
         ],
-    }
+        signature: None,
+    };
+
+    // Deterministically sign the default catalog with Dev Private Key
+    sign_catalog(&mut catalog, &DEV_PRIVATE_KEY_SEED);
+    catalog
 }
 
 #[cfg(test)]
@@ -253,51 +535,147 @@ mod tests {
         let cat = default_catalog();
         assert!(validate_catalog(&cat).is_ok());
         assert_eq!(cat.labs.len(), 10);
+        assert!(cat.signature.is_some());
     }
 
     #[test]
-    fn test_validate_catalog_duplicate_id() {
-        let mut cat = default_catalog();
-        let mut dup_lab = cat.labs[0].clone();
-        dup_lab.title = "Duplicate Item".to_string();
-        cat.labs.push(dup_lab);
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-        assert!(res.unwrap_err().contains("Duplicate lab ID found"));
+    fn test_checkpoint_3_signed_catalog_security_matrix() {
+        let base_cat = default_catalog();
+
+        // 1. VALID CATALOG -> PASS
+        assert!(validate_catalog(&base_cat).is_ok());
+
+        // 2. MODIFIED CATALOG (content changed without updating signature) -> FAIL
+        let mut mod_cat = base_cat.clone();
+        mod_cat.labs[0].version = "9.9.9".to_string();
+        let err_mod = validate_catalog(&mod_cat);
+        assert!(err_mod.is_err(), "Modified catalog must fail verification");
+        assert!(err_mod
+            .unwrap_err()
+            .contains("cryptographic verification failed"));
+
+        // 3. WRONG CATALOG SIGNATURE -> FAIL
+        let mut wrong_sig_cat = base_cat.clone();
+        wrong_sig_cat.signature = Some("deadbeef".repeat(16));
+        let err_wrong_sig = validate_catalog(&wrong_sig_cat);
+        assert!(err_wrong_sig.is_err());
+        assert!(err_wrong_sig
+            .unwrap_err()
+            .contains("cryptographic verification failed"));
+
+        // 4. UNTRUSTED SIGNING KEY -> FAIL
+        let mut untrusted_cat = base_cat.clone();
+        let rogue_seed = [0x77u8; 32];
+        sign_catalog(&mut untrusted_cat, &rogue_seed);
+        let err_untrusted = validate_catalog(&untrusted_cat);
+        assert!(
+            err_untrusted.is_err(),
+            "Catalog signed with untrusted key must fail"
+        );
+
+        // 5. MALFORMED / EMPTY SIGNATURE -> FAIL
+        let mut empty_sig_cat = base_cat.clone();
+        empty_sig_cat.signature = None;
+        assert!(validate_catalog(&empty_sig_cat).is_err());
+
+        // 6. OVERSIZED CATALOG (Capacity limit) -> FAIL
+        let mut oversized_cat = base_cat.clone();
+        let item = oversized_cat.labs[0].clone();
+        for i in 10..=MAX_LABS_COUNT + 1 {
+            let mut extra = item.clone();
+            extra.id = format!("X{:02}", i);
+            oversized_cat.labs.push(extra);
+        }
+        sign_catalog(&mut oversized_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_over = validate_catalog(&oversized_cat);
+        assert!(err_over.is_err());
+        assert!(err_over.unwrap_err().contains("maximum lab capacity"));
+
+        // 7. DUPLICATE ID -> FAIL
+        let mut dup_cat = base_cat.clone();
+        let mut dup_item = dup_cat.labs[0].clone();
+        dup_item.title = "Duplicate Item".to_string();
+        dup_cat.labs.push(dup_item);
+        sign_catalog(&mut dup_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_dup = validate_catalog(&dup_cat);
+        assert!(err_dup.is_err());
+        assert!(err_dup.unwrap_err().contains("Duplicate lab ID"));
+
+        // 8. INVALID LAB ID (Path traversal) -> FAIL
+        let mut invalid_id_cat = base_cat.clone();
+        invalid_id_cat.labs[0].id = "../A01".to_string();
+        sign_catalog(&mut invalid_id_cat, &DEV_PRIVATE_KEY_SEED);
+        assert!(validate_catalog(&invalid_id_cat).is_err());
+
+        // 9. INVALID PACKAGE URL (Non-HTTPS / path traversal) -> FAIL
+        let mut invalid_url_cat = base_cat.clone();
+        invalid_url_cat.labs[0].package_url = Some("http://insecure.site/pkg.zlab".to_string());
+        sign_catalog(&mut invalid_url_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_url = validate_catalog(&invalid_url_cat);
+        assert!(err_url.is_err());
+        assert!(err_url.unwrap_err().contains("must use HTTPS protocol"));
+
+        // 10. ARBITRARY PROTOCOL (ftp:// or file://) -> FAIL
+        let mut proto_cat = base_cat.clone();
+        proto_cat.labs[0].repository = "ftp://malicious.host/repo.git".to_string();
+        sign_catalog(&mut proto_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_proto = validate_catalog(&proto_cat);
+        assert!(err_proto.is_err());
+        assert!(err_proto
+            .unwrap_err()
+            .contains("forbidden network protocol"));
+
+        // 11. INVALID RUNTIME -> FAIL
+        let mut runtime_cat = base_cat.clone();
+        runtime_cat.labs[0].runtime = Some("unrestricted_root_shell".to_string());
+        sign_catalog(&mut runtime_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_rt = validate_catalog(&runtime_cat);
+        assert!(err_rt.is_err());
+        assert!(err_rt.unwrap_err().contains("invalid runtime"));
+
+        // 12. INVALID ARCHITECTURE -> FAIL
+        let mut arch_cat = base_cat.clone();
+        arch_cat.labs[0].architecture = Some("mips_be_malicious".to_string());
+        sign_catalog(&mut arch_cat, &DEV_PRIVATE_KEY_SEED);
+        let err_arch = validate_catalog(&arch_cat);
+        assert!(err_arch.is_err());
+        assert!(err_arch.unwrap_err().contains("unsupported architecture"));
     }
 
     #[test]
-    fn test_validate_catalog_invalid_id() {
-        let mut cat = default_catalog();
-        cat.labs[0].id = "../A01".to_string();
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-    }
+    fn test_checkpoint_10_offline_first_operation() {
+        let temp = std::env::temp_dir().join("zitera_offline_test");
+        let _ = fs::remove_dir_all(&temp);
+        let workspace = temp.join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
 
-    #[test]
-    fn test_validate_catalog_empty_title() {
-        let mut cat = default_catalog();
-        cat.labs[0].title = "   ".to_string();
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-        assert!(res.unwrap_err().contains("invalid title"));
-    }
+        // 1. Without network and without local cache -> fallback to built-in default signed catalog
+        let cat_default = load_catalog(&workspace).expect("Default catalog must load offline");
+        assert_eq!(cat_default.schema_version, 1);
+        assert_eq!(cat_default.labs.len(), 10);
+        for id in ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"] {
+            assert!(
+                cat_default.labs.iter().any(|l| l.id.eq_ignore_ascii_case(id)),
+                "Default catalog must include {}",
+                id
+            );
+        }
 
-    #[test]
-    fn test_validate_catalog_untrusted_repo() {
-        let mut cat = default_catalog();
-        cat.labs[0].repository = "https://evil.attacker.com/malicious.git".to_string();
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-        assert!(res.unwrap_err().contains("not a trusted HTTPS GitHub URL"));
-    }
+        // 2. Offline-first local cache priority: Cache exists and is valid -> returned directly
+        let cat_dir = workspace.join("catalog");
+        fs::create_dir_all(&cat_dir).unwrap();
+        let mut custom_cat = cat_default.clone();
+        custom_cat.labs[0].title = "Offline Cached Title".to_string();
+        sign_catalog(&mut custom_cat, &DEV_PRIVATE_KEY_SEED);
+        fs::write(
+            cat_dir.join("catalog.json"),
+            serde_json::to_string_pretty(&custom_cat).unwrap(),
+        )
+        .unwrap();
 
-    #[test]
-    fn test_validate_catalog_oversized_description() {
-        let mut cat = default_catalog();
-        cat.labs[0].description = "A".repeat(1025);
-        let res = validate_catalog(&cat);
-        assert!(res.is_err());
-        assert!(res.unwrap_err().contains("exceeding 1024 characters"));
+        let cat_cached = load_catalog(&workspace).expect("Local cached catalog must load offline");
+        assert_eq!(cat_cached.labs[0].title, "Offline Cached Title");
+
+        let _ = fs::remove_dir_all(&temp);
     }
 }

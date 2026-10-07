@@ -1,13 +1,20 @@
 {
   "schema_version": 1,
   "id": "A03",
+  "package_id": "zitera-lab-a03",
   "slug": "software-supply-chain-failures",
   "title": "Software Supply Chain Failures",
   "owasp": "A03:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A03",
+  "category_name": "Software Supply Chain Failures",
   "version": "1.0.1",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
   "difficulty": "Beginner",
-  "runtime": "docker",
-  "entrypoint": "docker/compose.yml",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a03-lab.exe",
   "default_port": 8013,
   "estimated_minutes": 45,
   "modes": [
@@ -15,6 +22,14 @@
     "practice",
     "challenge"
   ],
+  "short_description": "Dependency poisoning, unpinned telemetry packages, and lockfile tampering.",
+  "skills": ["Lockfile Auditing", "Dependency Provenance", "Package Verification"],
+  "learning_objectives": [
+    "Analyze compromised package manifests and lockfiles",
+    "Trace unauthorized credential exfiltration scripts",
+    "Implement cryptographic package provenance verification"
+  ],
+  "prerequisites": ["Package manager basics (npm/cargo)"],
   "requirements": {
     "tools": ["curl"],
     "required_tools": ["curl"],

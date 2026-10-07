@@ -1,13 +1,20 @@
 {
   "schema_version": 1,
   "id": "A09",
+  "package_id": "zitera-lab-a09",
   "slug": "security-logging-alerting-failures",
   "title": "Security Logging & Alerting Failures",
   "owasp": "A09:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A09",
+  "category_name": "Security Logging & Alerting Failures",
   "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
   "difficulty": "Beginner",
-  "runtime": "docker",
-  "entrypoint": "docker/compose.yml",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a09-lab.exe",
   "default_port": 8019,
   "estimated_minutes": 45,
   "modes": [
@@ -15,6 +22,14 @@
     "practice",
     "challenge"
   ],
+  "short_description": "Silent security incidents, missing privilege escalation logs, and audit blindness.",
+  "skills": ["Security Event Telemetry", "Audit Trail Design", "SIEM Alert Rules"],
+  "learning_objectives": [
+    "Audit high-privilege operations for logging coverage",
+    "Identify blind spots that permit undetected adversary movement",
+    "Design tamper-evident structured security audit events"
+  ],
+  "prerequisites": ["Logging & system administration basics"],
   "requirements": {
     "required_tools": [],
     "recommended_tools": [

@@ -8,9 +8,9 @@
 This laboratory illustrates software supply chain attacks where modern applications inadvertently ingest poisoned, unpinned, or compromised dependencies from public registries.
 
 ## Target Environment
-- **Local Host URL:** `http://127.0.0.1:8013`
-- **Internal Port:** `8080`
-- **Container Technology:** Python 3.11 Alpine + Flask
+- Local Host URL: `http://127.0.0.1:8013`
+- Runtime: Native Sandboxed (`AppContainer + JobObject + stdio broker`)
+- Architecture: Zero external network egress, local synthetic package registry audit
 
 ## Objectives
 1. Inspect the target application's exposed dependency registry and lockfile audit endpoint.

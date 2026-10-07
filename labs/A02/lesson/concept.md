@@ -5,8 +5,8 @@ Many software systems (routers, databases, CMS engines, management portals) ship
 
 ## 2. Directory Listing / Indexing
 When a web server receives a request for a directory (e.g. `/backups/`) and no index file (`index.html`) is present:
-- **Secure Server:** Returns `403 Forbidden` or `404 Not Found`.
-- **Misconfigured Server:** Generates an HTML directory listing allowing anyone to browse, view file sizes, and download internal documents, source code backups, or database dumps.
+- Secure Server: Returns `403 Forbidden` or `404 Not Found`.
+- Misconfigured Server: Generates an HTML directory listing allowing anyone to browse, view file sizes, and download internal documents, source code backups, or database dumps.
 
 ```http
 GET /backups/ HTTP/1.1

@@ -7,8 +7,8 @@ Kamu sedang menjalankan audit keamanan pada gateway operasi internal kritis di `
 Identifikasi kesalahan konfigurasi pada sistem target untuk menemukan arsip backup konfigurasi milik administrator dan ekstrak flag aktivasi sistem.
 
 ### LINGKUNGAN TARGET
-- **Base URL:** `http://127.0.0.1:8012`
-- **Cakupan Pengujian:** Terbatas hanya pada `127.0.0.1:8012`.
+- Base URL: `http://127.0.0.1:8012`
+- Cakupan Pengujian: Terbatas hanya pada `127.0.0.1:8012`.
 
 ### FORMAT FLAG
 `ZITERA{...}`

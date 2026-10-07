@@ -87,13 +87,25 @@ class ZiteraEngineClient {
       final success = jsonMap['success'] as bool? ?? false;
       if (!success) {
         final err = jsonMap['error'] as Map<String, dynamic>?;
-        final msg = err?['message'] ?? 'Engine operation failed.';
-        throw Exception(msg);
+        final code = err?['code'] as String? ?? 'OPERATION_FAILED';
+        final msg = err?['message'] as String? ?? 'Engine operation failed.';
+        final recovery = err?['recovery_action'] as String?;
+        final recoverable = err?['recoverable'] as bool? ?? true;
+        throw ZiteraException(
+          code: code,
+          message: msg,
+          recoveryAction: recovery,
+          recoverable: recoverable,
+        );
       }
 
       return jsonMap['data'];
     } on FormatException {
-      throw Exception('Failed to parse response from ZITERA engine.');
+      throw ZiteraException(
+        code: 'PARSE_ERROR',
+        message: 'Failed to parse response from ZITERA engine.',
+        recoveryAction: 'Verify that the engine executable is intact and not corrupted.',
+      );
     } catch (e) {
       rethrow;
     }
@@ -189,5 +201,20 @@ class ZiteraEngineClient {
   static Future<ToolInstallResult> installTool(String id) async {
     final data = await executeCommand(['tool', 'install', id]);
     return ToolInstallResult.fromJson(data);
+  }
+
+  static Future<TerminalResult> executeTerminal(String command, {String? labId}) async {
+    final args = <String>['terminal'];
+    if (labId != null && labId.isNotEmpty) {
+      args.addAll(['--lab', labId]);
+    }
+    args.add(command);
+    final data = await executeCommand(args);
+    return TerminalResult.fromJson(data);
+  }
+
+  static Future<LabValidationReport> validateLab(String id) async {
+    final data = await executeCommand(['lab', 'validate', id]);
+    return LabValidationReport.fromJson(data);
   }
 }

@@ -1,6 +1,6 @@
 # A01: Broken Access Control
 
-Broken Access Control occupies the **#1 spot** in OWASP Top 10:2025. It occurs when an application fails to properly enforce restrictions on what authenticated or anonymous users are permitted to do.
+Broken Access Control occupies the #1 spot in OWASP Top 10:2025. It occurs when an application fails to properly enforce restrictions on what authenticated or anonymous users are permitted to do.
 
 ## Why It Matters
 When access controls fail, attackers can:
@@ -11,7 +11,7 @@ When access controls fail, attackers can:
 
 ## Authentication vs Authorization
 A common beginner mistake is confusing the two:
-- **Authentication (AuthN):** "Who are you?" (e.g. Logging in with username and password).
-- **Authorization (AuthZ):** "What are you allowed to do?" (e.g. User Alice can only see Alice's invoices, not Bob's).
+- Authentication (AuthN): "Who are you?" (e.g. Logging in with username and password).
+- Authorization (AuthZ): "What are you allowed to do?" (e.g. User Alice can only see Alice's invoices, not Bob's).
 
-Broken Access Control is almost always a failure of **Authorization**, not Authentication.
+Broken Access Control is almost always a failure of Authorization, not Authentication.

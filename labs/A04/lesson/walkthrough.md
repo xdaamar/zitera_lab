@@ -7,7 +7,7 @@ In this exercise, you will investigate how obsolete unsalted password hashing al
 - Open your browser to `http://127.0.0.1:8014`.
 - Notice the link to `/api/audit/hashes`.
 - Open `http://127.0.0.1:8014/api/audit/hashes` in a new tab.
-- **Observation:** The endpoint returns JSON containing the user table with stored hashes:
+- Observation: The endpoint returns JSON containing the user table with stored hashes:
   - `admin`: `21232f297a57a5a743894a0e4a801fc3` (Type: MD5 Unsalted)
 
 ### Step 2: Analyzing the Hash Format
@@ -25,4 +25,4 @@ In this exercise, you will investigate how obsolete unsalted password hashing al
 - Log in with:
   - Username: `admin`
   - Password: `admin`
-- **Result:** You are redirected to `/vault`, exposing the protected cryptographic secret key!
+- Result: You are redirected to `/vault`, exposing the protected cryptographic secret key!

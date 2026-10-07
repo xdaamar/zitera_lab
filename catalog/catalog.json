@@ -3,93 +3,253 @@
   "labs": [
     {
       "id": "A01",
+      "package_id": "zitera-lab-a01",
       "title": "Broken Access Control",
       "repository": "xdaamar/zitera_lab_a01",
       "version": "1.0.1",
       "difficulty": "Beginner",
       "owasp": "A01:2025",
-      "description": "Learn how authorization flaws allow unauthorized users to view, tamper with, or delete sensitive data."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A01",
+      "category_name": "Broken Access Control",
+      "description": "Learn how authorization flaws allow unauthorized users to view, tamper with, or delete sensitive data.",
+      "short_description": "Insecure Direct Object References and multi-tenant boundary bypass.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Authorization Matrix", "IDOR Detection", "Parameter Tampering"],
+      "learning_objectives": [
+        "Identify flawed object-level access controls",
+        "Audit multi-tenant boundary isolation",
+        "Implement server-side authorization enforcement"
+      ],
+      "prerequisites": ["HTTP basics", "User session concepts"]
     },
     {
       "id": "A02",
+      "package_id": "zitera-lab-a02",
       "title": "Security Misconfiguration",
       "repository": "xdaamar/zitera_lab_a02",
       "version": "1.0.1",
       "difficulty": "Beginner",
       "owasp": "A02:2025",
-      "description": "Investigate default credentials, exposed debug interfaces, and unauthenticated directory listings leaking sensitive backups."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A02",
+      "category_name": "Security Misconfiguration",
+      "description": "Investigate default credentials, exposed debug interfaces, and unauthenticated directory listings leaking sensitive backups.",
+      "short_description": "Default credentials, diagnostic endpoints, and backup exposures.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Directory Listing Audit", "Credential Hardening", "Interface Lockdown"],
+      "learning_objectives": [
+        "Identify exposed debug and diagnostic endpoints",
+        "Detect dangerous unauthenticated directory browsing",
+        "Harden default server credentials and configs"
+      ],
+      "prerequisites": ["Web server basics"]
     },
     {
       "id": "A03",
+      "package_id": "zitera-lab-a03",
       "title": "Software Supply Chain Failures",
       "repository": "xdaamar/zitera_lab_a03",
       "version": "1.0.1",
       "difficulty": "Beginner",
       "owasp": "A03:2025",
-      "description": "Understand risks from unverified third-party dependencies, malicious package scripts, and vulnerable build artifacts."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A03",
+      "category_name": "Software Supply Chain Failures",
+      "description": "Understand risks from unverified third-party dependencies, malicious package scripts, and vulnerable build artifacts.",
+      "short_description": "Dependency poisoning, unpinned telemetry packages, and lockfile tampering.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Lockfile Auditing", "Dependency Provenance", "Package Verification"],
+      "learning_objectives": [
+        "Analyze compromised package manifests and lockfiles",
+        "Trace unauthorized credential exfiltration scripts",
+        "Implement cryptographic package provenance verification"
+      ],
+      "prerequisites": ["Package manager basics (npm/cargo)"]
     },
     {
       "id": "A04",
+      "package_id": "zitera-lab-a04",
       "title": "Cryptographic Failures",
       "repository": "xdaamar/zitera_lab_a04",
       "version": "1.0.0",
       "difficulty": "Beginner",
       "owasp": "A04:2025",
-      "description": "Explore the risks of legacy broken hashes (MD5), hardcoded encryption keys, and sensitive data leakage."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A04",
+      "category_name": "Cryptographic Failures",
+      "description": "Explore the risks of legacy broken hashes (MD5), hardcoded encryption keys, and sensitive data leakage.",
+      "short_description": "Broken MD5 hashes, salt omissions, and rainbow table reversing.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Cryptographic Hash Audit", "Salt Verification", "Password Storage Standards"],
+      "learning_objectives": [
+        "Recognize obsolete cryptographic algorithms",
+        "Understand how unsalted hashes succumb to precomputed tables",
+        "Deploy modern password hashing algorithms (Argon2/bcrypt)"
+      ],
+      "prerequisites": ["Basic hashing knowledge"]
     },
     {
       "id": "A05",
+      "package_id": "zitera-lab-a05",
       "title": "Injection",
       "repository": "xdaamar/zitera_lab_a05",
       "version": "1.0.0",
       "difficulty": "Beginner",
       "owasp": "A05:2025",
-      "description": "Understand SQL injection root causes, malicious query manipulation, and parameterized query remediation."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A05",
+      "category_name": "Injection",
+      "description": "Understand SQL injection root causes, malicious query manipulation, and parameterized query remediation.",
+      "short_description": "SQL query manipulation, string escaping breakout, and UNION extraction.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["SQL Syntax Injection", "Query Parameterization", "Database Defense"],
+      "learning_objectives": [
+        "Distinguish data from query syntax execution",
+        "Execute UNION-based database schema exfiltration",
+        "Refactor raw SQL strings into prepared statements"
+      ],
+      "prerequisites": ["Basic SQL queries"]
     },
     {
       "id": "A06",
+      "package_id": "zitera-lab-a06",
       "title": "Insecure Design",
       "repository": "xdaamar/zitera_lab_a06",
       "version": "1.0.0",
       "difficulty": "Intermediate",
       "owasp": "A06:2025",
-      "description": "Analyze flawed business logic, unverified workflow state transitions, and missing architectural security controls."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A06",
+      "category_name": "Insecure Design",
+      "description": "Analyze flawed business logic, unverified workflow state transitions, and missing architectural security controls.",
+      "short_description": "Flawed procurement state transitions and missing business logic controls.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Threat Modeling", "State Machine Invariants", "Business Logic Validation"],
+      "learning_objectives": [
+        "Differentiate design flaws from implementation vulnerabilities",
+        "Detect illegal state transitions in enterprise workflows",
+        "Establish architectural security invariants in business logic"
+      ],
+      "prerequisites": ["Workflow / State machine concepts"]
     },
     {
       "id": "A07",
+      "package_id": "zitera-lab-a07",
       "title": "Authentication Failures",
       "repository": "xdaamar/zitera_lab_a07",
       "version": "1.0.0",
       "difficulty": "Beginner",
       "owasp": "A07:2025",
-      "description": "Explore how weak credential requirements, lack of brute-force protection, and session fixation lead to account takeover."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A07",
+      "category_name": "Authentication Failures",
+      "description": "Explore how weak credential requirements, lack of brute-force protection, and session fixation lead to account takeover.",
+      "short_description": "Missing lockout mechanisms, predictable PINs, and automated credential stuffing.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Rate Limiting", "Lockout Enforcement", "Authentication Defense"],
+      "learning_objectives": [
+        "Assess authentication mechanisms against automated guessing",
+        "Identify failure modes of unrestricted login endpoints",
+        "Implement multi-layered rate limiting and progressive delays"
+      ],
+      "prerequisites": ["HTTP POST / form submissions"]
     },
     {
       "id": "A08",
+      "package_id": "zitera-lab-a08",
       "title": "Software or Data Integrity Failures",
       "repository": "xdaamar/zitera_lab_a08",
       "version": "1.0.0",
       "difficulty": "Intermediate",
       "owasp": "A08:2025",
-      "description": "Understand vulnerabilities from accepting unverified, untrusted software or configuration artifacts without cryptographic signatures."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A08",
+      "category_name": "Software or Data Integrity Failures",
+      "description": "Understand vulnerabilities from accepting unverified, untrusted software or configuration artifacts without cryptographic signatures.",
+      "short_description": "Unsigned firmware configurations and missing digital signature verification.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Digital Signatures", "Integrity Validation", "Secure Deserialization"],
+      "learning_objectives": [
+        "Evaluate the risks of accepting untrusted configuration updates",
+        "Demonstrate code/config tampering without integrity checks",
+        "Implement asymmetric signature verification for payload ingestion"
+      ],
+      "prerequisites": ["Asymmetric cryptography concepts"]
     },
     {
       "id": "A09",
+      "package_id": "zitera-lab-a09",
       "title": "Security Logging & Alerting Failures",
       "repository": "xdaamar/zitera_lab_a09",
       "version": "1.0.0",
       "difficulty": "Beginner",
       "owasp": "A09:2025",
-      "description": "Discover how insufficient security telemetry, missing audit trails, and silent failures prevent incident detection."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A09",
+      "category_name": "Security Logging & Alerting Failures",
+      "description": "Discover how insufficient security telemetry, missing audit trails, and silent failures prevent incident detection.",
+      "short_description": "Silent security incidents, missing privilege escalation logs, and audit blindness.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Security Event Telemetry", "Audit Trail Design", "SIEM Alert Rules"],
+      "learning_objectives": [
+        "Audit high-privilege operations for logging coverage",
+        "Identify blind spots that permit undetected adversary movement",
+        "Design tamper-evident structured security audit events"
+      ],
+      "prerequisites": ["Logging & system administration basics"]
     },
     {
       "id": "A10",
+      "package_id": "zitera-lab-a10",
       "title": "Mishandling of Exceptional Conditions",
       "repository": "xdaamar/zitera_lab_a10",
       "version": "1.0.0",
       "difficulty": "Intermediate",
       "owasp": "A10:2025",
-      "description": "Examine dangerous fail-open exception handling where upstream service errors accidentally bypass authorization boundaries."
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A10",
+      "category_name": "Mishandling of Exceptional Conditions",
+      "description": "Examine dangerous fail-open exception handling where upstream service errors accidentally bypass authorization boundaries.",
+      "short_description": "Fail-open exception handling allowing unauthorized security gate traversal.",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": ["Fail-Safe Defaults", "Defensive Exception Handling", "Boundary Guarding"],
+      "learning_objectives": [
+        "Identify fail-open security flaws in exception handling blocks",
+        "Induce upstream failure states that bypass authorization checks",
+        "Enforce strict fail-closed defaults across all boundary guards"
+      ],
+      "prerequisites": ["Error/Exception handling basics"]
     }
   ]
 }

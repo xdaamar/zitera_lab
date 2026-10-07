@@ -1,6 +1,6 @@
 # A04: Cryptographic Failures (Kegagalan Kriptografi)
 
-Cryptographic Failures menempati peringkat ke-4 (**#4**) dalam OWASP Top 10:2025 (sebelumnya dikenal sebagai *Sensitive Data Exposure*). Kerentanan ini berfokus pada kelemahan implementasi algoritma enkripsi dan hashing yang berujung pada kebocoran data rahasia.
+Cryptographic Failures menempati peringkat ke-4 (`#4`) dalam OWASP Top 10:2025 (sebelumnya dikenal sebagai *Sensitive Data Exposure*). Kerentanan ini berfokus pada kelemahan implementasi algoritma enkripsi dan hashing yang berujung pada kebocoran data rahasia.
 
 ## Akar Permasalahan
 Kriptografi secara teoritis adalah matematika yang solid, tetapi keamanannya sangat bergantung pada cara penerapannya di dalam kode (*implementation*). Kesalahan umum yang sering dilakukan pengembang meliputi:

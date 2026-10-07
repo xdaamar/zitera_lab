@@ -7,8 +7,8 @@ Kamu ditugaskan untuk mengaudit portal keuangan dan penagihan internal sebuah pe
 Eksploitasi celah kontrol akses pada aplikasi target yang berjalan di `http://127.0.0.1:8011` untuk menemukan master invoice rahasia tersebut dan ambil flag tantangannya.
 
 ### LINGKUNGAN TARGET
-- **Base URL:** `http://127.0.0.1:8011`
-- **Kredensial Awal:** `alice` / `password123`
+- Base URL: `http://127.0.0.1:8011`
+- Kredensial Awal: `alice` / `password123`
 
 ### BATASAN PENYERANGAN (CONSTRAINTS)
 - Lakukan pengujian HANYA pada target lokal `127.0.0.1:8011`.

@@ -1,6 +1,6 @@
 # Remediation: Parameterized Queries & Prepared Statements
 
-The primary defense against SQL Injection is using **Parameterized Queries** (also called Prepared Statements).
+The primary defense against SQL Injection is using parameterized queries (also called Prepared Statements).
 
 ## How Parameterized Queries Work
 Instead of string concatenation, the database driver sends the query structure (the AST) and the parameters in two completely separate channels:

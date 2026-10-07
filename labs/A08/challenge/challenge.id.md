@@ -7,7 +7,7 @@ Layanan distribusi paket perangkat lunak internal di `http://127.0.0.1:8018` mem
 Eksploitasi ketiadaan verifikasi tanda tangan paket pada sistem target untuk mengekstrak master flag verifikasi integritas.
 
 ### LINGKUNGAN TARGET
-- **Base URL:** `http://127.0.0.1:8018`
+- Base URL: `http://127.0.0.1:8018`
 
 ### FORMAT SUBMISSION FLAG
 `ZITERA{...}`

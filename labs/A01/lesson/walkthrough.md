@@ -21,5 +21,5 @@ In this guided exercise, you will investigate how parameters are sent between th
 
 ### Step 4: Test Object Manipulation
 - Change the URL parameter from `/invoice/1` to `/invoice/2`.
-- **Observation:** Notice that Bob's confidential invoice details appear on screen!
-- **Root Cause:** The server queried the invoice directly by ID without verifying if the requesting user (`session['user_id']`) owns that invoice.
+- Observation: Notice that Bob's confidential invoice details appear on screen!
+- Root Cause: The server queried the invoice directly by ID without verifying if the requesting user (`session['user_id']`) owns that invoice.

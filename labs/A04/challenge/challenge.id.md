@@ -7,8 +7,8 @@ Kamu sedang mengaudit layanan manajemen kunci kriptografi internal di `http://12
 Pulihkan kredensial akun administrator dari log audit hash yang bocor, lakukan login ke brankas administratif, dan ambil master flag tantangan.
 
 ### LINGKUNGAN TARGET
-- **Base URL:** `http://127.0.0.1:8014`
-- **Cakupan Pengujian:** Terbatas hanya pada `127.0.0.1:8014`.
+- Base URL: `http://127.0.0.1:8014`
+- Cakupan Pengujian: Terbatas hanya pada `127.0.0.1:8014`.
 
 ### FORMAT SUBMISSION FLAG
 `ZITERA{...}`
