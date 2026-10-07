@@ -7,6 +7,7 @@ pub mod native_runtime;
 pub mod package;
 mod process;
 mod system;
+pub mod diagnostics;
 pub mod storage;
 pub mod terminal;
 mod tools;

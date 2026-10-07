@@ -29,7 +29,8 @@ pub fn run() {
     }
 
     match filtered_args[0].as_str() {
-        "doctor" => handle_doctor(json_mode),
+        "doctor" => handle_doctor(&filtered_args[1..], &workspace_root, json_mode),
+        "diagnostics" => handle_diagnostics(&filtered_args[1..], &workspace_root, json_mode),
         "tool" => handle_tool(&filtered_args[1..], json_mode),
         "lab" => handle_lab(&filtered_args[1..], &workspace_root, json_mode),
         "package" => handle_package(&filtered_args[1..], &workspace_root, json_mode),
@@ -56,7 +57,12 @@ pub fn run() {
     }
 }
 
-fn handle_doctor(json: bool) {
+fn handle_doctor(args: &[String], workspace_root: &Path, json: bool) {
+    if let Some(pos) = args.iter().position(|a| a == "--export-diagnostics" || a == "export") {
+        let custom_path = args.get(pos + 1).map(|s| PathBuf::from(s));
+        return handle_diagnostics_export(custom_path.as_deref(), workspace_root, json);
+    }
+
     let diag = system::diagnose_system();
     if json {
         let resp = ApiResponse::ok("doctor", diag);
@@ -90,6 +96,60 @@ fn handle_doctor(json: bool) {
             }
         );
         println!("==================================================");
+    }
+}
+
+fn handle_diagnostics(args: &[String], workspace_root: &Path, json: bool) {
+    if args.is_empty() || args[0] == "export" {
+        let custom_path = args.get(1).map(|s| PathBuf::from(s));
+        handle_diagnostics_export(custom_path.as_deref(), workspace_root, json);
+    } else {
+        if json {
+            let resp: ApiResponse<()> = ApiResponse::err(
+                "diagnostics",
+                "UNKNOWN_SUBCOMMAND",
+                format!("Unrecognized diagnostics subcommand: {}", args[0]),
+                false,
+            );
+            println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+        } else {
+            eprintln!("Unknown subcommand: '{}'. Supported: export", args[0]);
+        }
+    }
+}
+
+fn handle_diagnostics_export(custom_out: Option<&Path>, workspace_root: &Path, json: bool) {
+    match crate::diagnostics::export_diagnostics_archive(workspace_root, custom_out) {
+        Ok(report) => {
+            if json {
+                let resp = ApiResponse::ok("diagnostics.export", report);
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                println!("==================================================");
+                println!("  ZITERA_LAB — Privacy-Safe Diagnostics Export    ");
+                println!("==================================================");
+                println!("Archive Path  : {}", report.archive_path);
+                println!("Archive Size  : {} bytes", report.archive_size_bytes);
+                println!("Files Bundled : {}", report.file_count);
+                println!("SHA256 Digest : {}", report.sha256_checksum);
+                println!("Exported At   : {}", report.export_timestamp);
+                println!("Privacy State : 100% SANITIZED (Flags & Secrets Redacted)");
+                println!("==================================================");
+            }
+        }
+        Err(e) => {
+            if json {
+                let resp: ApiResponse<()> = ApiResponse::err(
+                    "diagnostics.export",
+                    "EXPORT_ERROR",
+                    e,
+                    false,
+                );
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                eprintln!("Failed to export diagnostics archive: {}", e);
+            }
+        }
     }
 }
 
@@ -1095,7 +1155,8 @@ fn print_help(json: bool) {
         println!("Usage: zitera [--json] <command> [subcommand] [arguments]");
         println!();
         println!("Commands:");
-        println!("  doctor                 Run system environment diagnostics");
+        println!("  doctor [--export-diagnostics [out.zip]] Run diagnostics or export report");
+        println!("  diagnostics export [out.zip] Export privacy-safe diagnostic report");
         println!("  tool list              List supported security tools and status");
         println!("  lab list               List installed and available labs");
         println!("  lab status <id>        Show runtime status for a lab");

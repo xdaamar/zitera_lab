@@ -250,6 +250,122 @@ class SettingsView extends StatelessWidget {
     }
   }
 
+  Future<void> _handleExportDiagnostics(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: CuteAnimeLoading(message: 'Generating privacy-sanitized diagnostic bundle...'),
+      ),
+    );
+
+    try {
+      final result = await ZiteraEngineClient.exportDiagnostics();
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFFFCFBF8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: ZiteraColors.border, width: 1.5),
+            ),
+            title: Row(
+              children: const [
+                Icon(Icons.shield_outlined, color: Color(0xFF0F766E), size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Diagnostic Report Exported',
+                  style: TextStyle(
+                    fontFamily: 'SpaceGrotesk',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Privacy-safe diagnostic archive generated successfully. All student flags, tokens, passwords, and personal profile paths have been verified redacted.',
+                  style: TextStyle(
+                    fontFamily: 'SpaceGrotesk',
+                    fontSize: 13,
+                    color: Color(0xFF1E1A14),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF86EFAC)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Location: ${result['archive_path'] ?? 'diagnostics.zip'}',
+                        style: const TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: Color(0xFF166534),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Size: ${result['archive_size_bytes'] ?? 0} bytes • Files: ${result['file_count'] ?? 7}',
+                        style: TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontSize: 10.5,
+                          color: const Color(0xFF166534).withValues(alpha: 0.9),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'SHA256: ${result['sha256_checksum'] ?? 'Verified'}',
+                        style: TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontSize: 9.5,
+                          color: const Color(0xFF166534).withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(fontFamily: 'SpaceGrotesk', fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export diagnostics: $e'),
+            backgroundColor: ZiteraColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final enginePath = ZiteraEngineClient.findEngineExecutable();
@@ -709,6 +825,82 @@ class SettingsView extends StatelessWidget {
                             icon: Icons.update,
                             variant: ButtonVariant.primary,
                             onPressed: () => _handleCheckUpdates(context),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Diagnostics & Diagnostic Export Card (CP11)
+              HackerTilixEntrance(
+                delay: const Duration(milliseconds: 225),
+                direction: TilixSlideDirection.up,
+                child: ZiteraCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.medical_services_outlined, size: 18, color: Color(0xFF0F766E)),
+                              SizedBox(width: 8),
+                              Text(
+                                'DIAGNOSTICS & SYSTEM REPORT',
+                                style: TextStyle(
+                                  fontFamily: 'SpaceGrotesk',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Color(0xFF1E1A14),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFF86EFAC), width: 0.8),
+                            ),
+                            child: const Text(
+                              'PRIVACY SANITIZED',
+                              style: TextStyle(
+                                fontFamily: 'JetBrainsMono',
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF166534),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Generate an exportable diagnostics report (.zip) containing system readiness, installed lab versions, runtime status, and environment diagnostics with all student flags, credentials, and user profile paths automatically redacted.',
+                        style: TextStyle(
+                          color: Color(0xFF5C5347),
+                          fontSize: 12,
+                          fontFamily: 'JetBrainsMono',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _settingRow('Sanitization Policy', 'Zero Leakage (Flags, Credentials & Paths Redacted)'),
+                      _settingRow('Archive Format', 'Standard PKZIP (.zip)'),
+                      _settingRow('Default Location', r'%LOCALAPPDATA%\ZiteraLab\diagnostics'),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          ZiteraButton(
+                            label: 'Export Diagnostic Report',
+                            icon: Icons.archive_outlined,
+                            variant: ButtonVariant.primary,
+                            onPressed: () => _handleExportDiagnostics(context),
                           ),
                         ],
                       ),

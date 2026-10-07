@@ -124,6 +124,14 @@ class ZiteraEngineClient {
     return DiagnosticsResult.fromJson(data);
   }
 
+  static Future<Map<String, dynamic>> exportDiagnostics([String? outputPath]) async {
+    final args = ['diagnostics', 'export'];
+    if (outputPath != null && outputPath.trim().isNotEmpty) {
+      args.add(outputPath.trim());
+    }
+    return await executeCommand(args);
+  }
+
   static Future<List<ToolItem>> getTools() async {
     final data = await executeCommandRaw(['tool', 'list']);
     final list = data as List<dynamic>? ?? [];

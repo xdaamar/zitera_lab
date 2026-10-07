@@ -257,13 +257,26 @@ pub fn create_zlab_package(source_dir: &Path, output_zlab: &Path) -> Result<(), 
         return Err("Cannot create package: manifest.json is required in source root".to_string());
     }
 
-    let mut out_file = File::create(output_zlab)
-        .map_err(|e| format!("Failed to create output package {:?}: {}", output_zlab, e))?;
+    create_zip_from_entries(&file_entries, output_zlab)
+}
+
+/// Creates a standard PKZIP archive from a list of in-memory (relative_path, bytes) entries.
+pub fn create_zip_from_entries(
+    file_entries: &[(String, Vec<u8>)],
+    output_zip: &Path,
+) -> Result<(), String> {
+    if let Some(parent) = output_zip.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create parent directory {:?}: {}", parent, e))?;
+    }
+
+    let mut out_file = File::create(output_zip)
+        .map_err(|e| format!("Failed to create output zip {:?}: {}", output_zip, e))?;
 
     let mut cd_records = Vec::new();
     let mut current_offset: u32 = 0;
 
-    for (rel_name, data) in &file_entries {
+    for (rel_name, data) in file_entries {
         let name_bytes = rel_name.as_bytes();
         let crc = crc32(data);
         let size = data.len() as u32;
