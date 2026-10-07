@@ -481,4 +481,41 @@ mod tests {
         assert!(err_arch.is_err());
         assert!(err_arch.unwrap_err().contains("unsupported architecture"));
     }
+
+    #[test]
+    fn test_checkpoint_10_offline_first_operation() {
+        let temp = std::env::temp_dir().join("zitera_offline_test");
+        let _ = fs::remove_dir_all(&temp);
+        let workspace = temp.join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+
+        // 1. Without network and without local cache -> fallback to built-in default signed catalog
+        let cat_default = load_catalog(&workspace).expect("Default catalog must load offline");
+        assert_eq!(cat_default.schema_version, 1);
+        assert_eq!(cat_default.labs.len(), 10);
+        for id in ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"] {
+            assert!(
+                cat_default.labs.iter().any(|l| l.id.eq_ignore_ascii_case(id)),
+                "Default catalog must include {}",
+                id
+            );
+        }
+
+        // 2. Offline-first local cache priority: Cache exists and is valid -> returned directly
+        let cat_dir = workspace.join("catalog");
+        fs::create_dir_all(&cat_dir).unwrap();
+        let mut custom_cat = cat_default.clone();
+        custom_cat.labs[0].title = "Offline Cached Title".to_string();
+        sign_catalog(&mut custom_cat, &DEV_PRIVATE_KEY_SEED);
+        fs::write(
+            cat_dir.join("catalog.json"),
+            serde_json::to_string_pretty(&custom_cat).unwrap(),
+        )
+        .unwrap();
+
+        let cat_cached = load_catalog(&workspace).expect("Local cached catalog must load offline");
+        assert_eq!(cat_cached.labs[0].title, "Offline Cached Title");
+
+        let _ = fs::remove_dir_all(&temp);
+    }
 }
