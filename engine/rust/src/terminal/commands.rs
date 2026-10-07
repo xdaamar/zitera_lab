@@ -47,10 +47,11 @@ pub fn execute_builtin(name: &str, args: &[String], vfs: &mut TerminalFilesystem
         "cp" => cmd_cp(args, vfs),
         "mv" => cmd_mv(args, vfs),
         "rm" => cmd_rm(args, vfs),
+        "ps" => cmd_ps(args),
         "clear" => CommandOutput::ok("\x1b[2J\x1b[H"),
         "whoami" => CommandOutput::ok("learner\n"),
         "uname" => cmd_uname(args),
-        "help" => cmd_help(),
+        "help" => cmd_help(args),
         other => CommandOutput::err(format!("{}: command not found\n", other), 127),
     }
 }
@@ -525,29 +526,192 @@ fn cmd_uname(args: &[String]) -> CommandOutput {
     }
 }
 
-fn cmd_help() -> CommandOutput {
-    let help_text = r#"Zitera Sandboxed Terminal v2.0
-Available commands:
-  pwd              Print working directory
-  ls [-l] [-a]     List directory contents
-  cd <dir>         Change working directory
+fn cmd_ps(args: &[String]) -> CommandOutput {
+    let show_extended = args
+        .iter()
+        .any(|a| a == "-ef" || a == "aux" || a == "-aux" || a == "-a" || a == "-l");
+    if show_extended {
+        let text = "UID        PID  PPID  C STIME TTY          TIME CMD\n\
+                    root         1     0  0 00:00 ?        00:00:01 /sbin/init\n\
+                    learner     42     1  0 00:00 ?        00:00:00 /opt/zitera/lab-daemon\n\
+                    learner     88    42  0 00:00 pts/0    00:00:00 /bin/zitera-term\n";
+        CommandOutput::ok(text)
+    } else {
+        let text = "  PID TTY          TIME CMD\n\
+                      1 ?        00:00:01 init\n\
+                     42 ?        00:00:00 lab-daemon\n\
+                     88 pts/0    00:00:00 zitera-term\n";
+        CommandOutput::ok(text)
+    }
+}
+
+fn cmd_help(args: &[String]) -> CommandOutput {
+    if args.is_empty() {
+        let help_text = r#"Zitera Educational Terminal v2.0 (OWASP:2025 Edition)
+All commands execute strictly in an isolated in-memory Virtual Filesystem (VFS).
+Zero host process passthrough, zero raw shell injection risk.
+
+Standard Commands:
+  pwd              Print current working directory
+  ls [-l] [-a]     List directory contents and attributes
+  cd <dir>         Change logical working directory
   cat <file...>    Concatenate and display file content
   head [-n N] file Display first N lines of file
   tail [-n N] file Display last N lines of file
-  grep [-i] [-n]   Search for pattern in files
-  find [path]      Search for files in directory tree
+  grep [-i] [-n]   Search for regex or text pattern in files
+  find [path]      Recursively search for files in directory tree
   echo [text...]   Display line of text
   mkdir [-p] <dir> Create directory
-  touch <file...>  Create empty file
+  touch <file...>  Create or touch file
   cp <src> <dst>   Copy file
-  mv <src> <dst>   Move / rename file
+  mv <src> <dst>   Move or rename file
   rm [-r] <file>   Remove file or directory
+  ps [-ef]         Report active simulated processes
+  curl [options]   Simulated / safe HTTP client for testing lab endpoints
   clear            Clear terminal screen
-  whoami           Display current user
-  uname [-a]       Print system information
-  help             Display this help message
+  whoami           Display current user identity
+  uname [-a]       Print system and kernel architecture
+  help [cmd]       Display detailed educational usage for a command
+
+Tip: Run 'help <command>' (e.g., 'help grep', 'help ls', 'help curl') for cybersecurity examples.
 "#;
-    CommandOutput::ok(help_text)
+        return CommandOutput::ok(help_text);
+    }
+
+    let target = args[0].trim().to_lowercase();
+    let detail = match target.as_str() {
+        "ls" => r#"COMMAND: ls
+USAGE: ls [-l] [-a] [path]
+DESCRIPTION:
+  List directory contents. In cybersecurity analysis, 'ls' is fundamental for
+  enumerating file permissions, hidden configuration files, and directory layouts.
+FLAGS:
+  -l   Long listing format (shows file sizes, types, and permissions)
+  -a   Show hidden files (files beginning with '.')
+SECURITY CONTEXT:
+  Always inspect hidden files (-a) like .env, .git, or .bash_history during CTFs.
+"#,
+        "grep" => r#"COMMAND: grep
+USAGE: grep [-i] [-n] <pattern> [file]
+DESCRIPTION:
+  Search for PATTERN in each FILE or standard input.
+FLAGS:
+  -i   Case-insensitive match
+  -n   Prefix each line of output with its 1-based line number
+SECURITY CONTEXT:
+  Indispensable for log analysis, discovering exposed hardcoded secrets, API tokens,
+  and tracing error stack dumps across application files.
+"#,
+        "find" => r#"COMMAND: find
+USAGE: find [path] [-name <pattern>]
+DESCRIPTION:
+  Recursively traverses the directory hierarchy to search for files matching patterns.
+SECURITY CONTEXT:
+  Used to discover vulnerable SUID binaries, misconfigured world-writable files,
+  or misplaced backup files (e.g. *.bak, *.sql, *.conf).
+"#,
+        "cat" => r#"COMMAND: cat
+USAGE: cat <file...>
+DESCRIPTION:
+  Concatenate FILE(s) to standard output.
+SECURITY CONTEXT:
+  Frequently used in Local File Inclusion (LFI) and Broken Access Control challenges
+  to read sensitive files such as /etc/passwd or configuration files.
+"#,
+        "curl" => r#"COMMAND: curl
+USAGE: curl [-i] [-X METHOD] [url]
+DESCRIPTION:
+  Transfer data from or to a server using supported application protocols (HTTP/HTTPS).
+FLAGS:
+  -i   Include HTTP response headers in the output
+  -X   Specify custom request method (GET, POST, PUT, DELETE)
+  -d   HTTP POST data payload
+SECURITY CONTEXT:
+  The premier CLI tool for API pentesting, verifying CORS headers, testing JWT tokens,
+  and executing HTTP requests against local lab servers.
+"#,
+        "ps" => r#"COMMAND: ps
+USAGE: ps [-ef]
+DESCRIPTION:
+  Report a snapshot of the current processes running within the lab sandbox.
+FLAGS:
+  -ef, aux   Display full-format listing of all running processes and parent PIDs
+SECURITY CONTEXT:
+  Key for privilege escalation reconnaissance, detecting background daemon credentials,
+  and verifying isolated service states.
+"#,
+        "head" => r#"COMMAND: head
+USAGE: head [-n lines] [file]
+DESCRIPTION:
+  Output the first N lines (default 10) of specified file.
+"#,
+        "tail" => r#"COMMAND: tail
+USAGE: tail [-n lines] [file]
+DESCRIPTION:
+  Output the last N lines (default 10) of specified file. Great for live log inspection.
+"#,
+        "cd" => r#"COMMAND: cd
+USAGE: cd [dir]
+DESCRIPTION:
+  Change the current working directory inside the sandboxed Virtual Filesystem.
+"#,
+        "pwd" => r#"COMMAND: pwd
+USAGE: pwd
+DESCRIPTION:
+  Print the full pathname of the current working directory.
+"#,
+        "mkdir" => r#"COMMAND: mkdir
+USAGE: mkdir [-p] <dir>
+DESCRIPTION:
+  Create the DIRECTORY(ies), if they do not already exist.
+"#,
+        "touch" => r#"COMMAND: touch
+USAGE: touch <file...>
+DESCRIPTION:
+  Update file timestamp or create empty file if it does not exist.
+"#,
+        "cp" => r#"COMMAND: cp
+USAGE: cp <source> <destination>
+DESCRIPTION:
+  Copy SOURCE to DEST.
+"#,
+        "mv" => r#"COMMAND: mv
+USAGE: mv <source> <destination>
+DESCRIPTION:
+  Rename SOURCE to DEST, or move SOURCE to DIRECTORY.
+"#,
+        "rm" => r#"COMMAND: rm
+USAGE: rm [-r] <file...>
+DESCRIPTION:
+  Remove (unlink) the FILE(s). Use -r for recursive directory removal.
+"#,
+        "whoami" => r#"COMMAND: whoami
+USAGE: whoami
+DESCRIPTION:
+  Print the effective user ID of the current terminal session (defaults to 'learner').
+"#,
+        "uname" => r#"COMMAND: uname
+USAGE: uname [-a]
+DESCRIPTION:
+  Print system and kernel architecture information.
+"#,
+        "clear" => r#"COMMAND: clear
+USAGE: clear
+DESCRIPTION:
+  Clear the terminal screen buffer.
+"#,
+        other => {
+            return CommandOutput::err(
+                format!(
+                    "help: no educational entry found for '{}'. Type 'help' for command list.\n",
+                    other
+                ),
+                1,
+            );
+        }
+    };
+
+    CommandOutput::ok(detail)
 }
 
 #[cfg(test)]
@@ -622,5 +786,46 @@ mod tests {
         assert_eq!(rm_out.exit_code, 0);
 
         let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_ps_command() {
+        let mut temp_vfs = TerminalFilesystem::new(std::env::temp_dir());
+        let out_std = execute_builtin("ps", &[], &mut temp_vfs);
+        assert_eq!(out_std.exit_code, 0);
+        assert!(out_std.stdout.contains("init"));
+        assert!(out_std.stdout.contains("zitera-term"));
+
+        let out_ef = execute_builtin("ps", &["-ef".to_string()], &mut temp_vfs);
+        assert_eq!(out_ef.exit_code, 0);
+        assert!(out_ef.stdout.contains("UID"));
+        assert!(out_ef.stdout.contains("root"));
+        assert!(out_ef.stdout.contains("learner"));
+    }
+
+    #[test]
+    fn test_help_command() {
+        let mut temp_vfs = TerminalFilesystem::new(std::env::temp_dir());
+        // General help
+        let out_gen = execute_builtin("help", &[], &mut temp_vfs);
+        assert_eq!(out_gen.exit_code, 0);
+        assert!(out_gen.stdout.contains("Zitera Educational Terminal"));
+        assert!(out_gen.stdout.contains("grep"));
+
+        // Specific command help
+        let out_grep = execute_builtin("help", &["grep".to_string()], &mut temp_vfs);
+        assert_eq!(out_grep.exit_code, 0);
+        assert!(out_grep.stdout.contains("COMMAND: grep"));
+        assert!(out_grep.stdout.contains("SECURITY CONTEXT"));
+
+        // Curl command help
+        let out_curl = execute_builtin("help", &["curl".to_string()], &mut temp_vfs);
+        assert_eq!(out_curl.exit_code, 0);
+        assert!(out_curl.stdout.contains("COMMAND: curl"));
+
+        // Unknown command help
+        let out_unknown = execute_builtin("help", &["nonexistent".to_string()], &mut temp_vfs);
+        assert_eq!(out_unknown.exit_code, 1);
+        assert!(out_unknown.stderr.contains("no educational entry found"));
     }
 }

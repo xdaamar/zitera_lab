@@ -422,3 +422,97 @@ class ToolInstallResult {
     );
   }
 }
+
+class TerminalResult {
+  final String stdout;
+  final String stderr;
+  final int exitCode;
+  final String cwd;
+
+  TerminalResult({
+    required this.stdout,
+    required this.stderr,
+    required this.exitCode,
+    required this.cwd,
+  });
+
+  factory TerminalResult.fromJson(Map<String, dynamic> json) {
+    return TerminalResult(
+      stdout: json['stdout'] as String? ?? '',
+      stderr: json['stderr'] as String? ?? '',
+      exitCode: json['exit_code'] as int? ?? 0,
+      cwd: json['cwd'] as String? ?? '/',
+    );
+  }
+}
+
+class ValidationCheckItem {
+  final String name;
+  final bool passed;
+  final String message;
+  final String? remediation;
+
+  ValidationCheckItem({
+    required this.name,
+    required this.passed,
+    required this.message,
+    this.remediation,
+  });
+
+  factory ValidationCheckItem.fromJson(Map<String, dynamic> json) {
+    return ValidationCheckItem(
+      name: json['name'] as String? ?? '',
+      passed: json['passed'] as bool? ?? false,
+      message: json['message'] as String? ?? '',
+      remediation: json['remediation'] as String?,
+    );
+  }
+}
+
+class LabValidationReport {
+  final String labId;
+  final bool valid;
+  final List<ValidationCheckItem> checks;
+  final String summary;
+
+  LabValidationReport({
+    required this.labId,
+    required this.valid,
+    required this.checks,
+    required this.summary,
+  });
+
+  factory LabValidationReport.fromJson(Map<String, dynamic> json) {
+    final rawChecks = json['checks'] as List<dynamic>? ?? [];
+    return LabValidationReport(
+      labId: json['lab_id'] as String? ?? '',
+      valid: json['valid'] as bool? ?? false,
+      checks: rawChecks
+          .map((c) => ValidationCheckItem.fromJson(c as Map<String, dynamic>))
+          .toList(),
+      summary: json['summary'] as String? ?? '',
+    );
+  }
+}
+
+class ZiteraException implements Exception {
+  final String code;
+  final String message;
+  final String? recoveryAction;
+  final bool recoverable;
+
+  ZiteraException({
+    required this.code,
+    required this.message,
+    this.recoveryAction,
+    this.recoverable = true,
+  });
+
+  @override
+  String toString() {
+    if (recoveryAction != null && recoveryAction!.isNotEmpty) {
+      return '$message\n\nRemediation: $recoveryAction';
+    }
+    return message;
+  }
+}

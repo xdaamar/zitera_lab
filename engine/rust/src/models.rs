@@ -35,6 +35,28 @@ impl<T> ApiResponse<T> {
                 message: message.into(),
                 recoverable,
                 details: None,
+                recovery_action: None,
+            }),
+        }
+    }
+
+    pub fn err_with_recovery(
+        action: impl Into<String>,
+        code: impl Into<String>,
+        message: impl Into<String>,
+        recovery_action: impl Into<String>,
+        recoverable: bool,
+    ) -> Self {
+        Self {
+            success: false,
+            action: action.into(),
+            data: None,
+            error: Some(ApiError {
+                code: code.into(),
+                message: message.into(),
+                recoverable,
+                details: None,
+                recovery_action: Some(recovery_action.into()),
             }),
         }
     }
@@ -47,6 +69,8 @@ pub struct ApiError {
     pub recoverable: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub details: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recovery_action: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -55,7 +55,7 @@ impl std::error::Error for TerminalError {}
 /// Static list of permitted built-in terminal commands.
 pub const ALLOWED_COMMANDS: &[&str] = &[
     "pwd", "ls", "cd", "cat", "head", "tail", "grep", "find", "echo", "mkdir", "touch", "cp", "mv",
-    "rm", "clear", "help", "whoami", "uname", "curl", "nmap",
+    "rm", "clear", "help", "whoami", "uname", "curl", "nmap", "ps",
 ];
 
 /// Prohibited host system shells and tools.

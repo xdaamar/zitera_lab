@@ -520,6 +520,94 @@ fn handle_lab(args: &[String], workspace_root: &Path, json: bool) {
                 }
             }
         }
+        "validate" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("A01");
+            let res = labs::validate_lab(workspace_root, id);
+            if json {
+                let resp = if res.valid {
+                    ApiResponse::ok("lab.validate", res)
+                } else {
+                    ApiResponse::err_with_recovery(
+                        "lab.validate",
+                        "LAB_VALIDATION_FAILED",
+                        res.summary.clone(),
+                        "Check the failed verification points and update manifest/content accordingly.",
+                        true,
+                    )
+                };
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                println!("==================================================");
+                println!("  ZITERA_LAB — Lab Verification & Contract Check  ");
+                println!("==================================================");
+                println!("Lab ID  : {}", res.lab_id);
+                println!("Result  : {}", if res.valid { "PASSED" } else { "FAILED" });
+                println!("Summary : {}", res.summary);
+                println!("--------------------------------------------------");
+                for check in &res.checks {
+                    let mark = if check.passed { "[PASS]" } else { "[FAIL]" };
+                    println!("{} {}: {}", mark, check.name, check.message);
+                    if let Some(rem) = &check.remediation {
+                        println!("       -> Remediation: {}", rem);
+                    }
+                }
+                println!("==================================================");
+            }
+        }
+        "create" | "new" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            if id.is_empty() {
+                if json {
+                    let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
+                        "lab.create",
+                        "MISSING_LAB_ID",
+                        "Lab ID required for scaffolding",
+                        "Specify an alphanumeric lab ID (e.g., A11)",
+                        false,
+                    );
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    eprintln!("Error: Lab ID required. Usage: zitera lab create <ID> [title] [category_id]");
+                }
+                return;
+            }
+            let title = args.get(2).map(|s| s.as_str()).unwrap_or("");
+            let cat = args.get(3).map(|s| s.as_str()).unwrap_or("");
+            match labs::create_lab_template(workspace_root, id, title, cat) {
+                Ok(path) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&ApiResponse::ok(
+                                "lab.create",
+                                format!("Lab {} scaffolded at {:?}", id, path)
+                            ))
+                            .unwrap()
+                        );
+                    } else {
+                        println!("[SUCCESS] Lab {} created at {:?}", id, path);
+                        println!(
+                            "Run 'zitera lab validate {}' to verify curriculum compliance.",
+                            id
+                        );
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
+                            "lab.create",
+                            "LAB_CREATE_FAILED",
+                            e,
+                            "Ensure lab ID does not already exist and is valid alphanumeric format.",
+                            true,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("[ERROR] Failed to create lab: {}", e);
+                    }
+                }
+            }
+        }
         other => {
             if json {
                 let resp: ApiResponse<()> = ApiResponse::err(
@@ -868,6 +956,8 @@ fn print_help(json: bool) {
         println!("  lab reset <id>         Deterministically reset a lab environment");
         println!("  lab update <id>        Update a lab environment to latest version");
         println!("  lab install-package <file> Install or update lab from .zlab package");
+        println!("  lab validate <id>      Verify curriculum contract, content & signature compliance");
+        println!("  lab create <id>        Scaffold new lab template with curriculum contract");
         println!("  lab remove <id>        Remove an installed lab");
         println!("  package build <src> <out.zlab> Build and sign a deterministic .zlab package");
         println!("  package verify <file.zlab> Cryptographically verify a .zlab package");

@@ -1159,6 +1159,421 @@ pub fn validate_challenge(
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct LabValidationResult {
+    pub lab_id: String,
+    pub valid: bool,
+    pub checks: Vec<ValidationCheck>,
+    pub summary: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct ValidationCheck {
+    pub name: String,
+    pub passed: bool,
+    pub message: String,
+    pub remediation: Option<String>,
+}
+
+pub fn validate_lab(workspace_root: &Path, lab_id: &str) -> LabValidationResult {
+    let mut checks = Vec::new();
+    let norm_id = lab_id.to_uppercase();
+    let lab_dir = get_lab_dir(workspace_root, &norm_id);
+
+    // 1. Directory Check
+    if !lab_dir.exists() {
+        checks.push(ValidationCheck {
+            name: "Lab Directory".to_string(),
+            passed: false,
+            message: format!("Directory {:?} does not exist.", lab_dir),
+            remediation: Some(format!(
+                "Create lab folder at labs/{} or run 'zitera lab create {}'",
+                norm_id, norm_id
+            )),
+        });
+        return LabValidationResult {
+            lab_id: norm_id,
+            valid: false,
+            checks,
+            summary: "Lab directory missing.".to_string(),
+        };
+    } else {
+        checks.push(ValidationCheck {
+            name: "Lab Directory".to_string(),
+            passed: true,
+            message: format!("Found lab directory at {:?}", lab_dir),
+            remediation: None,
+        });
+    }
+
+    // 2. Manifest Check
+    let manifest_res = read_manifest(&lab_dir);
+    let manifest = match manifest_res {
+        Ok(m) => {
+            checks.push(ValidationCheck {
+                name: "Manifest Parsing".to_string(),
+                passed: true,
+                message: format!(
+                    "Valid manifest.json with package_id '{}'",
+                    m.package_id.as_deref().unwrap_or("N/A")
+                ),
+                remediation: None,
+            });
+            m
+        }
+        Err(e) => {
+            checks.push(ValidationCheck {
+                name: "Manifest Parsing".to_string(),
+                passed: false,
+                message: e,
+                remediation: Some(
+                    "Ensure manifest.json exists, is valid JSON, and adheres to LabManifest schema."
+                        .to_string(),
+                ),
+            });
+            return LabValidationResult {
+                lab_id: norm_id,
+                valid: false,
+                checks,
+                summary: "Manifest validation failed.".to_string(),
+            };
+        }
+    };
+
+    // 3. Curriculum Metadata Contract Check
+    match manifest.validate_curriculum_contract() {
+        Ok(_) => {
+            checks.push(ValidationCheck {
+                name: "Curriculum Contract".to_string(),
+                passed: true,
+                message: format!(
+                    "Compliant with standard '{}' version '{}' (Category: {} - {})",
+                    manifest.standard.as_deref().unwrap_or("N/A"),
+                    manifest.standard_version.as_deref().unwrap_or("N/A"),
+                    manifest.category_id.as_deref().unwrap_or("N/A"),
+                    manifest.category_name.as_deref().unwrap_or("N/A")
+                ),
+                remediation: None,
+            });
+        }
+        Err(err) => {
+            checks.push(ValidationCheck {
+                name: "Curriculum Contract".to_string(),
+                passed: false,
+                message: err,
+                remediation: Some(
+                    "Update manifest.json fields (standard, standard_version, category_id, learning_objectives, skills, security_version)."
+                        .to_string(),
+                ),
+            });
+        }
+    }
+
+    // 4. Content Structure Check
+    let effective_dir = crate::package::resolve_effective_lab_dir(&lab_dir);
+    let lessons_dir = effective_dir.join("lesson");
+    let lessons_alt = effective_dir.join("lessons");
+    let has_lessons = lessons_dir.is_dir() || lessons_alt.is_dir();
+    if has_lessons {
+        checks.push(ValidationCheck {
+            name: "Lesson Content".to_string(),
+            passed: true,
+            message: "Lesson directory and instructional modules found.".to_string(),
+            remediation: None,
+        });
+    } else {
+        checks.push(ValidationCheck {
+            name: "Lesson Content".to_string(),
+            passed: false,
+            message: "No 'lesson/' or 'lessons/' folder found.".to_string(),
+            remediation: Some("Add educational markdown files inside 'lesson/' directory.".to_string()),
+        });
+    }
+
+    // Challenge check
+    let challenge_dir = effective_dir.join("challenge");
+    let has_challenge = challenge_dir.is_dir()
+        || challenge_dir.join("challenge.json").is_file()
+        || challenge_dir.join("challenge.md").is_file()
+        || effective_dir.join("challenge.json").is_file();
+    if has_challenge {
+        checks.push(ValidationCheck {
+            name: "Challenge Specification".to_string(),
+            passed: true,
+            message: "Challenge verification and objective found.".to_string(),
+            remediation: None,
+        });
+    } else {
+        checks.push(ValidationCheck {
+            name: "Challenge Specification".to_string(),
+            passed: false,
+            message: "Challenge objective / flag verification not found.".to_string(),
+            remediation: Some("Create 'challenge/' folder with challenge.md or challenge.json.".to_string()),
+        });
+    }
+
+    // Hints check
+    let hints_challenge = effective_dir.join("challenge").join("hints.json");
+    let hints_file = effective_dir.join("hints").join("hints.json");
+    let hints_alt = effective_dir.join("hints.json");
+    if hints_challenge.is_file() || hints_file.is_file() || hints_alt.is_file() {
+        checks.push(ValidationCheck {
+            name: "Progressive Hints".to_string(),
+            passed: true,
+            message: "Progressive hints configuration present.".to_string(),
+            remediation: None,
+        });
+    } else {
+        checks.push(ValidationCheck {
+            name: "Progressive Hints".to_string(),
+            passed: false,
+            message: "Missing progressive hints file (challenge/hints.json or hints/hints.json)."
+                .to_string(),
+            remediation: Some(
+                "Add challenge/hints.json with tiered guidance levels (tier 1..3).".to_string(),
+            ),
+        });
+    }
+
+    // 5. Entrypoint & Runtime Check
+    let entrypoint_path = effective_dir.join(&manifest.entrypoint);
+    if entrypoint_path.exists() {
+        checks.push(ValidationCheck {
+            name: "Entrypoint Existence".to_string(),
+            passed: true,
+            message: format!("Entrypoint '{}' resolved successfully.", manifest.entrypoint),
+            remediation: None,
+        });
+    } else {
+        checks.push(ValidationCheck {
+            name: "Entrypoint Existence".to_string(),
+            passed: false,
+            message: format!(
+                "Entrypoint file '{}' does not exist in lab directory.",
+                manifest.entrypoint
+            ),
+            remediation: Some(format!(
+                "Create entrypoint target '{}' or update entrypoint path in manifest.json.",
+                manifest.entrypoint
+            )),
+        });
+    }
+
+    // 6. Security & Subpath Isolation Check
+    match safe_subpath(&lab_dir, Path::new(&manifest.entrypoint)) {
+        Ok(_) => {
+            checks.push(ValidationCheck {
+                name: "Filesystem Containment".to_string(),
+                passed: true,
+                message: "All paths strictly contained within lab sandbox boundary.".to_string(),
+                remediation: None,
+            });
+        }
+        Err(e) => {
+            checks.push(ValidationCheck {
+                name: "Filesystem Containment".to_string(),
+                passed: false,
+                message: e,
+                remediation: Some(
+                    "Remove any directory traversal (..) or drive letters from paths.".to_string(),
+                ),
+            });
+        }
+    }
+
+    let all_passed = checks.iter().all(|c| c.passed);
+    let passed_count = checks.iter().filter(|c| c.passed).count();
+    let total_count = checks.len();
+
+    let summary = if all_passed {
+        format!(
+            "{}/{} validation checks passed. Lab {} is compliant with curriculum specification.",
+            passed_count, total_count, norm_id
+        )
+    } else {
+        format!(
+            "{}/{} validation checks passed. Issues detected in lab {}.",
+            passed_count, total_count, norm_id
+        )
+    };
+
+    LabValidationResult {
+        lab_id: norm_id,
+        valid: all_passed,
+        checks,
+        summary,
+    }
+}
+
+pub fn create_lab_template(
+    workspace_root: &Path,
+    lab_id: &str,
+    title: &str,
+    category_id: &str,
+) -> Result<PathBuf, String> {
+    let norm_id = lab_id.to_uppercase();
+    validate_lab_id(&norm_id)?;
+
+    let lab_dir = get_lab_dir(workspace_root, &norm_id);
+    if lab_dir.exists() {
+        return Err(format!("Lab directory {:?} already exists.", lab_dir));
+    }
+
+    // Create directories
+    fs::create_dir_all(&lab_dir).map_err(|e| format!("Failed to create lab dir: {}", e))?;
+    let lesson_dir = lab_dir.join("lesson");
+    let challenge_dir = lab_dir.join("challenge");
+    let hints_dir = lab_dir.join("hints");
+    let practice_dir = lab_dir.join("practice");
+    let bin_dir = lab_dir.join("bin");
+
+    fs::create_dir_all(&lesson_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&challenge_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&hints_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&practice_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&bin_dir).map_err(|e| e.to_string())?;
+
+    let cat_id = if category_id.is_empty() {
+        "A01"
+    } else {
+        category_id
+    };
+    let pkg_id = format!("zitera-lab-{}", norm_id.to_lowercase());
+
+    // Write manifest.json
+    let manifest_json = serde_json::json!({
+        "schema_version": 2,
+        "id": norm_id,
+        "package_id": pkg_id,
+        "slug": norm_id.to_lowercase(),
+        "title": if title.is_empty() { format!("Lab {}", norm_id) } else { title.to_string() },
+        "owasp": cat_id,
+        "category_id": cat_id,
+        "category_name": if title.is_empty() { "Security Module".to_string() } else { title.to_string() },
+        "standard": "owasp-top10",
+        "standard_version": "2025",
+        "short_description": format!("Interactive hands-on laboratory exploring {}.", if title.is_empty() { "security concepts" } else { title }),
+        "difficulty": "Intermediate",
+        "estimated_minutes": 30,
+        "estimated_time": 30,
+        "modes": ["learn", "practice", "challenge"],
+        "skills": ["Vulnerability Analysis", "Security Hardening", "Defensive Remediation"],
+        "learning_objectives": [
+            "Understand the root cause and attack surface of the vulnerability",
+            "Identify indicators of compromise in application behavior",
+            "Implement secure coding patterns to prevent the vulnerability"
+        ],
+        "prerequisites": ["Basic HTTP and Web Concepts", "Command Line Fundamentals"],
+        "default_port": 8090,
+        "runtime": "native_sandboxed",
+        "entrypoint": "bin/app.py",
+        "version": "1.0.0",
+        "security_version": 1,
+        "minimum_core_version": "2.0.0"
+    });
+    fs::write(
+        lab_dir.join("manifest.json"),
+        serde_json::to_string_pretty(&manifest_json).unwrap(),
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Write sample lessons
+    fs::write(
+        lesson_dir.join("01_overview.md"),
+        format!(
+            "# {}\n\n## Overview\nThis module explores key concepts and security principles.\n",
+            title
+        ),
+    )
+    .map_err(|e| e.to_string())?;
+    fs::write(
+        lesson_dir.join("02_concept.md"),
+        "## Vulnerability Deep-Dive\nDetailed breakdown of the vulnerability and attack vectors.\n",
+    )
+    .map_err(|e| e.to_string())?;
+    fs::write(
+        lesson_dir.join("03_remediation.md"),
+        "## Defense & Remediation\nBest practices for mitigation, secure coding, and verification.\n",
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Write challenge
+    fs::write(
+        challenge_dir.join("challenge.md"),
+        format!(
+            "# Challenge: {}\n\nInvestigate the target environment and submit the secret flag.\n",
+            title
+        ),
+    )
+    .map_err(|e| e.to_string())?;
+    let challenge_json = serde_json::json!({
+        "flag": format!("ZITERA{{{}_solved}}", norm_id.to_lowercase()),
+        "points": 100,
+        "objective": format!("Solve the {} challenge scenario.", norm_id)
+    });
+    fs::write(
+        challenge_dir.join("challenge.json"),
+        serde_json::to_string_pretty(&challenge_json).unwrap(),
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Write hints in both challenge/ and hints/
+    let hints_json = serde_json::json!({
+        "hints": [
+            {
+                "tier": 1,
+                "type": "general",
+                "hint": "Inspect request headers and response status codes."
+            },
+            {
+                "tier": 2,
+                "type": "vulnerability",
+                "hint": "Test edge cases and boundary conditions."
+            },
+            {
+                "tier": 3,
+                "type": "exploit",
+                "hint": "Chain the vulnerability to extract the target flag."
+            }
+        ]
+    });
+    fs::write(
+        hints_dir.join("hints.json"),
+        serde_json::to_string_pretty(&hints_json).unwrap(),
+    )
+    .map_err(|e| e.to_string())?;
+    fs::write(
+        challenge_dir.join("hints.json"),
+        serde_json::to_string_pretty(&hints_json).unwrap(),
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Write starter entrypoint
+    fs::write(
+        bin_dir.join("app.py"),
+        r#"#!/usr/bin/env python3
+import http.server
+import socketserver
+import os
+
+PORT = int(os.environ.get("PORT", 8090))
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"status":"ok","message":"Zitera Lab Running"}\n')
+
+if __name__ == "__main__":
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        httpd.serve_forever()
+"#,
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(lab_dir)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2484,5 +2899,44 @@ mod tests {
         // 11. Status after stop
         let st_stopped = get_lab_status(&repo_root, "A10");
         assert!(!st_stopped.running, "A10 must report stopped after stop_lab");
+    }
+
+    #[test]
+    fn test_validate_all_curriculum_labs() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = manifest_dir.parent().unwrap().parent().unwrap().to_path_buf();
+
+        for lab_id in ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"] {
+            let res = validate_lab(&repo_root, lab_id);
+            assert!(
+                res.valid,
+                "Lab {} failed curriculum validation: {}\nChecks: {:?}",
+                lab_id, res.summary, res.checks
+            );
+        }
+    }
+
+    #[test]
+    fn test_create_lab_template_scaffolding() {
+        let temp_dir = std::env::temp_dir().join("zitera_test_scaffold");
+        let _ = fs::remove_dir_all(&temp_dir);
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let scaffold_res = create_lab_template(
+            &temp_dir,
+            "A99",
+            "SSRF Security Module",
+            "A10",
+        );
+        assert!(scaffold_res.is_ok(), "create_lab_template should succeed");
+
+        let val_res = validate_lab(&temp_dir, "A99");
+        assert!(
+            val_res.valid,
+            "Scaffolded lab A99 should pass validation: {}",
+            val_res.summary
+        );
+
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }

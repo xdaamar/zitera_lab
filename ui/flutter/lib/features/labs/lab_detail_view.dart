@@ -12,6 +12,7 @@ import '../../widgets/hacker_tilix_entrance.dart';
 import '../../widgets/zitera_rich_content.dart';
 import '../../core/i18n/language_controller.dart';
 import '../../core/i18n/lab_localization.dart';
+import '../../widgets/terminal_console_widget.dart';
 
 class LabDetailView extends StatefulWidget {
   final String labId;
@@ -49,7 +50,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _refreshStatus();
   }
 
@@ -802,6 +803,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                   Tab(icon: const Icon(Icons.menu_book_outlined, size: 18), text: 'MODE A: LEARN (${_completedSections.length} Done)'),
                   Tab(icon: Icon(_isPracticeDone ? Icons.check_circle : Icons.explore_outlined, size: 18), text: 'MODE B: PRACTICE'),
                   Tab(icon: Icon(_isChallengeSolved ? Icons.verified : Icons.flag_outlined, size: 18), text: 'MODE C: CHALLENGE / CTF'),
+                  Tab(icon: const Icon(Icons.terminal, size: 18), text: 'TERMINAL'),
                 ],
               ),
             ),
@@ -815,6 +817,10 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                 _buildLearnTab(),
                 _buildPracticeTab(port),
                 _buildChallengeTab(),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TerminalConsoleWidget(labId: widget.labId, labPort: port),
+                ),
               ],
             ),
           ),

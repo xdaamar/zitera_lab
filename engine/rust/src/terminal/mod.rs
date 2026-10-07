@@ -109,10 +109,97 @@ impl TerminalSession {
                 stderr: proc_out.stderr,
                 exit_code: if proc_out.success { 0 } else { 1 },
             },
-            Err(e) => commands::CommandOutput::err(
-                format!("{}: tool execution failed: {}\n", tool, e),
-                127,
-            ),
+            Err(e) => {
+                if tool == "curl" {
+                    if let Some(fallback) = self.try_builtin_curl(args) {
+                        return fallback;
+                    }
+                }
+                commands::CommandOutput::err(
+                    format!("{}: tool execution failed: {}\n", tool, e),
+                    127,
+                )
+            }
+        }
+    }
+
+    fn try_builtin_curl(&self, args: &[String]) -> Option<commands::CommandOutput> {
+        let mut target_url = None;
+        let mut method = "GET";
+        let mut include_headers = false;
+        let mut body_data = None;
+
+        let mut idx = 0;
+        while idx < args.len() {
+            let arg = &args[idx];
+            if arg == "-i" || arg == "-I" {
+                include_headers = true;
+            } else if arg == "-X" && idx + 1 < args.len() {
+                idx += 1;
+                method = &args[idx];
+            } else if (arg == "-d" || arg == "--data") && idx + 1 < args.len() {
+                idx += 1;
+                body_data = Some(&args[idx]);
+                if method == "GET" {
+                    method = "POST";
+                }
+            } else if !arg.starts_with('-') {
+                target_url = Some(arg);
+            }
+            idx += 1;
+        }
+
+        let url = target_url?;
+        let clean = url.trim_start_matches("http://");
+        let slash_pos = clean.find('/').unwrap_or(clean.len());
+        let host_port = &clean[..slash_pos];
+        let path = if slash_pos < clean.len() {
+            &clean[slash_pos..]
+        } else {
+            "/"
+        };
+
+        let (host, port) = if host_port.contains(':') {
+            let parts: Vec<&str> = host_port.split(':').collect();
+            (parts[0], parts[1].parse::<u16>().ok()?)
+        } else {
+            (host_port, 80)
+        };
+
+        if host != "127.0.0.1" && host != "localhost" {
+            return None;
+        }
+
+        use std::io::{Read, Write};
+        let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).ok()?;
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_secs(3)))
+            .ok();
+
+        let req_body = body_data.map(|s| s.as_str()).unwrap_or("");
+        let req_msg = format!(
+            "{} {} HTTP/1.1\r\nHost: {}:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            method, path, host, port, req_body.len(), req_body
+        );
+
+        stream.write_all(req_msg.as_bytes()).ok()?;
+        stream.flush().ok()?;
+
+        let mut buf = Vec::new();
+        let _ = stream.read_to_end(&mut buf);
+        let resp_str = String::from_utf8_lossy(&buf).to_string();
+
+        if include_headers {
+            Some(commands::CommandOutput::ok(resp_str))
+        } else {
+            let body_only = if let Some(pos) = resp_str.find("\r\n\r\n") {
+                &resp_str[pos + 4..]
+            } else if let Some(pos) = resp_str.find("\n\n") {
+                &resp_str[pos + 2..]
+            } else {
+                &resp_str
+            };
+            Some(commands::CommandOutput::ok(body_only))
         }
     }
 }
