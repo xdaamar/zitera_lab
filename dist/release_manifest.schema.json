@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ZiteraReleaseManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "product",
+    "version",
+    "commit_sha",
+    "build_timestamp",
+    "platform",
+    "architecture",
+    "target_triple",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "product": { "type": "string" },
+    "version": { "type": "string" },
+    "commit_sha": { "type": "string" },
+    "build_timestamp": { "type": "string", "format": "date-time" },
+    "platform": { "type": "string" },
+    "architecture": { "type": "string" },
+    "target_triple": { "type": "string" },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "artifact_name",
+          "artifact_type",
+          "artifact_size",
+          "sha256"
+        ],
+        "properties": {
+          "artifact_name": { "type": "string" },
+          "artifact_type": { "type": "string" },
+          "artifact_size": { "type": "integer" },
+          "sha256": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    }
+  }
+}
