@@ -249,6 +249,8 @@ pub fn create_zlab_package(source_dir: &Path, output_zlab: &Path) -> Result<(), 
 
     let mut file_entries: Vec<(String, Vec<u8>)> = Vec::new();
     collect_files_recursive(source_dir, "", &mut file_entries)?;
+    // Enforce deterministic lexicographical order for reproducible builds (SEC-CP13)
+    file_entries.sort_by(|a, b| a.0.cmp(&b.0));
 
     // Ensure manifest.json is present
     if !file_entries.iter().any(|(name, _)| name == "manifest.json") {
@@ -509,6 +511,34 @@ mod tests {
         assert!(stage_dir.join("bin").join("lab.exe").exists());
         let read_back = fs::read_to_string(stage_dir.join("bin").join("lab.exe")).unwrap();
         assert_eq!(read_back, "binary data");
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_checkpoint_13_deterministic_package_build() {
+        let temp = std::env::temp_dir().join("zitera_reproducible_build_test");
+        let _ = fs::remove_dir_all(&temp);
+        let src_dir = temp.join("src");
+        let pkg_a = temp.join("build_a.zlab");
+        let pkg_b = temp.join("build_b.zlab");
+
+        fs::create_dir_all(src_dir.join("sub")).unwrap();
+        fs::create_dir_all(src_dir.join("bin")).unwrap();
+        fs::write(src_dir.join("manifest.json"), r#"{"id":"A01"}"#).unwrap();
+        fs::write(src_dir.join("bin").join("a01-lab.exe"), "executable bytes").unwrap();
+        fs::write(src_dir.join("sub").join("data.txt"), "sample data").unwrap();
+
+        create_zlab_package(&src_dir, &pkg_a).unwrap();
+        create_zlab_package(&src_dir, &pkg_b).unwrap();
+
+        let bytes_a = fs::read(&pkg_a).unwrap();
+        let bytes_b = fs::read(&pkg_b).unwrap();
+
+        assert_eq!(
+            bytes_a, bytes_b,
+            "Package builds from identical source must be bit-for-bit deterministic"
+        );
 
         let _ = fs::remove_dir_all(&temp);
     }
