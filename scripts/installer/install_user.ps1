@@ -47,6 +47,9 @@ if ([string]::IsNullOrWhiteSpace($SourceBundle)) {
 
 $script:UserProgressDir = Join-Path $script:UserDataDir "user"
 $script:UserLabsDir = Join-Path $script:UserDataDir "labs"
+$script:UserCacheDir = Join-Path $script:UserDataDir "cache"
+$script:UserLogsDir = Join-Path $script:UserDataDir "logs"
+$script:UserDiagnosticsDir = Join-Path $script:UserDataDir "diagnostics"
 $script:InstallManifest = Join-Path $script:AppDir "install_manifest.json"
 $script:StartMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\ZiteraLab"
 
@@ -98,9 +101,12 @@ function Invoke-InstallStep([bool]$isUpgrade = $false) {
         Copy-Item $sourceCatalog (Join-Path $script:AppDir "catalog") -Recurse -Force
     }
 
-    # Initialize User Data Directories (Tier 2 & 3) without overwriting existing files
+    # Initialize User Data Directories (Tier 2-6: User, Labs, Cache, Logs, Diagnostics)
     New-Item -ItemType Directory -Path $script:UserProgressDir -Force | Out-Null
     New-Item -ItemType Directory -Path $script:UserLabsDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $script:UserCacheDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $script:UserLogsDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $script:UserDiagnosticsDir -Force | Out-Null
 
     $progressFile = Join-Path $script:UserProgressDir "progress.json"
     if (-not (Test-Path $progressFile)) {
@@ -152,15 +158,21 @@ function Invoke-InstallStep([bool]$isUpgrade = $false) {
     $manifestJson = $manifest | ConvertTo-Json -Depth 4
     [System.IO.File]::WriteAllText($script:InstallManifest, $manifestJson, [System.Text.UTF8Encoding]::new($false))
 
-    # Create Start Menu Shortcuts
-    New-Item -ItemType Directory -Path $script:StartMenuDir -Force | Out-Null
-    $wscript = New-Object -ComObject WScript.Shell
-    $shortcut = $wscript.CreateShortcut((Join-Path $script:StartMenuDir "Zitera Lab CLI.lnk"))
-    $shortcut.TargetPath = $targetBin
-    $shortcut.Arguments = "doctor"
-    $shortcut.WorkingDirectory = $script:AppDir
-    $shortcut.Description = "ZITERA_LAB Security Education Environment"
-    $shortcut.Save()
+    # Create Start Menu Shortcuts (non-fatal if environment is restricted or sandboxed)
+    try {
+        if (-not (Test-Path $script:StartMenuDir)) {
+            New-Item -ItemType Directory -Path $script:StartMenuDir -Force -ErrorAction Stop | Out-Null
+        }
+        $wscript = New-Object -ComObject WScript.Shell
+        $shortcut = $wscript.CreateShortcut((Join-Path $script:StartMenuDir "Zitera Lab CLI.lnk"))
+        $shortcut.TargetPath = $targetBin
+        $shortcut.Arguments = "doctor"
+        $shortcut.WorkingDirectory = $script:AppDir
+        $shortcut.Description = "ZITERA_LAB Security Education Environment"
+        $shortcut.Save()
+    } catch {
+        Write-Info "Start Menu shortcut creation skipped or restricted: $_"
+    }
 
     if ($isUpgrade) {
         Write-Success "Upgraded ZITERA_LAB to version $Version (Previous: $prevVer)"
@@ -187,13 +199,17 @@ function Invoke-UninstallStep {
         Write-Success "Application binaries removed from $script:AppDir"
     }
 
-    # User Data Preservation Policy
+    # User Data Preservation Policy (CP10 Storage Boundary Contract)
     if ($PurgeUserData) {
         if (Test-Path $script:UserDataDir) {
             Remove-Item -Path $script:UserDataDir -Recurse -Force
             Write-Success "User data purged from $script:UserDataDir as requested."
         }
     } else {
+        # Default uninstallation purges disposable cache, but preserves student progress, labs, logs, diagnostics
+        if (Test-Path $script:UserCacheDir) {
+            Remove-Item -Path $script:UserCacheDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
         Write-Success "Student progress & lab data retained in $script:UserDataDir"
     }
 }

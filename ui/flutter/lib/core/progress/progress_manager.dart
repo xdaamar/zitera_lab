@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../storage/storage_paths.dart';
 
 /// Structured Lab Progress Record (Phase 19 Checkpoint 6).
 /// Captures granular progress while preserving stable identity across package updates.
@@ -59,7 +60,7 @@ class ProgressManager {
   static const String _fileName = 'zitera_progress.json';
 
   static File _getProgressFile() {
-    return File(_fileName);
+    return StoragePaths.getProgressFile();
   }
 
   static String normalizeId(String rawId) {

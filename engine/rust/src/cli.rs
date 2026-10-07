@@ -35,6 +35,7 @@ pub fn run() {
         "package" => handle_package(&filtered_args[1..], &workspace_root, json_mode),
         "catalog" => handle_catalog(&workspace_root, json_mode),
         "terminal" => handle_terminal(&filtered_args[1..], &workspace_root, json_mode),
+        "storage" => handle_storage(&filtered_args[1..], json_mode),
         "sandbox-probe" => {
             crate::native_runtime::probe::handle_probe_cli(&filtered_args[1..]);
         }
@@ -964,6 +965,91 @@ fn handle_terminal(args: &[String], workspace_root: &Path, json: bool) {
     }
 }
 
+fn handle_storage(args: &[String], json: bool) {
+    let paths = crate::storage::StoragePaths::resolve();
+    let sub = args.first().map(|s| s.as_str()).unwrap_or("status");
+
+    match sub {
+        "status" | "info" => {
+            let isolation = paths.verify_boundary_isolation();
+            let is_isolated = isolation.is_ok();
+            let isolation_msg = isolation.err();
+
+            #[derive(serde::Serialize)]
+            struct StorageReport {
+                paths: crate::storage::StoragePaths,
+                isolation_verified: bool,
+                isolation_error: Option<String>,
+                progress_file: String,
+            }
+
+            let report = StorageReport {
+                progress_file: paths.user_progress_file().display().to_string(),
+                paths: paths.clone(),
+                isolation_verified: is_isolated,
+                isolation_error: isolation_msg,
+            };
+
+            if json {
+                let resp = ApiResponse::ok("storage.status", report);
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                println!("==================================================");
+                println!("  ZITERA_LAB — Storage Boundaries & Isolation     ");
+                println!("==================================================");
+                println!("App Directory  : {}", paths.app_dir.display());
+                println!("User Progress  : {}", paths.user_dir.display());
+                println!("Lab Packages   : {}", paths.labs_dir.display());
+                println!("Cache          : {}", paths.cache_dir.display());
+                println!("Logs           : {}", paths.logs_dir.display());
+                println!("Diagnostics    : {}", paths.diagnostics_dir.display());
+                println!("Progress File  : {}", paths.user_progress_file().display());
+                println!("--------------------------------------------------");
+                println!("Boundary Check : {}", if is_isolated { "ISOLATED (OK)" } else { "VIOLATION" });
+                println!("==================================================");
+            }
+        }
+        "purge-cache" => {
+            match paths.purge_cache() {
+                Ok(cleared) => {
+                    if json {
+                        let resp = ApiResponse::ok("storage.purge_cache", cleared);
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        println!("Cache purged successfully: {} items removed.", cleared);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp: ApiResponse<()> = ApiResponse::err(
+                            "storage.purge_cache",
+                            "CACHE_PURGE_ERROR",
+                            e.to_string(),
+                            false,
+                        );
+                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                    } else {
+                        eprintln!("Error purging cache: {}", e);
+                    }
+                }
+            }
+        }
+        other => {
+            if json {
+                let resp: ApiResponse<()> = ApiResponse::err(
+                    "storage",
+                    "UNKNOWN_SUBCOMMAND",
+                    format!("Unrecognized storage subcommand: {}", other),
+                    false,
+                );
+                println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+            } else {
+                eprintln!("Unknown storage subcommand: '{}'. Supported: status, purge-cache", other);
+            }
+        }
+    }
+}
+
 fn find_workspace_root() -> PathBuf {
     // 1. Check relative to current working directory (development & standard execution)
     let mut current = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -1027,6 +1113,7 @@ fn print_help(json: bool) {
         println!("  package build <src> <out.zlab> Build and sign a deterministic .zlab package");
         println!("  package verify <file.zlab> Cryptographically verify a .zlab package");
         println!("  terminal [--lab <id>] <cmd> Execute safe command in Zitera Terminal");
+        println!("  storage [status|purge-cache] Manage storage boundaries & cache");
         println!("  catalog                Show central catalog");
     }
 }
