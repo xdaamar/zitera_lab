@@ -101,9 +101,40 @@ This executes:
 6. Clean machine zero-dependency proof
 7. Release qualification summary
 
+### 4.3 Running Security Gate Verification
+To run the automated, 17-control security release gate:
+```powershell
+Set-Location ..\..
+.\scripts\verify_security_gate.ps1
+```
+Evaluates all 17 defense-in-depth controls (AppContainer isolation, Job Object limits, loopback proxy binding, anti-downgrade counter, path canonicalization, PII scrubbing) with zero warnings.
+
+### 4.4 Running Performance Benchmarking
+To benchmark startup, catalog load, probe latency, and save operations:
+```powershell
+.\scripts\benchmark_baseline.ps1
+```
+Ensures sub-second responsiveness across all core orchestration operations.
+
 ---
 
-## 5. Development Mode (Live Iteration)
+## 5. Building Release Candidates
+
+### 5.1 Building Release Candidate 1 (RC1)
+```powershell
+.\scripts\release\build_release.ps1 -Version "2.0.0-rc1"
+```
+Compiles `zitera-engine.exe` with non-incremental determinism (`CARGO_INCREMENTAL=0`), executes release test suites, computes SHA256 checksums, and produces `dist/release_manifest.json`.
+
+### 5.2 Building Hardened Release Candidate 2 (RC2)
+```powershell
+.\scripts\release\build_rc2.ps1 -Version "2.0.0-rc2"
+```
+Evaluates all 9 enterprise edge cases (path spaces, v2 schema persistence, file locking, corruption repair, clean uninstall), hashes outputs, and generates `dist/ZITERA_LAB_RC2_windows_x64.zip`.
+
+---
+
+## 6. Development Mode (Live Iteration)
 
 To run the application with Flutter hot-reload during local development:
 ```powershell
