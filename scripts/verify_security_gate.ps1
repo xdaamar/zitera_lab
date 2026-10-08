@@ -213,13 +213,13 @@ $osVer = [System.Environment]::OSVersion.VersionString
 $md = @"
 # PHASE 20 // FULL SECURITY RELEASE GATE MATRIX
 
-**Document ID:** ``PHASE_20_SECURITY_MATRIX.md``  
-**Program:** ZITERA 2.0 Core Modernization & Field Readiness  
-**Sprint Phase:** Phase 20 (Checkpoint 16 / Push #17)  
-**Date:** $dateStr  
-**Standard:** OWASP Top 10:2025 Verification Baseline & Windows Enterprise Security Specification  
-**Environment:** Windows x64 Native Sandboxed Runtime (Zero Docker / Zero WSL2 / Zero Admin Elevation / Zero Telemetry)  
-**Target Platform:** Windows 10/11 x64 (``$osVer``)  
+- **Document ID:** `PHASE_20_SECURITY_MATRIX.md`
+- **Program:** ZITERA 2.0 Core Modernization & Field Readiness
+- **Sprint Phase:** Phase 20 (Checkpoint 16 / Push #17)
+- **Date:** $dateStr
+- **Standard:** OWASP Top 10:2025 Verification Baseline & Windows Enterprise Security Specification
+- **Environment:** Windows x64 Native Sandboxed Runtime (Zero Docker / Zero WSL2 / Zero Admin Elevation / Zero Telemetry)
+- **Target Platform:** Windows 10/11 x64 (`$osVer`)
 
 ---
 
