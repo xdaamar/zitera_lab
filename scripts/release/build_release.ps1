@@ -16,6 +16,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
 $swPipeline = [System.Diagnostics.Stopwatch]::StartNew()
 
 $script:Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
