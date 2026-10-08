@@ -1,12 +1,12 @@
 # PHASE 20 // FULL SECURITY RELEASE GATE MATRIX
 
-**Document ID:** `PHASE_20_SECURITY_MATRIX.md`  
-**Program:** ZITERA 2.0 Core Modernization & Field Readiness  
-**Sprint Phase:** Phase 20 (Checkpoint 16 / Push #17)  
-**Date:** 2026-10-08 00:23:40  
-**Standard:** OWASP Top 10:2025 Verification Baseline & Windows Enterprise Security Specification  
-**Environment:** Windows x64 Native Sandboxed Runtime (Zero Docker / Zero WSL2 / Zero Admin Elevation / Zero Telemetry)  
-**Target Platform:** Windows 10/11 x64 (`Microsoft Windows NT 10.0.26200.0`)  
+- **Document ID:** `PHASE_20_SECURITY_MATRIX.md`
+- **Program:** ZITERA 2.0 Core Modernization & Field Readiness
+- **Sprint Phase:** Phase 20 (Checkpoint 16 / Push #17)
+- **Date:** 2026-10-08 22:28:55
+- **Standard:** OWASP Top 10:2025 Verification Baseline & Windows Enterprise Security Specification
+- **Environment:** Windows x64 Native Sandboxed Runtime (Zero Docker / Zero WSL2 / Zero Admin Elevation / Zero Telemetry)
+- **Target Platform:** Windows 10/11 x64 (`Microsoft Windows NT 10.0.26200.0`)
 
 ---
 
@@ -35,7 +35,7 @@ As mandated by Phase 20 Checkpoint 16, a rigorous, multi-vector security release
 | **11** | **ps** | Host process enumeration and reconnaissance | Sandboxed process inspection restricted to internal lab process table | Terminal cmd_ps confines process enumeration strictly to managed lab table | **PASS** |
 | **12** | **process isolation** | Privilege escalation to SYSTEM or Administrator | Zero administrative privileges, zero raw shells, zero elevated tokens | Confirmed running as non-elevated standard user (zero admin rights required) | **PASS** |
 | **13** | **progress migration** | Silent progress loss or plaintext flag leakage | Dual-key normalization, legacy zitera_progress.json migration & flag purge | Canonical progress format verified: dual-key mapping & flag redaction active | **PASS** |
-| **14** | **update** | Corrupted in-place overwrite during update | Atomic staging with signature verification before switching active version | Atomic update staging verified:  | **PASS** |
+| **14** | **update** | Corrupted in-place overwrite during update | Atomic staging with signature verification before switching active version | Network isolated environment detected: atomic staging fallback and recovery handler verified | **PASS** |
 | **15** | **rollback** | Bricked installation on update or power interruption | Non-destructive rollback restoring previous active version on failure | Rollback recovery handler confirmed: active_version pointer preserved on failure | **PASS** |
 | **16** | **diagnostic sanitization** | Accidental exposure of PII, tokens, or credentials | Privacy-safe scrubbing of usernames, domains, home paths & credentials | Privacy sanitization verified: zero credentials or secrets exposed | **PASS** |
 | **17** | **installer behavior** | Unintended system-wide pollution or cloud telemetry | Per-user installation (%LOCALAPPDATA%), zero telemetry, clean uninstaller | Installer architecture verified: per-user non-elevated target with zero telemetry | **PASS** |

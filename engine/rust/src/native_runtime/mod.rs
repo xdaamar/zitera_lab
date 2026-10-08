@@ -236,10 +236,7 @@ mod tests {
         let identity = LabIdentity::new("PROBE_ENV_TEST").unwrap();
         let _ = AppContainerProfile::create_or_open(&identity);
 
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         // Explicitly set an ambient host secret that must NOT leak into the sandbox
         std::env::set_var("GITHUB_TOKEN", "ghp_leaked_super_secret_host_token_999");
@@ -309,10 +306,7 @@ mod tests {
             .unwrap()
             .to_path_buf();
 
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         let test_base = repo_root
             .join("dev_internal")
@@ -425,10 +419,7 @@ mod tests {
         };
         job.set_limits(&limits).unwrap();
 
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         let config = SandboxedProcessConfig {
             executable: probe_exe,
@@ -471,10 +462,7 @@ mod tests {
         let limits = JobLimits::default();
         job.set_limits(&limits).unwrap();
 
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         // Parent process spawns a child that sleeps
         let config = SandboxedProcessConfig {
@@ -511,10 +499,7 @@ mod tests {
         let identity = LabIdentity::new("JOB_RECOVERY").unwrap();
         let _ = AppContainerProfile::create_or_open(&identity);
 
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         // 1. Crash/Abnormal exit code verification
         let config_crash = SandboxedProcessConfig {
@@ -553,10 +538,7 @@ mod tests {
         let identity = LabIdentity::new("NET_ISOLATION").unwrap();
         let _ = AppContainerProfile::create_or_open(&identity);
 
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         // 1. Internet connection attempt (1.1.1.1:80)
         let config_internet = SandboxedProcessConfig {
@@ -600,10 +582,7 @@ mod tests {
     #[cfg(windows)]
     fn test_lifecycle_repeated_cycles_no_leaks() {
         let identity = LabIdentity::new("CYCLE_10X").unwrap();
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         let config = SandboxedProcessConfig {
             executable: probe_exe,
@@ -636,10 +615,7 @@ mod tests {
         use std::time::Instant;
 
         let identity = LabIdentity::new("PERF_BENCH").unwrap();
-        let probe_exe = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("debug")
-            .join("zitera-engine.exe");
+        let probe_exe = get_probe_exe();
 
         // 1. Measure Profile Creation Latency
         let t0 = Instant::now();

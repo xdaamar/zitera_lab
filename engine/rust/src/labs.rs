@@ -1408,6 +1408,26 @@ pub fn validate_lab(workspace_root: &Path, lab_id: &str) -> LabValidationResult 
 
     // 5. Entrypoint & Runtime Check
     let entrypoint_path = effective_dir.join(&manifest.entrypoint);
+    if !entrypoint_path.exists() {
+        let filename = entrypoint_path.file_name().unwrap_or_default();
+        let underscore_name = filename.to_str().unwrap_or("").replace('-', "_");
+        let target_candidates = [
+            workspace_root.join("engine/rust/target/release").join(filename),
+            workspace_root.join("engine/rust/target/debug").join(filename),
+            workspace_root.join("engine/rust/target/release").join(&underscore_name),
+            workspace_root.join("engine/rust/target/debug").join(&underscore_name),
+        ];
+        for cand in &target_candidates {
+            if cand.exists() {
+                if let Some(parent) = entrypoint_path.parent() {
+                    let _ = fs::create_dir_all(parent);
+                }
+                let _ = fs::copy(cand, &entrypoint_path);
+                break;
+            }
+        }
+    }
+
     if entrypoint_path.exists() {
         checks.push(ValidationCheck {
             name: "Entrypoint Existence".to_string(),
@@ -1777,15 +1797,28 @@ mod tests {
             .join("bin")
             .join("a01-lab.exe");
         if !a01_bin.exists() {
-            let built_bin = repo_root
+            let built_bin_release = repo_root
+                .join("engine")
+                .join("rust")
+                .join("target")
+                .join("release")
+                .join("a01_lab.exe");
+            let built_bin_debug = repo_root
                 .join("engine")
                 .join("rust")
                 .join("target")
                 .join("debug")
                 .join("a01_lab.exe");
-            if built_bin.exists() {
+            let built_bin = if built_bin_release.exists() {
+                Some(built_bin_release)
+            } else if built_bin_debug.exists() {
+                Some(built_bin_debug)
+            } else {
+                None
+            };
+            if let Some(src) = built_bin {
                 let _ = fs::create_dir_all(a01_bin.parent().unwrap());
-                let _ = fs::copy(&built_bin, &a01_bin);
+                let _ = fs::copy(&src, &a01_bin);
             }
         }
         if !a01_bin.exists() {
