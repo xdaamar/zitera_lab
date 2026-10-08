@@ -1,13 +1,13 @@
 # PHASE 20 // RELEASE CANDIDATE 2 (RC2) HARDENING REPORT
 
-**Document ID:** `PHASE_20_RC2_REPORT.md`  
-**Program:** ZITERA 2.0 Core Modernization & Field Readiness  
-**Sprint Phase:** Phase 20 (Checkpoint 18 / Push #19)  
-**Date:** 2026-10-07T17:37:23Z  
-**Product Codename:** `ZITERA_LAB_RC2`  
-**Release Version:** `2.0.0-rc2`  
-**Commit SHA:** `3ef0da6dd3583520f2e0e45544415d9ed9ad4909`  
-**Target Platform:** Windows x64 (`x86_64-pc-windows-msvc`)  
+- **Document ID:** `PHASE_20_RC2_REPORT.md`
+- **Program:** ZITERA 2.0 Core Modernization & Field Readiness
+- **Sprint Phase:** Phase 20 (Checkpoint 18 / Push #19)
+- **Date:** 2026-10-08T15:45:00Z
+- **Product Codename:** `ZITERA_LAB_RC2`
+- **Release Version:** `2.0.0-rc2`
+- **Commit SHA:** `5088e009461b92917e835d4be1c550b1f1ef6cc5`
+- **Target Platform:** Windows x64 (`x86_64-pc-windows-msvc`)
 
 ---
 
@@ -52,8 +52,8 @@ ZITERA_LAB Release Candidate 2 (`RC2`) represents the final release-ready distri
 
 | Artifact | Size | SHA256 Checksum |
 | :--- | :---: | :--- |
-| **`ZITERA_LAB_RC2_windows_x64.zip`** | 2.36 MB | `8BD82921DE2AC029DF88D42F1436ABEE0140401964D6FEDC5C83FA008C3C799A` |
-| **`bin/zitera-engine.exe`** | 1.83 MB | `A6A347F75C1A47ECB3C444D3CB305002258D70802AB3C9876F0838F0AD0156AC` |
+| **`ZITERA_LAB_RC2_windows_x64.zip`** | 2.36 MB | `DD5120A640D2B076ADBC1CC25BE30132CBB8398476B58D54B11CE989FB0A8CAA` |
+| **`bin/zitera-engine.exe`** | 1.84 MB | `BB98FB7B11AA007E6A1237F1227115E7C037BCA842038B0104212047772702A1` |
 | **`installer/install_user.ps1`** | 10 KB | `5E9DCC6814E62FA8A80AEE6B5866370924C1E7B151D5715AA00BE4F3355E1BD2` |
 
 ---

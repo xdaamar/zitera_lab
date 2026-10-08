@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
 $swPipeline = [System.Diagnostics.Stopwatch]::StartNew()
 
 $script:Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -164,10 +165,22 @@ $bundleStaging = Join-Path $script:DistDir "rc2_bundle_staging"
 if (Test-Path $bundleStaging) { Remove-Item $bundleStaging -Recurse -Force }
 New-Item -ItemType Directory -Path $bundleStaging -Force | Out-Null
 
-Copy-Item (Join-Path $script:DistDir "bin") (Join-Path $bundleStaging "bin") -Recurse -Force
-Copy-Item (Join-Path $script:DistDir "packages") (Join-Path $bundleStaging "packages") -Recurse -Force
-Copy-Item (Join-Path $script:DistDir "installer") (Join-Path $bundleStaging "installer") -Recurse -Force
-Copy-Item (Join-Path $script:DistDir "catalog") (Join-Path $bundleStaging "catalog") -Recurse -Force
+if (Test-Path (Join-Path $script:DistDir "bin")) {
+    Copy-Item (Join-Path $script:DistDir "bin") (Join-Path $bundleStaging "bin") -Recurse -Force
+}
+if (Test-Path (Join-Path $script:DistDir "packages")) {
+    Copy-Item (Join-Path $script:DistDir "packages") (Join-Path $bundleStaging "packages") -Recurse -Force
+}
+if (Test-Path (Join-Path $script:DistDir "installer")) {
+    Copy-Item (Join-Path $script:DistDir "installer") (Join-Path $bundleStaging "installer") -Recurse -Force
+} else {
+    Copy-Item (Join-Path $script:Root "scripts\installer") (Join-Path $bundleStaging "installer") -Recurse -Force
+}
+if (Test-Path (Join-Path $script:DistDir "catalog")) {
+    Copy-Item (Join-Path $script:DistDir "catalog") (Join-Path $bundleStaging "catalog") -Recurse -Force
+} elseif (Test-Path (Join-Path $script:Root "catalog")) {
+    Copy-Item (Join-Path $script:Root "catalog") (Join-Path $bundleStaging "catalog") -Recurse -Force
+}
 
 $quickstart = @"
 ======================================================================
@@ -209,14 +222,14 @@ try { $commitSha = (git rev-parse HEAD).Trim() } catch { $commitSha = "UNKNOWN" 
 $md = @"
 # PHASE 20 // RELEASE CANDIDATE 2 (RC2) HARDENING REPORT
 
-**Document ID:** ``PHASE_20_RC2_REPORT.md``  
-**Program:** ZITERA 2.0 Core Modernization & Field Readiness  
-**Sprint Phase:** Phase 20 (Checkpoint 18 / Push #19)  
-**Date:** $buildTimestamp  
-**Product Codename:** ``ZITERA_LAB_RC2``  
-**Release Version:** ``$Version``  
-**Commit SHA:** ``$commitSha``  
-**Target Platform:** Windows x64 (``x86_64-pc-windows-msvc``)  
+- **Document ID:** ``PHASE_20_RC2_REPORT.md``
+- **Program:** ZITERA 2.0 Core Modernization & Field Readiness
+- **Sprint Phase:** Phase 20 (Checkpoint 18 / Push #19)
+- **Date:** $buildTimestamp
+- **Product Codename:** ``ZITERA_LAB_RC2``
+- **Release Version:** ``$Version``
+- **Commit SHA:** ``$commitSha``
+- **Target Platform:** Windows x64 (``x86_64-pc-windows-msvc``)
 
 ---
 
