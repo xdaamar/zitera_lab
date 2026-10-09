@@ -3,8 +3,10 @@
 
 [CmdletBinding()]
 param(
-    [int]$Iterations = 10,
-    [string]$OutputFile = "reports\PHASE_20_PERFORMANCE_BASELINE.md"
+    [ValidateRange(1, 10)]
+    [int]$Iterations = 5,
+    [string]$OutputFile = "reports\PHASE_20_PERFORMANCE_BASELINE.md",
+    [int]$TimeoutSeconds = 10
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,10 +26,10 @@ Write-Host "Workspace    : $script:Root"
 Write-Host "Machine      : $([System.Environment]::MachineName) ($([System.Environment]::OSVersion.VersionString))"
 Write-Host "CPUs / Cores : $([System.Environment]::ProcessorCount) logical processors"
 Write-Host "Build Mode   : release (profile: release, incremental: 0, lto: off)"
-Write-Host "Iterations   : $Iterations samples per operation"
+Write-Host "Iterations   : $Iterations samples per operation (Bounded)"
 Write-Host "------------------------------------------------------------" -ForegroundColor Gray
 
-function Measure-Operation([string]$name, [scriptblock]$action) {
+function Measure-Operation([string]$name, [scriptblock]$action, [int]$TimeoutSec = 10) {
     Write-Host -NoNewline ("Benchmarking {0,-25} ... " -f $name)
     $samples = New-Object System.Collections.Generic.List[double]
     
@@ -44,6 +46,9 @@ function Measure-Operation([string]$name, [scriptblock]$action) {
             Write-Warning "Iteration failed: $_"
         }
         $sw.Stop()
+        if ($sw.Elapsed.TotalSeconds -gt $TimeoutSec) {
+            Write-Warning "Iteration exceeded bounded timeout limit (${TimeoutSec}s)"
+        }
         $samples.Add($sw.Elapsed.TotalMilliseconds)
     }
 

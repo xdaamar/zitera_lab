@@ -27,7 +27,7 @@ Write-Host "------------------------------------------------------------" -Foreg
 
 $matrix = New-Object System.Collections.Generic.List[PSCustomObject]
 
-function Assert-Control([string]$id, [string]$name, [string]$mechanism, [scriptblock]$check) {
+function Assert-Control([string]$id, [string]$name, [string]$mechanism, [scriptblock]$check, [int]$TimeoutSeconds = 30) {
     Write-Host -NoNewline ("Verifying [{0,2}] {1,-26} ... " -f $id, $name)
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $status = "UNKNOWN"
@@ -35,6 +35,9 @@ function Assert-Control([string]$id, [string]$name, [string]$mechanism, [scriptb
     try {
         $result = & $check
         $sw.Stop()
+        if ($sw.Elapsed.TotalSeconds -gt $TimeoutSeconds) {
+            throw "Security control check exceeded bounded timeout (${TimeoutSeconds}s)"
+        }
         $status = "PASS"
         $detail = if ($result) { $result.ToString() } else { "Defensive boundary confirmed active" }
         Write-Host "PASS ($([math]::Round($sw.Elapsed.TotalMilliseconds, 1)) ms)" -ForegroundColor Green

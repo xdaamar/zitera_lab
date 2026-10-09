@@ -32,7 +32,7 @@ function Write-StageHeader([string]$name, [string]$desc) {
     Write-Host ("-" * 70) -ForegroundColor Gray
 }
 
-function Run-Step([string]$stageName, [scriptblock]$action) {
+function Run-Step([string]$stageName, [scriptblock]$action, [int]$TimeoutSeconds = 180) {
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $global:LASTEXITCODE = 0
     try {
@@ -41,6 +41,9 @@ function Run-Step([string]$stageName, [scriptblock]$action) {
             throw "Process exited with code $LASTEXITCODE"
         }
         $sw.Stop()
+        if ($sw.Elapsed.TotalSeconds -gt $TimeoutSeconds) {
+            throw "Stage execution exceeded bounded timeout (${TimeoutSeconds}s)"
+        }
         $elapsed = [math]::Round($sw.Elapsed.TotalSeconds, 2)
         Write-Host " [PASS] $stageName (${elapsed}s)" -ForegroundColor Green
         $script:StageResults[$stageName] = "PASS (${elapsed}s)"

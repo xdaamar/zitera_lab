@@ -12,6 +12,7 @@
 param(
     [string]$Version = "2.0.0",
     [switch]$SkipTests,
+    [switch]$DistProfile,
     [string]$OutputDir = ""
 )
 
@@ -65,22 +66,29 @@ Write-Host "Commit SHA      : $commitSha"
 Write-Host "Release Version : $Version"
 Write-Host "Build Timestamp : $buildTimestamp"
 Write-Host "Target Platform : windows-x64 (x86_64-pc-windows-msvc)"
+Write-Host "Profile Mode    : $(if ($DistProfile) { 'dist (size-optimized, LTO fat, strip)' } else { 'release' })"
 
-Write-Step "STAGE 2: NATIVE COMPILATION (RELEASE PROFILE)"
+Write-Step "STAGE 2: NATIVE COMPILATION ($(if ($DistProfile) { 'DIST PROFILE' } else { 'RELEASE PROFILE' }))"
 Ensure-MsvcBuildEnvironment
 
 Push-Location $script:RustDir
 try {
-    Write-Host "Building release binary zitera-engine.exe (profile: release, incremental: 0)..." -ForegroundColor Yellow
-    cargo build --release --bin zitera-engine
+    if ($DistProfile) {
+        Write-Host "Building size-optimized dist binary zitera-engine.exe (profile: dist)..." -ForegroundColor Yellow
+        cargo build --profile dist --bin zitera-engine
+    } else {
+        Write-Host "Building release binary zitera-engine.exe (profile: release, incremental: 0)..." -ForegroundColor Yellow
+        cargo build --release --bin zitera-engine
+    }
     if ($LASTEXITCODE -ne 0) {
-        throw "cargo build --release failed with exit code $LASTEXITCODE"
+        throw "cargo build failed with exit code $LASTEXITCODE"
     }
 } finally {
     Pop-Location
 }
 
-$engineBin = Join-Path $script:RustDir "target\release\zitera-engine.exe"
+$binSubdir = if ($DistProfile) { "target\dist\zitera-engine.exe" } else { "target\release\zitera-engine.exe" }
+$engineBin = Join-Path $script:RustDir $binSubdir
 if (-not (Test-Path $engineBin)) {
     throw "Built binary not found at $engineBin"
 }
