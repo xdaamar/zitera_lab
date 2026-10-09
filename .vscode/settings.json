@@ -1,0 +1,44 @@
+{
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/target/**": true,
+    "**/engine/rust/target/**": true,
+    "**/ui/flutter/build/**": true,
+    "**/ui/flutter/.dart_tool/**": true,
+    "**/.dart_tool/**": true,
+    "**/dist/**": true,
+    "**/diagnostics/**": true,
+    "**/*.pdb": true,
+    "**/*.tmp": true
+  },
+  "search.exclude": {
+    "**/target": true,
+    "**/engine/rust/target": true,
+    "**/ui/flutter/build": true,
+    "**/ui/flutter/.dart_tool": true,
+    "**/.dart_tool": true,
+    "**/dist": true,
+    "**/diagnostics": true,
+    "**/*.zip": true,
+    "**/*.tar.gz": true,
+    "**/*.pdb": true,
+    "**/*.exe": true,
+    "**/*.mp4": true
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/target/**": true,
+    "**/engine/rust/target/**": true,
+    "**/ui/flutter/build/**": true,
+    "**/ui/flutter/.dart_tool/**": true,
+    "**/.dart_tool/**": true,
+    "**/dist/**": true,
+    "**/diagnostics/**": true
+  }
+}
