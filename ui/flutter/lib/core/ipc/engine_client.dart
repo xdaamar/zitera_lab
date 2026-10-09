@@ -181,11 +181,17 @@ class ZiteraEngineClient {
     return data as String? ?? 'Lab removed.';
   }
 
-  static Future<List<CatalogEntry>> getCatalog() async {
+  static List<CatalogEntry>? _cachedCatalog;
+
+  static Future<List<CatalogEntry>> getCatalog({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedCatalog != null) {
+      return _cachedCatalog!;
+    }
     final data = await executeCommandRaw(['catalog']);
     final catData = data as Map<String, dynamic>? ?? {};
     final list = catData['labs'] as List<dynamic>? ?? [];
-    return list.map((item) => CatalogEntry.fromJson(item as Map<String, dynamic>)).toList();
+    _cachedCatalog = list.map((item) => CatalogEntry.fromJson(item as Map<String, dynamic>)).toList();
+    return _cachedCatalog!;
   }
 
   static Future<LabContent> getLabContent(String id) async {

@@ -407,9 +407,11 @@ class _ToolsViewState extends State<ToolsView> {
     return Stack(
       children: [
         Positioned.fill(
-          child: Image.asset(
-            'assets/images/bg_tools.jpg',
-            fit: BoxFit.cover,
+          child: RepaintBoundary(
+            child: Image.asset(
+              'assets/images/bg_tools.jpg',
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         Positioned.fill(

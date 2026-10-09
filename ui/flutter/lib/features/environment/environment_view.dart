@@ -94,9 +94,11 @@ class _EnvironmentViewState extends State<EnvironmentView> {
     return Stack(
       children: [
         Positioned.fill(
-          child: Image.asset(
-            'assets/images/bg_environment.jpg',
-            fit: BoxFit.cover,
+          child: RepaintBoundary(
+            child: Image.asset(
+              'assets/images/bg_environment.jpg',
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         Positioned.fill(

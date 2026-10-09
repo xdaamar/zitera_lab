@@ -106,9 +106,11 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       body: Row(
         children: [
-          Sidebar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: _navigateToTab,
+          RepaintBoundary(
+            child: Sidebar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: _navigateToTab,
+            ),
           ),
           Expanded(
             child: KeyedSubtree(

@@ -32,16 +32,18 @@ class _SidebarState extends State<Sidebar> {
         children: [
           // 1. Sidebar Background Video/Animation (Original Colors - Infinite Looping)
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/sidebar_bg.webp',
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-              errorBuilder: (context, error, stackTrace) {
-                return Image.asset(
-                  'assets/images/sidebar_bg.jpg',
-                  fit: BoxFit.cover,
-                );
-              },
+            child: RepaintBoundary(
+              child: Image.asset(
+                'assets/images/sidebar_bg.webp',
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset(
+                    'assets/images/sidebar_bg.jpg',
+                    fit: BoxFit.cover,
+                  );
+                },
+              ),
             ),
           ),
 

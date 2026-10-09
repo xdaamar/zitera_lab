@@ -373,9 +373,11 @@ class SettingsView extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: Image.asset(
-            'assets/images/bg_settings.jpg',
-            fit: BoxFit.cover,
+          child: RepaintBoundary(
+            child: Image.asset(
+              'assets/images/bg_settings.jpg',
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         Positioned.fill(

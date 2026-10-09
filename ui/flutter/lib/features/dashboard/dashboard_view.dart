@@ -255,9 +255,11 @@ class _DashboardViewState extends State<DashboardView> {
     return Stack(
       children: [
         Positioned.fill(
-          child: Image.asset(
-            'assets/images/bg_dashboard.jpg',
-            fit: BoxFit.cover,
+          child: RepaintBoundary(
+            child: Image.asset(
+              'assets/images/bg_dashboard.jpg',
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         Positioned.fill(

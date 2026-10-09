@@ -73,7 +73,10 @@ class ProgressManager {
     return id.toUpperCase();
   }
 
+  static Map<String, dynamic>? _cachedProgress;
+
   static Future<void> _atomicWrite(Map<String, dynamic> data) async {
+    _cachedProgress = Map<String, dynamic>.from(data);
     final file = _getProgressFile();
     final tmpFile = File('${file.path}.tmp');
     final jsonStr = jsonEncode(data);
@@ -84,7 +87,10 @@ class ProgressManager {
     await tmpFile.rename(file.path);
   }
 
-  static Future<Map<String, dynamic>> loadProgress() async {
+  static Future<Map<String, dynamic>> loadProgress({bool forceReload = false}) async {
+    if (!forceReload && _cachedProgress != null) {
+      return Map<String, dynamic>.from(_cachedProgress!);
+    }
     final file = _getProgressFile();
     final tmpFile = File('${file.path}.tmp');
 
@@ -116,19 +122,25 @@ class ProgressManager {
 
     if (rawJson == null) {
       if (!file.existsSync()) {
-        return _defaultProgress();
+        final def = _defaultProgress();
+        _cachedProgress = Map<String, dynamic>.from(def);
+        return def;
       }
       try {
         rawJson = await file.readAsString();
       } catch (_) {
-        return _defaultProgress();
+        final def = _defaultProgress();
+        _cachedProgress = Map<String, dynamic>.from(def);
+        return def;
       }
     }
 
     try {
       final text = rawJson;
       if (text.trim().isEmpty) {
-        return _defaultProgress();
+        final def = _defaultProgress();
+        _cachedProgress = Map<String, dynamic>.from(def);
+        return def;
       }
       final decoded = jsonDecode(text) as Map<String, dynamic>;
       // Sanitize: ensure legacy 'solved_flags' with secret plain texts is purged
@@ -177,6 +189,7 @@ class ProgressManager {
       });
       decoded['completed_sections'] = normalizedSections;
 
+      _cachedProgress = Map<String, dynamic>.from(decoded);
       return decoded;
     } catch (_) {
       // Automatic corruption recovery: backup corrupted file and fallback to clean state
@@ -188,7 +201,9 @@ class ProgressManager {
           } catch (_) {}
         }
       } catch (_) {}
-      return _defaultProgress();
+      final def = _defaultProgress();
+      _cachedProgress = Map<String, dynamic>.from(def);
+      return def;
     }
   }
 
@@ -424,6 +439,7 @@ class ProgressManager {
   }
 
   static Future<void> resetAll() async {
+    _cachedProgress = null;
     final file = _getProgressFile();
     if (file.existsSync()) {
       await file.delete();
