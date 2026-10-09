@@ -22,3 +22,17 @@ windows-sys = { version = "0.59", default-features = false, features = [
     "Win32_System_Threading",
     "Win32_System_SystemServices",
 ] }
+
+[profile.dist]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = 2
+incremental = true
+codegen-units = 256
