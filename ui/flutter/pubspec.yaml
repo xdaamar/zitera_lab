@@ -23,7 +23,6 @@ flutter:
   # Assets — all images bundled for offline-first
   assets:
     - assets/images/sidebar_bg.webp
-    - assets/videos/sidebar_bg.mp4
     - assets/images/sidebar_bg.jpg
     - assets/images/bg_dashboard.jpg
     - assets/images/bg_labs.jpg
@@ -41,7 +40,6 @@ flutter:
     - assets/images/sticker_hamster.png
     - assets/images/sticker_duck.png
     - assets/images/zitera_logo.png
-    - assets/images/zitera_logo.jpg
 
   # Offline Fonts — high-tech retro & developer typography
   fonts:
