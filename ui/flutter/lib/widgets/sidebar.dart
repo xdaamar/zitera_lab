@@ -156,7 +156,7 @@ class _SidebarState extends State<Sidebar> {
                                     ),
                                     child: ClipOval(
                                       child: Image.asset(
-                                        'assets/images/zitera_logo.png',
+                                        'assets/images/logo.png',
                                         fit: BoxFit.cover,
                                       ),
                                     ),

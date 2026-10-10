@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.zitera" "\0"
-            VALUE "FileDescription", "zitera_lab" "\0"
+            VALUE "CompanyName", "ZITERA Security" "\0"
+            VALUE "FileDescription", "ZITERA_LAB - Defensive Security & Attack Engineering Platform" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "zitera_lab" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.zitera. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 ZITERA. All rights reserved." "\0"
             VALUE "OriginalFilename", "zitera_lab.exe" "\0"
-            VALUE "ProductName", "zitera_lab" "\0"
+            VALUE "ProductName", "ZITERA_LAB" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -1,5 +1,5 @@
 name: zitera_lab
-description: "A new Flutter project."
+description: "ZITERA_LAB - Defensive Security & Attack Engineering Platform"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -22,6 +22,7 @@ flutter:
 
   # Assets — all images bundled for offline-first
   assets:
+    - assets/images/logo.png
     - assets/images/sidebar_bg.webp
     - assets/images/sidebar_bg.jpg
     - assets/images/bg_dashboard.jpg

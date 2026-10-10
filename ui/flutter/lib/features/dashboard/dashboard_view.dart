@@ -309,7 +309,7 @@ class _DashboardViewState extends State<DashboardView> {
                             children: [
                               ClipOval(
                                 child: Image.asset(
-                                  'assets/images/zitera_logo.png',
+                                  'assets/images/logo.png',
                                   width: 16,
                                   height: 16,
                                   fit: BoxFit.cover,
