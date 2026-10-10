@@ -61,6 +61,7 @@ New-Item -ItemType Directory -Path $tempA -Force | Out-Null
 try {
     # Copy bundle into isolated directory
     Copy-Item -Path "$distBundle\*" -Destination $tempA -Recurse -Force
+    Push-Location $tempA
 
     $engineA = Join-Path $tempA "engine\zitera-engine.exe"
     Assert-Test "Bundled zitera-engine.exe exists in isolated workspace" { Test-Path $engineA }
@@ -99,6 +100,7 @@ try {
     }
 }
 finally {
+    Pop-Location
     Remove-Item -Path $tempA -Recurse -Force -ErrorAction SilentlyContinue
 }
 

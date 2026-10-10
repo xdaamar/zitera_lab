@@ -9,7 +9,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet("ALL", "CORE", "PACKAGE", "SECURITY", "LAB", "TERMINAL", "VALIDATOR", "RELEASE")]
+    [ValidateSet("ALL", "CORE", "PACKAGE", "SECURITY", "LAB", "TERMINAL", "VALIDATOR", "RELEASE", "BUNDLE")]
     [string]$Stage = "ALL"
 )
 
@@ -151,6 +151,22 @@ try {
             }
             if (-not (Test-Path $script:ReleaseBin)) {
                 throw "Release binary not found at $script:ReleaseBin"
+            }
+        }
+    }
+
+    # STAGE 8: BUNDLE INTEGRATION & FIRST-RUN RECOVERY
+    if ($Stage -in @("ALL", "BUNDLE")) {
+        Write-StageHeader "BUNDLE" "Integrated First-Run, Offline & Clean-Workspace Verification"
+        Run-Step "BUNDLE_INTEGRATION_TESTS" {
+            $bundleTestScript = Join-Path $script:Root "scripts\test_bundle_integration.ps1"
+            if (Test-Path $bundleTestScript) {
+                & powershell -NoProfile -ExecutionPolicy Bypass -File $bundleTestScript
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Bundle integration tests failed with code $LASTEXITCODE"
+                }
+            } else {
+                throw "Bundle test script not found at $bundleTestScript"
             }
         }
     }
