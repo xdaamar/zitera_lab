@@ -10,40 +10,32 @@ class ZiteraEngineClient {
       return _cachedEnginePath!;
     }
 
-    // 1. Search next to and upwards from Platform.resolvedExecutable (most reliable for compiled runner)
+    // 1. Primary: Search bundled distribution paths relative to Platform.resolvedExecutable
     try {
-      Directory? exeDir = File(Platform.resolvedExecutable).parent;
-      for (int i = 0; i < 6 && exeDir != null; i++) {
-        final candidates = [
-          File('${exeDir.path}\\zitera-engine.exe'),
-          File('${exeDir.path}\\engine\\zitera-engine.exe'),
-          File('${exeDir.path}\\engine\\rust\\target\\release\\zitera-engine.exe'),
-          File('${exeDir.path}\\engine\\rust\\target\\debug\\zitera-engine.exe'),
-        ];
-        for (final f in candidates) {
-          if (f.existsSync()) {
-            _cachedEnginePath = f.absolute.path;
-            return _cachedEnginePath!;
-          }
+      final exeDir = File(Platform.resolvedExecutable).parent;
+      final bundledCandidates = [
+        File('${exeDir.path}${Platform.pathSeparator}engine${Platform.pathSeparator}zitera-engine.exe'),
+        File('${exeDir.path}${Platform.pathSeparator}zitera-engine.exe'),
+      ];
+      for (final f in bundledCandidates) {
+        if (f.existsSync() && f.lengthSync() > 50000) {
+          _cachedEnginePath = f.absolute.path;
+          return _cachedEnginePath!;
         }
-        final parent = exeDir.parent;
-        if (parent.path == exeDir.path) break;
-        exeDir = parent;
       }
     } catch (_) {}
 
-    // 2. Search upwards from Directory.current (reliable when running from terminal or IDE)
+    // 2. Secondary: Search relative to Directory.current (for workspace execution, test runner, CLI)
     try {
       Directory? dir = Directory.current;
       for (int i = 0; i < 6 && dir != null; i++) {
         final candidates = [
-          File('${dir.path}\\zitera-engine.exe'),
-          File('${dir.path}\\engine\\zitera-engine.exe'),
-          File('${dir.path}\\engine\\rust\\target\\release\\zitera-engine.exe'),
-          File('${dir.path}\\engine\\rust\\target\\debug\\zitera-engine.exe'),
+          File('${dir.path}${Platform.pathSeparator}engine${Platform.pathSeparator}zitera-engine.exe'),
+          File('${dir.path}${Platform.pathSeparator}zitera-engine.exe'),
+          File('${dir.path}${Platform.pathSeparator}engine${Platform.pathSeparator}rust${Platform.pathSeparator}target${Platform.pathSeparator}release${Platform.pathSeparator}zitera-engine.exe'),
         ];
         for (final f in candidates) {
-          if (f.existsSync()) {
+          if (f.existsSync() && f.lengthSync() > 50000) {
             _cachedEnginePath = f.absolute.path;
             return _cachedEnginePath!;
           }
@@ -54,21 +46,8 @@ class ZiteraEngineClient {
       }
     } catch (_) {}
 
-    // 3. Known project workspace paths
-    final knownPaths = [
-      r'c:\Users\Damar\Documents\project_pribadi\zitera_lab\ui\flutter\zitera-engine.exe',
-      r'c:\Users\Damar\Documents\project_pribadi\zitera_lab\engine\rust\target\release\zitera-engine.exe',
-      r'c:\Users\Damar\Documents\project_pribadi\zitera_lab\engine\rust\target\debug\zitera-engine.exe',
-      r'c:\Users\Damar\Documents\project_pribadi\zitera_lab\zitera-engine.exe',
-    ];
-    for (final p in knownPaths) {
-      final f = File(p);
-      if (f.existsSync()) {
-        _cachedEnginePath = f.absolute.path;
-        return _cachedEnginePath!;
-      }
-    }
-
+    // Never secretly fallback to arbitrary developer machine paths.
+    // Return relative binary name so caller can detect missing state cleanly.
     return 'zitera-engine.exe';
   }
 

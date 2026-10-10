@@ -394,8 +394,9 @@ class ComponentReadinessChecker {
       final appDir = File(Platform.resolvedExecutable).parent;
       final localVc = File('${appDir.path}\\vcruntime140.dll').existsSync();
       final localCpp = File('${appDir.path}\\msvcp140.dll').existsSync();
-      final sysVc = File('C:\\Windows\\System32\\vcruntime140.dll').existsSync();
-      final sysCpp = File('C:\\Windows\\System32\\msvcp140.dll').existsSync();
+      final sysRoot = Platform.environment['SystemRoot'] ?? r'C:\Windows';
+      final sysVc = File('$sysRoot\\System32\\vcruntime140.dll').existsSync();
+      final sysCpp = File('$sysRoot\\System32\\msvcp140.dll').existsSync();
 
       if (localVc && localCpp) {
         updateItem(6, CheckStatus.ready, 'Visual C++ runtime bundled locally (100% portable).');
