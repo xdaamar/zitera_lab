@@ -87,7 +87,9 @@ class _MainShellState extends State<MainShell> {
           );
           break;
         case 2:
-          activeContent = const EnvironmentView();
+          activeContent = EnvironmentView(
+            onNavigateToDashboard: () => _navigateToTab(0),
+          );
           break;
         case 3:
           activeContent = const ToolsView();

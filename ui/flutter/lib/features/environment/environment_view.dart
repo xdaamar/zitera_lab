@@ -8,15 +8,22 @@ import '../../widgets/zitera_button.dart';
 import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_loading.dart';
 import '../../widgets/hacker_tilix_entrance.dart';
+import '../readiness/first_run_view.dart';
 
 class EnvironmentView extends StatefulWidget {
-  const EnvironmentView({super.key});
+  final VoidCallback? onNavigateToDashboard;
+
+  const EnvironmentView({
+    super.key,
+    this.onNavigateToDashboard,
+  });
 
   @override
   State<EnvironmentView> createState() => _EnvironmentViewState();
 }
 
 class _EnvironmentViewState extends State<EnvironmentView> {
+  int _activeTab = 0;
   DiagnosticsResult? _diagnostics;
   List<ToolItem> _tools = [];
   bool _isLoading = true;
@@ -59,40 +66,161 @@ class _EnvironmentViewState extends State<EnvironmentView> {
     );
   }
 
+  Widget _buildTabSwitcher() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF5F3EF),
+        border: Border(bottom: BorderSide(color: ZiteraColors.border, width: 1)),
+      ),
+      child: Row(
+        children: [
+          _buildTabButton(
+            title: '1. COMPONENT READINESS (PHASE 22)',
+            subtitle: 'Rust Engine, Catalog & Bundled Runtimes',
+            icon: Icons.checklist_rtl,
+            index: 0,
+          ),
+          const SizedBox(width: 12),
+          _buildTabButton(
+            title: '2. HOST ENVIRONMENT & DOCTOR',
+            subtitle: 'OS, Memory, Disk & Native Subsystems',
+            icon: Icons.monitor_heart_outlined,
+            index: 1,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required int index,
+  }) {
+    final isSelected = _activeTab == index;
+    return InkWell(
+      onTap: () => setState(() => _activeTab = index),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? ZiteraColors.primary : Colors.transparent,
+            width: 1.5,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected ? ZiteraColors.primary : ZiteraColors.textMuted,
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? ZiteraColors.textPrimary : ZiteraColors.textMuted,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: 'SpaceGrotesk',
+                    fontSize: 10.5,
+                    color: isSelected ? ZiteraColors.primary : ZiteraColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_activeTab == 0) {
+      return Column(
+        children: [
+          _buildTabSwitcher(),
+          Expanded(
+            child: FirstRunView(onProceed: widget.onNavigateToDashboard),
+          ),
+        ],
+      );
+    }
+
     if (_isLoading) {
-      return const Center(
-        child: CuteAnimeLoading(
-          message: 'AUDITING SYSTEM PREREQUISITES...',
-          subMessage: '( •̀ ω •́ )✧ CHECKING DOCKER & SUBSYSTEMS',
-        ),
+      return Column(
+        children: [
+          _buildTabSwitcher(),
+          const Expanded(
+            child: Center(
+              child: CuteAnimeLoading(
+                message: 'AUDITING SYSTEM PREREQUISITES...',
+                subMessage: '( •̀ ω •́ )✧ CHECKING DOCKER & SUBSYSTEMS',
+              ),
+            ),
+          ),
+        ],
       );
     }
 
     if (_diagnostics == null) {
-      return Center(
-        child: ZiteraCard(
-          borderColor: ZiteraColors.error,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, color: ZiteraColors.error, size: 36),
-              const SizedBox(height: 12),
-              const Text('Unable to query system diagnostics.', style: TextStyle(color: ZiteraColors.error)),
-              const SizedBox(height: 12),
-              ZiteraButton(label: 'Retry Check', icon: Icons.refresh, onPressed: _runCheck),
-            ],
+      return Column(
+        children: [
+          _buildTabSwitcher(),
+          Expanded(
+            child: Center(
+              child: ZiteraCard(
+                borderColor: ZiteraColors.error,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, color: ZiteraColors.error, size: 36),
+                    const SizedBox(height: 12),
+                    const Text('Unable to query system diagnostics.', style: TextStyle(color: ZiteraColors.error)),
+                    const SizedBox(height: 12),
+                    ZiteraButton(label: 'Retry Check', icon: Icons.refresh, onPressed: _runCheck),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       );
     }
 
     final diag = _diagnostics!;
     final readyTools = _tools.where((t) => t.installed).length;
 
-    return Stack(
+    return Column(
       children: [
+        _buildTabSwitcher(),
+        Expanded(
+          child: Stack(
+            children: [
         Positioned.fill(
           child: RepaintBoundary(
             child: Image.asset(
@@ -331,7 +459,10 @@ class _EnvironmentViewState extends State<EnvironmentView> {
           ),
         ),
       ],
-    );
+    ),
+  ),
+],
+);
   }
 
   Widget _buildComponentCard(ComponentItem comp, {Duration delay = Duration.zero}) {
