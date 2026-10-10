@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/ipc/engine_client.dart';
-import '../core/theme/zitera_colors.dart';
 
 class TerminalConsoleWidget extends StatefulWidget {
   final String? labId;
@@ -388,10 +387,10 @@ class _TerminalConsoleWidgetState extends State<TerminalConsoleWidget> {
                 top: BorderSide(color: Color(0xFF334155), width: 1),
               ),
             ),
-            child: RawKeyboardListener(
+            child: KeyboardListener(
               focusNode: FocusNode(),
-              onKey: (event) {
-                if (event is RawKeyDownEvent) {
+              onKeyEvent: (event) {
+                if (event is KeyDownEvent) {
                   if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
                     _navigateHistory(true);
                   } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {

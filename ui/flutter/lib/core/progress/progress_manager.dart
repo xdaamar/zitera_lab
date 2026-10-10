@@ -57,8 +57,6 @@ class LabProgressRecord {
 /// Flutter local progress, UI state, normal logs, or UI assets.
 /// Progress tracks interactions: completed labs, challenges, practice, sections, and attempts.
 class ProgressManager {
-  static const String _fileName = 'zitera_progress.json';
-
   static File _getProgressFile() {
     return StoragePaths.getProgressFile();
   }
@@ -74,6 +72,11 @@ class ProgressManager {
   }
 
   static Map<String, dynamic>? _cachedProgress;
+
+  /// Clears in-memory progress cache (useful for testing and reset flows).
+  static void clearCache() {
+    _cachedProgress = null;
+  }
 
   static Future<void> _atomicWrite(Map<String, dynamic> data) async {
     _cachedProgress = Map<String, dynamic>.from(data);

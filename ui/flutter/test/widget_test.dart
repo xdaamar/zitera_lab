@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zitera_lab/core/progress/progress_manager.dart';
+import 'package:zitera_lab/core/storage/storage_paths.dart';
 import 'package:zitera_lab/main.dart';
 
 void main() {
@@ -35,34 +36,39 @@ void main() {
   });
 
   group('ProgressManager Recovery & Integrity Tests', () {
-    final progressFile = File('zitera_progress.json');
-    final bakFile = File('zitera_progress.json.bak');
-    final tmpFile = File('zitera_progress.json.tmp');
+    late Directory tempDir;
+    late File progressFile;
+    late File bakFile;
+    late File tmpFile;
 
-    void cleanTestFiles() {
-      for (final f in [progressFile, bakFile, tmpFile]) {
-        try {
-          if (f.existsSync()) f.deleteSync();
-        } catch (_) {}
-      }
-    }
+    setUp(() {
+      tempDir = Directory.systemTemp.createTempSync('zitera_test_progress_');
+      progressFile = File('${tempDir.path}/zitera_progress.json');
+      bakFile = File('${tempDir.path}/zitera_progress.json.bak');
+      tmpFile = File('${tempDir.path}/zitera_progress.json.tmp');
+      StoragePaths.setTestProgressFile(progressFile);
+      ProgressManager.clearCache();
+    });
 
-    setUp(cleanTestFiles);
-    tearDown(cleanTestFiles);
+    tearDown(() {
+      StoragePaths.setTestProgressFile(null);
+      ProgressManager.clearCache();
+      try {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      } catch (_) {}
+    });
 
     test('Corrupted progress file creates .bak and returns clean default', () async {
-      cleanTestFiles();
       await progressFile.writeAsString('{{{INVALID JSON CORRUPTED DATA!!!', flush: true);
-      final data = await ProgressManager.loadProgress();
+      final data = await ProgressManager.loadProgress(forceReload: true);
       expect(data['completed_labs'], isEmpty);
       expect(bakFile.existsSync(), isTrue);
     });
 
     test('Orphaned .tmp file from interrupted write is safely restored', () async {
-      cleanTestFiles();
-      final validJson = '{"completed_labs":["A01"],"completed_challenges":[],"completed_practice":[],"completed_sections":{}}';
+      const validJson = '{"completed_labs":["A01"],"completed_challenges":[],"completed_practice":[],"completed_sections":{}}';
       await tmpFile.writeAsString(validJson, flush: true);
-      final data = await ProgressManager.loadProgress();
+      final data = await ProgressManager.loadProgress(forceReload: true);
       expect(data['completed_labs'], contains('A01'));
       expect(progressFile.existsSync(), isTrue);
     });

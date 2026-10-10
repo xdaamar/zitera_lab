@@ -35,8 +35,19 @@ class StoragePaths {
     return Directory('.zitera_user');
   }
 
+  static File? _testProgressFileOverride;
+
+  /// Test-only hook to redirect progress file to an isolated test fixture.
+  static void setTestProgressFile(File? file) {
+    _testProgressFileOverride = file;
+  }
+
   /// Resolves the progress file with graceful backward compatibility for legacy progress.
   static File getProgressFile() {
+    if (_testProgressFileOverride != null) {
+      return _testProgressFileOverride!;
+    }
+
     // 1. Explicit environment override for testing or headless execution
     final explicitFile = Platform.environment['ZITERA_PROGRESS_FILE'] ??
         Platform.environment['ZITERA_USER_PROGRESS_FILE'];

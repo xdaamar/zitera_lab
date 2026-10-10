@@ -641,13 +641,14 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
           child: FailureRecoveryCard(
             error: _error!,
             labId: widget.labId,
-            onRetry: () => _loadLabData(),
+            onRetry: () => _refreshStatus(),
             onReset: () => _handleReset(),
             onExportDiagnostics: () async {
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 final res = await ZiteraEngineClient.exportDiagnostics();
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Diagnostics exported: ${res["path"] ?? ""}'),
                       backgroundColor: const Color(0xFF0F766E),
@@ -1252,7 +1253,8 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
               ),
             ),
           );
-        }).toList(),
+        }),
+        ],
       ),
     );
   }
@@ -1542,7 +1544,6 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       );
     }
 
-    final isRunning = _status?.running == true;
     final isIndonesian = AppLanguageController.isIndonesian;
     final rawObjective = (_content != null && _content!.challengeObjective.isNotEmpty)
         ? _content!.challengeObjective
