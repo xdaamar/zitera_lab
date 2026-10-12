@@ -16,7 +16,7 @@
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a02-lab.exe",
   "default_port": 8012,
-  "estimated_minutes": 45,
+  "estimated_minutes": 35,
   "modes": [
     "learn",
     "practice",

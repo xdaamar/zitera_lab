@@ -16,7 +16,7 @@
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a07-lab.exe",
   "default_port": 8017,
-  "estimated_minutes": 45,
+  "estimated_minutes": 40,
   "modes": [
     "learn",
     "practice",

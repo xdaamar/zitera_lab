@@ -16,7 +16,7 @@
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a01-lab.exe",
   "default_port": 8011,
-  "estimated_minutes": 45,
+  "estimated_minutes": 35,
   "modes": [
     "learn",
     "practice",

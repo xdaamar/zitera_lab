@@ -16,7 +16,7 @@
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a09-lab.exe",
   "default_port": 8019,
-  "estimated_minutes": 45,
+  "estimated_minutes": 50,
   "modes": [
     "learn",
     "practice",

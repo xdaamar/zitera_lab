@@ -16,7 +16,7 @@
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a10-lab.exe",
   "default_port": 8020,
-  "estimated_minutes": 45,
+  "estimated_minutes": 65,
   "modes": [
     "learn",
     "practice",
