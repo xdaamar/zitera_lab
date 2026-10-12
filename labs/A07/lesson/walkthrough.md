@@ -28,7 +28,7 @@ The response yields:
 {
   "status": "passed",
   "message": "Authentication successful!",
-  "flag": "ZITERA{4uth_f41lur3_brut3_f0rc3_2026}"
+  "flag": "ZITERA{...}"
 }
 ```
-Submit `ZITERA{4uth_f41lur3_brut3_f0rc3_2026}` into the CTF submission field to solve the challenge.
+Submit the extracted flag into the CTF submission field to solve the challenge.

@@ -16,10 +16,10 @@ curl http://127.0.0.1:8013/packages/audit/package_lock_audit.json
 Inspect the JSON response. While `express` and `lodash` are verified packages, `apex-internal-telemetry` has:
 - Untrusted author: `shadow-developer-anonymous`
 - Malicious hook: `postinstall_script: node ./scripts/send_env.js`
-- Leaked pipeline key: `exfiltrated_pipeline_token: "ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}"`
+- Leaked pipeline key: `exfiltrated_pipeline_token: "ZITERA{...}"`
 
 ## 4. Validating the Flag
-Submit the recovered flag in the Challenge tab or via the verification API:
+Submit the recovered flag token in the Challenge tab or via the verification API:
 ```bash
-curl -X POST http://127.0.0.1:8013/api/supply-chain/verify -d "token=ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}"
+curl -X POST http://127.0.0.1:8013/api/supply-chain/verify -d "token=<RECOVERED_FLAG_TOKEN>"
 ```
