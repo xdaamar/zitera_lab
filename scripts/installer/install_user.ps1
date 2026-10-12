@@ -76,28 +76,73 @@ function Stop-RunningZiteraProcesses {
 function Invoke-InstallStep([bool]$isUpgrade = $false) {
     Stop-RunningZiteraProcesses
 
-    # Locate source binary
-    $sourceBin = Join-Path $script:SourceDir "bin\zitera-engine.exe"
-    if (-not (Test-Path $sourceBin)) {
-        # Fallback to engine release build directory if dist not yet prepared
-        $sourceBin = Join-Path $script:Root "engine\rust\target\release\zitera-engine.exe"
-    }
-    if (-not (Test-Path $sourceBin)) {
-        throw "Source binary not found at $sourceBin. Run release build first."
+    # Resolve bundle source: check for full Phase 22+ distribution bundle or CLI layout
+    $bundleSource = $script:SourceDir
+    $distBundleDir = Join-Path $script:SourceDir "ZITERA_LAB_WINDOWS_X64"
+    if (Test-Path (Join-Path $distBundleDir "zitera_lab.exe")) {
+        $bundleSource = $distBundleDir
     }
 
-    $binHash = (Get-FileHash -Path $sourceBin -Algorithm SHA256).Hash
-    $binSize = (Get-Item $sourceBin).Length
+    $hasGuiRunner = Test-Path (Join-Path $bundleSource "zitera_lab.exe")
+    $sourceEngineBin = $null
 
-    # Create immutable application directory (Tier 1)
+    # Locate engine binary
+    $candidateEnginePaths = @(
+        (Join-Path $bundleSource "engine\zitera-engine.exe"),
+        (Join-Path $bundleSource "bin\zitera-engine.exe"),
+        (Join-Path $bundleSource "zitera-engine.exe"),
+        (Join-Path $script:Root "engine\rust\target\release\zitera-engine.exe")
+    )
+    foreach ($cand in $candidateEnginePaths) {
+        if (Test-Path $cand) {
+            $sourceEngineBin = $cand
+            break
+        }
+    }
+
+    if (-not $sourceEngineBin) {
+        throw "Source engine binary not found. Verified candidates searched: $($candidateEnginePaths -join ', ')"
+    }
+
+    $binHash = (Get-FileHash -Path $sourceEngineBin -Algorithm SHA256).Hash
+    $binSize = (Get-Item $sourceEngineBin).Length
+
+    # Create immutable application directory hierarchy (Tier 1)
     $targetBinDir = Join-Path $script:AppDir "bin"
+    $targetEngineDir = Join-Path $script:AppDir "engine"
     New-Item -ItemType Directory -Path $targetBinDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $targetEngineDir -Force | Out-Null
 
+    # Install engine binary to both engine\ (bundle layout) and bin\ (CLI legacy layout)
+    Copy-Item $sourceEngineBin (Join-Path $targetEngineDir "zitera-engine.exe") -Force
+    Copy-Item $sourceEngineBin (Join-Path $targetBinDir "zitera-engine.exe") -Force
     $targetBin = Join-Path $targetBinDir "zitera-engine.exe"
-    Copy-Item $sourceBin $targetBin -Force
+
+    # Install GUI Runner & Flutter assets if bundle contains them
+    if ($hasGuiRunner) {
+        Copy-Item (Join-Path $bundleSource "zitera_lab.exe") (Join-Path $script:AppDir "zitera_lab.exe") -Force
+        
+        $dllSrc = Join-Path $bundleSource "flutter_windows.dll"
+        if (Test-Path $dllSrc) { Copy-Item $dllSrc (Join-Path $script:AppDir "flutter_windows.dll") -Force }
+
+        $crtDlls = Get-ChildItem -Path $bundleSource -Filter "*.dll" -File -ErrorAction SilentlyContinue
+        foreach ($d in $crtDlls) {
+            Copy-Item $d.FullName (Join-Path $script:AppDir $d.Name) -Force
+        }
+
+        $dataSrc = Join-Path $bundleSource "data"
+        if (Test-Path $dataSrc) { Copy-Item $dataSrc (Join-Path $script:AppDir "data") -Recurse -Force }
+
+        $packagesSrc = Join-Path $bundleSource "packages"
+        if (Test-Path $packagesSrc) { Copy-Item $packagesSrc (Join-Path $script:AppDir "packages") -Recurse -Force }
+
+        $brandingSrc = Join-Path $bundleSource "branding"
+        if (Test-Path $brandingSrc) { Copy-Item $brandingSrc (Join-Path $script:AppDir "branding") -Recurse -Force }
+    }
 
     # Copy catalog if available
-    $sourceCatalog = Join-Path $script:Root "catalog"
+    $sourceCatalog = Join-Path $bundleSource "catalog"
+    if (-not (Test-Path $sourceCatalog)) { $sourceCatalog = Join-Path $script:Root "catalog" }
     if (Test-Path $sourceCatalog) {
         Copy-Item $sourceCatalog (Join-Path $script:AppDir "catalog") -Recurse -Force
     }
@@ -166,11 +211,27 @@ function Invoke-InstallStep([bool]$isUpgrade = $false) {
             New-Item -ItemType Directory -Path $script:StartMenuDir -Force -ErrorAction Stop | Out-Null
         }
         $wscript = New-Object -ComObject WScript.Shell
+
+        # Primary Desktop GUI application shortcut
+        $guiExe = Join-Path $script:AppDir "zitera_lab.exe"
+        if (Test-Path $guiExe) {
+            $guiShortcut = $wscript.CreateShortcut((Join-Path $script:StartMenuDir "Zitera Lab.lnk"))
+            $guiShortcut.TargetPath = $guiExe
+            $guiShortcut.WorkingDirectory = $script:AppDir
+            $guiShortcut.Description = "ZITERA_LAB Defensive Security & Attack Engineering Platform"
+            $icoPath = Join-Path $script:AppDir "branding\app_icon.ico"
+            if (Test-Path $icoPath) {
+                $guiShortcut.IconLocation = "$icoPath,0"
+            }
+            $guiShortcut.Save()
+        }
+
+        # CLI Diagnostic shortcut
         $shortcut = $wscript.CreateShortcut((Join-Path $script:StartMenuDir "Zitera Lab CLI.lnk"))
         $shortcut.TargetPath = $targetBin
         $shortcut.Arguments = "doctor"
         $shortcut.WorkingDirectory = $script:AppDir
-        $shortcut.Description = "ZITERA_LAB Security Education Environment"
+        $shortcut.Description = "ZITERA_LAB Security Education Environment (CLI Doctor)"
         $shortcut.Save()
     } catch {
         Write-Info "Start Menu shortcut creation skipped or restricted: $_"

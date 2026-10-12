@@ -157,9 +157,9 @@ class ComponentReadinessChecker {
           0,
           CheckStatus.missing,
           'zitera-engine.exe was not found in the application or bundle directory.',
-          recovery: 'Ensure zitera-engine.exe is bundled alongside zitera_lab.exe or under engine/ directory.',
+          recovery: 'If running from a ZIP, ensure all files were extracted first (Right-click -> Extract All...). Do not run directly from inside a compressed ZIP view.',
         );
-        emitLog('Engine binary not found in candidate bundle paths', level: 'ERROR');
+        emitLog('Engine binary not found in candidate bundle paths (ensure full ZIP extraction)', level: 'ERROR');
       }
     } catch (e) {
       updateItem(

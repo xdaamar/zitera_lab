@@ -180,13 +180,20 @@ OVERVIEW:
   Docker, or an internet connection.
 
 QUICK START:
-  1. Launch 'zitera_lab.exe' directly from this directory.
-  2. On first launch, the First-Run Readiness Checker will automatically audit:
+  *** CRITICAL REQUIREMENT BEFORE RUNNING ***
+  DO NOT double-click 'zitera_lab.exe' directly from inside the ZIP file view!
+  Windows Explorer does not extract child folders (engine\, data\, DLLs) when
+  executing directly inside a compressed ZIP, which causes immediate launch errors.
+  
+  1. Extract this entire ZIP archive first:
+     Right-click the ZIP archive -> Select 'Extract All...' -> Choose destination.
+  2. Open the extracted folder and launch 'zitera_lab.exe'.
+  3. On first launch, the First-Run Readiness Checker will automatically audit:
      - Bundled Rust Core Engine (engine/zitera-engine.exe)
      - Windows Native CRT Runtime (Universal CRT / MSVC DLLs)
      - Signed Curriculum Catalog & Ed25519 Cryptographic Trust
      - Offline Lab Packages (A01 - A10 .zlab archives)
-  3. Once verified, choose any lab from the catalog to begin learning.
+  4. Once verified, choose any lab from the catalog to begin learning.
 
 CLI USAGE (OPTIONAL):
   engine\zitera-engine.exe doctor
