@@ -46,10 +46,11 @@ Thumbs.db
 *.log
 scratch/
 tmp/
-!reports/*.md
+reports/
 zitera_progress.json
 *.tmp
 dist/
+packages/
 diagnostics/
 *.dmp
 *.crash
