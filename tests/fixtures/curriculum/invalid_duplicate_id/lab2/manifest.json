@@ -1,0 +1,14 @@
+{
+  "id": "A92",
+  "package_id": "lab-a92-dup2",
+  "title": "Duplicate ID Lab 2",
+  "description": "Lab with duplicate ID for negative testing",
+  "difficulty": "Beginner",
+  "estimated_minutes": 30,
+  "default_port": 8093,
+  "category": "Web Security",
+  "prerequisites": ["Basic HTTP"],
+  "learning_objectives": ["Obj 1", "Obj 2", "Obj 3"],
+  "default_locale": "id",
+  "locales": ["id", "en"]
+}

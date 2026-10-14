@@ -1,0 +1,14 @@
+{
+  "id": "A94",
+  "package_id": "lab-a94-flag-leak",
+  "title": "Flag Leak Fixture Lab",
+  "description": "Lab with leaked flag in lesson for negative testing",
+  "difficulty": "Beginner",
+  "estimated_minutes": 30,
+  "default_port": 8094,
+  "category": "Web Security",
+  "prerequisites": ["Basic HTTP"],
+  "learning_objectives": ["Obj 1", "Obj 2", "Obj 3"],
+  "default_locale": "id",
+  "locales": ["id", "en"]
+}

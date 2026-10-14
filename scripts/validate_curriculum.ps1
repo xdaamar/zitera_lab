@@ -3,12 +3,13 @@
 [CmdletBinding()]
 param(
     [string]$LabsDir = "labs",
-    [string]$CatalogFile = "catalog/catalog.json"
+    [string]$CatalogFile = "catalog/catalog.json",
+    [switch]$SkipCatalog
 )
 
 $ErrorActionPreference = "Stop"
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "  ZITERA_LAB CURRICULUM QUALITY GATE AUDITOR (PHASE 24)  " -ForegroundColor Cyan
+Write-Host "  ZITERA_LAB CURRICULUM QUALITY GATE AUDITOR (PHASE 1)   " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $passCount = 0
@@ -16,23 +17,27 @@ $failCount = 0
 $issues = @()
 
 # 1. Audit Catalog Integrity
-Write-Host "`n[1/4] Auditing Catalog Manifest ($CatalogFile)..." -ForegroundColor Yellow
-if (Test-Path $CatalogFile) {
-    try {
-        $catalog = Get-Content $CatalogFile -Raw | ConvertFrom-Json
-        if ($catalog.schema_version -ne 1) {
-            $issues += "Catalog schema version is not 1 (Found: $($catalog.schema_version))"
+if (-not $SkipCatalog) {
+    Write-Host "`n[1/4] Auditing Catalog Manifest ($CatalogFile)..." -ForegroundColor Yellow
+    if (Test-Path $CatalogFile) {
+        try {
+            $catalog = Get-Content $CatalogFile -Raw | ConvertFrom-Json
+            if ($catalog.schema_version -ne 1) {
+                $issues += "Catalog schema version is not 1 (Found: $($catalog.schema_version))"
+            }
+            $catLabs = $catalog.labs
+            Write-Host "  -> Catalog contains $($catLabs.Count) registered lab entries." -ForegroundColor Green
+            $passCount++
+        } catch {
+            $issues += "Failed to parse catalog JSON: $_"
+            $failCount++
         }
-        $catLabs = $catalog.labs
-        Write-Host "  -> Catalog contains $($catLabs.Count) registered lab entries." -ForegroundColor Green
-        $passCount++
-    } catch {
-        $issues += "Failed to parse catalog JSON: $_"
+    } else {
+        $issues += "Catalog file not found at $CatalogFile"
         $failCount++
     }
 } else {
-    $issues += "Catalog file not found at $CatalogFile"
-    $failCount++
+    Write-Host "`n[1/4] Skipping Catalog Audit (Test / Fixture Mode)..." -ForegroundColor Gray
 }
 
 # 2. Audit Lab Manifests & Structural Integrity
@@ -102,7 +107,21 @@ foreach ($mFile in $manifestFiles) {
             $failCount++
         }
 
-        # 3. Check Required Lesson Files
+        # Locale Validation (Phase 1 Contract)
+        if ($manifest.locales) {
+            foreach ($loc in $manifest.locales) {
+                if ($loc -notin @("id", "en")) {
+                    $issues += "Lab $labId declares unsupported locale '$loc' (Allowed: only 'id' and 'en')"
+                    $failCount++
+                }
+            }
+        }
+        if ($manifest.default_locale -and $manifest.default_locale -ne "id") {
+            $issues += "Lab $labId default_locale must be 'id' (Found: '$($manifest.default_locale)')"
+            $failCount++
+        }
+
+        # 3. Check Required Lesson Files & Content Quality
         $lessonDir = Join-Path $labDir "lesson"
         if (Test-Path $lessonDir) {
             foreach ($rf in $requiredLessonFiles) {
@@ -110,6 +129,15 @@ foreach ($mFile in $manifestFiles) {
                 if (-not (Test-Path $targetFile)) {
                     $issues += "Lab $labId missing required section file: lesson/$rf"
                     $failCount++
+                } else {
+                    $lContent = Get-Content $targetFile -Raw
+                    if ([string]::IsNullOrWhiteSpace($lContent) -or $lContent.Length -lt 20) {
+                        $issues += "Lab $labId lesson file '$rf' is empty or insufficient (<20 chars)"
+                        $failCount++
+                    } elseif ($lContent -match '(?i)\bTODO:\b|\bLOREM IPSUM\b') {
+                        $issues += "Lab $labId lesson file '$rf' contains unfinished placeholder text"
+                        $failCount++
+                    }
                 }
             }
         } else {
@@ -117,7 +145,7 @@ foreach ($mFile in $manifestFiles) {
             $failCount++
         }
 
-        # 4. Check Challenge & Hints Structure
+        # 4. Check Challenge, Hints Structure & Flag Format
         $challengeDir = Join-Path $labDir "challenge"
         $challengeMd = Join-Path $challengeDir "challenge.id.md"
         $hintsJson = Join-Path $challengeDir "hints.json"
@@ -125,6 +153,26 @@ foreach ($mFile in $manifestFiles) {
         if (-not (Test-Path $challengeMd)) {
             $issues += "Lab $labId missing challenge/challenge.id.md"
             $failCount++
+        }
+
+        # Validate Flag Formats inside challenge directory
+        if (Test-Path $challengeDir) {
+            $challengeFiles = Get-ChildItem -Path $challengeDir -File
+            foreach ($cf in $challengeFiles) {
+                $cRaw = Get-Content $cf.FullName -Raw
+                $flagMatches = [regex]::Matches($cRaw, '(?i)\b(ZITERA\{[^}]*\}|FLAG\{[^}]*\}|CTF\{[^}]*\})')
+                foreach ($fm in $flagMatches) {
+                    $fval = $fm.Value
+                    # Allow documentation format placeholders such as ZITERA{...} or ZITERA{<token>}
+                    if ($fval -eq 'ZITERA{...}' -or $fval -match '^ZITERA\{<[^>]+>\}$') {
+                        continue
+                    }
+                    if ($fval -notmatch '^ZITERA\{[a-zA-Z0-9_\-]{8,64}\}$') {
+                        $issues += "Lab $labId contains non-canonical flag format '$fval' in $($cf.Name)"
+                        $failCount++
+                    }
+                }
+            }
         }
 
         if (Test-Path $hintsJson) {

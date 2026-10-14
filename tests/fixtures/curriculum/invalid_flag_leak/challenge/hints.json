@@ -1,0 +1,8 @@
+{
+  "flag": "ZITERA{leaked_flag_in_public_lesson_2026}",
+  "hints": [
+    { "tier": 1, "type": "conceptual", "hint": "Hint 1" },
+    { "tier": 2, "type": "directional", "hint": "Hint 2" },
+    { "tier": 3, "type": "technical", "hint": "Hint 3" }
+  ]
+}

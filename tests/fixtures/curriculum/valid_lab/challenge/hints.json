@@ -1,0 +1,20 @@
+{
+  "flag": "ZITERA{v4l1d_t35t_fl4g_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Periksa struktur direktori dan konfigurasi endpoint."
+    },
+    {
+      "tier": 2,
+      "type": "directional",
+      "hint": "Cari parameter input yang belum divalidasi dengan benar."
+    },
+    {
+      "tier": 3,
+      "type": "technical",
+      "hint": "Kirimkan payload verifikasi untuk mendapatkan flag ZITERA{v4l1d_t35t_fl4g_2026}."
+    }
+  ]
+}

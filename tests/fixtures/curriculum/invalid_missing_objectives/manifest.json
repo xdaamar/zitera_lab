@@ -1,0 +1,17 @@
+{
+  "id": "A95",
+  "package_id": "lab-a95-missing-obj",
+  "title": "Missing Objectives Lab",
+  "description": "Lab with fewer than 3 learning objectives for negative testing",
+  "difficulty": "Beginner",
+  "estimated_minutes": 30,
+  "default_port": 8095,
+  "category": "Web Security",
+  "prerequisites": ["Basic HTTP"],
+  "learning_objectives": [
+    "Only objective 1",
+    "Only objective 2"
+  ],
+  "default_locale": "id",
+  "locales": ["id", "en"]
+}

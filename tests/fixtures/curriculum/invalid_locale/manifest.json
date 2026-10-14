@@ -1,0 +1,14 @@
+{
+  "id": "A93",
+  "package_id": "lab-a93-invalid-locale",
+  "title": "Invalid Locale Lab",
+  "description": "Lab with unsupported locale for negative testing",
+  "difficulty": "Beginner",
+  "estimated_minutes": 30,
+  "default_port": 8093,
+  "category": "Web Security",
+  "prerequisites": ["Basic HTTP"],
+  "learning_objectives": ["Obj 1", "Obj 2", "Obj 3"],
+  "default_locale": "fr",
+  "locales": ["id", "fr"]
+}

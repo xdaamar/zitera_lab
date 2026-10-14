@@ -1,0 +1,23 @@
+{
+  "id": "A91",
+  "package_id": "lab-a91-valid-test",
+  "title": "Valid Fixture Lab",
+  "description": "Minimal valid fixture module conforming to Phase 1 curriculum contract.",
+  "difficulty": "Beginner",
+  "estimated_minutes": 30,
+  "default_port": 8091,
+  "category": "Web Security",
+  "prerequisites": [
+    "Basic knowledge of HTTP protocols and web security concepts"
+  ],
+  "learning_objectives": [
+    "Understand the core security vulnerability mechanism",
+    "Identify improper access control or configuration flaws",
+    "Apply remediation steps according to OWASP guidelines"
+  ],
+  "default_locale": "id",
+  "locales": ["id", "en"],
+  "created_at": "2026-10-14T00:00:00Z",
+  "updated_at": "2026-10-14T00:00:00Z",
+  "version": "1.0.0"
+}
