@@ -224,12 +224,14 @@ class ProgressManager {
 
   static Future<String> getLanguage() async {
     final data = await loadProgress();
-    return (data['language'] as String?) ?? 'en';
+    final lang = data['language'] as String?;
+    return (lang == 'en') ? 'en' : 'id';
   }
 
   static Future<void> setLanguage(String code) async {
     final data = await loadProgress();
-    data['language'] = code;
+    final clean = (code.trim().toLowerCase() == 'en') ? 'en' : 'id';
+    data['language'] = clean;
     data['last_updated'] = DateTime.now().toIso8601String();
     await _atomicWrite(data);
   }

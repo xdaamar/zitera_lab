@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zitera.org/schemas/curriculum_manifest.schema.json",
+  "title": "ZiteraLabCurriculumManifest",
+  "description": "Canonical schema for ZITERA_LAB curriculum module manifests (Phase 1 Learning Contract)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "package_id",
+    "title",
+    "short_description",
+    "standard",
+    "standard_version",
+    "category_id",
+    "category_name",
+    "security_version",
+    "minimum_core_version",
+    "difficulty",
+    "estimated_minutes",
+    "skills",
+    "learning_objectives",
+    "prerequisites",
+    "locales",
+    "default_locale",
+    "runtime",
+    "entrypoint",
+    "default_port",
+    "modes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1,
+      "description": "Manifest schema version (strictly 1 for Phase 1)"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^A(0[1-9]|10)$",
+      "description": "Canonical lab identifier (A01 - A10)"
+    },
+    "package_id": {
+      "type": "string",
+      "pattern": "^zitera-lab-a(0[1-9]|10)$",
+      "description": "Package identifier matching canonical naming convention"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128
+    },
+    "short_description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 256
+    },
+    "standard": {
+      "type": "string",
+      "enum": ["owasp-top10", "web-security", "systems-security"]
+    },
+    "standard_version": {
+      "type": "string",
+      "const": "2025"
+    },
+    "category_id": {
+      "type": "string",
+      "pattern": "^A(0[1-9]|10)$"
+    },
+    "category_name": {
+      "type": "string",
+      "minLength": 3
+    },
+    "security_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic anti-downgrade counter"
+    },
+    "minimum_core_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["Beginner", "Intermediate", "Advanced"]
+    },
+    "estimated_minutes": {
+      "type": "integer",
+      "minimum": 20,
+      "maximum": 90
+    },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 2 },
+      "minItems": 1
+    },
+    "learning_objectives": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 5 },
+      "minItems": 3,
+      "description": "At least 3 measurable learning objectives required"
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 2 },
+      "minItems": 1
+    },
+    "locales": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["id", "en"] },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Strictly binary locale choices allowed: id (Indonesian) and/or en (English)"
+    },
+    "default_locale": {
+      "type": "string",
+      "const": "id",
+      "description": "Indonesian is the mandatory default locale"
+    },
+    "runtime": {
+      "type": "string",
+      "enum": ["native_sandboxed", "mock"]
+    },
+    "entrypoint": {
+      "type": "string",
+      "pattern": "^bin/a(0[1-9]|10)-lab\\.exe$"
+    },
+    "default_port": {
+      "type": "integer",
+      "minimum": 8011,
+      "maximum": 8020
+    },
+    "modes": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["learn", "practice", "challenge"] },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}

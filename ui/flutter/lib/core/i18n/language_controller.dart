@@ -12,22 +12,31 @@ import '../progress/progress_manager.dart';
 /// - Buttons, cards, lab titles, navigation menus, and system metrics remain
 ///   in English for industry-standard consistency.
 class AppLanguageController {
-  static final ValueNotifier<String> currentLanguage = ValueNotifier<String>('en');
+  static const String defaultLocale = 'id';
+  static const List<String> supportedLocales = ['id', 'en'];
+
+  static final ValueNotifier<String> currentLanguage = ValueNotifier<String>(defaultLocale);
 
   static bool get isIndonesian => currentLanguage.value == 'id';
   static bool get isEnglish => currentLanguage.value == 'en';
 
+  static String normalizeLocale(String? code) {
+    if (code == null) return defaultLocale;
+    final clean = code.trim().toLowerCase();
+    return (clean == 'en') ? 'en' : 'id';
+  }
+
   static Future<void> init() async {
     try {
       final savedLang = await ProgressManager.getLanguage();
-      currentLanguage.value = savedLang;
+      currentLanguage.value = normalizeLocale(savedLang);
     } catch (_) {
-      currentLanguage.value = 'en';
+      currentLanguage.value = defaultLocale;
     }
   }
 
   static Future<void> setLanguage(String langCode) async {
-    final cleanCode = (langCode == 'id') ? 'id' : 'en';
+    final cleanCode = normalizeLocale(langCode);
     if (currentLanguage.value != cleanCode) {
       currentLanguage.value = cleanCode;
       try {
