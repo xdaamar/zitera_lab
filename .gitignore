@@ -54,4 +54,6 @@ packages/
 diagnostics/
 *.dmp
 *.crash
+*.runtime.json
+.runtime.json
 
