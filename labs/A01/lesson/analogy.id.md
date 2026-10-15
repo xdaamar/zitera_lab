@@ -1,10 +1,34 @@
-# Analogi Kunci Kamar Hotel (The Hotel Keycard Analogy)
+# Analogi Dunia Nyata: Kartu Kunci Hotel & Nomor Penitipan Koper
 
-Untuk memahami konsep ini dengan mudah, bayangkan proses saat kamu menginap di sebuah hotel:
+Untuk memahami mengapa Broken Access Control terjadi secara intuitif, bayangkan sebuah pengalaman saat menginap di hotel berbintang:
 
-1. Authentication (Proses Masuk): Kamu menunjukkan KTP di meja resepsionis. Resepsionis memverifikasi pesanan kamarmu dan memberikan kartu kunci untuk kamar `#302`.
-2. Access Control Ideal (Kondisi Aman): Kartu kuncimu hanya bisa membuka pintu kamar `#302`. Jika kamu mencoba menempelkan kartu tersebut ke pintu kamar `#303`, sensor kunci akan berkedip merah dan pintu tetap terkunci rapat.
-3. Broken Access Control (Celah Keamanan): Bayangkan jika kunci hotel tersebut menggunakan sistem digital yang tidak aman, di mana saat kartu ditempelkan, aplikasi di ponselmu bertanya: *"Pintu kamar nomor berapa yang ingin kamu buka?"* Jika kamu mengganti input di ponsel menjadi `303`, pintu kamar milik tamu lain langsung terbuka!
+---
 
-Dalam skenario ini:
-Resepsionis sudah berhasil memverifikasi identitasmu (Authentication sukses), namun sistem kunci pintu kamar percaya begitu saja pada input dari sisi pengguna tanpa memeriksa apakah kamar 303 memang disewakan kepadamu (Authorization gagal).
+### Tahap 1: Autentikasi di Meja Resepsionis
+1. Kamu tiba di lobi hotel dan menunjukkan KTP serta bukti pemesanan kamar kepada staf resepsionis.
+2. Resepsionis memvalidasi identitasmu di sistem komputer hotel dan memastikan bahwa kamu memang telah memesan kamar.
+3. Setelah identitas terbukti sah (*Authentication Sukses*), resepsionis memberikan kamu sebuah kartu kunci kamar bertuliskan: **Kamar #302**.
+
+---
+
+### Tahap 2: Kontrol Akses yang Benar (Sistem Ideal)
+- Kamu naik ke lantai 3 dan menempelkan kartu kuncimu ke pintu kamar #302. Kunci elektronik berbunyi klik dan pintu terbuka hijau.
+- Jika kamu mencoba menempelkan kartu kuncimu ke pintu **Kamar #303** milik tamu lain, sensor kunci langsung menyala merah dan tetap terkunci rapat.
+- Sistem pintu memeriksa secara fisik apakah chip kartu tersebut memiliki izin untuk mengakses kamar #303 (*Authorization Berhasil Ditegakkan*).
+
+---
+
+### Tahap 3: Celah Broken Access Control (Skenario Kerentanan)
+Sekarang bayangkan jika hotel tersebut memasang sistem kunci digital "canggih" berbasis aplikasi ponsel, tetapi dengan cacat desain fatal:
+1. Setiap kali kamu berdiri di depan pintu kamar mana pun, aplikasi di ponselmu menampilkan kotak input:
+   `"Kamar nomor berapa yang ingin kamu buka?"`
+2. Aplikasi ponselmu secara default mengisikan angka `302`.
+3. Namun, jika kamu sengaja mengubah angka di aplikasi tersebut menjadi **`303`** atau **`101`** (Kamar Presidential Suite), kunci pintu langsung berbunyi klik dan terbuka!
+
+---
+
+### Pelajaran Keamanan
+Resepsionis hotel telah berhasil memvalidasi siapa dirimu (kamu adalah tamu terdaftar yang sah), namun kunci pintu kamar melakukan **kesalahan fatal** dengan mempercayai nomor kamar yang dikirimkan oleh ponselmu tanpa mencocokkan ke database pusat apakah kamu adalah penyewa sah kamar tersebut.
+
+Inilah gambaran tepat dari **IDOR**:
+Aplikasi web mengetahui bahwa kamu adalah pengguna yang sah (*Alice yang sudah login*), tetapi server secara ceroboh mengizinkan kamu membuka data milik pengguna lain (*faktur nomor 2 milik Bob*) hanya karena kamu mengubah nomor ID pada alamat URL peramban.

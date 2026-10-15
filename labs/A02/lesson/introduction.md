@@ -1,17 +1,30 @@
 # A02: Security Misconfiguration
 
-Security Misconfiguration is ranked #2 in the OWASP Top 10:2025. It represents the most common and pervasive class of vulnerabilities found across modern web stacks.
+Security Misconfiguration is ranked **#2** in the OWASP Top 10:2025. It represents the single most pervasive and easily exploitable class of security vulnerabilities across modern enterprise architectures, cloud environments, and containerized deployments.
 
-## What is Security Misconfiguration?
-Security misconfiguration occurs when security controls are inaccurately defined, configured with insecure defaults, left incomplete, or poorly maintained across any part of the application stack.
+---
 
-This includes:
-- Unhardened default configurations (e.g. default usernames and passwords).
-- Improperly configured cloud permissions or storage buckets.
-- Unnecessary features, ports, services, or pages enabled (e.g. debug endpoints or sample applications).
-- Overly verbose error messages disclosing stack traces or internal environment variables.
-- Missing or misconfigured security headers (CORS, CSP, HSTS).
-- Directory browsing / indexing left enabled on static content directories.
+### Learning Objectives
+Upon completing this module, you will be able to:
+1. Identify common security misconfigurations across web servers, application frameworks, and containerized runtimes.
+2. Detect exposed static directory browsing (*unauthenticated directory indexing*) and abandoned backup archives (*backup file leaks*).
+3. Conduct manual audits and HTTP security header inspections using browser developer tools and cURL.
+4. Implement automated defensive configuration controls (*Infrastructure as Code hardening*, disabling directory listings, and error message sanitization).
 
-## Why Attackers Target Misconfigurations
-Attackers frequently run automated scanners to detect default pages, unpatched services, and unprotected administrative ports. Because misconfigurations require zero exploitation of complex business logic, they represent the lowest-friction entry point for adversaries.
+---
+
+### The Architecture Spectrum of Misconfiguration
+Unlike localized code injection flaws, security misconfigurations can manifest at any layer of the technology stack:
+
+| Stack Layer | Common Misconfiguration Example | Potential Impact |
+| :--- | :--- | :--- |
+| **Web Framework** | Active debug mode (`DEBUG=True`), verbose stack traces | Exposure of `SECRET_KEY`, filesystem paths, DB credentials |
+| **Web Server (Nginx/Apache)** | `autoindex on`, exposed `/server-status` diagnostic portals | Unauthenticated visitors can browse and download all assets |
+| **Credential Management** | Unchanged vendor defaults (`admin` / `admin`, `root` / `root`) | Trivial, immediate full takeover of administrative interfaces |
+| **HTTP Headers** | Missing `Content-Security-Policy`, `X-Frame-Options` headers | Heightened susceptibility to Clickjacking, XSS, and MIME sniffing |
+| **Cloud & Containers** | Leaving `.env`, `.git/`, or `.bak` archives in public web roots | Direct exfiltration of production API keys and database strings |
+
+---
+
+### Why Attackers Prioritize Misconfigurations
+Adversaries do not need to spend weeks analyzing complex application logic if a server administrator inadvertently exposes `/backups/` or retains default credentials. Using lightweight automated scanners, attackers can scan thousands of endpoints and seize control within minutes.

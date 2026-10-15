@@ -25,16 +25,19 @@
   "short_description": "Default credentials, diagnostic endpoints, and backup exposures.",
   "skills": ["Directory Listing Audit", "Credential Hardening", "Interface Lockdown"],
   "learning_objectives": [
-    "Identify exposed debug and diagnostic endpoints",
-    "Detect dangerous unauthenticated directory browsing",
-    "Harden default server credentials and configs"
+    "Identify exposed debug, diagnostic, and admin endpoints",
+    "Detect dangerous unauthenticated directory indexing and backup file exposure",
+    "Harden default server credentials, error handlers, and security headers"
   ],
-  "prerequisites": ["Web server basics"],
+  "prerequisites": ["Web server basics", "HTTP response codes"],
+  "default_locale": "id",
+  "locales": ["id", "en"],
   "requirements": {
     "required_tools": [],
     "recommended_tools": [
       "ffuf",
-      "gobuster"
+      "gobuster",
+      "curl"
     ]
   }
 }

@@ -1,10 +1,10 @@
-# ZITERA_LAB — A01: Broken Access Control
+# ZITERA_LAB â€” A01: Broken Access Control
 
 [![OWASP](https://img.shields.io/badge/OWASP-A01%3A2025-red)](https://owasp.org/Top10/A01_2021-Broken_Access_Control/)
 [![Difficulty](https://img.shields.io/badge/Difficulty-Beginner-blue)]()
 [![Runtime](https://img.shields.io/badge/Runtime-Docker-informational)]()
 
-A self-contained cybersecurity training lab for OWASP A01:2025 — Broken Access Control.
+A self-contained cybersecurity training lab for OWASP A01:2025 â€” Broken Access Control.
 
 ---
 
@@ -46,7 +46,7 @@ Retrieve the secret flag in `ZITERA{...}` format.
 | Port | 8011 (127.0.0.1 only) |
 | Runtime | Docker / Python Flask |
 | Modes | learn, practice, challenge |
-| Engine Compat | ≥0.1.0 |
+| Engine Compat | â‰¥0.1.0 |
 
 ---
 
@@ -90,7 +90,7 @@ docker compose -f compose.yml -p zitera_a01 up -d
 
 ## Security Expectations
 
-- Container bound to `127.0.0.1:8011` only — not exposed to LAN
+- Container bound to `127.0.0.1:8011` only â€” not exposed to LAN
 - No privileged container mode
 - No Docker socket mount
 - No host filesystem bind mounts
@@ -102,13 +102,13 @@ docker compose -f compose.yml -p zitera_a01 up -d
 ## File Structure
 
 ```
-manifest.json          — ZITERA lab contract
-README.md              — this file
+manifest.json          â€” ZITERA lab contract
+README.md              â€” this file
 docker/
-  Dockerfile           — Python 3.11-slim image definition
-  compose.yml          — Docker Compose service definition
-  app.py               — Flask application (intentionally vulnerable)
-lesson/                — Learning materials
-challenge/             — Challenge-specific assets
-assets/                — Static assets
+  Dockerfile           â€” Python 3.11-slim image definition
+  compose.yml          â€” Docker Compose service definition
+  app.py               â€” Flask application (intentionally vulnerable)
+lesson/                â€” Learning materials
+challenge/             â€” Challenge-specific assets
+assets/                â€” Static assets
 ```

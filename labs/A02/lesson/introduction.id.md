@@ -1,17 +1,30 @@
 # A02: Security Misconfiguration (Kesalahan Konfigurasi Keamanan)
 
-Security Misconfiguration menempati peringkat ke-2 (#2) dalam daftar risiko keamanan web OWASP Top 10:2025. Kerentanan ini merupakan salah satu jenis celah keamanan paling umum dan paling sering ditemukan di berbagai infrastruktur teknologi modern.
+Security Misconfiguration menempati peringkat ke-2 (**#2**) dalam daftar risiko keamanan web OWASP Top 10:2025. Kerentanan ini merupakan salah satu vektor serangan paling umum, paling sering ditemukan di seluruh spektrum teknologi, dan sering menjadi titik masuk awal paling mudah bagi penyerang siber.
 
-## Apa yang Dimaksud dengan Security Misconfiguration?
-Security Misconfiguration terjadi ketika kontrol keamanan tidak dikonfigurasi secara tepat, dibiarkan menggunakan nilai bawaan (*default*) yang tidak aman, tidak lengkap, atau tidak dirawat dengan baik pada lapisan sistem aplikasi.
+---
 
-Contoh umum dari celah ini meliputi:
-- Menggunakan kredensial bawaan yang tidak diubah (seperti username `admin` dengan password `admin` atau `password`).
-- Pengaturan izin akses cloud atau penyimpanan data (*cloud storage buckets*) yang terbuka untuk publik.
-- Mengaktifkan fitur, port, atau service yang tidak diperlukan di lingkungan produksi (misalnya endpoint debug atau halaman contoh instalasi).
-- Pesan error server yang terlalu detail sehingga membocorkan *stack trace*, variabel lingkungan (*environment variables*), atau path direktori internal.
-- Tidak memasang atau keliru mengatur header keamanan web penting (seperti CORS, Content-Security-Policy, HSTS).
-- Mengaktifkan fitur *directory indexing* sehingga siapa pun bisa melihat dan mengunduh seluruh isi folder server.
+### Tujuan Pembelajaran
+Setelah menyelesaikan modul ini, kamu diharapkan mampu:
+1. Mengidentifikasi berbagai bentuk kesalahan konfigurasi keamanan pada lapisan web server, aplikasi, dan kontainer.
+2. Mendeteksi paparan direktori tidak terproteksi (*unauthenticated directory indexing*) dan file artefak cadangan (*backup file leaks*).
+3. Melakukan audit manual dan inspeksi header keamanan HTTP menggunakan peramban serta cURL.
+4. Menerapkan konfigurasi defensif otomatis (*Infrastructure as Code hardening*, penutupan autoindex, dan sanitasi pesan error).
 
-## Mengapa Penyerang Sangat Menyukai Celah Ini?
-Penyerang sering menggunakan pemindai otomatis (*automated scanners*) untuk mencari server yang masih menggunakan halaman default atau port administrasi terbuka. Karena celah ini tidak membutuhkan eksploitasi logika pemrograman yang rumit, Security Misconfiguration sering menjadi pintu masuk termudah bagi peretas.
+---
+
+### Spektrum Kerentanan Security Misconfiguration
+Berbeda dengan kerentanan logika kode seperti injeksi, Security Misconfiguration dapat terjadi di setiap lapisan tumpukan teknologi (*technology stack*):
+
+| Lapisan Sistem | Contoh Kesalahan Konfigurasi | Dampak Risiko |
+| :--- | :--- | :--- |
+| **Aplikasi Web** | Mode debug aktif (`DEBUG=True`), stack trace verbose | Kebocoran rahasia `SECRET_KEY`, path file, kredensial DB |
+| **Web Server (Nginx/Apache)** | `autoindex on`, halaman status server `/server-status` terbuka | Pengunjung dapat menjelajahi dan mengunduh seluruh isi direktori |
+| **Manajemen Kredensial** | Akun default pabrik (`admin` / `admin`, `root` / `root`) | Pengambilalihan akun administratif secara instan |
+| **Header HTTP** | Hilangnya header `Content-Security-Policy`, `X-Frame-Options` | Rentan terhadap serangan Clickjacking dan Cross-Site Scripting |
+| **Infrastruktur Cloud / Kontainer** | File `.env` atau `.bak` tersimpan di web root publik | Ekstraksi rahasia API key, token cloud, dan koneksi database |
+
+---
+
+### Mengapa Penyerang Mengincar Celah Konfigurasi?
+Penyerang tidak perlu menghabiskan waktu berminggu-minggu membedah algoritma enkripsi atau logika transaksi jika sistem administrator membiarkan folder `/backups/` dapat diakses bebas atau menggunakan kata sandi bawaan pabrik. Dengan pemindai otomatis (*automated web crawlers*), penyerang dapat menemukan ribuan server yang salah konfigurasi dalam hitungan menit.

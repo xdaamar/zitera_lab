@@ -25,9 +25,11 @@
   "short_description": "Insecure Direct Object References and multi-tenant boundary bypass.",
   "skills": ["Authorization Matrix", "IDOR Detection", "Parameter Tampering"],
   "learning_objectives": [
-    "Identify flawed object-level access controls",
-    "Audit multi-tenant boundary isolation",
-    "Implement server-side authorization enforcement"
+    "Identify flawed object-level access controls and IDOR vulnerabilities",
+    "Audit multi-tenant boundary isolation and session ownership checks",
+    "Implement server-side authorization enforcement and indirect references"
   ],
-  "prerequisites": ["HTTP basics", "User session concepts"]
+  "prerequisites": ["HTTP basics", "User session concepts"],
+  "default_locale": "id",
+  "locales": ["id", "en"]
 }

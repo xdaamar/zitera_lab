@@ -1,9 +1,9 @@
-# ZITERA_LAB — A02: Security Misconfiguration
+# ZITERA_LAB â€” A02: Security Misconfiguration
 
-This lab contains the official ZITERA_LAB implementation for OWASP A02:2025 — Security Misconfiguration.
+This lab contains the official ZITERA_LAB implementation for OWASP A02:2025 â€” Security Misconfiguration.
 
 ## Overview
-- Category: A02:2025 — Security Misconfiguration
+- Category: A02:2025 â€” Security Misconfiguration
 - Default Port: `8012`
 - Runtime: Native Sandboxed (`AppContainer + JobObject + stdio broker`)
 - Local Binding: `127.0.0.1` (Ephemeral brokered session)
