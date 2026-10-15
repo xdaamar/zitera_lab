@@ -1,25 +1,25 @@
 {
-  "flag": "ZITERA{cr1pt0_h45h_cr4ck3d_2026}",
+  "flag": "ZITERA{cryp70_f41lur35_w34k_k3y_2026}",
   "hints": [
     {
       "tier": 1,
       "type": "conceptual",
-      "hint": "Celah kriptografi pada sistem ini berkaitan dengan penyimpanan hash kata sandi yang tidak menggunakan salt dan memakai fungsi hash usang."
+      "hint": "Celah kriptografi pada sistem ini berkaitan dengan penyimpanan hash kata sandi yang tidak menggunakan salt dan memakai fungsi hash deterministik yang usang (MD5)."
     },
     {
       "tier": 2,
       "type": "investigation_direction",
-      "hint": "Periksa halaman dokumentasi sistem atau endpoint API audit /api/audit/hashes untuk menemukan daftar hash akun."
+      "hint": "Periksa endpoint API audit /api/audit/hashes untuk menginspeksi daftar hash kata sandi yang tersimpan bagi semua pengguna."
     },
     {
       "tier": 3,
       "type": "technical_area",
-      "hint": "Hash akun administrator berupa string hex 32 karakter (MD5). Karena dibuat tanpa salt, kamu dapat memecahkannya menggunakan lookup rainbow table online atau database hash gratis."
+      "hint": "Hash akun administrator berupa string hex 32 karakter '21232f297a57a5a743894a0e4a801fc3'. Karena dibuat dengan MD5 tanpa salt, kamu dapat memecahkannya via rainbow table atau lookup database."
     },
     {
       "tier": 4,
       "type": "near_solution",
-      "hint": "Kata sandi asli dari hash 5f4dcc3b5aa765d61d8327deb882cf99 adalah 'password'. Gunakan kata sandi tersebut untuk login ke akun admin."
+      "hint": "Hash 21232f297a57a5a743894a0e4a801fc3 adalah MD5 dari 'admin'. Masuk dengan akun admin:admin dan buka /vault untuk mengambil flag."
     }
   ]
 }

@@ -25,11 +25,13 @@
   "short_description": "Dependency poisoning, unpinned telemetry packages, and lockfile tampering.",
   "skills": ["Lockfile Auditing", "Dependency Provenance", "Package Verification"],
   "learning_objectives": [
-    "Analyze compromised package manifests and lockfiles",
-    "Trace unauthorized credential exfiltration scripts",
-    "Implement cryptographic package provenance verification"
+    "Analyze compromised package manifests, lockfiles, and transitive dependencies",
+    "Trace unauthorized build-time script execution and credential exfiltration",
+    "Implement cryptographic package provenance, hash pinning, and SBOM verification"
   ],
-  "prerequisites": ["Package manager basics (npm/cargo)"],
+  "prerequisites": ["Package manager basics (npm/cargo/pip)", "JSON data structures"],
+  "default_locale": "id",
+  "locales": ["id", "en"],
   "requirements": {
     "tools": ["curl"],
     "required_tools": ["curl"],

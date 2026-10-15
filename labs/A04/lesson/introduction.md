@@ -1,14 +1,27 @@
 # A04: Cryptographic Failures
 
-Cryptographic Failures occupies the `#4` spot in OWASP Top 10:2025 (previously known as *Sensitive Data Exposure*). It focuses on failures related to cryptography, which often lead to sensitive data exposure or complete system compromise.
+## 1. What are Cryptographic Failures?
+In the OWASP Top 10:2025 standard, **Cryptographic Failures** (previously referred to as *Sensitive Data Exposure*) encompasses defects related to cryptography—or the complete omission thereof—that result in the compromise, disclosure, or manipulation of sensitive assets.
 
-## Core Problem
-Cryptography is math, but cryptographic security is implementation. Common flaws occur when developers:
-- Transmit sensitive data in cleartext (HTTP, FTP, Telnet).
-- Rely on legacy, broken, or deprecated cryptographic algorithms (MD5, SHA-1, DES, RC4).
-- Use default, weak, or hardcoded cryptographic keys embedded in source code.
-- Store passwords using fast unsalted hashes instead of adaptive, memory-hard hashing algorithms (Argon2, bcrypt, PBKDF2).
-- Reuse Initialization Vectors (IVs) or nonce values in stream ciphers.
+Cryptography serves as the ultimate line of defense: when perimeter protections (such as firewalls, web application proxies, or network segmentation) are bypassed, robust encryption and cryptographically secure hashing guarantee that exfiltrated records remain mathematically indecipherable and tamper-proof.
 
-## Real-World Impact
-When cryptography fails, attackers can decrypt confidential user data, forge administrative session tokens, crack password databases using rainbow tables, and impersonate authorized entities.
+## 2. Why Cryptographic Failures Occur
+The vast majority of cryptographic incidents do not stem from adversaries breaking the underlying mathematical foundations of modern ciphers, but rather from engineering and implementation blunders:
+- **Deployment of Deprecated and Broken Algorithms**: Utilizing obsolete functions such as MD5 or SHA-1 for credentials, or legacy ciphers like DES and RC4.
+- **Unsalted Password Storage**: Storing deterministic digests susceptible to precomputed lookup tables (*Rainbow Tables*).
+- **Insecure Key Management**: Hardcoding master cryptographic secrets within source code repositories or configuration files.
+- **Missing Transit or Rest Encryption**: Transmitting credentials over cleartext protocols (HTTP, Telnet) or persisting sensitive datastores without authenticated volume or column-level encryption.
+
+## 3. Real-World Business & Operational Impact
+When cryptographic controls fail:
+1. **Identity & Credential Harvest**: Attackers reverse leaked password hashes to plaintext credentials, gaining authentic administrative access across enterprise perimeters.
+2. **Data Tampering & Forgery**: Without authenticated encryption (AEAD) or digital signatures, network interceptors alter payload bodies in transit without detection.
+3. **Severe Regulatory Non-Compliance**: Crushing legal liabilities under GDPR, HIPAA, PCI-DSS, or regional data privacy laws.
+
+## 4. Learning Objectives in Lab A04
+Through the *CryptoVault* hands-on environment on port 8014, you will:
+1. Inspect public audit endpoints exposing user password hashes.
+2. Analyze the structural characteristics of 128-bit MD5 digests (32-character hexadecimal strings).
+3. Reverse an unsalted administrator hash using deterministic dictionary lookups.
+4. Authenticate into the administrative vault and recover key in standard `ZITERA{...}` format.
+5. Implement modern, adaptive, memory-hard password hashing architectures using `Argon2id` and `bcrypt`.

@@ -1,14 +1,27 @@
 # A04: Cryptographic Failures (Kegagalan Kriptografi)
 
-Cryptographic Failures menempati peringkat ke-4 (`#4`) dalam OWASP Top 10:2025 (sebelumnya dikenal sebagai *Sensitive Data Exposure*). Kerentanan ini berfokus pada kelemahan implementasi algoritma enkripsi dan hashing yang berujung pada kebocoran data rahasia.
+## 1. Apa itu Cryptographic Failures?
+Dalam klasifikasi OWASP Top 10:2025, **Cryptographic Failures** (sebelumnya dikenal sebagai *Sensitive Data Exposure*) berfokus pada kegagalan yang berkaitan dengan kriptografi—atau ketiadaan penerapannya—yang mengakibatkan kebocoran data sensitif atau kompromi total terhadap sistem.
 
-## Akar Permasalahan
-Kriptografi secara teoritis adalah matematika yang solid, tetapi keamanannya sangat bergantung pada cara penerapannya di dalam kode (*implementation*). Kesalahan umum yang sering dilakukan pengembang meliputi:
-- Mengirimkan data sensitif melalui protokol teks biasa tanpa enkripsi (HTTP, FTP, Telnet).
-- Menggunakan algoritma kriptografi lawas yang sudah usang dan terbukti rusak (MD5, SHA-1, DES, RC4).
-- Menyimpan kunci enkripsi rahasia (*hardcoded secret keys*) secara terang-terangan di dalam source code aplikasi.
-- Menyimpan kata sandi pengguna hanya dengan fungsi hash cepat tanpa bumbu pengacak (*cryptographic salt*), sehingga mudah dibongkar menggunakan *rainbow table*.
-- Menggunakan ulang nilai acak *Initialization Vector (IV)* atau nonce pada algoritma stream cipher.
+Kriptografi adalah benteng pertahanan terakhir: ketika lapisan pertahanan perimeter (seperti firewall atau kontrol akses jaringan) berhasil ditembus penyerang, enkripsi dan hashing yang kuat menjamin bahwa data yang dicuri tetap tidak dapat dibaca (*unreadable*) dan tidak dapat dimanipulasi (*tamper-proof*).
 
-## Dampak Nyata di Dunia Nyata
-Saat kriptografi gagal ditegakkan, penyerang dapat mendekripsi data pribadi pelanggan, memalsukan token sesi login (*session tokens*), membongkar seluruh database kata sandi, dan menyamar sebagai pihak yang berwenang.
+## 2. Mengapa Kegagalan Kriptografi Terjadi?
+Sebagian besar insiden keamanan kriptografi bukan diakibatkan oleh penyerang yang berhasil memecahkan matematika di balik algoritma modern, melainkan oleh:
+- **Penggunaan Algoritma yang Sudah Usang & Rusak**: Menggunakan fungsi hash seperti MD5 atau SHA-1 untuk kata sandi, atau sandi simetris usang seperti DES dan RC4.
+- **Penyimpanan Hash Tanpa Salt (*Unsalted Hashes*)**: Menyimpan hash deterministik yang rentan terhadap basis data pencarian instan (*Rainbow Tables*).
+- **Manajemen Kunci yang Buruk**: Menyimpan kunci enkripsi (*hardcoded keys*) langsung di dalam kode sumber aplikasi atau repositori publik.
+- **Ketiadaan Enkripsi Data Saat Transit atau Saat Istirahat**: Mengirimkan kredensial melalui protokol teks biasa (HTTP, FTP, Telnet) atau menyimpan basis data pengguna tanpa enkripsi storage.
+
+## 3. Dampak Serangan Kriptografi
+Ketika kriptografi gagal:
+1. **Eksfiltrasi Identitas & Kredensial**: Penyerang merekonstruksi kata sandi pengguna atau administrator dari hash yang bocor, membuka akses pintu depan ke seluruh sistem.
+2. **Kompromi Integritas Data**: Penyerang memodifikasi data transaksi di tengah jaringan (*tampering*) karena ketiadaan tanda tangan digital terautentikasi (seperti HMAC atau mode enkripsi AEAD).
+3. **Pelanggaran Kepatuhan Regulasi**: Sanksi hukum berat di bawah GDPR, HIPAA, PCI-DSS, atau UU Perlindungan Data Pribadi (UU PDP).
+
+## 4. Sasaran Pembelajaran di Lab A04
+Melalui lab *CryptoVault* pada port 8014, Anda akan:
+1. Menginspeksi endpoint audit publik yang membocorkan hash kata sandi pengguna.
+2. Mempelajari struktur karakteristik hash MD5 128-bit (string hex 32 karakter).
+3. Memecahkan hash MD5 tanpa salt milik akun administrator menggunakan analisis kamus deterministik.
+4. Masuk ke brankas rahasia (*Master Vault*) dan mengambil activation key berformat `ZITERA{...}`.
+5. Menerapkan skema password hashing adaptif modern berbasis `Argon2id` dan `bcrypt`.
