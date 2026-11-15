@@ -1,4 +1,4 @@
-{
+﻿{
   "schema_version": 1,
   "id": "A06",
   "package_id": "zitera-lab-a06",
@@ -12,6 +12,11 @@
   "version": "1.0.0",
   "security_version": 1,
   "minimum_core_version": "2.0.0",
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ],
   "difficulty": "Intermediate",
   "runtime": "native_sandboxed",
   "entrypoint": "bin/a06-lab.exe",

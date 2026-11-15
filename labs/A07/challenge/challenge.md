@@ -1,4 +1,4 @@
-# CTF Challenge: Administrative Gateway Brute-Force
+﻿# CTF Challenge: Administrative Gateway Brute-Force
 
 ## Scenario
 The OmniAuth Control Gateway exposes an administrative login interface at `http://127.0.0.1:8017/login`. The developer failed to implement login rate limiting, CAPTCHA, or temporary account lockouts.

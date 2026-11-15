@@ -1,4 +1,4 @@
-# ZITERA_LAB: A06:2025 — Insecure Design
+﻿# ZITERA_LAB: A06:2025 — Insecure Design
 
 Independent standalone laboratory repository for OWASP A06:2025 (Insecure Design).
 

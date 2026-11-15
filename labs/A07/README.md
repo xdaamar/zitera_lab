@@ -1,4 +1,4 @@
-# ZITERA_LAB: Lab A07 — Authentication Failures
+﻿# ZITERA_LAB: Lab A07 — Authentication Failures
 
 [![OWASP](https://img.shields.io/badge/OWASP-A07%3A2025-blue)](https://owasp.org/Top10/)
 [![Difficulty](https://img.shields.io/badge/Difficulty-Beginner-green)](#)
