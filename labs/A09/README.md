@@ -1,4 +1,4 @@
-# ZITERA_LAB: A09:2025 — Security Logging & Alerting Failures
+﻿# ZITERA_LAB: A09:2025 — Security Logging & Alerting Failures
 
 Independent standalone laboratory repository for OWASP A09:2025 (Security Logging & Alerting Failures).
 

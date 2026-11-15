@@ -1,4 +1,4 @@
-{
+﻿{
   "schema_version": 1,
   "id": "A08",
   "package_id": "zitera-lab-a08",
@@ -17,6 +17,11 @@
   "entrypoint": "bin/a08-lab.exe",
   "default_port": 8018,
   "estimated_minutes": 60,
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ],
   "modes": [
     "learn",
     "practice",

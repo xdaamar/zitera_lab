@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 import hashlib
 from http.server import HTTPServer, BaseHTTPRequestHandler

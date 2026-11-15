@@ -1,4 +1,4 @@
-{
+﻿{
   "schema_version": 1,
   "id": "A09",
   "package_id": "zitera-lab-a09",
@@ -17,6 +17,11 @@
   "entrypoint": "bin/a09-lab.exe",
   "default_port": 8019,
   "estimated_minutes": 50,
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ],
   "modes": [
     "learn",
     "practice",

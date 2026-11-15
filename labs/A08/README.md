@@ -1,4 +1,4 @@
-# ZITERA_LAB: A08:2025 — Software or Data Integrity Failures
+﻿# ZITERA_LAB: A08:2025 — Software or Data Integrity Failures
 
 Independent standalone laboratory repository for OWASP A08:2025 (Software or Data Integrity Failures).
 
