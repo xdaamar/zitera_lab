@@ -1,4 +1,4 @@
-# CTF Challenge: Celah Kegagalan Penanganan Exception
+﻿# CTF Challenge: Celah Kegagalan Penanganan Exception
 
 ### RINGKASAN MISI
 Layanan verifikasi sesi di `http://127.0.0.1:8020` menerapkan penanganan kondisi pengecualian yang buruk sehingga mengadopsi status fail-open saat menerima input abnormal.

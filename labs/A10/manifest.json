@@ -1,4 +1,4 @@
-{
+﻿{
   "schema_version": 1,
   "id": "A10",
   "package_id": "zitera-lab-a10",
@@ -17,6 +17,11 @@
   "entrypoint": "bin/a10-lab.exe",
   "default_port": 8020,
   "estimated_minutes": 65,
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ],
   "modes": [
     "learn",
     "practice",

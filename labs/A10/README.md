@@ -1,4 +1,4 @@
-# ZITERA_LAB: A10:2025 — Mishandling of Exceptional Conditions
+﻿# ZITERA_LAB: A10:2025 — Mishandling of Exceptional Conditions
 
 Independent standalone laboratory repository for OWASP A10:2025 (Mishandling of Exceptional Conditions).
 
