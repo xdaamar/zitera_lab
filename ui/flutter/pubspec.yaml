@@ -33,6 +33,7 @@ flutter:
     - assets/images/bg_settings.jpg
     - assets/images/zeta_avatar.png
     - assets/images/calico_cat.png
+    - assets/images/avatars/
     - assets/images/sticker_blonde.png
     - assets/images/sticker_pink.png
     - assets/images/sticker_purple.png

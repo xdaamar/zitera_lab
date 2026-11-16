@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/auth/auth_service.dart';
+import '../core/auth/avatar_registry.dart';
 import '../core/scoreboard/scoreboard_service.dart';
 import '../core/theme/zitera_colors.dart';
 
@@ -31,6 +32,9 @@ class _AuthDialogState extends State<AuthDialog> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
+  String _selectedAvatarId = 'zeta';
+  String _avatarCategoryFilter = 'ALL';
+  bool _isChangingAvatar = false;
 
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -40,6 +44,10 @@ class _AuthDialogState extends State<AuthDialog> {
   void initState() {
     super.initState();
     _isRegister = widget.initialIsRegister;
+    final current = AuthService.currentUser;
+    if (current != null && current.avatarId.isNotEmpty) {
+      _selectedAvatarId = current.avatarId;
+    }
   }
 
   @override
@@ -75,7 +83,7 @@ class _AuthDialogState extends State<AuthDialog> {
 
     try {
       final res = _isRegister
-          ? await AuthService.register(username, password)
+          ? await AuthService.register(username, password, avatarId: _selectedAvatarId)
           : await AuthService.login(username, password);
 
       if (!mounted) return;
@@ -126,7 +134,8 @@ class _AuthDialogState extends State<AuthDialog> {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Container(
-        width: 440,
+        width: 480,
+        constraints: const BoxConstraints(maxHeight: 700),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: ZiteraColors.card,
@@ -140,12 +149,16 @@ class _AuthDialogState extends State<AuthDialog> {
             ),
           ],
         ),
-        child: currentUser != null ? _buildProfileView(currentUser) : _buildAuthForm(),
+        child: SingleChildScrollView(
+          child: currentUser != null ? _buildProfileView(currentUser) : _buildAuthForm(),
+        ),
       ),
     );
   }
 
   Widget _buildProfileView(UserModel user) {
+    final avatar = AvatarRegistry.getById(user.avatarId);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,14 +217,21 @@ class _AuthDialogState extends State<AuthDialog> {
           child: Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: ZiteraColors.statToolsBg,
-                  border: Border.all(color: ZiteraColors.cyanLight, width: 2),
+                  border: Border.all(color: const Color(0xFF0D9488), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                      blurRadius: 8,
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.shield_outlined, color: ZiteraColors.cyan, size: 28),
+                child: ClipOval(
+                  child: AvatarRegistry.buildAvatarImage(user.avatarId),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -229,11 +249,12 @@ class _AuthDialogState extends State<AuthDialog> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'ID: ${user.id}',
+                      'AVATAR: ${avatar.name} • ${avatar.expression}',
                       style: const TextStyle(
                         fontFamily: 'JetBrainsMono',
                         fontSize: 11,
-                        color: Color(0xFF78716C),
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F766E),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -254,7 +275,82 @@ class _AuthDialogState extends State<AuthDialog> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
+
+        // Avatar change / picker toggle
+        if (_isChangingAvatar) ...[
+          _buildAvatarPicker(
+            selectedId: _selectedAvatarId,
+            onSelected: (id) => setState(() => _selectedAvatarId = id),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF78716C),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => setState(() => _isChangingAvatar = false),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D9488),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () async {
+                    setState(() => _isLoading = true);
+                    final ok = await AuthService.updateAvatar(_selectedAvatarId);
+                    if (mounted) {
+                      setState(() {
+                        _isLoading = false;
+                        _isChangingAvatar = false;
+                        if (ok) _successMessage = 'Avatar updated successfully!';
+                      });
+                    }
+                  },
+                  child: const Text(
+                    'SAVE AVATAR',
+                    style: TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ] else ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF0D9488),
+                side: const BorderSide(color: Color(0xFF0D9488), width: 1.2),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => setState(() {
+                _selectedAvatarId = user.avatarId;
+                _isChangingAvatar = true;
+              }),
+              icon: const Icon(Icons.palette_outlined, size: 16),
+              label: const Text(
+                'CHANGE OPERATIVE AVATAR',
+                style: TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
 
         // Actions
         Row(
@@ -547,6 +643,21 @@ class _AuthDialogState extends State<AuthDialog> {
             ),
             onSubmitted: (_) => _handleSubmit(),
           ),
+          const SizedBox(height: 14),
+          const Text(
+            'OPERATIVE AVATAR // IDENTITY',
+            style: TextStyle(
+              fontFamily: 'JetBrainsMono',
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF44403C),
+            ),
+          ),
+          const SizedBox(height: 6),
+          _buildAvatarPicker(
+            selectedId: _selectedAvatarId,
+            onSelected: (id) => setState(() => _selectedAvatarId = id),
+          ),
         ],
         const SizedBox(height: 20),
 
@@ -652,6 +763,206 @@ class _AuthDialogState extends State<AuthDialog> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: Color(0xFF0D9488), width: 1.5),
+      ),
+    );
+  }
+
+  Widget _avatarFilterPill(String label, String category) {
+    final isSelected = _avatarCategoryFilter == category;
+    return InkWell(
+      onTap: () => setState(() => _avatarCategoryFilter = category),
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0D9488) : Colors.white,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF0D9488) : ZiteraColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'JetBrainsMono',
+            fontSize: 9,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFF5C5347),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarPicker({
+    required String selectedId,
+    required ValueChanged<String> onSelected,
+  }) {
+    final selectedAvatar = AvatarRegistry.getById(selectedId);
+    final filteredAvatars = AvatarRegistry.all.where((a) {
+      if (_avatarCategoryFilter == 'GIRLS') return a.gender == 'Female';
+      if (_avatarCategoryFilter == 'BOYS') return a.gender == 'Male';
+      if (_avatarCategoryFilter == 'CLASSIC') return a.gender == 'Operator' || a.gender == 'Mascot';
+      return true;
+    }).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ZiteraColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ZiteraColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header / Active Preview
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF0D9488), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: AvatarRegistry.buildAvatarImage(selectedId),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          selectedAvatar.name,
+                          style: const TextStyle(
+                            fontFamily: 'SpaceGrotesk',
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E1A14),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFCCFBF1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            selectedAvatar.gender.toUpperCase(),
+                            style: const TextStyle(
+                              fontFamily: 'JetBrainsMono',
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F766E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      selectedAvatar.expression,
+                      style: const TextStyle(
+                        fontFamily: 'JetBrainsMono',
+                        fontSize: 10,
+                        color: Color(0xFF78716C),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Category filter pills
+          Row(
+            children: [
+              _avatarFilterPill('ALL (14)', 'ALL'),
+              const SizedBox(width: 6),
+              _avatarFilterPill('GIRLS (6)', 'GIRLS'),
+              const SizedBox(width: 6),
+              _avatarFilterPill('BOYS (6)', 'BOYS'),
+              const SizedBox(width: 6),
+              _avatarFilterPill('CLASSIC (2)', 'CLASSIC'),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Avatars grid
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: filteredAvatars.map((a) {
+              final isSelected = a.id == selectedId;
+              return Tooltip(
+                message: '${a.name} (${a.expression})',
+                child: InkWell(
+                  onTap: () => onSelected(a.id),
+                  borderRadius: BorderRadius.circular(8),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: isSelected ? const Color(0xFFCCFBF1) : Colors.white,
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF0D9488) : ZiteraColors.border,
+                        width: isSelected ? 2 : 1,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                                blurRadius: 6,
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: AvatarRegistry.buildAvatarImage(
+                            a.id,
+                            width: 44,
+                            height: 44,
+                          ),
+                        ),
+                        if (isSelected)
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF0D9488),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.check, size: 10, color: Colors.white),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }

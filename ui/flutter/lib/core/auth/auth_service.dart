@@ -11,17 +11,20 @@ class UserModel {
   final String id;
   final String username;
   final int createdAt;
+  final String avatarId;
 
   UserModel({
     required this.id,
     required this.username,
     required this.createdAt,
+    this.avatarId = 'zeta',
   });
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'username': username,
         'created_at': createdAt,
+        'avatar_id': avatarId,
       };
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -29,9 +32,13 @@ class UserModel {
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? '',
       createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
+      avatarId: json['avatar_id'] as String? ?? 'zeta',
     );
   }
 }
+
+/// Compatibility alias for UserSession.
+typedef UserSession = UserModel;
 
 /// Authentication result container.
 class AuthResult {
@@ -127,7 +134,11 @@ class AuthService {
   }
 
   /// Registers a new user in Turso DB and signs in immediately.
-  static Future<AuthResult> register(String username, String password) async {
+  static Future<AuthResult> register(
+    String username,
+    String password, {
+    String avatarId = 'zeta',
+  }) async {
     final cleanUsername = username.trim();
     if (cleanUsername.length < 3) {
       return AuthResult.fail('Username must be at least 3 characters long.');
@@ -153,16 +164,18 @@ class AuthService {
       final userId = _generateId();
       final passHash = hashPassword(password);
       final createdAt = DateTime.now().millisecondsSinceEpoch;
+      final cleanAvatarId = avatarId.trim().isNotEmpty ? avatarId.trim() : 'zeta';
 
       await TursoClient.execute(
-        'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
-        [userId, cleanUsername, passHash, createdAt],
+        'INSERT INTO users (id, username, password_hash, created_at, avatar_id) VALUES (?, ?, ?, ?, ?)',
+        [userId, cleanUsername, passHash, createdAt, cleanAvatarId],
       );
 
       final user = UserModel(
         id: userId,
         username: cleanUsername,
         createdAt: createdAt,
+        avatarId: cleanAvatarId,
       );
 
       await _persistSession(user);
@@ -183,7 +196,7 @@ class AuthService {
 
     try {
       final res = await TursoClient.execute(
-        'SELECT id, username, password_hash, created_at FROM users WHERE username = ?',
+        'SELECT id, username, password_hash, created_at, avatar_id FROM users WHERE username = ?',
         [cleanUsername],
       );
 
@@ -197,10 +210,14 @@ class AuthService {
         return AuthResult.fail('Incorrect password.');
       }
 
+      final rawAvatar = row['avatar_id']?.toString() ?? 'zeta';
+      final avatarId = rawAvatar.trim().isNotEmpty ? rawAvatar.trim() : 'zeta';
+
       final user = UserModel(
         id: row['id']?.toString() ?? '',
         username: row['username']?.toString() ?? cleanUsername,
         createdAt: (row['created_at'] as num?)?.toInt() ?? 0,
+        avatarId: avatarId,
       );
 
       await _persistSession(user);
@@ -209,6 +226,31 @@ class AuthService {
       return AuthResult.ok('Logged in as $cleanUsername', user);
     } catch (e) {
       return AuthResult.fail('Login failed: $e');
+    }
+  }
+
+  /// Updates operative avatar in Turso DB and active session.
+  static Future<bool> updateAvatar(String avatarId) async {
+    final user = currentUser;
+    if (user == null) return false;
+    final cleanAvatarId = avatarId.trim().isNotEmpty ? avatarId.trim() : 'zeta';
+    try {
+      await TursoClient.execute(
+        'UPDATE users SET avatar_id = ? WHERE id = ?',
+        [cleanAvatarId, user.id],
+      );
+      final updated = UserModel(
+        id: user.id,
+        username: user.username,
+        createdAt: user.createdAt,
+        avatarId: cleanAvatarId,
+      );
+      await _persistSession(updated);
+      currentUserNotifier.value = updated;
+      return true;
+    } catch (e) {
+      debugPrint('[AuthService] Failed to update avatar: $e');
+      return false;
     }
   }
 

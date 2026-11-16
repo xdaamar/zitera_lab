@@ -11,6 +11,7 @@ class ScoreboardEntry {
   final int labsSolved;
   final int totalPoints;
   final DateTime? lastSolveAt;
+  final String avatarId;
 
   ScoreboardEntry({
     required this.rank,
@@ -19,6 +20,7 @@ class ScoreboardEntry {
     required this.labsSolved,
     required this.totalPoints,
     this.lastSolveAt,
+    this.avatarId = 'zeta',
   });
 
   bool get isCurrentUser =>
@@ -54,12 +56,13 @@ class ScoreboardService {
     final cleanLabId = ProgressManager.normalizeId(labId);
     final solveId = 's_${user.id}_$cleanLabId';
     final solvedAt = DateTime.now().millisecondsSinceEpoch;
+    final avatarId = user.avatarId.isNotEmpty ? user.avatarId : 'zeta';
 
     try {
       final res = await TursoClient.execute(
-        'INSERT OR IGNORE INTO solves (id, user_id, username, lab_id, points, solved_at) '
-        'VALUES (?, ?, ?, ?, ?, ?)',
-        [solveId, user.id, user.username, cleanLabId, points, solvedAt],
+        'INSERT OR IGNORE INTO solves (id, user_id, username, lab_id, points, solved_at, avatar_id) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [solveId, user.id, user.username, cleanLabId, points, solvedAt, avatarId],
       );
 
       debugPrint(
@@ -79,12 +82,13 @@ class ScoreboardService {
       SELECT 
         u.id AS user_id,
         u.username,
+        COALESCE(u.avatar_id, 'zeta') AS avatar_id,
         COALESCE(COUNT(s.id), 0) AS labs_solved,
         COALESCE(SUM(s.points), 0) AS total_points,
         MAX(s.solved_at) AS last_solve_at
       FROM users u
       LEFT JOIN solves s ON u.id = s.user_id
-      GROUP BY u.id, u.username
+      GROUP BY u.id, u.username, u.avatar_id
       ORDER BY total_points DESC, last_solve_at ASC, u.created_at ASC
     ''';
 
@@ -95,6 +99,8 @@ class ScoreboardService {
       final row = res.rows[i];
       final userId = row['user_id']?.toString() ?? '';
       final username = row['username']?.toString() ?? 'Anonymous';
+      final rawAvatar = row['avatar_id']?.toString() ?? 'zeta';
+      final avatarId = rawAvatar.trim().isNotEmpty ? rawAvatar.trim() : 'zeta';
       final labsSolved = (row['labs_solved'] as num?)?.toInt() ?? 0;
       final totalPoints = (row['total_points'] as num?)?.toInt() ?? 0;
 
@@ -115,6 +121,7 @@ class ScoreboardService {
         labsSolved: labsSolved,
         totalPoints: totalPoints,
         lastSolveAt: lastSolve,
+        avatarId: avatarId,
       ));
     }
 
@@ -133,6 +140,7 @@ class ScoreboardService {
 
       if (completedChallenges.isEmpty) return 0;
 
+      final avatarId = user.avatarId.isNotEmpty ? user.avatarId : 'zeta';
       var syncedCount = 0;
       for (final labId in completedChallenges) {
         final cleanLabId = ProgressManager.normalizeId(labId);
@@ -140,9 +148,9 @@ class ScoreboardService {
         final solvedAt = DateTime.now().millisecondsSinceEpoch;
 
         final res = await TursoClient.execute(
-          'INSERT OR IGNORE INTO solves (id, user_id, username, lab_id, points, solved_at) '
-          'VALUES (?, ?, ?, ?, ?, ?)',
-          [solveId, user.id, user.username, cleanLabId, defaultPointsPerLab, solvedAt],
+          'INSERT OR IGNORE INTO solves (id, user_id, username, lab_id, points, solved_at, avatar_id) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [solveId, user.id, user.username, cleanLabId, defaultPointsPerLab, solvedAt, avatarId],
         );
 
         if (res.affectedRowCount > 0) {

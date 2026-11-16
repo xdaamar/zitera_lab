@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/auth/avatar_registry.dart';
 import '../../core/scoreboard/scoreboard_service.dart';
 import '../../core/theme/zitera_colors.dart';
 import '../../widgets/auth_dialog.dart';
@@ -487,14 +488,23 @@ class _ScoreboardViewState extends State<ScoreboardView> {
                     shape: BoxShape.circle,
                     color: isMe ? ZiteraColors.statLabsBg : ZiteraColors.surface,
                     border: Border.all(
-                      color: isMe ? ZiteraColors.statLabsBorder : ZiteraColors.border,
+                      color: isMe ? const Color(0xFF0D9488) : ZiteraColors.border,
+                      width: isMe ? 1.5 : 1,
                     ),
+                    boxShadow: isMe
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                              blurRadius: 4,
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: Center(
-                    child: Icon(
-                      isMe ? Icons.verified_user : Icons.person_outline,
-                      size: 16,
-                      color: isMe ? const Color(0xFF0F766E) : const Color(0xFF57534E),
+                  child: ClipOval(
+                    child: AvatarRegistry.buildAvatarImage(
+                      entry.avatarId,
+                      width: 32,
+                      height: 32,
                     ),
                   ),
                 ),
@@ -822,7 +832,21 @@ class _ScoreboardViewState extends State<ScoreboardView> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.shield, size: 18, color: Color(0xFF0F766E)),
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF0F766E), width: 1.5),
+                    ),
+                    child: ClipOval(
+                      child: AvatarRegistry.buildAvatarImage(
+                        user.avatarId,
+                        width: 24,
+                        height: 24,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Text(
                     'OPERATIVE: ${user.username}',
