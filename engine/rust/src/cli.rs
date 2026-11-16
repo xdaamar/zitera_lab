@@ -34,7 +34,7 @@ pub fn run() {
         "tool" => handle_tool(&filtered_args[1..], json_mode),
         "lab" => handle_lab(&filtered_args[1..], &workspace_root, json_mode),
         "package" => handle_package(&filtered_args[1..], &workspace_root, json_mode),
-        "catalog" => handle_catalog(&workspace_root, json_mode),
+        "catalog" => handle_catalog(&filtered_args[1..], &workspace_root, json_mode),
         "terminal" => handle_terminal(&filtered_args[1..], &workspace_root, json_mode),
         "storage" => handle_storage(&filtered_args[1..], json_mode),
         "sandbox-probe" => {
@@ -741,8 +741,14 @@ fn handle_lab_list(workspace_root: &Path, json: bool) {
     }
 }
 
-fn handle_catalog(workspace_root: &Path, json: bool) {
-    match catalog::load_catalog(workspace_root) {
+fn handle_catalog(args: &[String], workspace_root: &Path, json: bool) {
+    let force_refresh = args.iter().any(|a| a == "refresh" || a == "--refresh" || a == "-r");
+    let res = if force_refresh {
+        catalog::refresh_catalog(workspace_root)
+    } else {
+        catalog::load_catalog(workspace_root)
+    };
+    match res {
         Ok(cat) => {
             if json {
                 println!(
@@ -752,9 +758,16 @@ fn handle_catalog(workspace_root: &Path, json: bool) {
             } else {
                 println!("ZITERA Lab Catalog (schema v{})", cat.schema_version);
                 for l in cat.labs {
+                    let status_tag = if !l.installed {
+                        "[NOT INSTALLED]"
+                    } else if l.has_update {
+                        "[UPDATE AVAILABLE]"
+                    } else {
+                        "[UP TO DATE]"
+                    };
                     println!(
-                        "- [{}] {} ({}) - {}",
-                        l.id, l.title, l.version, l.description
+                        "- [{}] {} (v{}) {} - {}",
+                        l.id, l.title, l.version, status_tag, l.description
                     );
                 }
             }

@@ -261,6 +261,10 @@ pub struct LabStatus {
     pub challenge_readiness: String, // READY, PARTIAL, BLOCKED
     #[serde(default)]
     pub recommended_tools: Vec<String>,
+    #[serde(default)]
+    pub has_update: bool,
+    #[serde(default)]
+    pub latest_version: String,
 }
 
 fn default_ready() -> String {
@@ -308,6 +312,14 @@ pub struct CatalogLabItem {
     pub package_url: Option<String>,
     #[serde(default)]
     pub package_sha256: Option<String>,
+    #[serde(default)]
+    pub installed: bool,
+    #[serde(default)]
+    pub installed_version: Option<String>,
+    #[serde(default)]
+    pub has_update: bool,
+    #[serde(default)]
+    pub latest_version: String,
 }
 
 impl CatalogLabItem {

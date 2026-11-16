@@ -181,10 +181,12 @@ pub fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
     for entry in fs::read_dir(src)? {
         let entry = entry?;
         let ty = entry.file_type()?;
-        let dest_child = dst.join(entry.file_name());
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        let dest_child = dst.join(&name);
         if ty.is_dir() {
-            // Avoid recursive self-copy if dst contains subdirectories
-            if entry.file_name() != "versions" && entry.file_name() != "staging" {
+            // Avoid recursive self-copy if dst contains subdirectories or temporary staging
+            if name_str != "versions" && !name_str.starts_with("staging") && name_str != ".git" {
                 copy_dir_all(&entry.path(), &dest_child)?;
             }
         } else {

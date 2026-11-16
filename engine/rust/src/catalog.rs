@@ -167,38 +167,106 @@ pub fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
 /// Attempts to load catalog from remote URL with timeout; falls back to local cache or default catalog.
 /// Corrupt remote responses NEVER overwrite valid local cache.
 pub fn load_catalog(workspace_root: &Path) -> Result<Catalog, String> {
+    let check_remote = std::env::var("ZITERA_CHECK_REMOTE").is_ok();
+    load_catalog_with_remote_check(workspace_root, check_remote)
+}
+
+/// Explicitly checks REMOTE_CATALOG_URL first; falls back to local cache if network is unavailable or fails.
+/// Corrupt remote responses NEVER overwrite valid local cache.
+pub fn refresh_catalog(workspace_root: &Path) -> Result<Catalog, String> {
+    load_catalog_with_remote_check(workspace_root, true)
+}
+
+pub fn load_catalog_with_remote_check(
+    workspace_root: &Path,
+    check_remote_first: bool,
+) -> Result<Catalog, String> {
     let local_path = get_catalog_path(workspace_root);
 
-    // 1. Check local catalog cache first (ensures offline reliability and local authority)
+    let mut loaded_catalog = if check_remote_first {
+        // Try remote fetch first if explicitly requested
+        let remote_res = fetch_remote_catalog(REMOTE_CATALOG_URL);
+        if let Ok(ref remote_cat) = remote_res {
+            if validate_catalog(remote_cat).is_ok() {
+                if let Ok(serialized) = serde_json::to_string_pretty(remote_cat) {
+                    if let Some(parent) = local_path.parent() {
+                        let _ = fs::create_dir_all(parent);
+                    }
+                    let _ = fs::write(&local_path, serialized);
+                }
+                Some(remote_cat.clone())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+        .or_else(|| load_local_cache(&local_path))
+        .unwrap_or_else(default_catalog)
+    } else {
+        // Check local cache first (offline-first reliability)
+        load_local_cache(&local_path)
+            .or_else(|| {
+                if let Ok(remote_cat) = fetch_remote_catalog(REMOTE_CATALOG_URL) {
+                    if validate_catalog(&remote_cat).is_ok() {
+                        if let Ok(serialized) = serde_json::to_string_pretty(&remote_cat) {
+                            if let Some(parent) = local_path.parent() {
+                                let _ = fs::create_dir_all(parent);
+                            }
+                            let _ = fs::write(&local_path, serialized);
+                        }
+                        return Some(remote_cat);
+                    }
+                }
+                None
+            })
+            .unwrap_or_else(default_catalog)
+    };
+
+    enrich_catalog_with_installed_status(workspace_root, &mut loaded_catalog);
+    Ok(loaded_catalog)
+}
+
+fn load_local_cache(local_path: &Path) -> Option<Catalog> {
     if local_path.exists() {
-        if let Ok(meta) = fs::metadata(&local_path) {
+        if let Ok(meta) = fs::metadata(local_path) {
             if meta.len() <= MAX_CATALOG_FILE_SIZE {
-                if let Ok(content) = fs::read_to_string(&local_path) {
+                if let Ok(content) = fs::read_to_string(local_path) {
                     if let Ok(cached) = serde_json::from_str::<Catalog>(&content) {
                         if validate_catalog(&cached).is_ok() {
-                            return Ok(cached);
+                            return Some(cached);
                         }
                     }
                 }
             }
         }
     }
+    None
+}
 
-    // 2. Try remote fetch if local cache is missing or corrupt
-    if let Ok(remote_catalog) = fetch_remote_catalog(REMOTE_CATALOG_URL) {
-        if let Ok(()) = validate_catalog(&remote_catalog) {
-            if let Ok(serialized) = serde_json::to_string_pretty(&remote_catalog) {
-                if let Some(parent) = local_path.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
-                let _ = fs::write(&local_path, serialized);
+/// Compares each lab item in catalog against locally installed lab in labs/<ID>/manifest.json.
+/// Sets `installed`, `installed_version`, `latest_version`, and `has_update`.
+pub fn enrich_catalog_with_installed_status(workspace_root: &Path, catalog: &mut Catalog) {
+    for lab in &mut catalog.labs {
+        lab.latest_version = lab.version.clone();
+        let lab_dir = crate::labs::get_lab_dir(workspace_root, &lab.id);
+        if lab_dir.exists() {
+            if let Ok(manifest) = crate::labs::read_manifest(&lab_dir) {
+                lab.installed = true;
+                lab.installed_version = Some(manifest.version.clone());
+                lab.has_update = crate::package::installer::compare_semver(&lab.version, &manifest.version)
+                    == std::cmp::Ordering::Greater;
+            } else {
+                lab.installed = false;
+                lab.installed_version = None;
+                lab.has_update = false;
             }
-            return Ok(remote_catalog);
+        } else {
+            lab.installed = false;
+            lab.installed_version = None;
+            lab.has_update = false;
         }
     }
-
-    // 3. Built-in default signed catalog fallback
-    Ok(default_catalog())
 }
 
 /// Fetch catalog JSON from remote HTTP URL using platform curl with bounded execution.
@@ -255,6 +323,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A02".to_string(),
@@ -284,6 +356,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A03".to_string(),
@@ -313,6 +389,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A04".to_string(),
@@ -342,6 +422,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A05".to_string(),
@@ -371,6 +455,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A06".to_string(),
@@ -400,6 +488,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A07".to_string(),
@@ -429,6 +521,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A08".to_string(),
@@ -458,6 +554,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A09".to_string(),
@@ -487,6 +587,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
             CatalogLabItem {
                 id: "A10".to_string(),
@@ -516,6 +620,10 @@ pub fn default_catalog() -> Catalog {
                 architecture: Some("x86_64".to_string()),
                 package_url: None,
                 package_sha256: None,
+                installed: false,
+                installed_version: None,
+                has_update: false,
+                latest_version: String::new(),
             },
         ],
         signature: None,
@@ -675,6 +783,77 @@ mod tests {
 
         let cat_cached = load_catalog(&workspace).expect("Local cached catalog must load offline");
         assert_eq!(cat_cached.labs[0].title, "Offline Cached Title");
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn test_catalog_enrichment_and_update_detection() {
+        let temp = std::env::temp_dir().join(format!("zitera_enrich_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp);
+        let workspace = temp.join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+
+        // 1. Initially without labs installed -> installed = false, has_update = false
+        let cat = load_catalog(&workspace).expect("Catalog must load");
+        let a01 = cat.labs.iter().find(|l| l.id == "A01").unwrap();
+        assert_eq!(a01.installed, false);
+        assert_eq!(a01.has_update, false);
+        assert_eq!(a01.latest_version, a01.version);
+
+        // 2. Install lab A01 with older version (1.0.0) while catalog is 1.0.1
+        let a01_dir = workspace.join("labs").join("A01");
+        fs::create_dir_all(&a01_dir).unwrap();
+        let old_manifest = r#"{
+            "schema_version": 1,
+            "id": "A01",
+            "slug": "broken-access-control",
+            "title": "Broken Access Control",
+            "owasp": "A01:2025",
+            "version": "1.0.0",
+            "difficulty": "Beginner",
+            "runtime": "native_sandboxed",
+            "entrypoint": "bin/a01-lab.exe",
+            "default_port": 8011,
+            "estimated_minutes": 35,
+            "modes": ["learn"]
+        }"#;
+        fs::write(a01_dir.join("manifest.json"), old_manifest).unwrap();
+
+        let cat_updated = load_catalog(&workspace).expect("Catalog must load");
+        let a01_enriched = cat_updated.labs.iter().find(|l| l.id == "A01").unwrap();
+        assert_eq!(a01_enriched.installed, true);
+        assert_eq!(a01_enriched.installed_version, Some("1.0.0".to_string()));
+        assert_eq!(a01_enriched.has_update, true);
+        assert_eq!(a01_enriched.latest_version, "1.0.1");
+
+        // 3. Check lab list also reflects installed & update status
+        let lab_list = crate::labs::list_all_labs(&workspace);
+        let a01_status = lab_list.iter().find(|l| l.id == "A01").unwrap();
+        assert_eq!(a01_status.installed, true);
+        assert_eq!(a01_status.version, "1.0.0");
+        assert_eq!(a01_status.has_update, true);
+        assert_eq!(a01_status.latest_version, "1.0.1");
+
+        // 4. Test atomic 1-click update
+        let update_res = crate::labs::update_lab(&workspace, "A01").expect("Update must succeed");
+        assert!(update_res.contains("successfully updated"));
+
+        // 5. Re-check catalog & status: has_update should now be false, version 1.0.1
+        let cat_after = load_catalog(&workspace).expect("Catalog must load");
+        let a01_after = cat_after.labs.iter().find(|l| l.id == "A01").unwrap();
+        assert_eq!(a01_after.installed, true);
+        assert_eq!(a01_after.installed_version, Some("1.0.1".to_string()));
+        assert_eq!(a01_after.has_update, false);
+
+        let status_after = crate::labs::get_lab_status(&workspace, "A01");
+        assert_eq!(status_after.installed, true);
+        assert_eq!(status_after.version, "1.0.1");
+        assert_eq!(status_after.has_update, false);
+
+        // 6. Running update again reports already up to date
+        let rerun = crate::labs::update_lab(&workspace, "A01").expect("Rerun update");
+        assert!(rerun.contains("already up to date"));
 
         let _ = fs::remove_dir_all(&temp);
     }
