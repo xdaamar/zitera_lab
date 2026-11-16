@@ -1,19 +1,34 @@
-# CTF Challenge: Kebocoran Master Invoice Perusahaan
+# Simulasi Bug Bounty: Operasi Apex Leak (Eksfiltrasi Sovereign Treasury Record)
 
-### MISI
-Kamu ditugaskan untuk mengaudit portal keuangan dan penagihan internal sebuah perusahaan. Intelijen keamanan mengindikasikan bahwa administrator sistem secara sembrono membuat sebuah catatan penagihan induk (*master invoice*) tersembunyi yang menyimpan flag aktivasi sistem rahasia.
+### 🎯 MISI BRIEFING
+Perusahaan perbankan korporat **ApexFin Financial Technologies** mengundangmu dalam program *Private Bug Bounty Engagement*. Portal perbendaharaan dan kliring kawat likuiditas global mereka (`http://127.0.0.1:8011`) baru saja diluncurkan ke tahap pra-produksi.
 
-### TARGET & OBJEKTIF
-Eksploitasi celah kontrol akses pada aplikasi target yang berjalan di `http://127.0.0.1:8011` untuk menemukan master invoice rahasia tersebut dan ambil flag tantangannya.
+Tim audit internal mencurigai bahwa meskipun halaman kontrol eksekutif (`/admin`) telah diproteksi dengan verifikasi peran pengguna (*Role-Based Access Control*), mekanisme penarikan dokumen voucher transfer kawat di lapisan API tidak menerapkan validasi kepemilikan objek (*Object-Level Ownership Validation*).
 
-### LINGKUNGAN TARGET
-- Base URL: `http://127.0.0.1:8011`
-- Kredensial Awal: `alice` / `password123`
+---
 
-### BATASAN PENYERANGAN (CONSTRAINTS)
-- Lakukan pengujian HANYA pada target lokal `127.0.0.1:8011`.
-- Jangan mencoba serangan tebak kata sandi secara membabi buta (*brute force*). Celah keamanan murni berada pada parameter kontrol akses dan otorisasi.
+### 🏢 RUANG LINGKUP & TARGET
+- **Target URL:** `http://127.0.0.1:8011`
+- **Kredensial Pengujian (Scope):** `alice` / `password123` (Analis Junior - Divisi Likuiditas)
+- **Tingkat Keparahan (Severity):** High / Critical (CVSS 8.6)
+- **Estimasi Bounty:** $1,500 – $8,000 USD
 
-### FORMAT SUBMISSION FLAG
-Kirimkan flag yang kamu temukan menggunakan format standar:
+---
+
+### 🚩 OBJEKTIF PENELUSURAN
+1. Lakukan audit keamanan menggunakan akun sah `alice`.
+2. Temukan dan eksfiltrasi voucher transfer bernilai tinggi berstatus **RESTRICTED** milik Controller Eksekutif (**Marcus Reid**).
+3. Dapatkan segel validasi autoritatif berupa CTF Flag yang tersimpan di dalam catatan kepatuhan SOX-404 tersebut.
+4. Kirimkan (*submit*) bukti flag ke Zitera Lab desktop untuk memvalidasi penyelesaian misi dan merekam skor ke live leaderboard!
+
+---
+
+### ⚠️ ATURAN PENGUJIAN (RULES OF ENGAGEMENT)
+- Batasi pengujian hanya pada target sandbox lokal `127.0.0.1:8011`.
+- Jangan melakukan serangan brute force terhadap password akun lain. Kerentanan murni terletak pada manipulasi parameter kontrol akses (*Parameter Tampering & IDOR*).
+
+---
+
+### 🔑 FORMAT SUBMISSION
+Kirimkan flag valid yang kamu temukan dengan format:
 `ZITERA{...}`

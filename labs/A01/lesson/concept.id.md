@@ -1,105 +1,91 @@
 # Bedah Teknis: IDOR & Otorisasi Berbasis Objek
 
-## Memahami Insecure Direct Object References (IDOR)
-Insecure Direct Object Reference (IDOR) terjadi ketika sebuah aplikasi web mengekspos referensi langsung ke objek internal database (seperti kunci primer basis data: `id=1045`, `invoice_id=2`, `file=statement_2026.pdf`) dan mempercayai input klien tanpa memverifikasi hak kepemilikan di sisi server.
+## 1. Memahami Insecure Direct Object References (IDOR)
+Insecure Direct Object Reference (IDOR) terjadi ketika sebuah aplikasi web mengekspos referensi langsung ke objek internal database (seperti kunci primer basis data: `id=1`, `wire_id=42`, `account_no=882194`) dan mempercayai input klien tanpa memverifikasi hak kepemilikan di sisi server.
 
-### Mengapa IDOR Begitu Sering Muncul?
-1. **Asumsi Keliru Pengembang:** Pengembang sering menganggap bahwa karena antarmuka web (UI) hanya menampilkan tombol ke data milik pengguna itu sendiri, maka pengguna tidak akan pernah mencoba meminta data nomor lain.
-2. **Ketergantungan pada Obscurity:** Menyembunyikan link di menu navigasi dianggap cukup sebagai perlindungan, padahal URL dan parameter HTTP dapat dimanipulasi dengan mudah menggunakan peramban atau cURL.
-3. **Pemisahan Logika AuthN dan AuthZ:** Middleware memeriksa apakah pengguna telah login (`@login_required`), tetapi lupa memeriksa apakah objek yang diminta memang milik pengguna tersebut (`ownership_required`).
+### Mengapa Developer Sering Terjebak dalam Celah Ini?
+1. **UI-Centric Assumption (Asumsi Keliru Frontend)**: Developer sering mengira bahwa karena tombol di layar Alice hanya bertuliskan *"Lihat Transaksi Kawat #1"*, Alice tidak akan pernah tahu atau mencoba mengakses transaksi nomor 42. Padahal penyerang tidak peduli tampilan UI; mereka memodifikasi URL atau request HTTP langsung via address bar atau Burp Suite!
+2. **Rasa Aman Palsu dari `@login_required`**: Framework modern menyediakan decorator autentikasi. Ketika fungsi API sudah dipasangi pengecekan sesi login, developer merasa pekerjaannya sudah selesai, padahal otorisasi level objek (*Object-Level Authorization*) belum pernah ditulis.
+3. **Pola Query Database yang Cacat**:
+   - ❌ **Query Rentan IDOR:**
+     ```sql
+     SELECT * FROM wire_transfers WHERE id = :target_id;
+     ```
+     *(Server hanya memeriksa apakah transaksi itu ada, siapa pun yang meminta akan diberikan datanya!)*
+   - ✅ **Query Aman Kebal IDOR:**
+     ```sql
+     SELECT * FROM wire_transfers WHERE id = :target_id AND user_id = :session_user_id;
+     ```
+     *(Server secara mutlak membatasi pencarian hanya pada data milik user yang sedang aktif).*
 
 ---
 
-### Dua Dimensi Broken Access Control
+## 2. Pola Pikir Peretas (The Bug Hunter Mindset)
+Bagaimana seorang bug hunter profesional memburu IDOR pada target nyata seperti ApexFin Corporate Treasury?
 
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                      ALUR INVESTIGASI IDOR                             │
+├────────────────────────────────────────────────────────────────────────┤
+│ 1. RECON & MAPPING PARAMETER                                           │
+│    • Buka DevTools (F12) -> Network Tab                                │
+│    • Identifikasi parameter tertebak: id, ref_id, wire_id, doc_num     │
+│    • Catat format: Sekuensial (1, 2, 3) vs Hash vs UUID               │
+├────────────────────────────────────────────────────────────────────────┤
+│ 2. HIPOTESIS TAMPERING                                                 │
+│    • Bagaimana jika id=1 saya ubah menjadi id=2 atau id=42?            │
+│    • Apakah server memvalidasi kepemilikan sesi saya?                  │
+├────────────────────────────────────────────────────────────────────────┤
+│ 3. ANALISIS RESPON (DIFFING)                                           │
+│    • Jika HTTP 403 / 401: Kontrol akses ditegakkan (Aman).             │
+│    • Jika HTTP 200 dengan data user lain: IDOR TERKONFIRMASI!          │
+│    • Dokumentasikan Proof-of-Concept untuk pelaporan bug bounty.       │
+└────────────────────────────────────────────────────────────────────────┘
 ```
-                 [ ADMINISTRATOR ]
-                        â–²
-                        â”‚  Otorisasi Vertikal (Privilege Escalation)
-                        â”‚  (Contoh: User biasa mengakses /admin/dashboard)
-                        â–¼
-[ PENGGUNA ALICE ] â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º [ PENGGUNA BOB ]
+
+---
+
+## 3. Dua Dimensi Broken Access Control
+
+```text
+                 [ ADMINISTRATOR / MARCUS REID ]
+                                ▲
+                                │  Otorisasi Vertikal (Privilege Escalation)
+                                │  (Contoh: Alice mengakses /admin atau /audit)
+                                ▼
+[ ANALIS ALICE ] ◄──────────────────────────────► [ SPESIALIS BOB ]
               Otorisasi Horizontal (IDOR / BOLA)
-              (Contoh: Alice membaca /invoice/2 milik Bob)
+              (Contoh: Alice membaca voucher transfer /wire/2 milik Bob)
 ```
 
-1. **Otorisasi Horizontal (Horizontal Access Control):** Terjadi antar pengguna yang memiliki tingkat hak akses setara. Alice dan Bob sama-sama berstatus *Standard User*, namun Alice dapat mengintip faktur atau data akun Bob.
-2. **Otorisasi Vertikal (Vertical Access Control):** Terjadi ketika pengguna berhak akses rendah berhasil menjalankan fungsi atau mengakses antarmuka yang seharusnya dikhususkan bagi administrator (*Privilege Escalation*).
+1. **Otorisasi Horizontal (Horizontal Access Control):** Terjadi antar pengguna yang memiliki tingkat hak akses setara. Alice dan Bob sama-sama berstatus *Standard Operator*, namun Alice dapat mengintip voucher transfer milik Bob.
+2. **Otorisasi Vertikal (Vertical Access Control):** Terjadi ketika pengguna biasa berhasil melompati batas peran dan membaca voucher rahasia kepatuhan milik Marcus Reid (VP Controller) yang memiliki ID #42 (*Classified Sovereign Wire*).
 
 ---
 
-### Contoh Anatomi Protokol HTTP
+## 4. Contoh Anatomi Protokol HTTP pada ApexFin Treasury
 
-#### 1. Request Normal (Milik Alice)
+### 1. Request Normal (Milik Alice - User ID #1)
 ```http
-GET /invoice/1 HTTP/1.1
+GET /wire/1 HTTP/1.1
 Host: 127.0.0.1:8011
-Cookie: session_id=sess_alice_token_991
+Cookie: session_user=user_sess_1
 
 HTTP/1.1 200 OK
-Content-Type: application/json
+Content-Type: text/html
 
-{
-  "id": 1,
-  "owner": "alice",
-  "item": "Cybersecurity Fundamentals Lab Kit",
-  "amount": 250000,
-  "status": "Paid"
-}
+<!-- Menampilkan Voucher TRX-APEX-1001 sebesar $4,950.00 milik Alice -->
 ```
 
-#### 2. Request Manipulasi Parameter (IDOR ke Milik Bob)
+### 2. Request Eksploitasi IDOR (Alice Meminta Data Rahasia Controller Marcus Reid)
 ```http
-GET /invoice/2 HTTP/1.1
+GET /wire/42 HTTP/1.1
 Host: 127.0.0.1:8011
-Cookie: session_id=sess_alice_token_991
+Cookie: session_user=user_sess_1
 
 HTTP/1.1 200 OK
-Content-Type: application/json
+Content-Type: text/html
 
-{
-  "id": 2,
-  "owner": "bob",
-  "item": "Enterprise Penetration Testing Retainer",
-  "amount": 18500000,
-  "status": "Confidential"
-}
+<!-- Server rentan mengembalikan voucher kawat bernilai $99,999.00 beserta flag rahasia! -->
 ```
-Meskipun sesi login yang dilampirkan adalah milik Alice (`session_id=sess_alice_token_991`), server tetap mengembalikan data milik Bob karena server hanya mengeksekusi filter berdasarkan `id: 2` dari URL!
-
----
-
-### Perbandingan Kode: Pola Rentan vs Pola Aman
-
-#### Pola Rentan (Vulnerable Pattern):
-```python
-@app.route('/invoice/<int:invoice_id>')
-@login_required
-def get_invoice(invoice_id):
-    # KESALAHAN FATAL: Server hanya memeriksa keberadaan ID di database,
-    # tanpa membandingkannya dengan ID pengguna yang sedang login!
-    invoice = db.session.query(Invoice).filter_by(id=invoice_id).first()
-    if not invoice:
-        abort(404)
-    return jsonify(invoice.to_dict())
-```
-
-#### Pola Defensif yang Aman (Secure Pattern):
-```python
-@app.route('/invoice/<int:invoice_id>')
-@login_required
-def get_invoice(invoice_id):
-    current_user_id = session['user_id']
-
-    # PERBAIKAN: Ikat query ke ID kepemilikan pengguna yang sedang login!
-    invoice = db.session.query(Invoice).filter_by(
-        id=invoice_id,
-        owner_id=current_user_id
-    ).first()
-
-    if not invoice:
-        # Tolak akses dan hindari membocorkan informasi keberadaan ID (Deny by Default)
-        abort(404, description="Invoice not found or access denied")
-
-    return jsonify(invoice.to_dict())
-```
+Perhatikan bahwa cookie sesi yang dikirimkan tetap milik **Alice (`user_sess_1`)**, tetapi server ApexFin mengembalikan dokumen rahasia milik **Marcus Reid** tanpa penolakan HTTP 403 Forbidden.

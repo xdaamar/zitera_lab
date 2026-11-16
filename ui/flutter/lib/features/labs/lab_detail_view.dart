@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/ipc/engine_client.dart';
@@ -1037,6 +1038,45 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     );
   }
 
+  Widget _buildTrackStepPill(String title, bool isDone, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDone ? const Color(0xFFE6FFFA) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDone ? const Color(0xFF2DD4BF) : const Color(0xFFCBD5E1),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isDone ? Icons.check_circle : icon,
+              size: 16,
+              color: isDone ? const Color(0xFF0F766E) : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isDone ? const Color(0xFF0F766E) : const Color(0xFF475569),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLearnTab() {
     final isInstalled = _status?.installed == true;
     if (!isInstalled) {
@@ -1141,6 +1181,85 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 3-Tier Progressive Learning Track Banner
+          HackerTilixEntrance(
+            delay: Duration.zero,
+            direction: TilixSlideDirection.down,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFCFBF8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF2DD4BF), width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2DD4BF).withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.route, size: 18, color: Color(0xFF0F766E)),
+                          SizedBox(width: 8),
+                          Text(
+                            '3-TIER PROGRESSIVE LEARNING TRACK',
+                            style: TextStyle(
+                              fontFamily: 'SpaceGrotesk',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 0.8,
+                              color: Color(0xFF0F766E),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCCFBF1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFF2DD4BF)),
+                        ),
+                        child: Text(
+                          '${_completedSections.length}/5 Materi Selesai',
+                          style: const TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F766E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildTrackStepPill('1. POLA PIKIR & ANALOGI', _completedSections.isNotEmpty, Icons.lightbulb_outline),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward, size: 14, color: Color(0xFF94A3B8)),
+                      const SizedBox(width: 8),
+                      _buildTrackStepPill('2. PRAKTIK PROBE', _isPracticeDone, Icons.science_outlined),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward, size: 14, color: Color(0xFF94A3B8)),
+                      const SizedBox(width: 8),
+                      _buildTrackStepPill('3. REAL BOUNTY SIMULATION', _isChallengeSolved, Icons.military_tech_outlined),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // Phase 19 Checkpoint 4 & 5: Curriculum Specification & Learning Objectives
           if (_content != null) ...[
             HackerTilixEntrance(
@@ -1461,7 +1580,99 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                   ),
                 ],
               ),
+            )
+          else ...[
+            // Live Target Web App Environment Card
+            HackerTilixEntrance(
+              delay: const Duration(milliseconds: 30),
+              direction: TilixSlideDirection.down,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFCFBF8),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF2DD4BF), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2DD4BF).withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.apartment, size: 20, color: Color(0xFF0F766E)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'TARGET SERVICE: http://127.0.0.1:$port/',
+                              style: const TextStyle(
+                                fontFamily: 'JetBrainsMono',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0F766E),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          ),
+                          icon: const Icon(Icons.open_in_browser, size: 16),
+                          label: const Text(
+                            'BUKA TARGET DI BROWSER',
+                            style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () {
+                            Process.run('cmd', ['/c', 'start', 'http://127.0.0.1:$port/']);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Membuka target web http://127.0.0.1:$port/ di peramban...'),
+                                backgroundColor: ZiteraColors.ready,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.key, size: 15, color: Color(0xFF64748B)),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Kredensial Skenario: alice / password123 (Analis Junior) | Scope: Parameter URL & Otorisasi',
+                              style: TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+          ],
           HackerTilixEntrance(
             delay: Duration.zero,
             direction: TilixSlideDirection.down,
@@ -1718,6 +1929,118 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
               ),
             ),
           ],
+
+          // Bug Bounty Program Engagement Card
+          HackerTilixEntrance(
+            delay: const Duration(milliseconds: 20),
+            direction: TilixSlideDirection.down,
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFCFBF8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.monetization_on_outlined, size: 22, color: Color(0xFFB45309)),
+                          SizedBox(width: 8),
+                          Text(
+                            'BUG BOUNTY PROGRAM ENGAGEMENT',
+                            style: TextStyle(
+                              fontFamily: 'SpaceGrotesk',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Color(0xFFB45309),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFFCD34D)),
+                        ),
+                        child: const Text(
+                          'EST. BOUNTY: \$1,500 – \$8,000 USD',
+                          style: TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Skenario: Portal Perbankan Korporat ApexFin Treasury pra-produksi. Misimu adalah melakukan eksfiltrasi dokumen transfer kawat rahasia (Sovereign Wire #42) milik Marcus Reid (VP Controller) tanpa otorisasi resmi.',
+                    style: TextStyle(
+                      fontFamily: 'SpaceGrotesk',
+                      fontSize: 12.5,
+                      color: Color(0xFF475569),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFB45309),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                        icon: const Icon(Icons.launch, size: 16),
+                        label: const Text(
+                          'BUKA TARGET LAB (PORTAL APEXFIN)',
+                          style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () {
+                          final port = _content?.manifest.defaultPort ?? _status?.port ?? 8011;
+                          Process.run('cmd', ['/c', 'start', 'http://127.0.0.1:$port/']);
+                        },
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.copy, size: 14),
+                        label: Text(
+                          'Salin URL Target (${_content?.manifest.defaultPort ?? _status?.port ?? 8011})',
+                          style: const TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11),
+                        ),
+                        onPressed: () {
+                          final port = _content?.manifest.defaultPort ?? _status?.port ?? 8011;
+                          Clipboard.setData(ClipboardData(text: 'http://127.0.0.1:$port/'));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Target URL disalin ke clipboard!')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
 
           HackerTilixEntrance(
             delay: const Duration(milliseconds: 40),

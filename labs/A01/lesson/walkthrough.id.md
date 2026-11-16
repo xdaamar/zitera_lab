@@ -1,68 +1,60 @@
-# Panduan Praktik Terbimbing: Investigasi & Pembuktian IDOR
+# Panduan Praktik Terbimbing: Investigasi & Pembuktian IDOR pada ApexFin Treasury
 
-Dalam latihan terarah ini, kamu akan mempraktikkan proses audit keamanan menyeluruh terhadap sistem penagihan internal yang berjalan di `http://127.0.0.1:8011`. Latihan ini disusun mengikuti rasio **60% teknik analisis manual** dan **40% penggunaan tools terminal**.
+Dalam latihan terarah ini, kamu akan mempraktikkan proses audit keamanan nyata terhadap portal perbendaharaan korporat **ApexFin Corporate Treasury** yang berjalan di `http://127.0.0.1:8011`. Latihan ini disusun mengikuti alur investigasi bug bounty profesional: **Observasi $\rightarrow$ Hipotesis $\rightarrow$ Pembuktian PoC $\rightarrow$ Eksfiltrasi Flag**.
 
 ---
 
-### Tahap 1: Observasi & Pemetaan Sistem (15% â€” Manual)
+### Tahap 1: Observasi & Pemetaan Sistem (Reconnaissance)
 Langkah pertama dalam pengujian penetrasi adalah memetakan perilaku normal aplikasi.
 
-1. Buka peramban web dan akses portal penagihan lokal:
+1. Buka peramban web dan akses portal ApexFin Treasury:
    `http://127.0.0.1:8011`
-2. Lakukan autentikasi menggunakan akun standar:
+2. Lakukan autentikasi menggunakan akun analis junior:
    - **Username:** `alice`
    - **Password:** `password123`
-3. Masuk ke menu **"My Invoices"**. Perhatikan bahwa antarmuka web hanya menampilkan daftar faktur milik Alice.
-4. Buka Developer Tools peramban (tekan **F12** atau `Ctrl + Shift + I`), lalu pilih tab **Network**.
-5. Klik salah satu faktur Alice dan amati detail request HTTP:
-   - **Request URL:** `http://127.0.0.1:8011/invoice/1`
-   - **Method:** `GET`
-   - **Headers:** Perhatikan adanya cookie sesi `session_id=...` yang menandai kamu sebagai Alice.
+3. Amati **Dashboard Operasional**:
+   - Alice hanya melihat 1 transaksi kawat resmi di buku besar: **`TRX-APEX-1001`** (Cloud Compute Retainer - $4,950.00).
+4. Klik tombol **"View Wire Slip"** pada transaksi kawat tersebut.
+5. Perhatikan bilah alamat (*address bar*) peramban:
+   `http://127.0.0.1:8011/wire/1`
+   - Parameter angka `1` adalah referensi objek langsung (*Direct Object Reference*) ke baris database.
 
 ---
 
-### Tahap 2: Pengujian Hipotesis & Fault Injection (25% â€” Manual)
-Sekarang ujilah hipotesis: *Apakah server memvalidasi hak kepemilikan faktur terhadap sesi Alice?*
+### Tahap 2: Pengujian Hipotesis & Parameter Tampering
+Sekarang ujilah hipotesis: *Apakah server memvalidasi kepemilikan voucher transfer terhadap sesi login Alice?*
 
 1. Tetap berada di halaman peramban, lalu klik bilah alamat (*address bar*).
 2. Ubah URL dari:
-   `http://127.0.0.1:8011/invoice/1`
+   `http://127.0.0.1:8011/wire/1`
    menjadi:
-   `http://127.0.0.1:8011/invoice/2`
+   `http://127.0.0.1:8011/wire/2`
 3. Tekan **Enter** dan amati hasilnya:
-   - **Observasi:** Halaman berhasil dimuat dengan status `200 OK`.
-   - **Temuan Bukti:** Data yang tampil di layar adalah faktur milik pengguna **Bob**!
-   - **Analisis Kritis:** Cookie yang dikirimkan tetap milik Alice, namun server mengembalikan data rahasia milik Bob tanpa penolakan otorisasi. Ini adalah bukti nyata kerentanan IDOR.
+   - **Status Respon:** Berhasil dimuat dengan status `200 OK`.
+   - **Temuan Bukti:** Data yang tampil di layar adalah voucher kawat **`TRX-APEX-1002`** bernilai $1,450.00 milik analis lain (**Robert Sterling / Bob**)!
+   - **Analisis Kritis:** Cookie sesi yang dikirimkan tetap milik Alice (`user_sess_1`), namun server mengembalikan voucher milik Bob tanpa penolakan HTTP 403 Forbidden. Ini membuktikan adanya kerentanan **Horizontal IDOR**!
 
 ---
 
-### Tahap 3: Eksploitasi Terarah & Weaponization (35% â€” Tools: cURL)
-Gunakan cURL pada terminal lokal untuk mengevaluasi dampak kebocoran data secara terstruktur dan mencari faktur bernilai tinggi (*master invoice*).
+### Tahap 3: Eksfiltrasi Dokumen Berstatus Rahasia (Sovereign Wire #42)
+Sebagai bug hunter, temuan horizontal IDOR biasa mungkin bernilai $1,500. Namun, jika kamu berhasil mengakses dokumen bernilai tinggi atau data pengawas regulasi (Sovereign/Executive Record), dampaknya melonjak menjadi **Critical ($5,000+)**!
 
-1. Buka terminal di dalam workspace ZITERA_LAB.
-2. Salin nilai cookie sesi Alice dari tab Network Developer Tools.
-3. Jalankan perintah manual cURL untuk memeriksa faktur lain:
-   ```bash
-   curl -s -i "http://127.0.0.1:8011/invoice/2" -H "Cookie: session_id=YOUR_ALICE_SESSION"
-   ```
-4. Lakukan penelusuran sistematis terhadap ID bernilai khusus (misalnya `id=0`, `id=3`, atau ID administratif):
-   ```bash
-   # Uji keberadaan entri indeks awal atau catatan khusus sistem
-   curl -s "http://127.0.0.1:8011/invoice/0" -H "Cookie: session_id=YOUR_ALICE_SESSION"
-   ```
-5. Perhatikan bagaimana response body membocorkan catatan penagihan master yang tidak pernah ditampilkan pada menu web biasa.
+1. Coba lakukan penelusuran terhadap ID khusus yang mencurigakan di URL, misalnya nomor referensi audit eksekutif:
+   `http://127.0.0.1:8011/wire/42`
+2. Halaman akan merender **Official Wire Settlement Voucher** berstatus **RESTRICTED**:
+   - **Kode Referensi:** `TRX-APEX-9901-SOVEREIGN`
+   - **Nilai Transaksi:** `$99,999.00`
+   - **Signatory:** Marcus Reid (VP Corporate Controller & Auditor)
+   - **Compliance Memo:** Memuat bukti validasi autoritatif berupa CTF Flag!
+3. Perhatikan pita ambient di bagian atas: tombol **`[📋 COPY FLAG]`** aktif dan kamu dapat menyalin flag langsung ke clipboard untuk disubmit ke Zitera Lab desktop.
 
 ---
 
-### Tahap 4: Remediasi & Verifikasi Hasil (25% â€” Manual & Tools)
-Tahap penutup adalah memastikan bahwa perbaikan telah efektif dan dapat dibuktikan.
+### Tahap 4: Verifikasi Uji Mandiri via Terminal (cURL)
+Kamu juga dapat melakukan pembuktian tanpa browser menggunakan perintah cURL di terminal Zitera Lab:
 
-1. Terapkan aturan otorisasi server-side pada controller backend:
-   ```python
-   # Verifikasi bahwa invoice.owner_id == session['user_id']
-   ```
-2. Ulangi request cURL terhadap faktur nomor 2 menggunakan akun Alice:
-   ```bash
-   curl -s -i "http://127.0.0.1:8011/invoice/2" -H "Cookie: session_id=YOUR_ALICE_SESSION"
-   ```
-3. **Kriteria Keberhasilan:** Server wajib mengembalikan kode status **`403 Forbidden`** atau **`404 Not Found`**, membuktikan bahwa kebocoran data lintas pengguna telah tertutup sempurna.
+```bash
+# Uji akses voucher #42 langsung menggunakan cookie sesi Alice
+curl -s -i "http://127.0.0.1:8011/wire/42" -H "Cookie: session_user=user_sess_1"
+```
+Perhatikan bahwa server mengembalikan payload lengkap dokumen rahasia tanpa meminta login ulang sebagai admin.
