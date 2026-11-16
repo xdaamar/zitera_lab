@@ -4,6 +4,65 @@ import 'models.dart';
 
 class ZiteraEngineClient {
   static String? _cachedEnginePath;
+  static String? _cachedWorkspaceRoot;
+
+  static String findWorkspaceRoot() {
+    if (_cachedWorkspaceRoot != null && Directory(_cachedWorkspaceRoot!).existsSync()) {
+      return _cachedWorkspaceRoot!;
+    }
+
+    // 1. Explicit environment override
+    final envRoot = Platform.environment['ZITERA_WORKSPACE_ROOT'];
+    if (envRoot != null && envRoot.isNotEmpty && Directory(envRoot).existsSync()) {
+      _cachedWorkspaceRoot = Directory(envRoot).absolute.path;
+      return _cachedWorkspaceRoot!;
+    }
+
+    // Helper to identify a valid repository or bundle workspace root
+    bool isValidRoot(Directory dir) {
+      final sep = Platform.pathSeparator;
+      final pathLower = dir.path.toLowerCase();
+      // Exclude intermediate build artifacts
+      final segments = pathLower.split(sep);
+      if (segments.any((s) => s == 'build' || s == 'runner' || s == 'x64')) {
+        return false;
+      }
+      final hasCatalog = File([dir.path, 'catalog', 'catalog.json'].join(sep)).existsSync();
+      final hasGit = Directory([dir.path, '.git'].join(sep)).existsSync();
+      final hasLabs = Directory([dir.path, 'labs'].join(sep)).existsSync();
+      return hasCatalog && (hasGit || hasLabs);
+    }
+
+    // 2. Search upward from Directory.current
+    try {
+      Directory? dir = Directory.current;
+      for (int i = 0; i < 8 && dir != null; i++) {
+        if (isValidRoot(dir)) {
+          _cachedWorkspaceRoot = dir.absolute.path;
+          return _cachedWorkspaceRoot!;
+        }
+        final parent = dir.parent;
+        if (parent.path == dir.path) break;
+        dir = parent;
+      }
+    } catch (_) {}
+
+    // 3. Search upward from Platform.resolvedExecutable
+    try {
+      Directory? dir = File(Platform.resolvedExecutable).parent;
+      for (int i = 0; i < 8 && dir != null; i++) {
+        if (isValidRoot(dir)) {
+          _cachedWorkspaceRoot = dir.absolute.path;
+          return _cachedWorkspaceRoot!;
+        }
+        final parent = dir.parent;
+        if (parent.path == dir.path) break;
+        dir = parent;
+      }
+    } catch (_) {}
+
+    return Directory.current.absolute.path;
+  }
 
   static String findEngineExecutable() {
     if (_cachedEnginePath != null && File(_cachedEnginePath!).existsSync()) {
@@ -54,12 +113,24 @@ class ZiteraEngineClient {
   static Future<dynamic> executeCommandRaw(List<String> args) async {
     final engine = findEngineExecutable();
     final fullArgs = ['--json', ...args];
+    final wsRoot = findWorkspaceRoot();
 
     try {
-      final result = await Process.run(engine, fullArgs);
+      final result = await Process.run(
+        engine,
+        fullArgs,
+        workingDirectory: wsRoot,
+        environment: {'ZITERA_WORKSPACE_ROOT': wsRoot},
+      );
       if (result.stdout == null || result.stdout.toString().trim().isEmpty) {
         final err = result.stderr.toString().trim();
-        throw Exception(err.isNotEmpty ? err : 'Engine produced empty response.');
+        throw ZiteraException(
+          code: result.exitCode != 0 ? 'ENGINE_EXIT_ERROR' : 'EMPTY_RESPONSE',
+          message: err.isNotEmpty ? err : 'Engine produced empty response (exit code ${result.exitCode}).',
+          recoveryAction: 'Periksa izin eksekusi engine dan log diagnosa sistem.',
+          recoverable: true,
+          details: 'Command: $engine ${fullArgs.join(" ")}\nExit code: ${result.exitCode}\nSTDERR: $err',
+        );
       }
 
       final jsonMap = jsonDecode(result.stdout.toString().trim()) as Map<String, dynamic>;
@@ -81,11 +152,20 @@ class ZiteraEngineClient {
       }
 
       return jsonMap['data'];
-    } on FormatException {
+    } on ProcessException catch (pe) {
+      throw ZiteraException(
+        code: 'PROCESS_LAUNCH_FAILED',
+        message: 'Gagal menjalankan zitera-engine: ${pe.message}',
+        recoveryAction: 'Pastikan file binary zitera-engine.exe tidak terblokir oleh antivirus atau kebijakan sistem operasi.',
+        recoverable: true,
+        details: 'Executable: ${pe.executable}\nArguments: ${pe.arguments.join(" ")}\nOS Error: ${pe.errorCode}',
+      );
+    } on FormatException catch (fe) {
       throw ZiteraException(
         code: 'PARSE_ERROR',
-        message: 'Failed to parse response from ZITERA engine.',
-        recoveryAction: 'Verify that the engine executable is intact and not corrupted.',
+        message: 'Gagal memproses respon JSON dari ZITERA engine: ${fe.message}',
+        recoveryAction: 'Pastikan file engine executable utuh dan tidak korup.',
+        recoverable: true,
       );
     } catch (e) {
       rethrow;
@@ -166,11 +246,16 @@ class ZiteraEngineClient {
     if (!forceRefresh && _cachedCatalog != null) {
       return _cachedCatalog!;
     }
-    final data = await executeCommandRaw(['catalog']);
+    final args = forceRefresh ? ['catalog', 'refresh'] : ['catalog'];
+    final data = await executeCommandRaw(args);
     final catData = data as Map<String, dynamic>? ?? {};
     final list = catData['labs'] as List<dynamic>? ?? [];
     _cachedCatalog = list.map((item) => CatalogEntry.fromJson(item as Map<String, dynamic>)).toList();
     return _cachedCatalog!;
+  }
+
+  static void clearCatalogCache() {
+    _cachedCatalog = null;
   }
 
   static Future<LabContent> getLabContent(String id) async {

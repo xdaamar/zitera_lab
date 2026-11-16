@@ -182,7 +182,13 @@ class ComponentReadinessChecker {
       updateItem(1, CheckStatus.failed, 'Skipped: Engine executable is missing.');
     } else {
       try {
-        final versionRes = await Process.run(enginePath, ['--version']).timeout(
+        final wsRoot = ZiteraEngineClient.findWorkspaceRoot();
+        final versionRes = await Process.run(
+          enginePath,
+          ['--version'],
+          workingDirectory: wsRoot,
+          environment: {'ZITERA_WORKSPACE_ROOT': wsRoot},
+        ).timeout(
           const Duration(seconds: 6),
           onTimeout: () => ProcessResult(-1, -1, '', 'Engine version command timed out'),
         );

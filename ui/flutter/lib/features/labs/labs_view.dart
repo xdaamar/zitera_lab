@@ -25,6 +25,7 @@ class _LabsViewState extends State<LabsView> {
   List<LabItem> _labs = [];
   List<CatalogEntry> _catalog = [];
   bool _isLoading = true;
+  bool _isCheckingUpdates = false;
   String? _error;
   String? _actionInProgressId;
   String _selectedFilter = 'ALL';
@@ -36,16 +37,18 @@ class _LabsViewState extends State<LabsView> {
     _loadLabs();
   }
 
-  Future<void> _loadLabs() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _loadLabs({bool forceRefresh = false}) async {
+    if (!forceRefresh) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
 
     try {
       final results = await Future.wait([
         ZiteraEngineClient.getLabs(),
-        ZiteraEngineClient.getCatalog().catchError((_) => <CatalogEntry>[]),
+        ZiteraEngineClient.getCatalog(forceRefresh: forceRefresh).catchError((_) => <CatalogEntry>[]),
       ]);
 
       final installedLabs = results[0] as List<LabItem>;
@@ -67,6 +70,8 @@ class _LabsViewState extends State<LabsView> {
               learnReadiness: 'READY',
               practiceReadiness: 'READY',
               challengeReadiness: 'READY',
+              hasUpdate: false,
+              latestVersion: cat.version,
             ),
           );
         }
@@ -86,6 +91,41 @@ class _LabsViewState extends State<LabsView> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _handleCheckUpdates() async {
+    setState(() {
+      _isCheckingUpdates = true;
+      _error = null;
+    });
+
+    try {
+      await _loadLabs(forceRefresh: true);
+      if (mounted) {
+        final updateCount = _labs.where((l) => l.hasUpdate).length;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              updateCount > 0
+                  ? 'Catalog refreshed: $updateCount lab update(s) available!'
+                  : 'Catalog & labs checked: All installed labs are up to date.',
+            ),
+            backgroundColor: updateCount > 0 ? const Color(0xFF0F766E) : ZiteraColors.ready,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to check updates: $e'),
+            backgroundColor: ZiteraColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCheckingUpdates = false);
     }
   }
 
@@ -229,6 +269,36 @@ class _LabsViewState extends State<LabsView> {
     }
   }
 
+  Future<void> _handleUpdate(String id) async {
+    setState(() => _actionInProgressId = id);
+    try {
+      final res = await ZiteraEngineClient.updateLab(id);
+      await _loadLabs();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.isNotEmpty ? res : 'Lab $id updated successfully!'),
+            backgroundColor: ZiteraColors.ready,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        FailureRecoveryDialog.show(
+          context,
+          error: e,
+          labId: id,
+          actionContext: 'Updating Lab $id',
+          onRestart: () => _handleUpdate(id),
+          onReset: () => _handleReset(id),
+          onRefresh: () => _loadLabs(),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actionInProgressId = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -329,7 +399,7 @@ class _LabsViewState extends State<LabsView> {
                               Icon(Icons.wifi, size: 14, color: Color(0xFF0F766E)),
                               SizedBox(width: 6),
                               Text(
-                                'CATALOG SYNCED',
+                                'DYNAMIC CATALOG',
                                 style: TextStyle(
                                   fontFamily: 'JetBrainsMono',
                                   fontSize: 10,
@@ -342,10 +412,10 @@ class _LabsViewState extends State<LabsView> {
                         ),
                         const SizedBox(width: 10),
                         ZiteraButton(
-                          label: 'Refresh Labs',
-                          icon: Icons.refresh,
-                          variant: ButtonVariant.secondary,
-                          onPressed: _loadLabs,
+                          label: _isCheckingUpdates ? 'Checking Updates...' : 'Check Updates / Refresh Catalog',
+                          icon: _isCheckingUpdates ? Icons.hourglass_top : Icons.sync,
+                          variant: ButtonVariant.primary,
+                          onPressed: _isCheckingUpdates ? () {} : _handleCheckUpdates,
                         ),
                       ],
                     ),
@@ -583,6 +653,26 @@ class _LabsViewState extends State<LabsView> {
                                         ),
                                       ),
                                     ),
+                                    if (lab.hasUpdate) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFEF3C7),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: const Color(0xFFF59E0B)),
+                                        ),
+                                        child: Text(
+                                          'UPDATE v${lab.latestVersion}',
+                                          style: const TextStyle(
+                                            fontFamily: 'JetBrainsMono',
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFFB45309),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                     const SizedBox(width: 6),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -660,7 +750,7 @@ class _LabsViewState extends State<LabsView> {
                             children: [
                               if (!lab.installed) ...[
                                 ZiteraButton(
-                                  label: isBusy ? 'Installing...' : 'Install Lab',
+                                  label: isBusy ? 'Installing...' : '[INSTALL LAB]',
                                   icon: isBusy ? Icons.hourglass_top : Icons.download,
                                   variant: ButtonVariant.primary,
                                   onPressed: isBusy ? () {} : () => _handleInstall(lab.id),
@@ -686,9 +776,16 @@ class _LabsViewState extends State<LabsView> {
                                   variant: ButtonVariant.primary,
                                   onPressed: () => widget.onSelectLab(lab.id),
                                 ),
-                              ] else ...[
+                              ] else if (lab.hasUpdate) ...[
                                 ZiteraButton(
-                                  label: isBusy ? 'Starting...' : 'Start Lab',
+                                  label: isBusy ? 'Updating...' : '[UPDATE LAB (v${lab.latestVersion})]',
+                                  icon: isBusy ? Icons.hourglass_top : Icons.system_update_alt,
+                                  variant: ButtonVariant.primary,
+                                  onPressed: isBusy ? () {} : () => _handleUpdate(lab.id),
+                                ),
+                                const SizedBox(width: 8),
+                                ZiteraButton(
+                                  label: '[RUN LAB]',
                                   icon: Icons.play_arrow,
                                   variant: ButtonVariant.secondary,
                                   onPressed: isBusy ? () {} : () => _handleStart(lab.id),
@@ -697,7 +794,21 @@ class _LabsViewState extends State<LabsView> {
                                 ZiteraButton(
                                   label: 'Open Details',
                                   icon: Icons.arrow_forward,
+                                  variant: ButtonVariant.secondary,
+                                  onPressed: () => widget.onSelectLab(lab.id),
+                                ),
+                              ] else ...[
+                                ZiteraButton(
+                                  label: isBusy ? 'Starting...' : '[RUN LAB]',
+                                  icon: Icons.play_arrow,
                                   variant: ButtonVariant.primary,
+                                  onPressed: isBusy ? () {} : () => _handleStart(lab.id),
+                                ),
+                                const SizedBox(width: 8),
+                                ZiteraButton(
+                                  label: 'Open Details',
+                                  icon: Icons.arrow_forward,
+                                  variant: ButtonVariant.secondary,
                                   onPressed: () => widget.onSelectLab(lab.id),
                                 ),
                               ],

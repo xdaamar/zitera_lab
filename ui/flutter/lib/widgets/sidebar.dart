@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../core/auth/auth_service.dart';
 import '../core/theme/zitera_colors.dart';
+import 'auth_dialog.dart';
 import 'cute_anime_cursor.dart';
 
 class Sidebar extends StatefulWidget {
@@ -227,9 +229,10 @@ class _SidebarState extends State<Sidebar> {
                   children: [
                     _navItem(0, 'Dashboard',    Icons.dashboard_outlined,         'HOME_SYS',   null),
                     _navItem(1, 'Labs Catalog', Icons.science_outlined,            'OWASP_25',   'assets/images/sticker_pink.png'),
-                    _navItem(2, 'Smart Setup',  Icons.health_and_safety_outlined,  'SYS_DIAG',   'assets/images/sticker_bunny.png'),
-                    _navItem(3, 'Tool Manager', Icons.construction_outlined,        'SEC_TOOLS',  'assets/images/sticker_cat_laptop.png'),
-                    _navItem(4, 'Settings',     Icons.settings_outlined,            'PREFERENCES', 'assets/images/sticker_shiba.png'),
+                    _navItem(2, 'Scoreboard',   Icons.military_tech_outlined,      'CTF_RANKS',  'assets/images/sticker_duck.png'),
+                    _navItem(3, 'Smart Setup',  Icons.health_and_safety_outlined,  'SYS_DIAG',   'assets/images/sticker_bunny.png'),
+                    _navItem(4, 'Tool Manager', Icons.construction_outlined,        'SEC_TOOLS',  'assets/images/sticker_cat_laptop.png'),
+                    _navItem(5, 'Settings',     Icons.settings_outlined,            'PREFERENCES', 'assets/images/sticker_shiba.png'),
                   ],
                 ),
                 secondChild: Padding(
@@ -266,6 +269,93 @@ class _SidebarState extends State<Sidebar> {
               ),
 
               const Spacer(),
+
+              // Operative Auth Card / Pill
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                child: ValueListenableBuilder<UserModel?>(
+                  valueListenable: AuthService.currentUserNotifier,
+                  builder: (context, user, _) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: user != null ? const Color(0xFFCCFBF1) : const Color(0xFFFCFBF8).withValues(alpha: 0.96),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: user != null ? const Color(0xFF2DD4BF) : ZiteraColors.border,
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => AuthDialog.show(context),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: user != null ? const Color(0xFF2DD4BF) : ZiteraColors.surface,
+                                  ),
+                                  child: Icon(
+                                    user != null ? Icons.shield : Icons.person_outline,
+                                    size: 16,
+                                    color: user != null ? Colors.white : const Color(0xFF5C5347),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        user != null ? user.username : 'LOGIN TO LAB',
+                                        style: TextStyle(
+                                          fontFamily: 'SpaceGrotesk',
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: user != null ? const Color(0xFF0F766E) : const Color(0xFF1E1A14),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        user != null ? 'TURSO CTF ACTIVE' : 'Tap to sync CTF solves',
+                                        style: TextStyle(
+                                          fontFamily: 'JetBrainsMono',
+                                          fontSize: 9,
+                                          fontWeight: user != null ? FontWeight.bold : FontWeight.normal,
+                                          color: user != null ? const Color(0xFF115E59) : const Color(0xFF78716C),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  size: 16,
+                                  color: user != null ? const Color(0xFF0F766E) : const Color(0xFF78716C),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
 
               // Neko Status Card
               Padding(

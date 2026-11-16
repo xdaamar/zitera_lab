@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../scoreboard/scoreboard_service.dart';
 import '../storage/storage_paths.dart';
 
 /// Structured Lab Progress Record (Phase 19 Checkpoint 6).
@@ -349,6 +350,10 @@ class ProgressManager {
       data['last_updated'] = DateTime.now().toIso8601String();
       await _atomicWrite(data);
     }
+
+    try {
+      await ScoreboardService.recordSolve(labId: cleanId);
+    } catch (_) {}
   }
 
   /// Mark practice mode completed for a given lab.

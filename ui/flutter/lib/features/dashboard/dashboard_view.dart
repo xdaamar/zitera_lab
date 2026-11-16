@@ -430,7 +430,7 @@ class _DashboardViewState extends State<DashboardView> {
                     variant: ButtonVariant.gradient,
                     fontSize: 11,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    onPressed: () => widget.onNavigate(2),
+                    onPressed: () => widget.onNavigate(3),
                   ),
                 ],
               ),
@@ -633,7 +633,7 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
               ),
               InkWell(
-                onTap: () => widget.onNavigate(3),
+                onTap: () => widget.onNavigate(4),
                 child: const Row(
                   children: [
                     Text(

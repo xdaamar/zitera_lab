@@ -122,6 +122,8 @@ class LabItem {
   final String practiceReadiness;
   final String challengeReadiness;
   final List<String> recommendedTools;
+  final bool hasUpdate;
+  final String latestVersion;
 
   LabItem({
     required this.id,
@@ -136,9 +138,12 @@ class LabItem {
     this.practiceReadiness = 'READY',
     this.challengeReadiness = 'READY',
     this.recommendedTools = const [],
+    this.hasUpdate = false,
+    this.latestVersion = '',
   });
 
   factory LabItem.fromJson(Map<String, dynamic> json) {
+    final ver = json['version'] as String? ?? '1.0.0';
     return LabItem(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
@@ -146,12 +151,14 @@ class LabItem {
       running: json['running'] as bool? ?? false,
       port: json['port'] as int? ?? 0,
       url: json['url'] as String?,
-      version: json['version'] as String? ?? '1.0.0',
+      version: ver,
       status: json['status'] as String? ?? 'NOT_INSTALLED',
       learnReadiness: json['learn_readiness'] as String? ?? 'READY',
       practiceReadiness: json['practice_readiness'] as String? ?? 'READY',
       challengeReadiness: json['challenge_readiness'] as String? ?? 'READY',
       recommendedTools: (json['recommended_tools'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      hasUpdate: json['has_update'] as bool? ?? false,
+      latestVersion: json['latest_version'] as String? ?? ver,
     );
   }
 }
@@ -176,6 +183,10 @@ class CatalogEntry {
   final List<String> skills;
   final List<String> learningObjectives;
   final List<String> prerequisites;
+  final bool installed;
+  final String? installedVersion;
+  final bool hasUpdate;
+  final String latestVersion;
 
   CatalogEntry({
     required this.id,
@@ -197,18 +208,23 @@ class CatalogEntry {
     this.skills = const [],
     this.learningObjectives = const [],
     this.prerequisites = const [],
+    this.installed = false,
+    this.installedVersion,
+    this.hasUpdate = false,
+    this.latestVersion = '',
   });
 
   factory CatalogEntry.fromJson(Map<String, dynamic> json) {
     final rawId = json['id'] as String? ?? '';
     final rawTitle = json['title'] as String? ?? '';
     final rawDesc = json['description'] as String? ?? '';
+    final ver = json['version'] as String? ?? '1.0.0';
     return CatalogEntry(
       id: rawId,
       packageId: json['package_id'] as String? ?? 'zitera-lab-${rawId.toLowerCase()}',
       title: rawTitle,
       repository: json['repository'] as String? ?? '',
-      version: json['version'] as String? ?? '1.0.0',
+      version: ver,
       difficulty: json['difficulty'] as String? ?? 'Beginner',
       owasp: json['owasp'] as String? ?? '',
       standard: json['standard'] as String? ?? 'owasp-top10',
@@ -223,6 +239,10 @@ class CatalogEntry {
       skills: (json['skills'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       learningObjectives: (json['learning_objectives'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       prerequisites: (json['prerequisites'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      installed: json['installed'] as bool? ?? false,
+      installedVersion: json['installed_version'] as String?,
+      hasUpdate: json['has_update'] as bool? ?? false,
+      latestVersion: json['latest_version'] as String? ?? ver,
     );
   }
 }

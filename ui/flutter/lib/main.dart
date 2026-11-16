@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'core/auth/auth_service.dart';
 import 'core/theme/zitera_theme.dart';
 import 'features/dashboard/dashboard_view.dart';
 import 'features/environment/environment_view.dart';
 import 'features/labs/lab_detail_view.dart';
 import 'features/labs/labs_view.dart';
+import 'features/scoreboard/scoreboard_view.dart';
 import 'features/settings/settings_view.dart';
 import 'features/tools/tools_view.dart';
 import 'widgets/sidebar.dart';
@@ -13,6 +15,7 @@ import 'core/i18n/language_controller.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppLanguageController.init();
+  await AuthService.init();
   runApp(const ZiteraLabApp());
 }
 
@@ -87,14 +90,17 @@ class _MainShellState extends State<MainShell> {
           );
           break;
         case 2:
+          activeContent = const ScoreboardView();
+          break;
+        case 3:
           activeContent = EnvironmentView(
             onNavigateToDashboard: () => _navigateToTab(0),
           );
           break;
-        case 3:
+        case 4:
           activeContent = const ToolsView();
           break;
-        case 4:
+        case 5:
           activeContent = const SettingsView();
           break;
         default:

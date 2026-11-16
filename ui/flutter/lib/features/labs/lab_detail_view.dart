@@ -41,6 +41,8 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   bool _flagSuccess = false;
   bool _isVerifyingFlag = false;
   bool _isInstalling = false;
+  bool _isUpdating = false;
+  bool _isCheckingUpdates = false;
 
   bool _isChallengeSolved = false;
   bool _isPracticeDone = false;
@@ -245,12 +247,16 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   }
 
   Future<void> _handleUpdate() async {
+    setState(() => _isUpdating = true);
     try {
       final res = await ZiteraEngineClient.updateLab(widget.labId);
-      _refreshStatus();
+      await _refreshStatus();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res), backgroundColor: ZiteraColors.ready),
+          SnackBar(
+            content: Text(res.isNotEmpty ? res : 'Lab ${widget.labId} updated successfully!'),
+            backgroundColor: ZiteraColors.ready,
+          ),
         );
       }
     } catch (e) {
@@ -260,11 +266,42 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
           error: e,
           labId: widget.labId,
           actionContext: 'Updating Lab ${widget.labId}',
-          onRestart: () => _handleStart(),
+          onRestart: () => _handleUpdate(),
           onReset: () => _handleReset(),
           onRefresh: () => _refreshStatus(),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
+    }
+  }
+
+  Future<void> _handleCheckUpdates() async {
+    setState(() => _isCheckingUpdates = true);
+    try {
+      await ZiteraEngineClient.getCatalog(forceRefresh: true);
+      await _refreshStatus();
+      if (mounted) {
+        final hasUp = _status?.hasUpdate ?? false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              hasUp
+                  ? 'Update available for ${widget.labId}: v${_status?.latestVersion} (Installed: v${_status?.version})'
+                  : 'Catalog checked: Lab ${widget.labId} is up to date (v${_status?.version}).',
+            ),
+            backgroundColor: hasUp ? const Color(0xFF0F766E) : ZiteraColors.ready,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to check updates: $e'), backgroundColor: ZiteraColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCheckingUpdates = false);
     }
   }
 
@@ -719,6 +756,17 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
               );
             },
           ),
+          IconButton(
+            icon: _isCheckingUpdates
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F766E)),
+                  )
+                : const Icon(Icons.sync, size: 18, color: Color(0xFF5C5347)),
+            tooltip: 'Check Updates / Refresh Catalog',
+            onPressed: _isCheckingUpdates ? null : _handleCheckUpdates,
+          ),
           if (_isChallengeSolved)
             const Padding(
               padding: EdgeInsets.only(right: 12.0),
@@ -796,20 +844,94 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                         'Security boundary: localhost only (no LAN exposure)',
                         style: TextStyle(color: ZiteraColors.textMuted, fontSize: 11),
                       ),
+                      if (_status?.hasUpdate == true) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFFF59E0B)),
+                              ),
+                              child: Text(
+                                'UPDATE AVAILABLE: v${_status!.latestVersion} (Current: v${_status!.version})',
+                                style: const TextStyle(
+                                  fontFamily: 'JetBrainsMono',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFB45309),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                   Row(
                     children: [
                       if (_status?.installed != true) ...[
                         ZiteraButton(
-                          label: _isInstalling ? 'Installing Package...' : 'Install Lab Package',
+                          label: _isInstalling ? 'Installing Package...' : '[INSTALL LAB]',
                           icon: _isInstalling ? Icons.hourglass_top : Icons.download_for_offline,
                           variant: ButtonVariant.primary,
                           onPressed: _isInstalling ? () {} : _handleInstall,
                         ),
+                      ] else if (_status?.hasUpdate == true && !isRunning) ...[
+                        ZiteraButton(
+                          label: _isUpdating ? 'Updating...' : '[UPDATE LAB (v${_status!.latestVersion})]',
+                          icon: _isUpdating ? Icons.hourglass_top : Icons.system_update_alt,
+                          variant: ButtonVariant.primary,
+                          onPressed: _isUpdating ? () {} : _handleUpdate,
+                        ),
+                        const SizedBox(width: 8),
+                        ZiteraButton(
+                          label: '[RUN LAB]',
+                          icon: Icons.play_arrow,
+                          variant: ButtonVariant.secondary,
+                          onPressed: _handleStart,
+                        ),
+                        const SizedBox(width: 8),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, color: Color(0xFF5C5347)),
+                          tooltip: 'Lab Management',
+                          color: const Color(0xFFFCFBF8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: const BorderSide(color: ZiteraColors.border),
+                          ),
+                          onSelected: (val) {
+                            if (val == 'check_update') _handleCheckUpdates();
+                            if (val == 'remove') _handleRemove();
+                          },
+                          itemBuilder: (ctx) => [
+                            const PopupMenuItem(
+                              value: 'check_update',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.sync, size: 16, color: Color(0xFF0F766E)),
+                                  SizedBox(width: 8),
+                                  Text('Check Updates / Refresh Catalog', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'remove',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline, size: 16, color: ZiteraColors.error),
+                                  SizedBox(width: 8),
+                                  Text('Remove Lab', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13, color: ZiteraColors.error)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ] else if (!isRunning) ...[
                         ZiteraButton(
-                          label: 'Start Lab Environment',
+                          label: '[RUN LAB]',
                           icon: Icons.play_arrow,
                           variant: ButtonVariant.primary,
                           onPressed: _handleStart,
@@ -824,17 +946,17 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                             side: const BorderSide(color: ZiteraColors.border),
                           ),
                           onSelected: (val) {
-                            if (val == 'update') _handleUpdate();
+                            if (val == 'check_update') _handleCheckUpdates();
                             if (val == 'remove') _handleRemove();
                           },
                           itemBuilder: (ctx) => [
                             const PopupMenuItem(
-                              value: 'update',
+                              value: 'check_update',
                               child: Row(
                                 children: [
                                   Icon(Icons.sync, size: 16, color: Color(0xFF0F766E)),
                                   SizedBox(width: 8),
-                                  Text('Check & Update Lab', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13)),
+                                  Text('Check Updates / Refresh Catalog', style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 13)),
                                 ],
                               ),
                             ),
