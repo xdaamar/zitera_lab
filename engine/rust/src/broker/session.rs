@@ -181,6 +181,16 @@ impl BrokerSessionManager {
             .filter(|s| s.is_active && now <= s.expires_at)
             .count()
     }
+
+    /// Returns the first currently valid active session, if any.
+    pub fn active_session(&self) -> Option<BrokerSession> {
+        let lock = self.sessions.read().unwrap();
+        let now = Instant::now();
+        if let Some(s) = lock.values().find(|s| s.is_active && now <= s.expires_at) {
+            return Some(s.clone());
+        }
+        lock.values().find(|s| s.is_active).cloned()
+    }
 }
 
 #[cfg(test)]

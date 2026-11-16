@@ -216,29 +216,41 @@ pub fn parse_http_request(raw_bytes: &[u8]) -> Result<ParsedRequest, HttpParseEr
         return Err(HttpParseError::PathTraversal(raw_path.to_string()));
     }
 
-    // 3. Session routing extraction: must match /session/<token>[/<subpath>]
-    // Minimum: /session/<32-char-token>
+    // 3. Session routing extraction:
+    // If path starts with /session/<token>[/<subpath>], extract token and subpath.
+    // If path is root "/", "/session", or direct subpaths, allow with an empty session_token
+    // so the broker server can cleanly redirect or proxy to the active lab session.
     let parts: Vec<&str> = raw_path.split('/').filter(|s| !s.is_empty()).collect();
-    if parts.is_empty() || parts[0] != "session" || parts.len() < 2 {
-        return Err(HttpParseError::InvalidRoute(raw_path.to_string()));
-    }
-
-    let session_token = parts[1].to_string();
-    if session_token.len() != 32 || !session_token.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(HttpParseError::InvalidRoute(
-            "Invalid session token format".to_string(),
-        ));
-    }
-
-    // Build subpath (e.g. "/" or "/api/users")
-    let subpath = if parts.len() == 2 {
-        if raw_path.ends_with('/') {
-            "/".to_string()
+    let (session_token, subpath) = if !parts.is_empty() && parts[0] == "session" {
+        if parts.len() == 1 {
+            // e.g. /session or /session/ -> empty token triggers redirect to active session
+            (String::new(), "/".to_string())
         } else {
-            "".to_string()
+            let token = parts[1].to_string();
+            if token.len() != 32 || !token.chars().all(|c| c.is_ascii_hexdigit()) {
+                return Err(HttpParseError::InvalidRoute(
+                    "Invalid session token format".to_string(),
+                ));
+            }
+
+            let sub = if parts.len() == 2 {
+                if raw_path.ends_with('/') {
+                    "/".to_string()
+                } else {
+                    "".to_string()
+                }
+            } else {
+                format!("/{}", parts[2..].join("/"))
+            };
+            (token, sub)
         }
     } else {
-        format!("/{}", parts[2..].join("/"))
+        let sub = if raw_path.is_empty() {
+            "/".to_string()
+        } else {
+            raw_path.to_string()
+        };
+        (String::new(), sub)
     };
 
     // 4. Parse Headers

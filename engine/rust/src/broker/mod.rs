@@ -535,4 +535,91 @@ mod tests {
             resp_rel
         );
     }
+
+    #[test]
+    fn test_broker_preferred_port_binding_and_fallback() {
+        let session_mgr = Arc::new(BrokerSessionManager::new(Duration::from_secs(60)));
+        let handler = Arc::new(TestLabHandler {
+            mock_response: "PASS".to_string(),
+        });
+
+        // 1. Start on preferred port (e.g. 18012)
+        let server1 = BrokerServer::start_with_port(
+            Arc::clone(&session_mgr),
+            Arc::clone(&handler) as Arc<dyn LabRequestHandler>,
+            Some(18012),
+        )
+        .expect("Must bind to preferred port 18012");
+        assert_eq!(server1.port(), 18012);
+
+        // 2. Attempt to bind same port again -> must fall back to dynamic port (> 1024, != 18012)
+        let server2 = BrokerServer::start_with_port(
+            Arc::clone(&session_mgr),
+            Arc::clone(&handler) as Arc<dyn LabRequestHandler>,
+            Some(18012),
+        )
+        .expect("Must fall back to dynamic port");
+        assert_ne!(server2.port(), 18012);
+        assert!(server2.port() > 1024);
+    }
+
+    #[test]
+    fn test_broker_root_and_subpath_redirect_to_active_session() {
+        let (server, session_mgr) = setup_test_broker(Duration::from_secs(60));
+        let session = session_mgr.create_session("A01", None);
+
+        // 1. Visit root "/" directly without /session/<token>
+        let req_root = format!(
+            "GET / HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            server.port()
+        );
+        let resp_root = send_raw_request(server.port(), &req_root);
+        assert!(
+            resp_root.starts_with("HTTP/1.1 302 Found"),
+            "Expected 302 Found redirect, got: {}",
+            resp_root
+        );
+        assert!(
+            resp_root.contains(&format!("Location: /session/{}/", session.session_id)),
+            "Expected Location to point to active session URL, got: {}",
+            resp_root
+        );
+
+        // 2. Visit "/session/" with omitted token
+        let req_sess = format!(
+            "GET /session/ HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            server.port()
+        );
+        let resp_sess = send_raw_request(server.port(), &req_sess);
+        assert!(resp_sess.starts_with("HTTP/1.1 302 Found"));
+        assert!(resp_sess.contains(&format!("Location: /session/{}/", session.session_id)));
+
+        // 3. Visit direct subpath "/dashboard?tab=analytics"
+        let req_sub = format!(
+            "GET /dashboard?tab=analytics HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n\r\n",
+            server.port()
+        );
+        let resp_sub = send_raw_request(server.port(), &req_sub);
+        assert!(resp_sub.starts_with("HTTP/1.1 302 Found"));
+        assert!(resp_sub.contains(&format!(
+            "Location: /session/{}/dashboard?tab=analytics",
+            session.session_id
+        )));
+
+        // 4. POST to subpath without token -> 307 Temporary Redirect
+        let req_post = format!(
+            "POST /api/action HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Length: 4\r\n\r\nping",
+            server.port()
+        );
+        let resp_post = send_raw_request(server.port(), &req_post);
+        assert!(
+            resp_post.starts_with("HTTP/1.1 307 Temporary Redirect"),
+            "Expected 307 Temporary Redirect for POST, got: {}",
+            resp_post
+        );
+        assert!(resp_post.contains(&format!(
+            "Location: /session/{}/api/action",
+            session.session_id
+        )));
+    }
 }

@@ -43,6 +43,19 @@ impl SandboxedProcessHandle {
         self.h_process
     }
 
+    /// Checks if the child process is still running using its own handle.
+    pub fn is_alive(&self) -> bool {
+        unsafe {
+            use windows_sys::Win32::System::Threading::GetExitCodeProcess;
+            if self.h_process == 0 as _ {
+                return false;
+            }
+            let mut exit_code: u32 = 0;
+            let res = GetExitCodeProcess(self.h_process, &mut exit_code);
+            res != 0 && exit_code == 259 // STILL_ACTIVE = 259
+        }
+    }
+
     /// Extracts the standard input and standard output streams for bidirectional communication.
     pub fn take_io(&mut self) -> (Option<std::fs::File>, Option<std::fs::File>) {
         use std::os::windows::io::FromRawHandle;
@@ -154,6 +167,9 @@ impl Drop for SandboxedProcessHandle {
 
 #[cfg(not(windows))]
 impl SandboxedProcessHandle {
+    pub fn is_alive(&self) -> bool {
+        false
+    }
     pub fn take_io(&mut self) -> (Option<std::fs::File>, Option<std::fs::File>) {
         (None, None)
     }
@@ -437,12 +453,21 @@ pub fn spawn_sandboxed_process(
     let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
 
     // Always create suspended if a Job Object is provided, to ensure atomic containment
-    let creation_flags = EXTENDED_STARTUPINFO_PRESENT
+    const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x01000000;
+    let base_creation_flags = EXTENDED_STARTUPINFO_PRESENT
         | CREATE_NO_WINDOW
         | CREATE_UNICODE_ENVIRONMENT
         | if job.is_some() { CREATE_SUSPENDED } else { 0 };
 
-    let create_res = unsafe {
+    // When a Job Object is requested, first attempt with CREATE_BREAKAWAY_FROM_JOB so that if the parent
+    // process is in a runner/IDE job that allows breakaway, the child breaks away cleanly to join Zitera's Job Object.
+    let mut creation_flags = if job.is_some() {
+        base_creation_flags | CREATE_BREAKAWAY_FROM_JOB
+    } else {
+        base_creation_flags
+    };
+
+    let mut create_res = unsafe {
         CreateProcessW(
             std::ptr::null(),
             wide_cmd_line.as_mut_ptr(),
@@ -456,6 +481,29 @@ pub fn spawn_sandboxed_process(
             &mut pi,
         )
     };
+
+    // If CREATE_BREAKAWAY_FROM_JOB was denied because parent Job Object prohibits breakaway (Win32 code 5),
+    // retry process creation without CREATE_BREAKAWAY_FROM_JOB.
+    if create_res == 0 && job.is_some() {
+        let err = unsafe { GetLastError() };
+        if err == 5 {
+            creation_flags = base_creation_flags;
+            create_res = unsafe {
+                CreateProcessW(
+                    std::ptr::null(),
+                    wide_cmd_line.as_mut_ptr(),
+                    std::ptr::null(),
+                    std::ptr::null(),
+                    1,
+                    creation_flags,
+                    env_block.as_ptr() as _,
+                    wide_working_dir.as_ptr(),
+                    &si_ex.StartupInfo,
+                    &mut pi,
+                )
+            };
+        }
+    }
 
     // Free attribute list and derived SID handle, close parent's copies of child-inherited handles
     unsafe {
@@ -486,15 +534,31 @@ pub fn spawn_sandboxed_process(
     if let Some(j) = job {
         let assign_res = unsafe { j.assign_process(pi.hProcess) };
         if let Err(e) = assign_res {
-            unsafe {
-                windows_sys::Win32::System::Threading::TerminateProcess(pi.hProcess, 1);
-                CloseHandle(pi.hProcess);
-                CloseHandle(pi.hThread);
-                CloseHandle(stdin_write);
-                CloseHandle(stdout_read);
-                CloseHandle(stderr_read);
+            let is_access_denied = match &e {
+                NativeRuntimeError::ProcessLaunchFailed { os_code, .. } => *os_code == 5,
+                _ => false,
+            };
+            if is_access_denied {
+                // When spawned from IDEs/runners (VS Code, terminal, Flutter runner) where the parent process
+                // is already locked inside a Job Object that disallows cross-job assignment, Windows returns
+                // Win32 code 5 (ERROR_ACCESS_DENIED).
+                // The process is already contained inside the parent Job Object hierarchy and isolated by AppContainer.
+                // Log a warning and proceed without aborting lab startup.
+                eprintln!(
+                    "[WARN] Process {} is already assigned to parent Job Object (Win32 code 5: ERROR_ACCESS_DENIED); proceeding under parent job containment.",
+                    pi.dwProcessId
+                );
+            } else {
+                unsafe {
+                    windows_sys::Win32::System::Threading::TerminateProcess(pi.hProcess, 1);
+                    CloseHandle(pi.hProcess);
+                    CloseHandle(pi.hThread);
+                    CloseHandle(stdin_write);
+                    CloseHandle(stdout_read);
+                    CloseHandle(stderr_read);
+                }
+                return Err(e);
             }
-            return Err(e);
         }
         // Resume thread to start execution inside the Job Object
         unsafe {

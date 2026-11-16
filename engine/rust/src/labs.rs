@@ -45,8 +45,9 @@ pub fn read_manifest(lab_dir: &Path) -> Result<LabManifest, String> {
     }
     let data = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read manifest at {:?}: {}", manifest_path, e))?;
+    let clean_data = data.trim_start_matches('\u{feff}');
     let manifest: LabManifest =
-        serde_json::from_str(&data).map_err(|e| format!("Failed to parse manifest JSON: {}", e))?;
+        serde_json::from_str(clean_data).map_err(|e| format!("Failed to parse manifest JSON: {}", e))?;
 
     if manifest.id.trim().is_empty() {
         return Err("Lab manifest 'id' cannot be empty.".to_string());
@@ -204,26 +205,28 @@ pub fn get_lab_status_cached(
             practice_readiness: "NOT_READY".to_string(),
             challenge_readiness: "NOT_READY".to_string(),
             recommended_tools: Vec::new(),
+            has_update: false,
+            latest_version: "N/A".to_string(),
         };
     }
 
     let lab_dir = get_lab_dir(workspace_root, lab_id);
     if !lab_dir.exists() {
-        let title = if let Some(cat) = cached_cat {
+        let (title, latest_version) = if let Some(cat) = cached_cat {
             cat.labs
                 .iter()
                 .find(|l| l.id.eq_ignore_ascii_case(lab_id))
-                .map(|l| l.title.clone())
-                .unwrap_or_else(|| lab_id.to_string())
+                .map(|l| (l.title.clone(), l.version.clone()))
+                .unwrap_or_else(|| (lab_id.to_string(), "1.0.0".to_string()))
         } else {
             match crate::catalog::load_catalog(workspace_root) {
                 Ok(cat) => cat
                     .labs
                     .iter()
                     .find(|l| l.id.eq_ignore_ascii_case(lab_id))
-                    .map(|l| l.title.clone())
-                    .unwrap_or_else(|| lab_id.to_string()),
-                Err(_) => lab_id.to_string(),
+                    .map(|l| (l.title.clone(), l.version.clone()))
+                    .unwrap_or_else(|| (lab_id.to_string(), "1.0.0".to_string())),
+                Err(_) => (lab_id.to_string(), "1.0.0".to_string()),
             }
         };
         return LabStatus {
@@ -239,6 +242,8 @@ pub fn get_lab_status_cached(
             practice_readiness: "NOT_READY".to_string(),
             challenge_readiness: "NOT_READY".to_string(),
             recommended_tools: Vec::new(),
+            has_update: false,
+            latest_version,
         };
     }
 
@@ -300,6 +305,26 @@ pub fn get_lab_status_cached(
                 ("READY".to_string(), Vec::new())
             };
 
+            let latest_version = if let Some(cat) = cached_cat {
+                cat.labs
+                    .iter()
+                    .find(|l| l.id.eq_ignore_ascii_case(&manifest.id))
+                    .map(|l| l.version.clone())
+                    .unwrap_or_else(|| manifest.version.clone())
+            } else {
+                match crate::catalog::load_catalog(workspace_root) {
+                    Ok(cat) => cat
+                        .labs
+                        .iter()
+                        .find(|l| l.id.eq_ignore_ascii_case(&manifest.id))
+                        .map(|l| l.version.clone())
+                        .unwrap_or_else(|| manifest.version.clone()),
+                    Err(_) => manifest.version.clone(),
+                }
+            };
+            let has_update = crate::package::installer::compare_semver(&latest_version, &manifest.version)
+                == std::cmp::Ordering::Greater;
+
             LabStatus {
                 id: manifest.id,
                 title: manifest.title,
@@ -313,24 +338,26 @@ pub fn get_lab_status_cached(
                 practice_readiness: "READY".to_string(),
                 challenge_readiness,
                 recommended_tools,
+                has_update,
+                latest_version,
             }
         }
         Err(_) => {
-            let title = if let Some(cat) = cached_cat {
+            let (title, latest_version) = if let Some(cat) = cached_cat {
                 cat.labs
                     .iter()
                     .find(|l| l.id.eq_ignore_ascii_case(lab_id))
-                    .map(|l| l.title.clone())
-                    .unwrap_or_else(|| lab_id.to_string())
+                    .map(|l| (l.title.clone(), l.version.clone()))
+                    .unwrap_or_else(|| (lab_id.to_string(), "1.0.0".to_string()))
             } else {
                 match crate::catalog::load_catalog(workspace_root) {
                     Ok(cat) => cat
                         .labs
                         .iter()
                         .find(|l| l.id.eq_ignore_ascii_case(lab_id))
-                        .map(|l| l.title.clone())
-                        .unwrap_or_else(|| lab_id.to_string()),
-                    Err(_) => lab_id.to_string(),
+                        .map(|l| (l.title.clone(), l.version.clone()))
+                        .unwrap_or_else(|| (lab_id.to_string(), "1.0.0".to_string())),
+                    Err(_) => (lab_id.to_string(), "1.0.0".to_string()),
                 }
             };
             LabStatus {
@@ -346,6 +373,8 @@ pub fn get_lab_status_cached(
                 practice_readiness: "NOT_READY".to_string(),
                 challenge_readiness: "NOT_READY".to_string(),
                 recommended_tools: Vec::new(),
+                has_update: false,
+                latest_version,
             }
         }
     }
@@ -491,12 +520,13 @@ pub fn serve_lab(workspace_root: &Path, lab_id: &str) -> Result<(), String> {
         .wait_for_ready(Duration::from_secs(10))
         .map_err(|e| format!("Lab readiness failed: {}", e))?;
 
-    let session_mgr = Arc::new(BrokerSessionManager::new(Duration::from_secs(3600)));
+    let session_mgr = Arc::new(BrokerSessionManager::new(Duration::from_secs(86400 * 365)));
     let session = session_mgr.create_session(lab_id, None);
 
-    let mut broker = BrokerServer::start(
+    let mut broker = BrokerServer::start_with_port(
         Arc::clone(&session_mgr),
         Arc::clone(&channel) as Arc<dyn crate::broker::server::LabRequestHandler>,
+        Some(manifest.default_port),
     )
     .map_err(|e| format!("Failed to start broker: {}", e))?;
 
@@ -522,7 +552,7 @@ pub fn serve_lab(workspace_root: &Path, lab_id: &str) -> Result<(), String> {
     println!("[READY] Lab {} running at {}", lab_id, entry_url);
 
     // Keep running until child process exits or stops
-    while is_process_alive(handle.pid) {
+    while handle.is_alive() {
         std::thread::sleep(Duration::from_millis(200));
     }
 
@@ -583,16 +613,39 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
             use std::os::windows::process::CommandExt;
             const CREATE_NO_WINDOW: u32 = 0x08000000;
             const DETACHED_PROCESS: u32 = 0x00000008;
+            const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x01000000;
+
+            let log_path = lab_dir.join(".serve.log");
+            let log_file_out = std::fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(&log_path)
+                .ok();
+            let log_file_err = log_file_out.as_ref().and_then(|f| f.try_clone().ok());
 
             let mut cmd = std::process::Command::new(engine_exe);
             cmd.args(["lab", "serve", lab_id]);
             cmd.current_dir(workspace_root);
             cmd.stdin(std::process::Stdio::null());
-            cmd.stdout(std::process::Stdio::null());
-            cmd.stderr(std::process::Stdio::null());
-            cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS);
-            cmd.spawn()
-                .map_err(|e| format!("Failed to launch lab broker background process: {}", e))?;
+            if let Some(f_out) = log_file_out {
+                cmd.stdout(std::process::Stdio::from(f_out));
+            } else {
+                cmd.stdout(std::process::Stdio::null());
+            }
+            if let Some(f_err) = log_file_err {
+                cmd.stderr(std::process::Stdio::from(f_err));
+            } else {
+                cmd.stderr(std::process::Stdio::null());
+            }
+
+            cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_BREAKAWAY_FROM_JOB);
+            if cmd.spawn().is_err() {
+                // If parent job forbids breakaway, fall back without CREATE_BREAKAWAY_FROM_JOB
+                cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS);
+                cmd.spawn()
+                    .map_err(|e| format!("Failed to launch lab broker background process: {}", e))?;
+            }
         }
 
         #[cfg(not(windows))]
@@ -830,6 +883,88 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         .find(|l| l.id.eq_ignore_ascii_case(lab_id))
         .ok_or_else(|| format!("Lab {} not found in catalog.", lab_id))?;
 
+    // 1. Check for local offline .zlab package bundles first (zero network, zero git)
+    let sp = crate::storage::StoragePaths::resolve();
+    let candidate_dirs = [
+        workspace_root.join("packages"),
+        workspace_root.join("dist").join("packages"),
+        sp.app_dir.join("packages"),
+        sp.labs_dir.clone(),
+        workspace_root.join("labs"),
+        workspace_root.to_path_buf(),
+    ];
+
+    let candidate_names = [
+        format!("{}_{}.zlab", lab_id.to_uppercase(), item.version),
+        format!("{}.zlab", lab_id),
+        format!("{}.zlab", lab_id.to_lowercase()),
+        format!("{}.zlab", lab_id.to_uppercase()),
+        format!("zitera-lab-{}.zlab", lab_id.to_lowercase()),
+        format!("{}_1.0.1.zlab", lab_id.to_uppercase()),
+        format!("{}_1.0.2.zlab", lab_id.to_uppercase()),
+    ];
+
+    for dir in &candidate_dirs {
+        if dir.exists() {
+            // Check direct names
+            for name in &candidate_names {
+                let pkg_file = dir.join(name);
+                if pkg_file.is_file() {
+                    let rep = crate::package::installer::install_or_update_package(&pkg_file, workspace_root)?;
+                    return Ok(format!(
+                        "Lab {} ({}) successfully updated to v{}.",
+                        lab_id, item.title, rep.new_version
+                    ));
+                }
+            }
+            // Scan directory for any matching prefix
+            if let Ok(entries) = fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("zlab") {
+                        if let Some(fname) = path.file_stem().and_then(|s| s.to_str()) {
+                            let fname_lower = fname.to_lowercase();
+                            let target_lower = lab_id.to_lowercase();
+                            if fname_lower == target_lower
+                                || fname_lower.starts_with(&format!("{}_", target_lower))
+                                || fname_lower.starts_with(&format!("{}-", target_lower))
+                                || fname_lower.contains(&format!("zitera-lab-{}", target_lower))
+                            {
+                                let rep = crate::package::installer::install_or_update_package(&path, workspace_root)?;
+                                return Ok(format!(
+                                    "Lab {} ({}) successfully updated to v{}.",
+                                    lab_id, item.title, rep.new_version
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Check if package_url is available to fetch package
+    if let Some(ref pkg_url) = item.package_url {
+        if pkg_url.starts_with("https://") {
+            let temp_pkg = std::env::temp_dir().join(format!("zlab_update_{}_{}.zlab", lab_id, std::process::id()));
+            let _ = fs::remove_file(&temp_pkg);
+            let curl_res = crate::process::run_cmd("curl.exe", &["-s", "--max-time", "15", "--fail", "-L", "-o", temp_pkg.to_str().unwrap(), pkg_url], None);
+            if let Ok(out) = curl_res {
+                if out.success && temp_pkg.exists() {
+                    let install_res = crate::package::installer::install_or_update_package(&temp_pkg, workspace_root);
+                    let _ = fs::remove_file(&temp_pkg);
+                    let rep = install_res?;
+                    return Ok(format!(
+                        "Lab {} ({}) successfully updated to v{}.",
+                        lab_id, item.title, rep.new_version
+                    ));
+                }
+            }
+            let _ = fs::remove_file(&temp_pkg);
+        }
+    }
+
+    // 3. Git-based update if cloned repository
     if lab_dir.join(".git").exists() {
         // Interruption recovery: abort any previously stuck merge and reset dirty index
         let _ = crate::process::run_cmd("git", &["merge", "--abort"], Some(&lab_dir));
@@ -881,17 +1016,94 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
             }
         }
     } else {
-        if current_manifest.version == item.version {
-            Ok(format!(
+        // 4. Atomic update of local lab files to catalog target version
+        if crate::package::installer::compare_semver(&current_manifest.version, &item.version) == std::cmp::Ordering::Equal {
+            return Ok(format!(
                 "Lab {} is already up to date (v{}).",
                 lab_id, current_manifest.version
-            ))
-        } else {
-            Ok(format!(
-                "Lab {} update staged (current: v{}, catalog: v{}).",
-                lab_id, current_manifest.version, item.version
-            ))
+            ));
         }
+        if crate::package::installer::compare_semver(&current_manifest.version, &item.version) == std::cmp::Ordering::Greater {
+            return Ok(format!(
+                "Lab {} is already on a newer version (v{} > catalog v{}).",
+                lab_id, current_manifest.version, item.version
+            ));
+        }
+
+        // Staged atomic update in temporary isolated directory
+        let pid = std::process::id();
+        let staging_dir = std::env::temp_dir().join(format!("zitera_lab_stage_{}_{}", lab_id, pid));
+        let _ = fs::remove_dir_all(&staging_dir);
+        fs::create_dir_all(&staging_dir).map_err(|e| format!("Failed to create staging directory: {}", e))?;
+
+        // Copy existing lab files to staging, excluding versions and staging artifacts
+        if let Err(e) = crate::package::installer::copy_dir_all(&lab_dir, &staging_dir) {
+            let _ = fs::remove_dir_all(&staging_dir);
+            return Err(format!("Failed to stage update files: {}", e));
+        }
+        let _ = fs::remove_dir_all(staging_dir.join("versions"));
+        let _ = fs::remove_dir_all(staging_dir.join("staging"));
+
+        // Update manifest in staging with catalog version and metadata
+        let staged_manifest_path = staging_dir.join("manifest.json");
+        let manifest_data = fs::read_to_string(&staged_manifest_path)
+            .map_err(|e| format!("Failed to read manifest in staging: {}", e))?;
+        let clean_data = manifest_data.trim_start_matches('\u{feff}');
+        let mut manifest_val: serde_json::Value = serde_json::from_str(clean_data)
+            .map_err(|e| format!("Failed to parse staged manifest JSON: {}", e))?;
+
+        manifest_val["version"] = serde_json::Value::String(item.version.clone());
+        manifest_val["title"] = serde_json::Value::String(item.title.clone());
+        if let Some(sec_ver) = item.security_version {
+            manifest_val["security_version"] = serde_json::json!(sec_ver);
+        }
+        if let Some(ref min_core) = item.minimum_core_version {
+            manifest_val["minimum_core_version"] = serde_json::Value::String(min_core.clone());
+        }
+        if !item.skills.is_empty() {
+            manifest_val["skills"] = serde_json::json!(item.skills);
+        }
+        if !item.learning_objectives.is_empty() {
+            manifest_val["learning_objectives"] = serde_json::json!(item.learning_objectives);
+        }
+
+        let updated_manifest_str = serde_json::to_string_pretty(&manifest_val)
+            .map_err(|e| format!("Failed to serialize updated manifest: {}", e))?;
+        fs::write(&staged_manifest_path, updated_manifest_str)
+            .map_err(|e| format!("Failed to write updated manifest: {}", e))?;
+
+        // Validate staged manifest
+        if let Err(e) = read_manifest(&staging_dir) {
+            let _ = fs::remove_dir_all(&staging_dir);
+            return Err(format!("Update staging validation failed: {}", e));
+        }
+
+        // Move to target version directory in versions/<version>/
+        let versions_root = lab_dir.join("versions");
+        let target_version_dir = versions_root.join(&item.version);
+        let _ = fs::create_dir_all(&versions_root);
+        let _ = fs::remove_dir_all(&target_version_dir);
+
+        if let Err(e) = crate::package::installer::copy_dir_all(&staging_dir, &target_version_dir) {
+            let _ = fs::remove_dir_all(&staging_dir);
+            let _ = fs::remove_dir_all(&target_version_dir);
+            return Err(format!("Failed to activate version directory: {}", e));
+        }
+
+        let _ = fs::remove_dir_all(&staging_dir);
+
+        // Atomic activation
+        if let Err(e) = fs::write(lab_dir.join("active_version.txt"), &item.version) {
+            return Err(format!("Failed to update active_version marker: {}", e));
+        }
+
+        // Mirror active version to lab_dir root
+        let _ = crate::package::installer::copy_dir_all(&target_version_dir, &lab_dir);
+
+        Ok(format!(
+            "Lab {} ({}) successfully updated from v{} to v{}.",
+            lab_id, item.title, current_manifest.version, item.version
+        ))
     }
 }
 
@@ -922,7 +1134,8 @@ fn safe_read_file(path: &Path) -> Result<String, String> {
             MAX_CONTENT_FILE_SIZE
         ));
     }
-    fs::read_to_string(path).map_err(|e| format!("Failed to read {:?}: {}", path, e))
+    let content = fs::read_to_string(path).map_err(|e| format!("Failed to read {:?}: {}", path, e))?;
+    Ok(content.trim_start_matches('\u{feff}').to_string())
 }
 
 /// Dynamic content loader (Phases 8, 9, 10). Loads manifest, lesson markdown files,
