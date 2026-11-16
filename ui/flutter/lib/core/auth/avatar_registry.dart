@@ -185,6 +185,19 @@ class AvatarRegistry {
           width: width,
           height: height,
           fit: fit,
+          errorBuilder: (c, e, s) => Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              color: const Color(0xFFCCFBF1),
+              borderRadius: borderRadius,
+            ),
+            child: Icon(
+              avatar.gender == 'Female' ? Icons.face_3 : Icons.face_6,
+              size: (width != null) ? width * 0.6 : 24,
+              color: const Color(0xFF0F766E),
+            ),
+          ),
         );
       },
     );

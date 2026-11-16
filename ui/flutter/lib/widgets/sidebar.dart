@@ -44,6 +44,15 @@ class _SidebarState extends State<Sidebar> {
                   return Image.asset(
                     'assets/images/sidebar_bg.jpg',
                     fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) => Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),
@@ -164,6 +173,20 @@ class _SidebarState extends State<Sidebar> {
                                             child: Image.asset(
                                               'assets/images/logo.png',
                                               fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => Container(
+                                                color: const Color(0xFF0F766E),
+                                                child: const Center(
+                                                  child: Text(
+                                                    'Z',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w900,
+                                                      fontSize: 11,
+                                                      fontFamily: 'SpaceGrotesk',
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),

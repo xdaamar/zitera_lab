@@ -259,6 +259,7 @@ class _DashboardViewState extends State<DashboardView> {
             child: Image.asset(
               'assets/images/bg_dashboard.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
           ),
         ),

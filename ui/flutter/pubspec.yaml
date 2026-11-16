@@ -23,26 +23,8 @@ flutter:
 
   # Assets — all images bundled for offline-first
   assets:
-    - assets/images/logo.png
-    - assets/images/sidebar_bg.webp
-    - assets/images/sidebar_bg.jpg
-    - assets/images/bg_dashboard.jpg
-    - assets/images/bg_labs.jpg
-    - assets/images/bg_environment.jpg
-    - assets/images/bg_tools.jpg
-    - assets/images/bg_settings.jpg
-    - assets/images/zeta_avatar.png
-    - assets/images/calico_cat.png
+    - assets/images/
     - assets/images/avatars/
-    - assets/images/sticker_blonde.png
-    - assets/images/sticker_pink.png
-    - assets/images/sticker_purple.png
-    - assets/images/sticker_cat_laptop.png
-    - assets/images/sticker_bunny.png
-    - assets/images/sticker_shiba.png
-    - assets/images/sticker_hamster.png
-    - assets/images/sticker_duck.png
-    - assets/images/zitera_logo.png
 
   # Offline Fonts — high-tech retro & developer typography
   fonts:
