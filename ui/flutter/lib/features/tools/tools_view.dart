@@ -411,6 +411,7 @@ class _ToolsViewState extends State<ToolsView> {
             child: Image.asset(
               'assets/images/bg_tools.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
           ),
         ),

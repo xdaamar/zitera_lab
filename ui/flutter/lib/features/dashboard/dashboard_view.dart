@@ -314,6 +314,22 @@ class _DashboardViewState extends State<DashboardView> {
                                   width: 16,
                                   height: 16,
                                   fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    width: 16,
+                                    height: 16,
+                                    color: const Color(0xFF0F766E),
+                                    child: const Center(
+                                      child: Text(
+                                        'Z',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 10,
+                                          fontFamily: 'SpaceGrotesk',
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 5),

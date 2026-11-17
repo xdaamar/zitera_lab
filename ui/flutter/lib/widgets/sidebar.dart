@@ -33,36 +33,27 @@ class _SidebarState extends State<Sidebar> {
       ),
       child: Stack(
         children: [
-          // 1. Sidebar Background Video/Animation (Original Colors - Infinite Looping)
+          // 1. Sidebar Background Video/Animation (Original Colors - Infinite Looping WebP)
           Positioned.fill(
-            child: RepaintBoundary(
-              child: Image.asset(
-                'assets/images/sidebar_bg.webp',
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
-                errorBuilder: (context, error, stackTrace) {
-                  return Image.asset(
-                    'assets/images/sidebar_bg.jpg',
-                    fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) => Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
-                        ),
+            child: Image.asset(
+              'assets/images/sidebar_bg.webp',
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              errorBuilder: (context, error, stackTrace) {
+                return Image.asset(
+                  'assets/images/sidebar_bg.jpg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (c, e, s) => Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // 1.5. Subtle Soft-White Color Filter Overlay (Gentle tint to clarify video without heavy blur)
-          Positioned.fill(
-            child: Container(
-              color: Colors.white.withValues(alpha: 0.14),
+                  ),
+                );
+              },
             ),
           ),
 

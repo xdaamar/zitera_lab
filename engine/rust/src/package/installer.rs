@@ -75,7 +75,10 @@ pub fn install_or_update_package_with_policy(
     }
 
     let lab_dir = workspace_root.join("labs").join(&lab_id);
-    let _ = fs::create_dir_all(&lab_dir);
+    let _ = robust_create_dir_all(&lab_dir);
+
+    // Stop lab if running before overwriting files to eliminate Windows access locks
+    let _ = crate::labs::stop_lab(workspace_root, &lab_id);
 
     // Anti-Downgrade Protection: check currently active installation
     let active_marker = lab_dir.join("active_version.txt");
@@ -116,25 +119,33 @@ pub fn install_or_update_package_with_policy(
         }
     }
 
-    // 2. Extract into staging directory
-    let staging_dir = lab_dir.join(format!("staging_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&staging_dir);
+    // 2. Extract into isolated temp staging directory with unique timestamp
+    let staging_dir = std::env::temp_dir().join(format!(
+        "zitera_stage_{}_{}_{}",
+        lab_id,
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    let _ = robust_remove_dir_all(&staging_dir);
 
     if let Err(e) = extract_zlab_archive(package_path, &staging_dir) {
-        let _ = fs::remove_dir_all(&staging_dir);
+        let _ = robust_remove_dir_all(&staging_dir);
         return Err(format!("Extraction to staging failed: {}", e));
     }
 
     // 3. Post-extraction validation on staging
     let staged_manifest = staging_dir.join("manifest.json");
     if !staged_manifest.exists() {
-        let _ = fs::remove_dir_all(&staging_dir);
+        let _ = robust_remove_dir_all(&staging_dir);
         return Err("Staged manifest.json not found".to_string());
     }
 
     let staged_entrypoint = staging_dir.join(&verified.manifest.entrypoint);
     if !staged_entrypoint.exists() {
-        let _ = fs::remove_dir_all(&staging_dir);
+        let _ = robust_remove_dir_all(&staging_dir);
         return Err(format!(
             "Staged entrypoint binary {:?} not found",
             staged_entrypoint
@@ -144,18 +155,18 @@ pub fn install_or_update_package_with_policy(
     // 4. Move to versioned directory: labs/<ID>/versions/<VERSION>/
     let versions_root = lab_dir.join("versions");
     let target_version_dir = versions_root.join(&version);
-    let _ = fs::create_dir_all(&versions_root);
-    let _ = fs::remove_dir_all(&target_version_dir);
+    let _ = robust_create_dir_all(&versions_root);
+    let _ = robust_remove_dir_all(&target_version_dir);
 
     // Copy staged contents to target version directory
     if let Err(e) = copy_dir_all(&staging_dir, &target_version_dir) {
-        let _ = fs::remove_dir_all(&staging_dir);
-        let _ = fs::remove_dir_all(&target_version_dir);
+        let _ = robust_remove_dir_all(&staging_dir);
+        let _ = robust_remove_dir_all(&target_version_dir);
         return Err(format!("Failed to activate version directory: {}", e));
     }
 
     // Clean up staging
-    let _ = fs::remove_dir_all(&staging_dir);
+    let _ = robust_remove_dir_all(&staging_dir);
 
     // 5. Atomic activation: write active_version.txt
     if let Err(e) = fs::write(&active_marker, &version) {
@@ -175,9 +186,52 @@ pub fn install_or_update_package_with_policy(
     })
 }
 
+/// Robustly creates directories with retry on Windows to prevent transient NTFS locks.
+pub fn robust_create_dir_all(path: &Path) -> std::io::Result<()> {
+    let mut last_err = None;
+    for attempt in 0..5 {
+        match fs::create_dir_all(path) {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                last_err = Some(e);
+                std::thread::sleep(std::time::Duration::from_millis(25 * (attempt + 1)));
+            }
+        }
+    }
+    Err(last_err.unwrap_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Unknown IO error")))
+}
+
+/// Robustly removes a directory tree, clearing Windows read-only bits and retrying on locks.
+pub fn robust_remove_dir_all(path: &Path) -> std::io::Result<()> {
+    if !path.exists() {
+        return Ok(());
+    }
+    let mut last_err = None;
+    for attempt in 0..5 {
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries.flatten() {
+                if let Ok(meta) = entry.metadata() {
+                    let mut perms = meta.permissions();
+                    #[allow(clippy::permissions_set_readonly_false)]
+                    perms.set_readonly(false);
+                    let _ = fs::set_permissions(entry.path(), perms);
+                }
+            }
+        }
+        match fs::remove_dir_all(path) {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                last_err = Some(e);
+                std::thread::sleep(std::time::Duration::from_millis(25 * (attempt + 1)));
+            }
+        }
+    }
+    Err(last_err.unwrap_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Unknown IO error")))
+}
+
 /// Helper function to recursively copy directories.
 pub fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
-    fs::create_dir_all(dst)?;
+    robust_create_dir_all(dst)?;
     for entry in fs::read_dir(src)? {
         let entry = entry?;
         let ty = entry.file_type()?;
@@ -186,10 +240,18 @@ pub fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
         let dest_child = dst.join(&name);
         if ty.is_dir() {
             // Avoid recursive self-copy if dst contains subdirectories or temporary staging
-            if name_str != "versions" && !name_str.starts_with("staging") && name_str != ".git" {
+            if name_str != "versions" && !name_str.starts_with("staging") && !name_str.starts_with("zitera_stage") && name_str != ".git" {
                 copy_dir_all(&entry.path(), &dest_child)?;
             }
         } else {
+            if dest_child.exists() {
+                if let Ok(meta) = dest_child.metadata() {
+                    let mut perms = meta.permissions();
+                    #[allow(clippy::permissions_set_readonly_false)]
+                    perms.set_readonly(false);
+                    let _ = fs::set_permissions(&dest_child, perms);
+                }
+            }
             fs::copy(entry.path(), dest_child)?;
         }
     }

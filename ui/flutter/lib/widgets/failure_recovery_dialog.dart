@@ -389,6 +389,10 @@ class _FailureRecoveryDialogState extends State<FailureRecoveryDialog> {
       if (widget.onReinstall != null) {
         widget.onReinstall!();
       } else if (widget.labId != null) {
+        // Defensive: Stop active lab instance first to release Windows NTFS locks
+        try {
+          await ZiteraEngineClient.stopLab(widget.labId!);
+        } catch (_) {}
         await ZiteraEngineClient.installLab(widget.labId!);
       }
       if (widget.onRefresh != null) widget.onRefresh!();

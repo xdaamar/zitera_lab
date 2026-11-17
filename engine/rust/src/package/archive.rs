@@ -417,7 +417,7 @@ pub fn extract_zlab_archive(package_path: &Path, staging_dir: &Path) -> Result<(
 
     let entries = validate_archive_structure(&bytes)?;
 
-    fs::create_dir_all(staging_dir).map_err(|e| {
+    crate::package::installer::robust_create_dir_all(staging_dir).map_err(|e| {
         format!(
             "Failed to create staging directory {:?}: {}",
             staging_dir, e
@@ -431,10 +431,10 @@ pub fn extract_zlab_archive(package_path: &Path, staging_dir: &Path) -> Result<(
         };
 
         if entry.is_dir {
-            fs::create_dir_all(&safe_dest).map_err(|e| e.to_string())?;
+            crate::package::installer::robust_create_dir_all(&safe_dest).map_err(|e| e.to_string())?;
         } else {
             if let Some(parent) = safe_dest.parent() {
-                fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+                crate::package::installer::robust_create_dir_all(parent).map_err(|e| e.to_string())?;
             }
 
             if entry.compression_method == 0 {

@@ -179,6 +179,11 @@ class _CuteAnimeLoadingState extends State<CuteAnimeLoading>
                                     errorBuilder: (_, _, _) => Image.asset(
                                       'assets/images/calico_cat.png',
                                       fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => const Icon(
+                                        Icons.sentiment_satisfied_alt,
+                                        size: 24,
+                                        color: Color(0xFF0F766E),
+                                      ),
                                     ),
                                   ),
                                 ),

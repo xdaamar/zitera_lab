@@ -141,6 +141,8 @@ class AvatarRegistry {
 
   static final Map<String, AvatarDefinition> _byId = {
     for (final a in all) a.id: a,
+    'zeta_default': all.firstWhere((a) => a.id == 'zeta'),
+    'neko_default': all.firstWhere((a) => a.id == 'neko'),
   };
 
   /// Default fallback avatar ('zeta').

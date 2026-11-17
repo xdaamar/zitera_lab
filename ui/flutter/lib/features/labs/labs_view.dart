@@ -341,6 +341,7 @@ class _LabsViewState extends State<LabsView> {
             child: Image.asset(
               'assets/images/bg_labs.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
           ),
         ),

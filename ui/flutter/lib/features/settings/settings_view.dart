@@ -378,6 +378,7 @@ class SettingsView extends StatelessWidget {
             child: Image.asset(
               'assets/images/bg_settings.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
           ),
         ),

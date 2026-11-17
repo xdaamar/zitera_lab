@@ -226,6 +226,7 @@ class _EnvironmentViewState extends State<EnvironmentView> {
             child: Image.asset(
               'assets/images/bg_environment.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
           ),
         ),
