@@ -1,6 +1,6 @@
 # Practice Walkthrough: Auditing Security Misconfigurations
 
-In this guided exercise, you will audit an internal web portal running at `http://127.0.0.1:8012`. This exercise follows a target composition of **60% manual analytical techniques** and **40% terminal-based tool execution**.
+In this guided exercise, you will audit the internal **OpsGateway** cloud operations portal running at `http://127.0.0.1:8012`. This exercise follows a target composition of **60% manual analytical techniques** and **40% terminal-based tool execution**.
 
 ---
 
@@ -10,12 +10,15 @@ The initial stage of a configuration audit involves scrutinizing server banner d
 1. Open your web browser and navigate to the target portal:
    `http://127.0.0.1:8012`
 2. Open Developer Tools (press **F12** or `Ctrl + Shift + I`), then select the **Network** tab.
-3. Reload the page and select the root document request (`/`):
+3. Reload the page (F5) and select the root document request (`/`):
+   - **Inspect Request Name:** The root request is explicitly named `/` with status `200 OK` (served directly without unneeded session hash redirects).
    - **Inspect Response Headers:**
-     - Does the server leak underlying software versions (e.g. `Server: Werkzeug/...` or `Server: nginx/...`)?
-     - Are critical browser defense headers such as `Content-Security-Policy`, `X-Frame-Options`, and `X-Content-Type-Options` missing?
-4. Inspect the administrative authentication portal:
-   - Test standard vendor credentials such as `admin` / `admin`. Observe whether default credentials remain enabled or blocked.
+     - The server leaks underlying software stack versions: `Server: OpsGateway/2.1.4 (Ubuntu)`.
+     - Risky operational headers are active: `X-Debug-Mode: enabled` and `X-Gateway-Cluster: prod-east-gateway-01`.
+4. Inspect the OpsGateway UI:
+   - Observe the *Storage Archival* telemetry card referencing the `/backups/` path.
+   - Note the cloud audit logs and active node cluster table.
+   - Click the *Sign In* button or navigate to `/login` to observe the SSO supervisor authentication interface.
 
 ---
 
@@ -27,8 +30,10 @@ Test the core hypothesis: *Did the system administrator leave maintenance or sta
    `http://127.0.0.1:8012/backups/`
 3. Press **Enter** and evaluate the response:
    - **Observation:** The server does not reject the request with `403 Forbidden` or `404 Not Found`; instead, it serves an active directory listing titled **"Index of /backups/"**.
-   - **Evidence Harvested:** An abandoned configuration archive is visible:
-     `backup_config.json.bak`
+   - **Evidence Harvested:** Abandoned configuration archives are visible:
+     - `backup_config.json.bak`
+     - `ops_keys_old.txt`
+     - `database_schema.sql.bak`
    - **Critical Analysis:** The web server's *autoindex* feature was left active, allowing unauthenticated external visitors to browse and download server-side backup files.
 
 ---
@@ -47,6 +52,7 @@ Utilize terminal tooling to fetch the exposed backup archive and parse confident
    cat backup_config.json.bak
    ```
 4. **Payload Analysis:** Locate sensitive operational parameters such as `admin_system_key`, internal database connection strings, and system activation flags disclosed within the unencrypted text document.
+5. Authenticate at `/admin` using the recovered system key to verify administrative privilege and secure the challenge flag `ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}`.
 
 ---
 

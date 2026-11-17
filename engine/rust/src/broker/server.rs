@@ -231,38 +231,11 @@ fn process_parsed_request(
     session_manager: &BrokerSessionManager,
     handler: &Arc<dyn LabRequestHandler>,
 ) -> HttpResponse {
-    // 1. Validate Session Token or Redirect to Active Session
+    // 1. Validate Session Token or bind transparently to the active session
     let session = if parsed.session_token.is_empty() {
-        let active_s = session_manager
+        session_manager
             .active_session()
-            .unwrap_or_else(|| session_manager.create_session("lab", None));
-
-        // When user or browser visits http://127.0.0.1:<PORT>/ or root/subpaths directly,
-        // redirect cleanly to the active lab session URL instead of failing with InvalidRoute.
-        let clean_sub = parsed.subpath.trim_start_matches('/');
-        let target = if clean_sub.is_empty() {
-            format!("/session/{}/", active_s.session_id)
-        } else {
-            format!("/session/{}/{}", active_s.session_id, clean_sub)
-        };
-        let redirect_url = if let Some(q) = &parsed.query {
-            format!("{}?{}", target, q)
-        } else {
-            target
-        };
-        let status_code = if parsed.method == "POST" || parsed.method == "PUT" || parsed.method == "DELETE" {
-            307 // Temporary Redirect preserves HTTP method and payload
-        } else {
-            302 // Found
-        };
-        let status_text = if status_code == 307 {
-            "Temporary Redirect"
-        } else {
-            "Found"
-        };
-        let mut resp = HttpResponse::new(status_code, status_text, Vec::new());
-        resp.headers.push(("Location".to_string(), redirect_url));
-        return resp;
+            .unwrap_or_else(|| session_manager.create_session("lab", None))
     } else {
         match session_manager.validate_session(&parsed.session_token) {
             Ok(s) => s,

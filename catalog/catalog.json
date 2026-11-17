@@ -39,7 +39,7 @@
       "package_id": "zitera-lab-a02",
       "title": "Security Misconfiguration",
       "repository": "xdaamar/zitera_lab_a02",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "difficulty": "Beginner",
       "owasp": "A02:2025",
       "standard": "owasp-top10",
@@ -322,5 +322,6 @@
       ],
       "default_port": 8020
     }
-  ]
+  ],
+  "signature": "7607061b39b7b3ba9a637bfabb56f575db0af8f47d5b91ebfeb074cd8289312f46c4c811959e7e646fa8983152c0a8e2ed07fa40de73b4a92b90a52f1acb750e"
 }

@@ -117,34 +117,53 @@ pub fn sanitize_lab_response_headers(
                 // Unconditionally reject dangerous schemes
                 safe_headers.push((
                     "Location".to_string(),
-                    format!("/session/{}/", session_token),
+                    if session_token.is_empty() {
+                        "/".to_string()
+                    } else {
+                        format!("/session/{}/", session_token)
+                    },
                 ));
             } else if v_lower.starts_with("http://") || v_lower.starts_with("https://") {
-                // Must be localhost AND must stay within the session path
-                let session_path = format!("/session/{}", session_token);
+                // Must be localhost AND must stay within the session path (if session_token set)
+                let session_path = if session_token.is_empty() {
+                    "".to_string()
+                } else {
+                    format!("/session/{}", session_token)
+                };
                 if (v_lower.starts_with("http://127.0.0.1")
                     || v_lower.starts_with("http://localhost"))
-                    && v_lower.contains(&session_path)
+                    && (session_token.is_empty() || v_lower.contains(&session_path))
                 {
                     safe_headers.push((k, v));
                 } else {
                     // Block arbitrary destination SSRF redirect
                     safe_headers.push((
                         "Location".to_string(),
-                        format!("/session/{}/", session_token),
+                        if session_token.is_empty() {
+                            "/".to_string()
+                        } else {
+                            format!("/session/{}/", session_token)
+                        },
                     ));
                 }
             } else if v_trim.starts_with('/') {
-                // Relative redirect: Rewrite into /session/<token>/<subpath>
                 let sub = v_trim.trim_start_matches('/');
                 safe_headers.push((
                     "Location".to_string(),
-                    format!("/session/{}/{}", session_token, sub),
+                    if session_token.is_empty() {
+                        format!("/{}", sub)
+                    } else {
+                        format!("/session/{}/{}", session_token, sub)
+                    },
                 ));
             } else {
                 safe_headers.push((
                     "Location".to_string(),
-                    format!("/session/{}/{}", session_token, v_trim),
+                    if session_token.is_empty() {
+                        format!("/{}", v_trim)
+                    } else {
+                        format!("/session/{}/{}", session_token, v_trim)
+                    },
                 ));
             }
         } else {

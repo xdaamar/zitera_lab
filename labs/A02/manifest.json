@@ -9,7 +9,7 @@
   "standard_version": "2025",
   "category_id": "A02",
   "category_name": "Security Misconfiguration",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "security_version": 1,
   "minimum_core_version": "2.0.0",
   "difficulty": "Beginner",

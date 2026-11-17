@@ -1,6 +1,6 @@
 # Panduan Praktik Terbimbing: Eksplorasi Celah Konfigurasi
 
-Dalam latihan terarah ini, kamu akan mengaudit aplikasi portal internal yang berjalan pada alamat `http://127.0.0.1:8012`. Latihan ini disusun mengikuti rasio **60% teknik analisis manual** dan **40% penggunaan tools terminal**.
+Dalam latihan terarah ini, kamu akan mengaudit aplikasi portal cloud internal **OpsGateway** yang berjalan pada alamat `http://127.0.0.1:8012`. Latihan ini disusun mengikuti rasio **60% teknik analisis manual** dan **40% penggunaan tools terminal**.
 
 ---
 
@@ -10,12 +10,15 @@ Langkah awal dalam audit konfigurasi adalah memeriksa header HTTP dan jejak info
 1. Buka peramban web dan arahkan ke alamat target:
    `http://127.0.0.1:8012`
 2. Buka Developer Tools (tekan **F12** atau `Ctrl + Shift + I`), lalu pilih tab **Network**.
-3. Muat ulang halaman (*refresh*) dan klik request pertama (`/`):
+3. Muat ulang halaman (*refresh* / F5) dan klik request pertama (`/`):
+   - **Periksa Request Name:** Request pertama tercatat sebagai `/` dengan kode status `200 OK` (langsung diproxy oleh engine tanpa pengalihan URL acak).
    - **Periksa Response Headers:**
-     - Apakah server membocorkan versi teknologi (misalnya `Server: Werkzeug/...` atau `Server: nginx/...`)?
-     - Apakah header keamanan penting seperti `Content-Security-Policy`, `X-Frame-Options`, dan `X-Content-Type-Options` hilang?
-4. Uji form login administratif:
-   - Coba masukkan kredensial bawaan yang lazim: `admin` / `admin`. Amati bagaimana sistem menolak atau menerima autentikasi.
+     - Server membocorkan versi teknologi: `Server: OpsGateway/2.1.4 (Ubuntu)`.
+     - Server mengaktifkan flag operasional berbahaya: `X-Debug-Mode: enabled` dan `X-Gateway-Cluster: prod-east-gateway-01`.
+4. Amati antarmuka web OpsGateway:
+   - Terdapat kartu telemetri *Storage Archival* yang mengindikasikan direktori `/backups/`.
+   - Terdapat ringkasan audit log dan inventaris node cloud.
+   - Klik menu navigasi atau tombol *Sign In* (`/login`) untuk mengamati portal supervisor autentikasi.
 
 ---
 
@@ -27,9 +30,11 @@ Ujilah hipotesis: *Apakah terdapat folder statis atau direktori pemeliharaan yan
    `http://127.0.0.1:8012/backups/`
 3. Tekan **Enter** dan amati hasilnya:
    - **Observasi:** Server tidak menampilkan pesan error `403 Forbidden` atau `404 Not Found`, melainkan merender halaman direktori lengkap berjudul **"Index of /backups/"**.
-   - **Temuan Bukti:** Terdapat file arsip cadangan bernama:
-     `backup_config.json.bak`
-   - **Analisis Kritis:** Fitur *autoindex* dibiarkan menyala, sehingga seluruh file cadangan yang ditinggalkan administrator dapat dilihat oleh publik tanpa memerlukan login apa pun.
+   - **Temuan Bukti:** Terdapat file arsip cadangan penting:
+     - `backup_config.json.bak`
+     - `ops_keys_old.txt`
+     - `database_schema.sql.bak`
+   - **Analisis Kritis:** Fitur *autoindex* dibiarkan aktif pada web server Nginx/OpsGateway, sehingga seluruh file cadangan yang ditinggalkan administrator dapat diunduh bebas oleh publik tanpa autentikasi.
 
 ---
 
@@ -47,6 +52,7 @@ Gunakan tools terminal cURL untuk mengunduh artefak cadangan dan mengurai kreden
    cat backup_config.json.bak
    ```
 4. **Analisis Payload:** Amati properti konfigurasi sensitif seperti `admin_system_key`, koneksi database internal, dan flag aktivasi sistem yang bocor di dalam dokumen teks tersebut.
+5. Akses portal supervisor `/admin` menggunakan kunci token rahasia yang ditemukan untuk mendapatkan konfirmasi flag `ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}`.
 
 ---
 

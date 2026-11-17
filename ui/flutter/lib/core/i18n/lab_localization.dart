@@ -35,7 +35,7 @@ class LabLocalization {
     try {
       final localFile = File('labs/$labId/lesson/$sectionKey.id.md');
       if (localFile.existsSync()) {
-        final text = localFile.readAsStringSync();
+        final text = localFile.readAsStringSync(encoding: utf8);
         if (text.trim().isNotEmpty) return text;
       }
     } catch (_) {}
@@ -57,7 +57,7 @@ class LabLocalization {
     try {
       final localFile = File('labs/$labId/challenge/challenge.id.md');
       if (localFile.existsSync()) {
-        final text = localFile.readAsStringSync();
+        final text = localFile.readAsStringSync(encoding: utf8);
         if (text.trim().isNotEmpty) return text;
       }
     } catch (_) {}
@@ -78,7 +78,7 @@ class LabLocalization {
     try {
       final localFile = File('labs/$labId/challenge/hints.id.json');
       if (localFile.existsSync()) {
-        final raw = localFile.readAsStringSync();
+        final raw = localFile.readAsStringSync(encoding: utf8);
         final parsed = jsonDecode(raw) as Map<String, dynamic>;
         final rawHints = parsed['hints'] as List<dynamic>? ?? [];
         if (rawHints.isNotEmpty) {
@@ -108,7 +108,7 @@ class LabLocalization {
       try {
         final localFile = File('labs/$labId/lesson/walkthrough.id.md');
         if (localFile.existsSync()) {
-          final text = localFile.readAsStringSync();
+          final text = localFile.readAsStringSync(encoding: utf8);
           if (text.trim().isNotEmpty) return text;
         }
       } catch (_) {}

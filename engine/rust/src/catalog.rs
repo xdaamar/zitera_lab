@@ -334,7 +334,7 @@ pub fn default_catalog() -> Catalog {
                 package_id: Some("zitera-lab-a02".to_string()),
                 title: "Security Misconfiguration".to_string(),
                 repository: "xdaamar/zitera_lab_a02".to_string(),
-                version: "1.0.1".to_string(),
+                version: "1.1.0".to_string(),
                 difficulty: "Beginner".to_string(),
                 owasp: "A02:2025".to_string(),
                 standard: Some("owasp-top10".to_string()),
