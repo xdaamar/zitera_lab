@@ -1,12 +1,26 @@
-# CTF Challenge: Kompromi Rantai Pasok Perangkat Lunak
+# Misi Forensik: Audit Software Supply Chain PackNexus
 
-## Skenario Misi
-ApexCorp membangun produk perangkat lunak mereka menggunakan pipeline CI/CD otomatis. Seorang peretas berhasil mempublikasikan paket berbahaya bertrojan (`apex-internal-telemetry`) yang menargetkan lingkungan build perusahaan.
+### 🎯 MISI BRIEFING
+Tim DevOps **PackNexus Inc.** mendeteksi anomali pada log pipeline build CI/CD otomatis (`http://127.0.0.1:8013`). Diduga salah satu pengembang eksternal menyisipkan pustaka telemetri yang belum diaudit dan tidak ditandatangani kunci GPG perusahaan.
 
-Pipeline sempat menghasilkan laporan audit, tetapi proses deployment tetap berjalan karena penegakan verifikasi tanda tangan digital dinonaktifkan.
+Tugas Anda adalah melakukan audit mendalam terhadap artefak lockfile, mendeteksi skrip hook instalasi berbahaya, dan merekonstruksi token rahasia pipeline yang dicuri.
 
-## Sasaran & Objektif
-1. Lakukan inspeksi pada aplikasi target di `http://127.0.0.1:8013`.
-2. Temukan endpoint laporan audit lockfile dependensi yang terekspos.
-3. Identifikasi paket berbahaya pihak ketiga yang tidak tepercaya.
-4. Ekstrak token otorisasi deployment pipeline yang bocor (flag tantangan) dan kirimkan pada formulir di bawah.
+---
+
+### 🏢 RUANG LINGKUP & TARGET
+- **Target URL:** `http://127.0.0.1:8013`
+- **Tingkat Keparahan:** High (CVSS 8.1)
+- **Vektor Kerentanan:** CWE-1357 (Reliance on Uncontrolled Component), CWE-506 (Embedded Malicious Code)
+
+---
+
+### 🚩 OBJEKTIF PENELUSURAN
+1. Akses manifest audit dependensi pada `/packages/audit/package_lock_audit.json`.
+2. Temukan paket mencurigakan yang memiliki skrip `postinstall` berbahaya.
+3. Ekstrak token penyusupan rahasia pipeline berformat `ZITERA{...}`.
+4. Lakukan verifikasi di `/api/supply-chain/verify` dan kirimkan bukti flag ke Zitera Lab desktop!
+
+---
+
+### 🔑 FORMAT SUBMISSION
+`ZITERA{...}`

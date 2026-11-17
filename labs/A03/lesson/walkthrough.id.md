@@ -1,97 +1,40 @@
-# Panduan Praktik Terbimbing: Investigasi Lockfile Audit & Eksfiltrasi Dependensi
+# Panduan Praktik Terbimbing: Audit Rantai Pasok pada PackNexus Supply Hub
 
-Panduan ini disusun menggunakan metodologi 4-Tier Mission Progression dengan proporsi **60% observasi manual** dan **40% eksekusi perintah alat**:
+Dalam panduan terarah ini, Anda akan mempraktikkan proses audit forensik terhadap sistem registri paket dan manifest build **PackNexus Supply Hub (B2B Package Registry & Build Pipeline Hub)** pada `http://127.0.0.1:8013`.
 
 ---
 
-## Tier 1: Observasi Permukaan Serangan (Bobot: 15%)
-
-1. **Pastikan Kontainer Lab Aktif**:
-   Buka peramban web dan arahkan ke alamat target:
+### Tahap 1: Observasi Registri & Manifest Dependensi
+1. Buka peramban web dan akses portal PackNexus Supply Hub:
    `http://127.0.0.1:8013`
-
-2. **Analisis Halaman Utama Registry**:
-   Amati antarmuka web *ApexCorp // Internal Package Registry*:
-   - Terdapat tabel dependensi aktif (*Active Registry Dependencies*).
-   - Perhatikan baris ketiga pada tabel: paket `apex-internal-telemetry` versi `0.1.0-alpha.build.88` memiliki status berwarna kuning dengan tanda `UNTRUSTED / UNPINNED`.
-   - Sumber unduhan paket mengarah ke alamat lokal (`http://127.0.0.1:8013/packages/download/`) bukan registry resmi npm.
-   - Di bagian atas tabel terdapat tautan langsung ke laporan audit: `/packages/audit/package_lock_audit.json`.
+2. Perhatikan ringkasan dependensi aktif pada tabel antarmuka:
+   - Paket `express` (v4.19.2) - Terverifikasi Sigstore.
+   - Paket `lodash` (v4.17.21) - Terverifikasi Sigstore.
+   - Paket `apex-internal-telemetry` (v0.1.0-alpha.build.88) - Berstatus **Untrusted / Unpinned Origin**.
+3. Klik tombol **"Download package_lock_audit.json &rarr;"** atau akses endpoint:
+   `http://127.0.0.1:8013/packages/audit/package_lock_audit.json`
 
 ---
 
-## Tier 2: Penemuan Endpoint & Injeksi Permintaan (Bobot: 25%)
-
-1. **Uji Health Endpoint**:
-   Verifikasi kesiapan layanan menggunakan terminal atau peramban:
-   ```bash
-   curl -s http://127.0.0.1:8013/health
-   ```
-   *Respon*: `{"lab":"A03","port":8013,"status":"ok"}`
-
-2. **Inspeksi Manual Laporan Lockfile**:
-   Buka tautan laporan audit pada peramban web atau jalankan curl untuk mengunduh manifest mentah:
+### Tahap 2: Analisis Forensik File Lockfile
+1. Unduh atau tampilkan manifest audit menggunakan terminal:
    ```bash
    curl -s http://127.0.0.1:8013/packages/audit/package_lock_audit.json
    ```
-
-3. **Analisis Struktur Dokumen JSON**:
-   Perhatikan bahwa dokumen tersebut memiliki versi schema lockfile npm (`lockfileVersion: 3`) dan memuat objek `dependencies`:
-   - Paket `express` (versi `4.19.2`) diunduh dari `https://registry.npmjs.org/` dengan hash integritas sha512.
-   - Paket `lodash` (versi `4.17.21`) terverifikasi dengan hash integritas resmi.
-   - Paket `apex-internal-telemetry` memiliki atribut yang tidak wajar.
+2. Telusuri objek dependensi `apex-internal-telemetry`:
+   - **Resolved Origin:** URL lokal tidak resmi alih-alih repositori resmi npmjs.
+   - **Hook Eksekusi:** Menjalankan perintah `node ./scripts/send_env.js` pada siklus `postinstall_script`.
+   - **Temuan Bukti:** Ditemukan token rahasia pipeline yang tereksfiltrasi pada field `exfiltrated_pipeline_token`: `ZITERA{...}`.
 
 ---
 
-## Tier 3: Eksploitasi & Ekstraksi Token Eksfiltrasi (Bobot: 35%)
-
-1. **Bedah Metadata Paket Mencurigakan**:
-   Tinjau blok JSON untuk `apex-internal-telemetry`:
-   ```json
-   "apex-internal-telemetry": {
-     "version": "0.1.0-alpha.build.88",
-     "resolved": "http://127.0.0.1:8013/packages/download/apex-internal-telemetry.tgz",
-     "author": "shadow-developer-anonymous",
-     "integrity": "sha512-poisoned_build_hash_xyz",
-     "postinstall_script": "node ./scripts/send_env.js",
-     "exfiltrated_pipeline_token": "ZITERA{...}",
-     "warning": "CRITICAL: Package not signed with corporate GPG key; untrusted origin."
-   }
-   ```
-
-2. **Identifikasi Muatan Berbahaya**:
-   - `author`: `shadow-developer-anonymous` (pengembang anonim yang tidak dikenal).
-   - `postinstall_script`: `node ./scripts/send_env.js` (hook eksekusi otomatis yang membaca variabel rahasia lingkungan CI/CD).
-   - `exfiltrated_pipeline_token`: Token otorisasi build pipeline yang berhasil dicuri oleh skrip tersebut.
-
-3. **Verifikasi Flag**:
-   Kirimkan token yang ditemukan melalui form web pada halaman utama (`/api/supply-chain/verify`) atau menggunakan perintah curl:
+### Tahap 3: Verifikasi Attestation Token & Penyelesaian Misi
+1. Ujilah token yang ditemukan pada formulir **Pipeline Attestation Verifier** di halaman utama portal web.
+2. Atau lakukan pengujian langsung via cURL:
    ```bash
-   curl -s -X POST http://127.0.0.1:8013/api/supply-chain/verify -d "token=<TOKEN_DARI_LOCKFILE>"
+   curl -X POST http://127.0.0.1:8013/api/supply-chain/verify \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "token=ZITERA{...}"
    ```
-   *Respon*:
-   ```json
-   {
-     "status": "passed",
-     "message": "Flag verified! Supply chain backdoored dependency successfully audited.",
-     "flag": "ZITERA{...}"
-   }
-   ```
-
----
-
-## Tier 4: Validasi Perbaikan & Hardening Defensif (Bobot: 25%)
-
-1. **Nonaktifkan Eksekusi Lifecycle Hook**:
-   Pastikan setiap instalasi paket dalam pipeline CI/CD menggunakan argumen proteksi:
-   ```bash
-   npm ci --ignore-scripts
-   ```
-
-2. **Audit Integritas Lockfile**:
-   Jalankan pemeriksaan dependensi otomatis sebelum proses kompilasi:
-   ```bash
-   npm audit --audit-level=high
-   ```
-
-3. **Verifikasi Scope Paket Internal**:
-   Pastikan seluruh paket internal diberi namespace terdaftar (misal `@apexcorp/`) dan registry publik dikonfigurasi untuk menolak namespace internal tersebut.
+3. Server akan mengembalikan konfirmasi keberhasilan: `{"status": "passed", "message": "Token verified!..."}`.
+4. Kirimkan (*submit*) flag berformat `ZITERA{...}` ke Zitera Lab desktop untuk merekam skor Anda.

@@ -1,9 +1,9 @@
-# Simulasi Bug Bounty: Operasi Apex Leak (Eksfiltrasi Sovereign Treasury Record)
+# Simulasi Bug Bounty: Operasi VaultPay Leak (Eksfiltrasi Sovereign Treasury Record)
 
 ### 🎯 MISI BRIEFING
-Perusahaan perbankan korporat **ApexFin Financial Technologies** mengundangmu dalam program *Private Bug Bounty Engagement*. Portal perbendaharaan dan kliring kawat likuiditas global mereka (`http://127.0.0.1:8011`) baru saja diluncurkan ke tahap pra-produksi.
+Perusahaan perbankan korporat **VaultPay Financial Technologies Inc.** mengundangmu dalam program *Private Bug Bounty Engagement*. Portal perbendaharaan dan kliring kawat likuiditas global mereka (`http://127.0.0.1:8011`) baru saja diluncurkan ke tahap pra-produksi.
 
-Tim audit internal mencurigai bahwa meskipun halaman kontrol eksekutif (`/admin`) telah diproteksi dengan verifikasi peran pengguna (*Role-Based Access Control*), mekanisme penarikan dokumen voucher transfer kawat di lapisan API tidak menerapkan validasi kepemilikan objek (*Object-Level Ownership Validation*).
+Tim audit internal mencurigai bahwa meskipun halaman kontrol eksekutif telah diproteksi dengan verifikasi peran pengguna (*Role-Based Access Control*), mekanisme penarikan dokumen voucher transfer kawat di lapisan API tidak menerapkan validasi kepemilikan objek (*Object-Level Ownership Validation*).
 
 ---
 

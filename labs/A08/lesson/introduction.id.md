@@ -1,43 +1,54 @@
-﻿# Pengenalan: Software and Data Integrity Failures (OWASP A08:2025)
+﻿# A08: Software or Data Integrity Failures — Kompromi Integritas Data & Konfigurasi
 
-Dalam arsitektur perangkat lunak modern, aplikasi tidak lagi beroperasi sebagai entitas monolitik yang berdiri sendiri. Sistem mengandalkan pustaka pihak ketiga, *base images*, pipeline CI/CD otomatis, pembaruan firmware *over-the-air* (OTA), serta pertukaran data konfigurasi dinamis. **OWASP A08:2025 – Software and Data Integrity Failures** berfokus pada kerentanan di mana kode dan data diterima, didekodekan, atau dieksekusi tanpa validasi kriptografis yang membuktikan keaslian (*authenticity*) dan integritas (*integrity*) sumbernya.
-
-Ketika integritas data atau perangkat lunak diabaikan, batas kepercayaan (*trust boundary*) runtuh. Penyerang dapat menyuntikkan muatan berbahaya ke dalam rantai pembaruan perangkat lunak, memalsukan konfigurasi operasional, atau memanipulasi objek serialisasi yang dieksekusi oleh mesin runtime.
+Software or Data Integrity Failures menempati peringkat ke-8 (**#8**) dalam daftar risiko web **OWASP Top 10:2025**. Kerentanan ini berfokus pada asumsi salah di mana kode atau konfigurasi kritis diterima, diproses, dan dieksekusi oleh sistem tanpa terlebih dahulu memverifikasi tanda tangan digital (*cryptographic signatures*) atau integritas hash terhadap otoritas tepercaya.
 
 ---
 
-## Mengapa Kategori Ini Krusial dalam OWASP Top 10 2025?
+### 1. Alasan Kuat / Mengapa Ini Sangat Penting (Why It Matters)
+Di era komputasi awan dan sistem terdistribusi, aplikasi terus-menerus menarik pembaruan konfigurasi runtime, skrip orkestrasi, dan plugin dari jaringan:
 
-Evolusi lanskap ancaman modern telah membuktikan bahwa menembus perimeter aplikasi sering kali lebih sulit daripada meracuni komponen hilir atau saluran pembaruan yang dipercaya secara buta:
-
-1. **Eksploitasi Rantai Pasok (*Supply Chain Exploits*)**: Peristiwa global seperti insiden SolarWinds Orion dan serangan injeksi dependensi membuktikan bahwa penyerang menargetkan mekanisme build dan rilis software.
-2. **Perangkat IoT & Edge Tanpa Validasi Firmware**: Miliaran perangkat tertanam menerima paket pembaruan melalui internet. Jika verifikasi tanda tangan digital tidak dipaksakan pada perangkat keras, penyerang dapat mengganti kernel atau konfigurasi operasional secara permanen.
-3. **Insecure Deserialization**: Membaca objek mentah dari sumber tak tepercaya tanpa pemeriksaan tipe (*type-checking*) atau verifikasi integritas dapat menyebabkan *Remote Code Execution* (RCE).
-4. **Manipulasi Konfigurasi Dinamis**: Sistem terdistribusi yang memuat konfigurasi dari endpoint HTTP eksternal tanpa validasi kriptografis dapat dibelokkan ke server komando musuh (*Command & Control*).
-
----
-
-## Skenario Lab: Ingesti Konfigurasi Firmware Zitera Edge
-
-Dalam lab ini, Anda akan berhadapan dengan komponen **Zitera Edge Gateway (Port 8018)**. Layanan ini bertanggung jawab menerima paket konfigurasi parameter operasional dan modul firmware dari server orkestrasi pusat.
-
-```
-┌─────────────────────────┐          HTTP POST          ┌─────────────────────────┐
-│     Untrusted Client    │  ─────────────────────────> │   Zitera Edge Gateway   │
-│  (Attacker / Tester)    │   /api/deploy_update        │       (Port 8018)       │
-│                         │   {"signature_verified":    │                         │
-│                         │    false, "params": ...}    │ ❌ Blind Trust Runtime   │
-└─────────────────────────┘                             └─────────────────────────┘
-```
-
-Secara fatal, gateway ini mempercayai klaim integritas yang dikirimkan oleh klien itu sendiri (`"signature_verified": false`) dan langsung menerapkan modifikasi parameter berbahaya ke dalam memori kerja aktif tanpa memverifikasi tanda tangan digital asimetris publik.
+- **Bencana Injeksi Konfigurasi & Firmware Palsu**:
+  - Jika sebuah subsistem analitik atau perangkat jaringan mengunduh pembaruan konfigurasi tanpa validasi tanda tangan kriptografis asimetris, penyerang di jaringan (*Man-in-the-Middle*) atau pihak luar yang memiliki akses ke API internal dapat menyuntikkan konfigurasi beracun yang mengarahkan seluruh aliran data analitik ke server peretas.
+  - Kegagalan deserialisasi data yang tidak tepercaya (*Insecure Deserialization*) juga termasuk dalam domain integritas ini, sering kali berujung pada eksekusi kode jarak jauh (*Remote Code Execution / RCE*).
+- **Kerugian Kepatuhan & Keuangan**:
+  Regulasi perlindungan infrastruktur kritis menuntut penegakan integritas kriptografis pada setiap pembaruan sistem. Kelalaian ini berisiko sanksi pembekuan operasional dan denda jutaan dolar atas hilangnya integritas data analitik finansial perusahaan.
 
 ---
 
-## Sasaran Pembelajaran
+### 2. Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam praktikum ini, Anda mengaudit mesin pemrosesan data enterprise: **DataFlow Analytics (Enterprise BI & Data Processing Engine)** yang beroperasi pada port `8018`.
 
-Melalui modul ini, Anda akan:
-- **Mengaudit Mekanisme Ingesti Data**: Mengidentifikasi ketiadaan verifikasi kriptografis pada endpoint penerima pembaruan.
-- **Mendemonstrasikan Tampering Payload**: Menyusun paket konfigurasi termanipulasi yang mematikan proteksi keamanan (mTLS) dan mengaktifkan pintu belakang (*backdoor*).
-- **Menganalisis Rantai Kepercayaan Kriptografis**: Memahami bagaimana tanda tangan digital (Ed25519, RSA, Cosign/Sigstore) bekerja untuk mengunci integritas kode.
-- **Membangun Pertahanan Integritas**: Menerapkan validasi berbasis kriptografi kunci publik dan verifikasi checksum SHA-256 yang kebal tampering.
+Arsitektur DataFlow Analytics mencakup:
+- **Stream Ingestion Engine**: Memproses puluhan ribu pesan per detik melalui kluster executor streaming terdistribusi.
+- **Active Configuration Store (`/api/config`)**: Menyimpan parameter runtime aktif seperti tingkat telemetri, penegakan mTLS, dan jumlah konkurensi worker.
+- **Dynamic Configuration Ingestion Endpoint (`/api/deploy_update`)**: Endpoint REST API yang menerima pembaruan konfigurasi kluster baru secara langsung melalui HTTP POST.
+- **Cacat Integritas Kritis**: Endpoint `/api/deploy_update` secara buta mempercayai paket konfigurasi JSON yang dikirimkan oleh klien tanpa memverifikasi tanda tangan digital dari otoritas akar (*dataflow-root-authority*), sehingga konfigurasi apa pun langsung dimuat ke memori aktif!
+
+---
+
+### 3. Sasaran, Temuan & Eksekusi (Search, Find, and Execute)
+Metodologi audit kegagalan integritas data:
+
+1. **Apa yang Dicari (What to Search)**:
+   - Endpoint pembaruan runtime: `/api/deploy_update`, `/api/config/reload`, `/api/firmware/push`.
+   - Ketiadaan validasi kunci publik (*public key verification*) pada header atau payload request.
+2. **Apa Temuan yang Menandakan Celah (Vulnerability Indicators)**:
+   - Mengirimkan paket JSON konfigurasi baru dengan properti `"signature_verified": false` dan parameter khusus tetap diterima dengan status `applied`.
+3. **Eksekusi Eksploitasi Terukur (Strategic Execution)**:
+   - Kirimkan payload pembaruan konfigurasi yang disusupi parameter debug:
+     ```json
+     {
+       "version": "2.0.0-custom",
+       "signature_verified": false,
+       "signer": "unverified-external-source",
+       "params": {"debug_backdoor": true}
+     }
+     ```
+   - Amati respons server yang mengonfirmasi bahwa konfigurasi tidak bertanda tangan berhasil dimuat ke runtime, sekaligus mengembalikan bukti flag autoritatif `ZITERA{...}`.
+
+---
+
+### 4. Pondasi Kuat: Tanda Tangan Digital Asimetris (Digital Signatures)
+Integritas data modern tidak cukup hanya dengan checksum CRC atau hash MD5 sederhana (karena penyerang dapat menghitung ulang hash baru untuk payload yang dimodifikasi):
+- **Otoritas Penandatanganan Asimetris (Public-Key Cryptography)**: Vendor atau tim keamanan menandatangani paket menggunakan **Kunci Privat (Private Key)** yang dirahasiakan rapat.
+- **Verifikasi di Klien**: Mesin klien/server memverifikasi paket menggunakan **Kunci Publik (Public Key)** yang tertanam permanen. Jika paket diubah satu bit saja oleh pihak luar, verifikasi tanda tangan akan gagal seketika (*Signature Verification Failed*), dan paket harus ditolak secara tegas.

@@ -1,6 +1,10 @@
 // IPC Client for ZiteraLab Tauri Rust Backend
 // Talks to Tauri commands with fallback mocks for browser dev mode
 
+import { getOfflineLabContent, getMissionBriefing, type MissionBriefing } from './offlineLabData'
+
+export { getOfflineLabContent, getMissionBriefing, type MissionBriefing }
+
 export interface ComponentItem {
   name: string
   installed: boolean
@@ -147,22 +151,54 @@ const MOCK_LABS: LabItem[] = [
     running: false,
     port: 8011,
     url: 'http://127.0.0.1:8011',
-    version: '1.0.0',
+    version: '1.0.1',
     status: 'READY',
     learnReadiness: 'READY',
     practiceReadiness: 'READY',
     challengeReadiness: 'READY',
     recommendedTools: ['curl', 'burpsuite', 'browser'],
     hasUpdate: false,
-    latestVersion: '1.0.0',
+    latestVersion: '1.0.1',
   },
   {
     id: 'A02',
-    title: 'Cryptographic Failures',
+    title: 'Security Misconfiguration',
     installed: true,
     running: false,
     port: 8012,
     url: 'http://127.0.0.1:8012',
+    version: '1.1.0',
+    status: 'READY',
+    learnReadiness: 'READY',
+    practiceReadiness: 'READY',
+    challengeReadiness: 'READY',
+    recommendedTools: ['nmap', 'curl', 'browser'],
+    hasUpdate: false,
+    latestVersion: '1.1.0',
+  },
+  {
+    id: 'A03',
+    title: 'Software Supply Chain Failures',
+    installed: true,
+    running: false,
+    port: 8013,
+    url: 'http://127.0.0.1:8013',
+    version: '1.0.1',
+    status: 'READY',
+    learnReadiness: 'READY',
+    practiceReadiness: 'READY',
+    challengeReadiness: 'READY',
+    recommendedTools: ['git', 'curl', 'python'],
+    hasUpdate: false,
+    latestVersion: '1.0.1',
+  },
+  {
+    id: 'A04',
+    title: 'Cryptographic Failures',
+    installed: true,
+    running: false,
+    port: 8014,
+    url: 'http://127.0.0.1:8014',
     version: '1.0.0',
     status: 'READY',
     learnReadiness: 'READY',
@@ -173,40 +209,8 @@ const MOCK_LABS: LabItem[] = [
     latestVersion: '1.0.0',
   },
   {
-    id: 'A03',
-    title: 'Injection',
-    installed: true,
-    running: false,
-    port: 8013,
-    url: 'http://127.0.0.1:8013',
-    version: '1.0.0',
-    status: 'READY',
-    learnReadiness: 'READY',
-    practiceReadiness: 'READY',
-    challengeReadiness: 'READY',
-    recommendedTools: ['sqlmap', 'burpsuite'],
-    hasUpdate: false,
-    latestVersion: '1.0.0',
-  },
-  {
-    id: 'A04',
-    title: 'Insecure Design',
-    installed: true,
-    running: false,
-    port: 8014,
-    url: 'http://127.0.0.1:8014',
-    version: '1.0.0',
-    status: 'READY',
-    learnReadiness: 'READY',
-    practiceReadiness: 'READY',
-    challengeReadiness: 'READY',
-    recommendedTools: ['ffuf', 'postman'],
-    hasUpdate: false,
-    latestVersion: '1.0.0',
-  },
-  {
     id: 'A05',
-    title: 'Security Misconfiguration',
+    title: 'Injection',
     installed: true,
     running: false,
     port: 8015,
@@ -216,13 +220,13 @@ const MOCK_LABS: LabItem[] = [
     learnReadiness: 'READY',
     practiceReadiness: 'READY',
     challengeReadiness: 'READY',
-    recommendedTools: ['nmap', 'curl'],
+    recommendedTools: ['sqlmap', 'burpsuite', 'curl'],
     hasUpdate: false,
     latestVersion: '1.0.0',
   },
   {
     id: 'A06',
-    title: 'Vulnerable and Outdated Components',
+    title: 'Insecure Design',
     installed: true,
     running: false,
     port: 8016,
@@ -232,7 +236,7 @@ const MOCK_LABS: LabItem[] = [
     learnReadiness: 'READY',
     practiceReadiness: 'READY',
     challengeReadiness: 'READY',
-    recommendedTools: ['snyk', 'trivy'],
+    recommendedTools: ['burpsuite', 'ffuf', 'curl'],
     hasUpdate: false,
     latestVersion: '1.0.0',
   },
@@ -248,7 +252,7 @@ const MOCK_LABS: LabItem[] = [
     learnReadiness: 'READY',
     practiceReadiness: 'READY',
     challengeReadiness: 'READY',
-    recommendedTools: ['hydra', 'jwt_tool'],
+    recommendedTools: ['hydra', 'jwt_tool', 'burpsuite'],
     hasUpdate: false,
     latestVersion: '1.0.0',
   },
@@ -264,7 +268,7 @@ const MOCK_LABS: LabItem[] = [
     learnReadiness: 'READY',
     practiceReadiness: 'READY',
     challengeReadiness: 'READY',
-    recommendedTools: ['cosign', 'git'],
+    recommendedTools: ['cosign', 'git', 'python'],
     hasUpdate: false,
     latestVersion: '1.0.0',
   },
@@ -280,13 +284,13 @@ const MOCK_LABS: LabItem[] = [
     learnReadiness: 'READY',
     practiceReadiness: 'READY',
     challengeReadiness: 'READY',
-    recommendedTools: ['wireshark', 'jq'],
+    recommendedTools: ['wireshark', 'jq', 'curl'],
     hasUpdate: false,
     latestVersion: '1.0.0',
   },
   {
     id: 'A10',
-    title: 'Server-Side Request Forgery (SSRF)',
+    title: 'Mishandling of Exceptional Conditions',
     installed: true,
     running: false,
     port: 8020,
@@ -296,7 +300,7 @@ const MOCK_LABS: LabItem[] = [
     learnReadiness: 'READY',
     practiceReadiness: 'READY',
     challengeReadiness: 'READY',
-    recommendedTools: ['curl', 'collaborator'],
+    recommendedTools: ['curl', 'burpsuite', 'collaborator'],
     hasUpdate: false,
     latestVersion: '1.0.0',
   },
@@ -498,51 +502,60 @@ export async function getCatalog(): Promise<CatalogEntry[]> {
 }
 
 export async function getLabContent(labId: string): Promise<LabContent> {
+  const offline = getOfflineLabContent(labId)
   try {
     const data = await callTauri<LabContent | string>('get_lab_content', { labId })
-    if (typeof data === 'string') return JSON.parse(data) as LabContent
+    if (typeof data === 'string') {
+      const parsed = JSON.parse(data)
+      const contentData = parsed.data ?? parsed
+      if (contentData && (contentData.manifest || contentData.lessons)) {
+        const lessons = contentData.lessons ?? {}
+        const resolvedLessons =
+          Object.keys(lessons).length > 0 ? { ...offline.lessons, ...lessons } : offline.lessons
+        return {
+          manifest: contentData.manifest ?? offline.manifest,
+          lessons: resolvedLessons,
+          challengeObjective:
+            contentData.challenge_objective ??
+            contentData.challengeObjective ??
+            offline.challengeObjective,
+          hints:
+            contentData.hints && contentData.hints.length > 0
+              ? contentData.hints
+              : offline.hints,
+        }
+      }
+      return parsed as LabContent
+    }
+    const rawObj = data as {
+      data?: {
+        manifest?: LabContent['manifest']
+        lessons?: Record<string, string>
+        challenge_objective?: string
+        challengeObjective?: string
+        hints?: ProgressiveHint[]
+      }
+    }
+    if (rawObj && rawObj.data) {
+      const lessons = rawObj.data.lessons ?? {}
+      const resolvedLessons =
+        Object.keys(lessons).length > 0 ? { ...offline.lessons, ...lessons } : offline.lessons
+      return {
+        manifest: rawObj.data.manifest ?? offline.manifest,
+        lessons: resolvedLessons,
+        challengeObjective:
+          rawObj.data.challenge_objective ??
+          rawObj.data.challengeObjective ??
+          offline.challengeObjective,
+        hints:
+          rawObj.data.hints && rawObj.data.hints.length > 0
+            ? rawObj.data.hints
+            : offline.hints,
+      }
+    }
     return data
   } catch {
-    const found = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
-    const title = found?.title ?? labId
-    const port = found?.port ?? 8011
-    return {
-      manifest: {
-        schemaVersion: 1,
-        id: labId,
-        packageId: `zitera-lab-${labId.toLowerCase()}`,
-        slug: labId.toLowerCase(),
-        title,
-        owasp: `${labId}:2025`,
-        standard: 'owasp-top10',
-        standardVersion: '2025',
-        categoryId: labId,
-        categoryName: title,
-        version: '1.0.0',
-        securityVersion: 1,
-        minimumCoreVersion: '2.0.0',
-        difficulty: 'Beginner',
-        runtime: 'native_sandboxed',
-        entrypoint: `${labId.toLowerCase()}-lab.exe`,
-        defaultPort: port,
-        estimatedMinutes: 45,
-        modes: ['theory', 'practice', 'challenge'],
-        shortDescription: `Hands-on cyber security training lab covering ${title}.`,
-        skills: ['Web Security', 'Defensive Hardening'],
-        learningObjectives: ['Exploit vulnerability', 'Inspect network logs', 'Fix insecure code'],
-        prerequisites: ['HTTP knowledge'],
-      },
-      lessons: {
-        '01-overview.md': `# ${labId}: ${title}\n\n### Overview\nWelcome to Zitera Lab **${labId}**. In this environment, you will explore real-world security vulnerabilities mapped to the OWASP Top 10:2025 standard.\n\n### Theoretical Background\nModern web architectures often fail to isolate user privileges properly or fail to sanitize inputs before processing.\n\n\`\`\`http\nGET /api/v1/user/profile?id=admin HTTP/1.1\nHost: target.internal\nAuthorization: Bearer <anonymous>\n\`\`\`\n\n### Learning Objectives\n- Understand the exact flaw.\n- Test using automated tools.\n- Submit the CTF flag!`,
-        '02-practice.md': `# Guided Practice\n\n1. Ensure the lab target is launched by clicking **[LAUNCH TARGET]**.\n2. Observe the HTTP response headers in the Tilix terminal.\n3. Identify the secret token in the response payload.\n4. Craft the exploit request to retrieve the flag.`,
-      },
-      challengeObjective: `Retrieve the hidden CTF flag from the ${title} target service. Flag format: \`FLAG{...}\` or \`ZITERA{...}\`.`,
-      hints: [
-        { tier: 1, type: 'recon', hint: `Inspect HTTP endpoints exposed on port ${port}. Look for unsecured query parameters.` },
-        { tier: 2, type: 'exploit', hint: 'Try accessing administrative resources with modified user ID headers or tampering cookies.' },
-        { tier: 3, type: 'flag', hint: `The flag is located in the response of the privileged endpoint /admin/secret.` },
-      ],
-    }
+    return offline
   }
 }
 

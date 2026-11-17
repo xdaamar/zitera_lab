@@ -1,33 +1,53 @@
 # A01: Broken Access Control & IDOR — Primadona Bug Bounty Hunter
 
-Broken Access Control menempati peringkat teratas (**#1**) dalam daftar risiko keamanan web **OWASP Top 10:2025**. Kerentanan ini terjadi ketika sebuah aplikasi web atau API gagal membatasi hak akses pengguna secara ketat di sisi server (*server-side authorization failure*), sehingga pengguna yang sudah login dapat mengakses data, fungsi, atau aset digital milik pengguna lain di luar batas hak akses sahnya.
+Broken Access Control menempati peringkat teratas (**#1**) dalam daftar risiko keamanan web **OWASP Top 10:2025**. Kerentanan ini terjadi ketika sistem aplikasi web atau API gagal membatasi hak akses pengguna secara ketat di sisi server (*server-side authorization failure*), sehingga pengguna yang telah terautentikasi dapat mengakses, memanipulasi, atau menghapus data milik pengguna lain di luar batas izin sahnya.
 
 ---
 
-### 💰 Mengapa Ini Menjadi "Tambang Emas" Bug Bounty ($1,500 – $8,000+)?
-Di platform bug bounty global seperti **HackerOne**, **Bugcrowd**, dan **Intigriti**, celah Broken Access Control (terutama **IDOR - Insecure Direct Object Reference**) adalah laporan kerentanan yang paling sering diganjar bounty ribuan dolar:
-- **Severity Tinggi (P1 / P2 - Critical / High)**: Karena celah ini memungkinkan kebocoran data jutaan pengguna (*mass data exfiltration*) atau pengambilalihan akun secara instan.
-- **Dampak Finansial & Hukum Nyata**: Pelanggaran regulasi perlindungan data pribadi (seperti **UU Perlindungan Data Pribadi No. 27/2022** di Indonesia atau **GDPR** internasional) mengancam denda hingga miliaran rupiah dan sanksi operasional berat bagi perusahaan.
-- **Eksploitasi Elegan**: Tidak membutuhkan malware atau tool hacking rumit; hanya dengan mengubah satu parameter angka atau UUID pada request HTTP, seluruh data rahasia terbuka.
+### 1. Alasan Kuat / Mengapa Ini Sangat Penting (Why It Matters)
+Di dunia nyata, Broken Access Control bukan sekadar kesalahan kode sepele, melainkan pintu gerbang kerugian finansial masif dan kehancuran reputasi bisnis:
+
+- **Kerugian Finansial & Denda Regulasi Masif**:
+  Di bawah regulasi privasi modern seperti **UU Perlindungan Data Pribadi No. 27/2022** di Indonesia atau **GDPR** internasional, kegagalan mengamankan data pengguna berisiko denda hingga puluhan miliar rupiah atau 4% dari perputaran uang global tahunan. Dalam sektor perbankan dan fintech, kebocoran data transaksi dapat memicu pencabutan izin kliring oleh Bank Sentral dan OJK.
+- **Kehancuran Kepercayaan & Saham Korporasi**:
+  Ketika platform keuangan atau e-commerce membocorkan data nasabah, kepercayaan publik lenyap seketika. Kasus nyata seperti kebocoran First American Financial Corporation (mengakibatkan 885 juta rekaman dokumen hipotek dan transfer bank terbuka akibat ketiadaan kontrol otorisasi pada URL dokumen) menjadi bukti nyata malapetaka bisnis.
+- **Tambang Emas Bug Bounty ($1,500 – $8,000+ USD)**:
+  Di platform bounty internasional seperti HackerOne dan Bugcrowd, laporan **IDOR (Insecure Direct Object Reference)** selalu digolongkan sebagai **Severity P1/P2 (Critical/High)** karena memungkinkan penyerang mengeksfiltrasi database ribuan nasabah secara massal hanya dengan sedikit iterasi script.
 
 ---
 
-### 🎯 Tujuan Pembelajaran Modul Ini
-Setelah menyelesaikan modul ini, kamu diharapkan mampu:
-1. **Membentuk Pola Pikir Peretas (Attacker Mindset)**: Memandang web bukan sekadar tombol visual, melainkan aliran parameter data HTTP.
-2. **Membedakan AuthN vs AuthZ**: Memahami secara tajam batas antara identitas login (*Authentication*) dan kepemilikan data (*Authorization*).
-3. **Mendeteksi Pola IDOR**: Menemukan parameter referensi objek langsung (`id`, `user_id`, `wire_id`, `account_no`) pada request HTTP.
-4. **Melakukan Audit Nyata pada ApexFin Treasury**: Menguji kerentanan pada portal perbankan korporat target dan mengekstrak bukti eksploitasi (*Proof of Concept*).
-5. **Menerapkan Pertahanan Server-Side**: Menulis kode remediasi yang menerapkan *Object-Level Access Control* yang kebal terhadap serangan tampering.
+### 2. Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam praktikum ini, kamu tidak menghadapi form latihan buatan yang kaku, melainkan sebuah portal perbankan institusional komersial nyata: **VaultPay Enterprise (Fintech B2B Treasury & Wire Transfer Portal)** yang beroperasi pada port `8011`.
+
+Arsitektur sistem yang kamu hadapi mencakup:
+- **Web Application Tier**: Portal web Flask/Python yang melayani antarmuka operator likuiditas dan analis perbendaharaan institusional.
+- **API Gateway & Routing Layer**: Endpoint RESTful `/wire/<int:wire_id>` dan `/invoice/<int:wire_id>` yang melayani peramban web maupun integrasi sistem SWIFT ERP via JSON.
+- **Identity & Session Management**: Sesi login berbasis cookie HTTP terenkripsi yang mencatat identitas analis (`alice`, `bob`, `admin`).
+- **Data Persistence Layer (SQLite / RDBMS)**: Tabel buku besar `wires` yang memisahkan transaksi antar-entitas berdasarkan `user_id`. Cacat terjadi karena handler rute mengambil data langsung berdasarkan parameter ID yang dikirim klien (`wire_id`) tanpa memverifikasi relasi kepemilikan dengan pengguna aktif di sesi!
 
 ---
 
-### ⚖️ Memahami Perbedaan Kritis: AuthN vs AuthZ
-Banyak programmer pemula keliru mengira aplikasinya sudah aman hanya karena telah memasang login password dan token JWT:
+### 3. Sasaran, Temuan & Eksekusi (Search, Find, and Execute)
+Sebelum kamu menyentuh sasaran pengujian, kamu harus memahami metodologi pengujian terstruktur:
 
-| Aspek Keamanan | Pertanyaan Kunci | Contoh Mekanisme | Titik Kegagalan Umum |
+1. **Apa yang Dicari (The Target)**:
+   - Parameter referensi langsung pada URL atau body request HTTP: e.g. `wire_id`, `invoice_id`, `doc_id`, `account_no`.
+   - Pola penomoran berurutan (*sequential integer IDs*) atau UUID yang dapat ditebak.
+2. **Apa Temuan yang Menandakan Celah (The Vulnerability Indicator)**:
+   - Ketika kamu login sebagai analis biasa (`alice`), kamu melihat voucher transaksi milikmu (`wire/1`).
+   - Saat parameter URL diubah menjadi `wire/2` (milik analis lain `bob`), server mengembalikan HTTP status `200 OK` dengan data Bob lengkap tanpa penolakan `403 Forbidden`!
+3. **Eksekusi Eksploitasi Terukur (The Strategic Execution)**:
+   - Lakukan pemetaan terhadap transaksi bernilai tinggi atau dokumen kepatuhan tingkat eksekutif (`wire/42`).
+   - Buktikan kegagalan isolasi batas multi-tenant (*tenant boundary bypass*) dan eksfiltrasi segel kepatuhan SOX-404 yang memuat bukti validasi autoritatif (`ZITERA{...}`).
+
+---
+
+### 4. Pondasi Kuat: Perbedaan Kritis AuthN vs AuthZ
+Banyak insinyur perangkat lunak pemula keliru mengira sistemnya aman hanya karena telah memasang login password dan token sesi:
+
+| Dimensi Keamanan | Pertanyaan Kunci | Contoh Mekanisme | Titik Kegagalan Umum |
 | :--- | :--- | :--- | :--- |
-| **Authentication (AuthN)** | *"Siapa kamu?"* | Password, MFA, JWT signature, FaceID | Password lemah, brute force, token forgery |
-| **Authorization (AuthZ)** | *"Apa saja hak aksesmu?"* | Role-based ACL, ownership verification | **Broken Access Control**, IDOR, privilege escalation |
+| **Authentication (AuthN)** | *"Siapa kamu?"* | Password, SSO SAML, Multi-Factor Auth (MFA) | Brute-force, password lemah, session hijacking |
+| **Authorization (AuthZ)** | *"Apa saja hak aksesmu?"* | Role-Based Access Control (RBAC), Object-Level Ownership | **Broken Access Control**, IDOR, Privilege Escalation |
 
-> **Prinsip Utama:** Broken Access Control hampir selalu merupakan kegagalan pada lapisan **Authorization**, bukan Authentication. Penyerang biasanya telah berhasil masuk menggunakan akun sah berhak akses rendah, kemudian memanipulasi parameter untuk mengakses data pengguna lain.
+> **Prinsip Fundamental:** Broken Access Control adalah kegagalan lapisan **Authorization**. Penyerang masuk secara sah menggunakan akun berhak akses rendah, lalu memanipulasi parameter untuk membaca atau mengubah objek milik pihak lain.

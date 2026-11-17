@@ -1,44 +1,49 @@
-﻿# Pengenalan: Mishandling of Exceptional Conditions (OWASP A10:2025)
+﻿# A10: Mishandling of Exceptional Conditions — Bahaya Fatal Gerbang Fail-Open
 
-Dalam rekayasa perangkat lunak, kondisi tak terduga (*exceptional conditions*) adalah keniscayaan: koneksi database terputus di tengah transaksi, server verifikasi hulu (*upstream*) mengalami *timeout*, payload JSON memiliki tipe data yang rusak (*malformed*), atau terjadi kondisi kekurangan memori (*out of memory*). Namun, bagaimana sistem menangani kondisi luar biasa ini memisahkan arsitektur yang aman dari arsitektur yang rapuh. **OWASP A10:2025 – Mishandling of Exceptional Conditions** menyoroti kerentanan fatal di mana penanganan eksepsi yang keliru menyebabkan runtuhnya batas keamanan aplikasi.
-
-Kesalahan paling berbahaya dalam kategori ini adalah **Fail-Open (Gagal-Terbuka)**: ketika terjadi kesalahan atau timeout pada komponen evaluasi keamanan, sistem memilih untuk memberikan izin akses (*grant access*) dengan dalih menjaga ketersediaan layanan (*availability*) atau kenyamanan pengguna (*user experience*).
+Mishandling of Exceptional Conditions menempati peringkat ke-10 (**#10**) dalam edisi terkini **OWASP Top 10:2025**. Kategori ini menyoroti bagaimana penanganan kesalahan (*error and exception handling*) yang ceroboh di sisi server dapat meruntuhkan seluruh arsitektur keamanan, terutama ketika sistem menerapkan filosofi gagal-terbuka (*fail-open*) alih-alih gagal-tertutup (*fail-closed*).
 
 ---
 
-## Mengapa Kategori Ini Sangat Penting dalam OWASP Top 10 2025?
+### 1. Alasan Kuat / Mengapa Ini Sangat Penting (Why It Matters)
+Banyak tim rekayasa perangkat lunak tanpa sadar menerapkan prinsip berbahaya: *"Lebih baik mengizinkan akses jika sistem downstream error daripada menghambat pengalaman pelanggan"*. Asumsi ini adalah malapetaka arsitektur:
 
-Ketika sistem terdistribusi semakin kompleks dengan puluhan microservices yang saling bergantung, kegagalan parsial (*partial failures*) menjadi hal yang lazim terjadi:
-
-1. **Perbedaan Fail-Closed vs Fail-Open**: Dalam konteks keamanan, prinsip dasar yang wajib dipatuhi adalah **Fail-Closed (Gagal-Terkunci)**: jika verifikasi keamanan tidak dapat diselesaikan dengan sempurna, status akses secara default harus DITOLAK (*DENY*). Memilih Fail-Open membuka celah jalan pintas otorisasi.
-2. **Eksploitasi Sengaja melalui Fault Injection**: Penyerang dapat sengaja membanjiri server KYC eksternal atau mengirim karakter unicode yang tidak valid untuk memaksa modul autentikasi melempar eksepsi, sehingga mengaktifkan blok penanganan kesalahan yang tidak aman.
-3. **Penyembunyian Exception (*Exception Swallowing*)**: Blok `try...catch (Exception e)` generik yang menangkap seluruh jenis kesalahan tanpa logging atau penanganan spesifik sering kali menutupi kegagalan kritis dari tim operasi.
-4. **Kebocoran Informasi Sensitif**: Eksepsi yang tidak tertangani dengan benar sering kali menampilkan stack trace internal, kredensial koneksi, atau versi dependensi ke browser pengguna, memberikan peta jalan kepada penyerang.
-
----
-
-## Skenario Lab: Zitera Payment & Security Gate
-
-Dalam lab ini, Anda akan berhadapan dengan **Zitera Payment & Security Gate (Port 8020)**. Layanan ini merepresentasikan gerbang otorisasi pembayaran transaksi keuangan dan verifikasi akses identitas:
-
-```
-┌─────────────────────────┐          HTTP POST          ┌─────────────────────────┐
-│     Untrusted Client    │  ─────────────────────────> │   Zitera Security Gate  │
-│  (Attacker / Tester)    │   /api/gate/verify          │       (Port 8020)       │
-│                         │   {"simulate_exception":    │                         │
-│                         │    "UPSTREAM_TIMEOUT"}      │ ❌ FAIL-OPEN TRIGGERED! │
-└─────────────────────────┘                             │  authorized = True      │
-                                                        └─────────────────────────┘
-```
-
-Secara fatal, pengembang gateway menambahkan blok penanganan pengecualian generik: ketika terjadi kesalahan pemrosesan token atau timeout dari verifikator hulu, sistem secara otomatis mengeksekusi `authorized = True` dan memberikan akses transaksi penuh kepada pengguna tanpa izin!
+- **Bypass Gerbang Keamanan Akibat Exception**:
+  - Ketika layanan otorisasi hulu (*upstream KYC, token validator, atau database antispam*) mengalami *timeout*, pesan tidak terduga, atau format null, blok `try ... catch` umum sering kali menangkap exception tersebut dan secara keliru menetapkan `authorized = true`.
+  - Penyerang yang memahami perilaku ini hanya perlu sengaja memicu error (misalnya mengirim payload malformed, data berukuran raksasa, atau karakter tak terduga) untuk memaksa gerbang keamanan membuka akses tanpa pemeriksaan kredensial sama sekali!
+- **Kerugian Finansial & Pembobolan Transaksi**:
+  Dalam platform pemrosesan dokumen hukum, gerbang pembayaran, atau penerbitan sertifikat digital, cacat fail-open memungkinkan pengguna tidak berizin menghasilkan dokumen kontrak resmi atau memicu transaksi tanpa verifikasi saldo.
 
 ---
 
-## Sasaran Pembelajaran
+### 2. Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam praktikum ini, Anda mengaudit platform SaaS dokumen komersial: **TemplateCloud Studio (Commercial SaaS Email & PDF Document Generator)** yang beroperasi pada port `8020`.
 
-Melalui modul ini, Anda akan:
-- **Mengidentifikasi Logika Fail-Open**: Mengaudit blok penanganan eksepsi untuk menemukan asumsi default yang melemahkan keamanan.
-- **Mendemonstrasikan Fault Injection**: Memicu kondisi eksepsi yang disengaja (timeout hulu, nilai null, error parsing) untuk menerobos gerbang keamanan.
-- **Memahami Pola Desain Fail-Safe Defaults**: Mengimplementasikan prinsip keamanan bahwa otorisasi harus berstatus `False` kecuali terbukti valid secara definitif.
-- **Membangun Circuit Breaker & Fallback Aman**: Merancang pola penanganan kegagalan hulu yang menjaga ketersediaan sistem tanpa mengorbankan integritas keamanan.
+Arsitektur TemplateCloud Studio mencakup:
+- **Transactional Document Generator**: Menyediakan template dokumen penting seperti Faktur Pajak B2B, Laporan Rekening Nasabah, dan Perjanjian Kerahasiaan (NDA).
+- **Headless Rasterization Cluster**: Menjalankan mesin rendering Chromium untuk mengubah template HTML menjadi file PDF beresolusi tinggi.
+- **Upstream Authorization Gate (`/api/gate/verify`)**:
+  - Mengevaluasi apakah pengguna memiliki token lisensi aktif (`super_authorized_token`) sebelum mengizinkan kompilasi PDF.
+  - **Cacat Fatal Penanganan Exception**: Handler membungkus evaluasi token dalam blok `try ... catch`. Ketika terjadi kondisi luar biasa (*upstream gateway timeout, null token, malformed JSON*), blok catch menangani error dengan menetapkan `authorized = True` dan `fail_open_state = True`!
+
+---
+
+### 3. Sasaran, Temuan & Eksekusi (Search, Find, and Execute)
+Metodologi eksploitasi kondisi luar biasa terarah:
+
+1. **Apa yang Dicari (What to Search)**:
+   - Endpoint gerbang otorisasi yang bergantung pada layanan hulu: `/api/gate/verify`, `/api/auth/token_eval`.
+   - Perilaku sistem saat menerima input ekstrem atau anomali.
+2. **Apa Temuan yang Menandakan Celah (Vulnerability Indicators)**:
+   - Mengirimkan token tidak valid biasa mengembalikan `{"authorized": false, "message": "Access denied"}`.
+   - Namun, ketika dikirimkan payload yang memicu exception hulu (`{"simulate_exception": "UPSTREAM_TIMEOUT"}` atau `{"token": null}`), sistem justru merespons dengan `{"authorized": true, "message": "Access granted via fail-open fallback."}`!
+3. **Eksekusi Eksploitasi Terukur (Strategic Execution)**:
+   - Kirimkan payload yang menginduksi exception ke endpoint `/api/gate/verify`.
+   - Buktikan bahwa status otorisasi berubah menjadi `authorized: true` dalam kondisi fail-open.
+   - Ambil bukti flag autoritatif berformat `ZITERA{...}` yang disertakan dalam respons eksekusi.
+
+---
+
+### 4. Pondasi Kuat: Prinsip Fail-Safe Defaults (Fail-Closed)
+Aturan baku dalam rekayasa keamanan perangkat lunak:
+- **Default Harus Tertutup (*Fail-Closed by Default*)**: Variabel otorisasi harus diinisialisasi ke nilai `False` (`authorized = False`). Hanya jika semua pemeriksaan berhasil dilewati tanpa error apa pun, nilai tersebut diubah menjadi `True`.
+- **Penanganan Exception Defensif**: Setiap exception atau timeout dari layanan hulu harus selalu menghasilkan penolakan akses aman (*Access Denied*), disertai pencatatan insiden telemetri untuk dianalisis oleh tim keandalan sistem (*SRE*).

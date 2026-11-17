@@ -1,14 +1,26 @@
-# CTF Challenge: Brankas Hash yang Rusak (The Broken Hash Vault)
+# Simulasi Audit: SafeKey Corporate Vault Weak Hashing
 
-### RINGKASAN MISI
-Kamu sedang mengaudit layanan manajemen kunci kriptografi internal di `http://127.0.0.1:8014`. Log infrastruktur lama mengindikasikan bahwa akun lama pengguna dimigrasikan menggunakan skema hashing kuno tanpa penambahan salt acak.
+### 🎯 MISI BRIEFING
+Lembaga perbankan **SafeKey Technologies Inc.** meminta Anda melakukan uji penetrasi terhadap modul penyimpanan kredensial **SafeKey Corporate Vault** pada `http://127.0.0.1:8014`.
 
-### OBJEKTIF
-Pulihkan kredensial akun administrator dari log audit hash yang bocor, lakukan login ke brankas administratif, dan ambil master flag tantangan.
+Modul ini diduga masih menyimpan jejak kredensial migrasi menggunakan algoritma MD5 tanpa garam kriptografis (*unsalted MD5*), memungkinkan penyerang merekonstruksi kata sandi Chief Information Security Officer (CISO).
 
-### LINGKUNGAN TARGET
-- Base URL: `http://127.0.0.1:8014`
-- Cakupan Pengujian: Terbatas hanya pada `127.0.0.1:8014`.
+---
 
-### FORMAT SUBMISSION FLAG
+### 🏢 RUANG LINGKUP & TARGET
+- **Target URL:** `http://127.0.0.1:8014`
+- **Tingkat Keparahan:** High (CVSS 7.4)
+- **Vektor Kerentanan:** CWE-328 (Use of Weak Hash), CWE-916 (Use of Password Hash With Insufficient Computational Effort)
+
+---
+
+### 🚩 OBJEKTIF PENELUSURAN
+1. Akses tabel migrasi kredensial di `/api/audit/hashes`.
+2. Identifikasi dan pecahkan nilai hash MD5 akun `admin`.
+3. Lakukan login ke portal `/login` untuk membuka Master Key Vault di `/vault`.
+4. Ambil dan kirimkan flag berformat `ZITERA{...}` ke Zitera Lab desktop!
+
+---
+
+### 🔑 FORMAT SUBMISSION
 `ZITERA{...}`

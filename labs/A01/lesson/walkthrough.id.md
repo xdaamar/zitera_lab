@@ -1,60 +1,58 @@
-# Panduan Praktik Terbimbing: Investigasi & Pembuktian IDOR pada ApexFin Treasury
+# Panduan Praktik Terbimbing: Investigasi & Pembuktian IDOR pada VaultPay Enterprise
 
-Dalam latihan terarah ini, kamu akan mempraktikkan proses audit keamanan nyata terhadap portal perbendaharaan korporat **ApexFin Corporate Treasury** yang berjalan di `http://127.0.0.1:8011`. Latihan ini disusun mengikuti alur investigasi bug bounty profesional: **Observasi $\rightarrow$ Hipotesis $\rightarrow$ Pembuktian PoC $\rightarrow$ Eksfiltrasi Flag**.
+Dalam latihan terarah ini, kamu akan mempraktikkan proses audit keamanan profesional terhadap portal perbendaharaan institusional **VaultPay Enterprise (Fintech B2B Treasury & Wire Transfer Portal)** yang berjalan di `http://127.0.0.1:8011`. Metodologi pengujian mengikuti tahapan standar industri: **Observasi $\rightarrow$ Hipotesis $\rightarrow$ Pembuktian PoC $\rightarrow$ Eksfiltrasi Bukti**.
 
 ---
 
 ### Tahap 1: Observasi & Pemetaan Sistem (Reconnaissance)
-Langkah pertama dalam pengujian penetrasi adalah memetakan perilaku normal aplikasi.
-
-1. Buka peramban web dan akses portal ApexFin Treasury:
+1. Buka peramban web dan akses portal VaultPay Enterprise:
    `http://127.0.0.1:8011`
-2. Lakukan autentikasi menggunakan akun analis junior:
+2. Lakukan autentikasi menggunakan akun staf analis likuiditas junior:
    - **Username:** `alice`
    - **Password:** `password123`
-3. Amati **Dashboard Operasional**:
-   - Alice hanya melihat 1 transaksi kawat resmi di buku besar: **`TRX-APEX-1001`** (Cloud Compute Retainer - $4,950.00).
-4. Klik tombol **"View Wire Slip"** pada transaksi kawat tersebut.
+3. Amati antarmuka **Dispatched Wire Settlement Ledger**:
+   - Alice hanya ditugaskan 1 transaksi kawat resmi pada siklus fiskal ini: **`TRX-VLT-1001`** (Cloud Infrastructure Compute Retainer - $4,950.00).
+4. Klik tombol **"View Voucher #1 &rarr;"** pada baris transaksi tersebut.
 5. Perhatikan bilah alamat (*address bar*) peramban:
    `http://127.0.0.1:8011/wire/1`
-   - Parameter angka `1` adalah referensi objek langsung (*Direct Object Reference*) ke baris database.
+   - Angka `1` merupakan referensi objek langsung (*Direct Object Reference*) yang diteruskan langsung ke query database backend.
 
 ---
 
 ### Tahap 2: Pengujian Hipotesis & Parameter Tampering
-Sekarang ujilah hipotesis: *Apakah server memvalidasi kepemilikan voucher transfer terhadap sesi login Alice?*
+Ujilah hipotesis keamanan: *Apakah backend memvalidasi bahwa voucher nomor 2 benar-benar dimiliki oleh sesi login Alice?*
 
 1. Tetap berada di halaman peramban, lalu klik bilah alamat (*address bar*).
 2. Ubah URL dari:
    `http://127.0.0.1:8011/wire/1`
    menjadi:
    `http://127.0.0.1:8011/wire/2`
-3. Tekan **Enter** dan amati hasilnya:
+3. Tekan **Enter** dan perhatikan respons sistem:
    - **Status Respon:** Berhasil dimuat dengan status `200 OK`.
-   - **Temuan Bukti:** Data yang tampil di layar adalah voucher kawat **`TRX-APEX-1002`** bernilai $1,450.00 milik analis lain (**Robert Sterling / Bob**)!
-   - **Analisis Kritis:** Cookie sesi yang dikirimkan tetap milik Alice (`user_sess_1`), namun server mengembalikan voucher milik Bob tanpa penolakan HTTP 403 Forbidden. Ini membuktikan adanya kerentanan **Horizontal IDOR**!
+   - **Temuan Bukti:** Voucher yang ditampilkan adalah **`TRX-VLT-1002`** bernilai $1,450.00 milik analis senior (**Robert Sterling / Bob**)!
+   - **Analisis Kritis:** Cookie sesi otentikasi Alice tetap aktif, namun server mengizinkan akses ke catatan finansial Bob tanpa verifikasi hak kepemilikan objek (*Horizontal Privilege Escalation*).
 
 ---
 
-### Tahap 3: Eksfiltrasi Dokumen Berstatus Rahasia (Sovereign Wire #42)
-Sebagai bug hunter, temuan horizontal IDOR biasa mungkin bernilai $1,500. Namun, jika kamu berhasil mengakses dokumen bernilai tinggi atau data pengawas regulasi (Sovereign/Executive Record), dampaknya melonjak menjadi **Critical ($5,000+)**!
+### Tahap 3: Eksfiltrasi Dokumen Berstatus Rahasia (Voucher #42)
+Dalam program bug bounty institusional, eksfiltrasi catatan transaksi eksekutif berstatus rahasia (*Restricted Sovereign Ledger*) merupakan bukti dampak kritis (*Critical Severity*).
 
-1. Coba lakukan penelusuran terhadap ID khusus yang mencurigakan di URL, misalnya nomor referensi audit eksekutif:
+1. Ujilah ID khusus yang dialokasikan untuk transaksi audit otoritas moneter / eksekutif:
    `http://127.0.0.1:8011/wire/42`
-2. Halaman akan merender **Official Wire Settlement Voucher** berstatus **RESTRICTED**:
-   - **Kode Referensi:** `TRX-APEX-9901-SOVEREIGN`
+2. Sistem akan merender **Official Wire Settlement Voucher** berstatus **RESTRICTED**:
+   - **Kode Referensi:** `TRX-VLT-9901-SOVEREIGN`
    - **Nilai Transaksi:** `$99,999.00`
-   - **Signatory:** Marcus Reid (VP Corporate Controller & Auditor)
-   - **Compliance Memo:** Memuat bukti validasi autoritatif berupa CTF Flag!
-3. Perhatikan pita ambient di bagian atas: tombol **`[📋 COPY FLAG]`** aktif dan kamu dapat menyalin flag langsung ke clipboard untuk disubmit ke Zitera Lab desktop.
+   - **Originator:** VaultPay Sovereign Escrow Reserve (Marcus Reid - VP Corporate Controller)
+   - **Clearing Record & Compliance Memo:** Memuat segel validasi autoritatif audit kepatuhan SOX-404 dalam format `ZITERA{...}`!
+3. Salin flag validasi tersebut untuk dikirimkan (*submit*) ke Zitera Lab desktop.
 
 ---
 
-### Tahap 4: Verifikasi Uji Mandiri via Terminal (cURL)
-Kamu juga dapat melakukan pembuktian tanpa browser menggunakan perintah cURL di terminal Zitera Lab:
+### Tahap 4: Verifikasi Bukti Menggunakan cURL Terminal
+Kamu juga dapat membuktikan celah ini secara programatik melalui terminal:
 
 ```bash
-# Uji akses voucher #42 langsung menggunakan cookie sesi Alice
-curl -s -i "http://127.0.0.1:8011/wire/42" -H "Cookie: session_user=user_sess_1"
+# Permintaan langsung ke endpoint JSON API untuk voucher #42
+curl -s -i "http://127.0.0.1:8011/wire/42?format=json"
 ```
-Perhatikan bahwa server mengembalikan payload lengkap dokumen rahasia tanpa meminta login ulang sebagai admin.
+Amati bahwa objek JSON dikembalikan secara transparan oleh backend, membuktikan bahwa lapisan API tidak memiliki gerbang otorisasi objek sama sekali.

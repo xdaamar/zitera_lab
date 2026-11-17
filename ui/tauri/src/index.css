@@ -247,6 +247,41 @@ body {
 }
 .prose-zitera strong { color: #1E1A14; font-weight: 700; }
 .prose-zitera a { color: #0F766E; text-decoration: underline; }
+.prose-zitera table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.8125rem;
+  background: white;
+  border: 1px solid #E6E2D8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.prose-zitera th {
+  background: #F7F5F0;
+  color: #1E1A14;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid #E6E2D8;
+}
+.prose-zitera td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #E6E2D8;
+  color: #5C5347;
+}
+.prose-zitera tr:last-child td {
+  border-bottom: none;
+}
+.prose-zitera tr:hover td {
+  background: #FCFBF8;
+}
+.prose-zitera hr {
+  border: none;
+  border-top: 1px solid #E6E2D8;
+  margin: 1.5rem 0;
+}
 
 /* Terminal */
 .terminal-line { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; line-height: 1.5; }

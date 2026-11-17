@@ -1,14 +1,32 @@
-# CTF Challenge: Kebocoran Konfigurasi OpsGateway
+# Simulasi Audit Keamanan: CloudCore OpsGateway Misconfiguration
 
-### RINGKASAN MISI
-Kamu sedang menjalankan audit keamanan pada gateway operasi internal kritis di `http://127.0.0.1:8012`. Pengintaian pasif mengindikasikan tim deployment mengunggah konfigurasi bawaan dan membiarkan direktori cadangan dapat diakses publik.
+### 🎯 MISI BRIEFING
+Perusahaan cloud infrastructure **CloudCore Technologies Inc.** menugaskan Anda untuk mengaudit gerbang operasional kluster mereka: **CloudCore OpsGateway** yang berjalan pada `http://127.0.0.1:8012`.
 
-### OBJEKTIF
-Identifikasi kesalahan konfigurasi pada sistem target untuk menemukan arsip backup konfigurasi milik administrator dan ekstrak flag aktivasi sistem.
+Tim developer diduga meninggalkan mode debug aktif, membuka direktori cadangan otomatis tanpa proteksi autentikasi, serta membiarkan akun pengelola menggunakan kredensial bawaan pabrik.
 
-### LINGKUNGAN TARGET
-- Base URL: `http://127.0.0.1:8012`
-- Cakupan Pengujian: Terbatas hanya pada `127.0.0.1:8012`.
+---
 
-### FORMAT FLAG
+### 🏢 RUANG LINGKUP & TARGET
+- **Target URL:** `http://127.0.0.1:8012`
+- **Tingkat Keparahan (Severity):** High (CVSS 7.5)
+- **Vektor Kerentanan:** CWE-16 (Configuration), CWE-548 (Directory Listing), CWE-1188 (Default Insecure Credentials)
+
+---
+
+### 🚩 OBJEKTIF PENELUSURAN
+1. Lakukan audit pengintaian pada endpoint diagnostik publik `/debug/vars`.
+2. Eksploitasi indeks direktori terbuka pada `/backups/` untuk mengunduh arsip cadangan konfigurasi sistem.
+3. Analisis isi file cadangan untuk mengekstrak token autoritatif `admin_system_key`.
+4. Kirimkan (*submit*) flag berformat `ZITERA{...}` ke Zitera Lab desktop untuk memvalidasi penyelesaian misi!
+
+---
+
+### ⚠️ ATURAN PENGUJIAN
+- Fokuskan pengujian pada service lokal `127.0.0.1:8012`.
+- Hindari serangan denial-of-service (DoS).
+
+---
+
+### 🔑 FORMAT SUBMISSION
 `ZITERA{...}`

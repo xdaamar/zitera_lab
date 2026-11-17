@@ -1,24 +1,50 @@
-# A03: Software Supply Chain Failures (Kegagalan Rantai Pasok Perangkat Lunak)
+# A03: Software Supply Chain Failures — Ancaman Senyap Rantai Pasok
 
-## 1. Apa itu Software Supply Chain Failure?
-Dalam era rekayasa perangkat lunak modern, pengembang hampir tidak pernah menulis seluruh basis kode dari nol. Rata-rata aplikasi enterprise kontemporer terdiri dari 80% hingga 90% komponen pihak ketiga: pustaka sumber terbuka (*open-source libraries*), package manager (seperti npm, PyPI, Cargo, Maven, NuGet), base image container, plugin build pipeline, dan modul orkestrasi CI/CD.
+Software Supply Chain Failures menempati peringkat ke-3 (**#3**) dalam daftar risiko **OWASP Top 10:2025**. Kerentanan ini menyoroti bahaya ketika perangkat lunak enterprise disusupi bukan karena kesalahan penulisan kode internal oleh pengembang, melainkan akibat kompromi pada ekosistem rantai pasok hulu (*upstream third-party dependencies, package registries, and CI/CD pipelines*).
 
-OWASP Top 10:2025 A03 menyoroti kerentanan yang menyusup ke dalam aplikasi bukan karena kelalaian logika kode internal pengembang, melainkan akibat kompromi pada ekosistem rantai pasok hulu (*upstream supply chain*). Ketika satu komponen dependensi yang dipercaya disusupi atau dipalsukan, seluruh aplikasi turunan yang mengimpor pustaka tersebut akan mewarisi kerentanan atau muatan berbahaya (*backdoor*) secara otomatis.
+---
 
-## 2. Mengapa Ancaman Rantai Pasok Kritis di 2025/2026?
-Serangan terhadap rantai pasok perangkat lunak mengalami peningkatan eksponensial karena penyerang menyadari efisiensi skala:
-- **Dampak Berantai (*Blast Radius*) Luas**: Menginfeksi satu pustaka populer dengan jutaan unduhan mingguan memungkinkan penyerang menyusup ke ribuan enterprise sekaligus tanpa perlu membobol firewall masing-masing korban secara langsung.
-- **Kepercayaan Tersirat (*Implicit Trust*)**: Lingkungan CI/CD otomatis sering kali diberi hak istimewa (*privileged credentials*) untuk mengakses registry produksi, cloud hosting, dan database internal.
-- **Kompleksitas Dependensi Transitif**: Satu paket utama dapat menarik puluhan hingga ratusan pustaka turunan (*transitive dependencies*). Pengembang sering kali tidak menyadari pustaka apa saja yang secara tidak langsung dieksekusi saat proses instalasi.
+### 1. Alasan Kuat / Mengapa Ini Sangat Penting (Why It Matters)
+Dalam rekayasa perangkat lunak modern, lebih dari 85% basis kode aplikasi terdiri dari pustaka pihak ketiga (npm, PyPI, Cargo, NuGet). Ketika satu dependensi dipercaya disusupi, ribuan korporasi yang mengimpor pustaka tersebut otomatis terinfeksi:
 
-## 3. Insiden Bersejarah Rantai Pasok
-- **Kasus `event-stream` (npm)**: Pustaka populer diambil alih oleh penyerang melalui rekayasa sosial terhadap maintainer asli, lalu disisipi kode pencuri dompet cryptocurrency.
-- **Insiden SolarWinds Orion**: Penyerang menyusupkan trojan Sunburst ke dalam sistem kompilasi resmi vendor sebelum pembaruan perangkat lunak ditandatangani dan didistribusikan ke puluhan ribu organisasi pemerintah dan korporasi.
-- **Backdoor `xz-utils` (CVE-2024-3094)**: Penyerang menghabiskan waktu bertahun-tahun membangun reputasi sebagai kontributor tepercaya sebelum menyisipkan backdoor bertahap pada mekanisme kompresi Linux guna membajak autentikasi SSH daemon.
+- **Dampak Berantai Skala Global (*Massive Blast Radius*)**:
+  - **Insiden SolarWinds Orion (2020)**: Penyerang menyusupkan trojan ke dalam siklus kompilasi build resmi sebelum rilis ditandatangani, menginfeksi lebih dari 18.000 lembaga pemerintah dan perusahaan Fortune 500.
+  - **Backdoor xz-utils (CVE-2024-3094)**: Penyerang menghabiskan waktu bertahun-tahun membangun reputasi kontributor tepercaya sebelum menyisipkan muatan berbahaya bertahap pada pustaka kompresi Linux guna membajak autentikasi SSH daemon global.
+  - **Kasus `event-stream` (npm)**: Pustaka populer yang diunduh jutaan kali per minggu dialihkan kepemilikannya ke akun peretas, lalu disisipi skrip pencuri dompet mata uang kripto.
+- **Kerugian Finansial & Hukum**:
+  Kegagalan verifikasi rantai pasok dapat memicu kebocoran token repositori internal, kunci API cloud AWS/GCP produksi, dan hilangnya hak operasional perusahaan akibat pelanggaran standar keamanan seperti NIST SP 800-161 dan regulasi Executive Order 14028.
 
-## 4. Sasaran Pembelajaran di Lab A03
-Melalui lab praktikum ini, Anda akan mempelajari:
-1. Memahami mekanisme lockfile (`package-lock.json`) dan bagaimana integritas dependensi dicatat.
-2. Mengidentifikasi tanda-tanda paket asing dan hook instalasi mencurigakan (`postinstall_script`).
-3. Menganalisis eksfiltrasi token rahasia pipeline melalui dependensi yang tidak diverifikasi.
-4. Menerapkan strategi pertahanan berbasis Software Bill of Materials (SBOM) dan pembatasan izin siklus hidup paket.
+---
+
+### 2. Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam praktikum ini, Anda mengaudit infrastruktur build enterprise: **PackNexus Supply Hub (B2B Package Registry & Build Pipeline Hub)** yang beroperasi pada port `8013`.
+
+Sistem ini merepresentasikan hub manajemen dependensi dan registri privat korporasi:
+- **Private Artifact Registry**: Menyimpan dan mendistribusikan pustaka software terverifikasi serta mirror upstream (npmjs, PyPI).
+- **Lockfile & Build Auditor**: Mempublikasikan manifest hasil audit otomatis dependensi pada endpoint `/packages/audit/package_lock_audit.json`.
+- **Automated Pipeline Worker**: Lingkungan build otomatis yang mengeksekusi skrip instalasi paket (`postinstall_script`) dengan hak akses token produksi.
+- **Pipeline Attestation Gate**: Endpoint verifikasi `/api/supply-chain/verify` untuk mengesahkan integritas rahasia pipeline sebelum artefak dipublikasikan ke server produksi.
+
+---
+
+### 3. Sasaran, Temuan & Eksekusi (Search, Find, and Execute)
+Metodologi audit rantai pasok profesional:
+
+1. **Apa yang Dicari (What to Search)**:
+   - File manifest dan lockfile: `package.json`, `package-lock.json`, `Cargo.lock`.
+   - Dependensi tanpa tanda tangan GPG/Sigstore, berasal dari URL tidak terverifikasi (*unpinned registry source*).
+   - Hook siklus hidup paket yang mencurigakan: `postinstall`, `preinstall`, skrip eksternal `send_env.js`.
+2. **Apa Temuan yang Menandakan Celah (Vulnerability Indicators)**:
+   - Manifest `package_lock_audit.json` memuat paket asing (`apex-internal-telemetry`) yang tidak ditandatangani kunci perusahaan (*untrusted origin*).
+   - Ditemukan metadata `postinstall_script` yang secara diam-diam mencuri variabel lingkungan dan mencatat `exfiltrated_pipeline_token`.
+3. **Eksekusi Eksploitasi Terukur (Strategic Execution)**:
+   - Ekstrak token rahasia pipeline berformat `ZITERA{...}` dari properti artefak yang disusupi.
+   - Kirimkan token ke terminal verifikasi `/api/supply-chain/verify` untuk membuktikan dampak kompromi dan memvalidasi penyelesaian audit.
+
+---
+
+### 4. Pondasi Kuat: Mekanisme Integritas Lockfile & Attestation
+Sebuah sistem rantai pasok yang aman mengandalkan verifikasi hash kriptografis:
+- **Cryptographic Subresource Integrity (SRI)**: Setiap entri pustaka harus memiliki hash `sha512-...` yang cocok persis dengan repositori hulu.
+- **Dependency Pinning**: Melarang penggunaan wildcard versi (`*` atau `^`) pada dependensi kritis guna mencegah penarikan paket versi baru yang belum diaudit.
+- **Software Bill of Materials (SBOM)**: Inventaris lengkap seluruh komponen, pustaka, dan lisensi yang digunakan dalam aplikasi.

@@ -103,7 +103,7 @@
       "package_id": "zitera-lab-a04",
       "title": "Cryptographic Failures",
       "repository": "xdaamar/zitera_lab_a04",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "difficulty": "Beginner",
       "owasp": "A04:2025",
       "standard": "owasp-top10",
