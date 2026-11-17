@@ -27,6 +27,7 @@ import {
   Check,
   Sparkles,
   PanelRightClose,
+  Loader2,
 } from 'lucide-react'
 import {
   getLabContent,
@@ -164,6 +165,35 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
   const [terminalInput, setTerminalInput] = useState('')
   const [executing, setExecuting] = useState(false)
   const terminalBottomRef = useRef<HTMLDivElement | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+
+  // Target Operation Modal & Anti-Spam state
+  const [targetOp, setTargetOp] = useState<{
+    isOpen: boolean
+    type: 'launch' | 'stop'
+    status: 'progress' | 'success' | 'error'
+    step: number
+    errorMessage?: string
+  }>({
+    isOpen: false,
+    type: 'launch',
+    status: 'progress',
+    step: 1,
+  })
+
+  const goToSection = (secKey: SectionKey) => {
+    setActiveSection(secKey)
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  // Requirement: Otomatis scroll ke paling atas saat berpindah tab atau lab
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [activeSection, labId])
 
   const loadData = async (isMountedRef = { current: true }) => {
     setLoading(true)
@@ -196,14 +226,67 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
   }, [terminalHistory])
 
   const handleToggleTarget = async () => {
-    if (!status) return
-    if (status.running) {
-      await stopLab(labId)
+    if (!status || targetOp.isOpen) return
+    const isStopping = status.running
+
+    if (isStopping) {
+      setTargetOp({
+        isOpen: true,
+        type: 'stop',
+        status: 'progress',
+        step: 1,
+      })
+      try {
+        await stopLab(labId)
+        const updated = await getLabStatus(labId)
+        setStatus(updated)
+        setTargetOp((prev) => ({ ...prev, status: 'success', step: 3 }))
+        setTimeout(() => {
+          setTargetOp((prev) => ({ ...prev, isOpen: false }))
+        }, 800)
+      } catch (err: unknown) {
+        setTargetOp((prev) => ({
+          ...prev,
+          status: 'error',
+          errorMessage: err instanceof Error ? err.message : String(err) || 'Gagal menghentikan lab target.',
+        }))
+      }
     } else {
-      await startLab(labId)
+      // Launching Target with progressive steps & loading popup
+      setTargetOp({
+        isOpen: true,
+        type: 'launch',
+        status: 'progress',
+        step: 1,
+      })
+
+      const timer1 = setTimeout(() => {
+        setTargetOp((prev) => (prev.isOpen && prev.status === 'progress' ? { ...prev, step: 2 } : prev))
+      }, 700)
+      const timer2 = setTimeout(() => {
+        setTargetOp((prev) => (prev.isOpen && prev.status === 'progress' ? { ...prev, step: 3 } : prev))
+      }, 1500)
+
+      try {
+        await startLab(labId)
+        clearTimeout(timer1)
+        clearTimeout(timer2)
+        const updated = await getLabStatus(labId)
+        setStatus(updated)
+        setTargetOp((prev) => ({ ...prev, status: 'success', step: 3 }))
+        setTimeout(() => {
+          setTargetOp((prev) => ({ ...prev, isOpen: false }))
+        }, 900)
+      } catch (err: unknown) {
+        clearTimeout(timer1)
+        clearTimeout(timer2)
+        setTargetOp((prev) => ({
+          ...prev,
+          status: 'error',
+          errorMessage: err instanceof Error ? err.message : String(err) || 'Gagal meluncurkan sandbox target.',
+        }))
+      }
     }
-    const updated = await getLabStatus(labId)
-    setStatus(updated)
   }
 
   const toggleSectionCompleted = (secKey: string) => {
@@ -367,12 +450,12 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
 
         {/* Right: Actions & Collapsible Terminal Toggle */}
         <div className="flex items-center gap-2.5">
-          {/* Target Service Controller */}
+          {/* Target Service Controller with Anti-Spam Loading Indicator */}
           {status?.running ? (
             <>
               <button
                 onClick={() => openBrowser(`http://127.0.0.1:${targetPort}`)}
-                className="px-3 py-1.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold font-['Space_Grotesk'] rounded-lg flex items-center gap-1.5 shadow-xs transition-colors"
+                className="px-3 py-1.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold font-['Space_Grotesk'] rounded-lg flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                 title={`Buka http://127.0.0.1:${targetPort} di browser`}
               >
                 <span>Buka Web (: {targetPort})</span>
@@ -380,19 +463,31 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
               </button>
               <button
                 onClick={handleToggleTarget}
-                className="px-3 py-1.5 bg-white border border-[#EF4444] text-[#EF4444] hover:bg-[#FEE2E2] text-xs font-bold font-['Space_Grotesk'] rounded-lg flex items-center gap-1 transition-colors"
+                disabled={targetOp.isOpen}
+                className="px-3 py-1.5 bg-white border border-[#EF4444] text-[#EF4444] hover:bg-[#FEE2E2] text-xs font-bold font-['Space_Grotesk'] rounded-lg flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Hentikan Target Sandbox"
               >
-                <Square size={13} />
-                <span>Stop</span>
+                {targetOp.isOpen && targetOp.type === 'stop' ? (
+                  <Loader2 size={13} className="animate-spin text-[#EF4444]" />
+                ) : (
+                  <Square size={13} />
+                )}
+                <span>{targetOp.isOpen && targetOp.type === 'stop' ? 'STOPPING...' : 'Stop'}</span>
               </button>
             </>
           ) : (
             <button
               onClick={handleToggleTarget}
-              className="px-3.5 py-1.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold font-['Space_Grotesk'] rounded-lg flex items-center gap-1.5 shadow-xs transition-colors"
+              disabled={targetOp.isOpen}
+              className="px-3.5 py-1.5 bg-[#0F766E] hover:bg-[#115E59] active:bg-[#094D47] text-white text-xs font-bold font-['Space_Grotesk'] rounded-lg flex items-center gap-1.5 shadow-[0_2px_0_0_#063934] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Jalankan Target Sandbox"
             >
-              <Play size={13} />
-              <span>LAUNCH TARGET</span>
+              {targetOp.isOpen && targetOp.type === 'launch' ? (
+                <Loader2 size={13} className="animate-spin text-[#5EEAD4]" />
+              ) : (
+                <Play size={13} />
+              )}
+              <span>{targetOp.isOpen && targetOp.type === 'launch' ? 'LAUNCHING...' : 'LAUNCH TARGET'}</span>
             </button>
           )}
 
@@ -424,8 +519,8 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
             return (
               <button
                 key={sec.key}
-                onClick={() => setActiveSection(sec.key)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-all border-t border-x ${
+                onClick={() => goToSection(sec.key)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-all border-t border-x cursor-pointer ${
                   isActive
                     ? 'bg-[#FCFBF8] border-[#2DD4BF] text-[#0F766E] shadow-[0_-2px_4px_rgba(45,212,191,0.08)]'
                     : 'border-transparent text-[#78716C] hover:text-[#1E1A14] hover:bg-[#F7F5F0]'
@@ -444,8 +539,8 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
 
           {/* 7th Tab: CTF Challenge */}
           <button
-            onClick={() => setActiveSection('challenge')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-all border-t border-x ${
+            onClick={() => goToSection('challenge')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-all border-t border-x cursor-pointer ${
               activeSection === 'challenge'
                 ? 'bg-[#FCFBF8] border-[#F59E0B] text-[#B45309] shadow-[0_-2px_4px_rgba(245,158,11,0.08)]'
                 : 'border-transparent text-[#78716C] hover:text-[#1E1A14] hover:bg-[#F7F5F0]'
@@ -495,7 +590,10 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
           </div>
 
           {/* Reading Scrollable Content */}
-          <div className="relative z-10 h-full overflow-y-auto p-5 md:p-8">
+          <div
+            ref={scrollContainerRef}
+            className="relative z-10 h-full overflow-y-auto p-5 md:p-8 scroll-smooth"
+          >
             {/* When collapsed, expand to max-w-4xl mx-auto for distraction-free reading; otherwise max-w-none */}
             <div className={terminalOpen ? 'w-full space-y-6' : 'max-w-4xl mx-auto w-full space-y-6'}>
               {/* Requirement 3: Pre-Flight Mission Briefing Card */}
@@ -626,37 +724,130 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                     </div>
                   </div>
 
-                  {/* Previous / Next Navigation Pills */}
-                  <div className="flex items-center justify-between gap-4 pt-2">
-                    {prevSection ? (
-                      <button
-                        onClick={() => setActiveSection(prevSection.key)}
-                        className="px-4 py-2 text-xs font-bold font-['Space_Grotesk'] rounded-lg border border-[#E6E2D8] bg-white hover:bg-[#F0EDE8] text-[#5C5347] flex items-center gap-1.5 transition-colors"
-                      >
-                        <ChevronLeft size={15} />
-                        <span>Sebelumnya: {prevSection.shortLabel}</span>
-                      </button>
-                    ) : (
-                      <div />
-                    )}
+                  {/* Requirement: Menu Tanda Selesai & Navigasi di Bawah (User tidak perlu scroll ke atas untuk menandai selesai!) */}
+                  <div className="p-5 md:p-6 rounded-2xl border-2 border-[#E6E2D8] bg-[#F7F5F0] shadow-sm space-y-4 select-none">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      {/* Section Status Info */}
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div
+                          className={`w-11 h-11 rounded-xl flex items-center justify-center border-2 transition-all ${
+                            isCurrentSectionCompleted
+                              ? 'bg-[#DCFCE7] border-[#86EFAC] text-[#16A34A] shadow-[0_0_12px_rgba(22,163,74,0.2)]'
+                              : 'bg-white border-[#E6E2D8] text-[#9C9080]'
+                          }`}
+                        >
+                          {isCurrentSectionCompleted ? (
+                            <Check size={22} className="stroke-[3]" />
+                          ) : (
+                            <CheckCircle2 size={22} />
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14]">
+                            {isCurrentSectionCompleted
+                              ? 'Bab Ini Telah Selesai Dipahami'
+                              : 'Sudah Selesai Membaca Bab Ini?'}
+                          </div>
+                          <div className="text-[11px] text-[#78716C] font-['JetBrains_Mono']">
+                            {isCurrentSectionCompleted
+                              ? 'Progres pembelajaran tersimpan secara otomatis.'
+                              : 'Tandai selesai untuk menyimpan progres pemahamanmu.'}
+                          </div>
+                        </div>
+                      </div>
 
-                    {nextSection ? (
+                      {/* Interactive Mark Complete Toggle Button */}
                       <button
-                        onClick={() => setActiveSection(nextSection.key)}
-                        className="px-4 py-2 text-xs font-bold font-['Space_Grotesk'] rounded-lg bg-[#0F766E] hover:bg-[#115E59] text-white flex items-center gap-1.5 shadow-xs transition-colors"
+                        onClick={() => toggleSectionCompleted(activeSection)}
+                        className={`w-full sm:w-auto px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-xl border-2 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs ${
+                          isCurrentSectionCompleted
+                            ? 'bg-white border-[#86EFAC] text-[#16A34A] hover:bg-[#F0FDF4] hover:shadow-[0_2px_0_0_#86EFAC]'
+                            : 'bg-[#10B981] border-[#059669] text-white hover:bg-[#059669] shadow-[0_3px_0_0_#047857] hover:shadow-[0_1px_0_0_#047857] hover:translate-y-0.5 active:translate-y-1'
+                        }`}
                       >
-                        <span>Lanjut: {nextSection.shortLabel}</span>
-                        <ChevronRight size={15} />
+                        {isCurrentSectionCompleted ? (
+                          <>
+                            <Check size={15} />
+                            <span>Batalkan Tanda Selesai</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={15} />
+                            <span>Tandai Selesai Dipahami</span>
+                          </>
+                        )}
                       </button>
-                    ) : (
-                      <button
-                        onClick={() => setActiveSection('challenge')}
-                        className="px-4 py-2 text-xs font-bold font-['Space_Grotesk'] rounded-lg bg-[#F59E0B] hover:bg-[#D97706] text-white flex items-center gap-1.5 shadow-xs transition-colors"
-                      >
-                        <span>Lanjut ke Tantangan CTF</span>
-                        <Trophy size={14} />
-                      </button>
-                    )}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-[#E6E2D8]" />
+
+                    {/* Previous / Next / Complete & Advance Navigation Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      {prevSection ? (
+                        <button
+                          onClick={() => goToSection(prevSection.key)}
+                          className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg border-2 border-[#E6E2D8] bg-white hover:bg-[#F0EDE8] hover:border-[#CEC8BF] text-[#5C5347] flex items-center gap-2 transition-all cursor-pointer shadow-xs hover:translate-y-0.5"
+                        >
+                          <ChevronLeft size={16} />
+                          <span>Sebelumnya: {prevSection.shortLabel}</span>
+                        </button>
+                      ) : (
+                        <div />
+                      )}
+
+                      <div className="flex items-center gap-2.5">
+                        {nextSection ? (
+                          <>
+                            {/* Fast shortcut: Tandai Selesai & Lanjut */}
+                            {!isCurrentSectionCompleted && (
+                              <button
+                                onClick={() => {
+                                  toggleSectionCompleted(activeSection)
+                                  goToSection(nextSection.key)
+                                }}
+                                className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg border-2 border-[#2DD4BF] bg-[#CCFBF1] hover:bg-[#99F6E4] text-[#0F766E] flex items-center gap-1.5 shadow-[0_2px_0_0_#5EEAD4] hover:shadow-[0_1px_0_0_#5EEAD4] hover:translate-y-0.5 transition-all cursor-pointer"
+                                title="Tandai bab ini selesai dan langsung lanjut ke bab berikutnya"
+                              >
+                                <Check size={14} />
+                                <span>Tandai & Lanjut</span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => goToSection(nextSection.key)}
+                              className="px-5 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg bg-[#0F766E] hover:bg-[#115E59] text-white border-2 border-[#094D47] shadow-[0_3px_0_0_#063934] hover:shadow-[0_1px_0_0_#063934] hover:translate-y-0.5 active:translate-y-1 flex items-center gap-2 transition-all cursor-pointer"
+                            >
+                              <span>Lanjut: {nextSection.shortLabel}</span>
+                              <ChevronRight size={16} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {!isCurrentSectionCompleted && (
+                              <button
+                                onClick={() => {
+                                  toggleSectionCompleted(activeSection)
+                                  goToSection('challenge')
+                                }}
+                                className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg border-2 border-[#FCD34D] bg-[#FEF3C7] hover:bg-[#FDE68A] text-[#B45309] flex items-center gap-1.5 shadow-[0_2px_0_0_#FCD34D] hover:shadow-[0_1px_0_0_#FCD34D] hover:translate-y-0.5 transition-all cursor-pointer"
+                              >
+                                <Check size={14} />
+                                <span>Tandai & Buka CTF</span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => goToSection('challenge')}
+                              className="px-5 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg bg-[#F59E0B] hover:bg-[#D97706] text-white border-2 border-[#B45309] shadow-[0_3px_0_0_#78350F] hover:shadow-[0_1px_0_0_#78350F] hover:translate-y-0.5 active:translate-y-1 flex items-center gap-2 transition-all cursor-pointer"
+                            >
+                              <span>Lanjut ke Tantangan CTF</span>
+                              <Trophy size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -685,13 +876,28 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                         http://127.0.0.1:{targetPort}
                       </code>
                     </div>
-                    <button
-                      onClick={() => openBrowser(`http://127.0.0.1:${targetPort}`)}
-                      className="px-3 py-1 bg-[#F0EDE8] hover:bg-[#E6E2D8] text-[#0F766E] font-bold rounded flex items-center gap-1 font-['Space_Grotesk']"
-                    >
-                      <span>Buka di Peramban</span>
-                      <ExternalLink size={12} />
-                    </button>
+                    {status?.running ? (
+                      <button
+                        onClick={() => openBrowser(`http://127.0.0.1:${targetPort}`)}
+                        className="px-3 py-1 bg-[#F0EDE8] hover:bg-[#E6E2D8] text-[#0F766E] font-bold rounded flex items-center gap-1 font-['Space_Grotesk'] cursor-pointer"
+                      >
+                        <span>Buka di Peramban</span>
+                        <ExternalLink size={12} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleToggleTarget}
+                        disabled={targetOp.isOpen}
+                        className="px-3.5 py-1.5 bg-[#0F766E] hover:bg-[#115E59] active:bg-[#094D47] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 font-['Space_Grotesk'] shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        {targetOp.isOpen && targetOp.type === 'launch' ? (
+                          <Loader2 size={12} className="animate-spin text-[#5EEAD4]" />
+                        ) : (
+                          <Play size={12} />
+                        )}
+                        <span>{targetOp.isOpen && targetOp.type === 'launch' ? 'Memulai...' : 'Jalankan Target'}</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* CTF Flag Submission Form */}
@@ -786,15 +992,46 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                     </div>
                   </div>
 
-                  {/* Return to Curriculum Button */}
-                  <div className="pt-2">
+                  {/* Return to Curriculum & Lab Navigation Card */}
+                  <div className="p-4 rounded-xl border border-[#E6E2D8] bg-[#F7F5F0] flex flex-wrap items-center justify-between gap-3 select-none">
                     <button
-                      onClick={() => setActiveSection('remediation')}
-                      className="px-4 py-2 text-xs font-bold font-['Space_Grotesk'] rounded-lg border border-[#E6E2D8] bg-white hover:bg-[#F0EDE8] text-[#5C5347] flex items-center gap-1.5 transition-colors"
+                      onClick={() => goToSection('remediation')}
+                      className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg border border-[#E6E2D8] bg-white hover:bg-[#F0EDE8] text-[#5C5347] flex items-center gap-2 transition-all cursor-pointer shadow-xs hover:translate-y-0.5"
                     >
-                      <ChevronLeft size={15} />
+                      <ChevronLeft size={16} />
                       <span>Kembali ke: Remediasi Kode</span>
                     </button>
+
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        onClick={onBack}
+                        className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg border border-[#E6E2D8] bg-white hover:bg-[#F0EDE8] text-[#5C5347] transition-all cursor-pointer shadow-xs hover:translate-y-0.5"
+                      >
+                        Kembali ke Katalog Lab
+                      </button>
+                      {status?.running ? (
+                        <button
+                          onClick={() => openBrowser(`http://127.0.0.1:${targetPort}`)}
+                          className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg bg-[#0F766E] hover:bg-[#115E59] text-white flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:translate-y-0.5"
+                        >
+                          <span>Buka Target (: {targetPort})</span>
+                          <ExternalLink size={13} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleToggleTarget}
+                          disabled={targetOp.isOpen}
+                          className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg bg-[#0F766E] hover:bg-[#115E59] active:bg-[#094D47] text-white flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {targetOp.isOpen && targetOp.type === 'launch' ? (
+                            <Loader2 size={13} className="animate-spin text-[#5EEAD4]" />
+                          ) : (
+                            <Play size={13} />
+                          )}
+                          <span>{targetOp.isOpen && targetOp.type === 'launch' ? 'Memulai...' : `Jalankan Target (: ${targetPort})`}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -874,6 +1111,147 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
           </div>
         )}
       </div>
+
+      {/* Requirement: Target Operation Anti-Spam Loading Popup Modal */}
+      {targetOp.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1E1A14]/75 backdrop-blur-sm select-none animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-[#FCFBF8] border-2 border-[#094D47] rounded-2xl shadow-[0_8px_0_0_#063934,0_24px_48px_rgba(0,0,0,0.4)] overflow-hidden">
+            {/* Top Neo-Retro Accent Bar */}
+            <div className="px-5 py-3 bg-gradient-to-r from-[#0F766E] to-[#115E59] text-white flex items-center justify-between border-b-2 border-[#094D47]">
+              <div className="flex items-center gap-2 text-xs font-bold font-['JetBrains_Mono'] tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-[#5EEAD4] animate-ping" />
+                <span>
+                  {targetOp.type === 'launch'
+                    ? 'WIN32 ENGINE // MEMULAI TARGET'
+                    : 'WIN32 ENGINE // MENGHENTIKAN TARGET'}
+                </span>
+              </div>
+              <span className="text-[10px] font-['JetBrains_Mono'] text-teal-200 bg-[#042F2E]/60 px-2 py-0.5 rounded border border-[#2DD4BF]/40">
+                :{targetPort}
+              </span>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-5 text-center">
+              {targetOp.status === 'progress' && (
+                <>
+                  {/* Surfing Cute Anime Loading Canvas */}
+                  <CuteAnimeLoading
+                    message={
+                      targetOp.type === 'launch'
+                        ? `MENYIAPKAN TARGET: ${labId}`
+                        : `MENGHENTIKAN SANDBOX: ${labId}`
+                    }
+                    subMessage={
+                      targetOp.type === 'launch'
+                        ? '( ⚡ •̀ᴗ•́) BINDING LOCALHOST & ISOLATING ENVIRONMENT'
+                        : '( •̀ ω •́ )✧ RELEASING CHILD PROCESSES & PORTS'
+                    }
+                  />
+
+                  {/* Operation Info Card */}
+                  <div className="p-3.5 rounded-xl border border-[#2DD4BF]/40 bg-[#CCFBF1]/40 text-left space-y-2">
+                    <div className="flex items-center justify-between text-xs font-['Space_Grotesk'] font-bold text-[#0F766E]">
+                      <span>{content.manifest.title}</span>
+                      <span className="font-['JetBrains_Mono'] text-[11px] text-[#0D9488]">
+                        {briefing.targetAppName}
+                      </span>
+                    </div>
+
+                    {/* Progressive Step Checklist */}
+                    <div className="space-y-1.5 pt-1 text-[11px] font-['Space_Grotesk']">
+                      <div className="flex items-center gap-2 text-[#0F766E]">
+                        {targetOp.step >= 1 ? (
+                          <CheckCircle2 size={13} className="text-[#10B981] shrink-0" />
+                        ) : (
+                          <Loader2 size={13} className="animate-spin text-[#0F766E] shrink-0" />
+                        )}
+                        <span>Mengalokasikan AppContainer & security descriptor</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {targetOp.step >= 2 ? (
+                          <CheckCircle2 size={13} className="text-[#10B981] shrink-0" />
+                        ) : targetOp.step === 1 ? (
+                          <Loader2 size={13} className="animate-spin text-[#0F766E] shrink-0" />
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border border-[#CBD5E1] shrink-0 inline-block" />
+                        )}
+                        <span className={targetOp.step >= 2 ? 'text-[#0F766E]' : 'text-[#78716C]'}>
+                          Memverifikasi ketersediaan port localhost:{targetPort}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {targetOp.step >= 3 ? (
+                          <CheckCircle2 size={13} className="text-[#10B981] shrink-0" />
+                        ) : targetOp.step === 2 ? (
+                          <Loader2 size={13} className="animate-spin text-[#0F766E] shrink-0" />
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border border-[#CBD5E1] shrink-0 inline-block" />
+                        )}
+                        <span className={targetOp.step >= 3 ? 'text-[#0F766E]' : 'text-[#78716C]'}>
+                          Menjalankan web service target aplikasi
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Anti-spam Reassurance Notice */}
+                  <div className="px-3 py-2 rounded-lg bg-[#F5F5F4] border border-[#E7E5E4] text-[11px] text-[#78716C] leading-relaxed flex items-center gap-2 text-left">
+                    <span className="shrink-0 text-base">🛡️</span>
+                    <span>
+                      Engine sedang memproses sandbox di latar belakang. Tombol dinonaktifkan untuk mencegah spam click!
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {targetOp.status === 'success' && (
+                <div className="py-4 space-y-3 animate-in zoom-in-95 duration-200">
+                  <div className="w-14 h-14 mx-auto rounded-full bg-[#D1FAE5] border-2 border-[#10B981] text-[#059669] flex items-center justify-center shadow-md">
+                    <CheckCircle2 size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold font-['Space_Grotesk'] text-[#1E1A14]">
+                      {targetOp.type === 'launch'
+                        ? 'TARGET BERHASIL DIAKTIFKAN!'
+                        : 'TARGET BERHASIL DIHENTIKAN!'}
+                    </h3>
+                    <p className="text-xs text-[#5C5347] mt-1 font-['JetBrains_Mono']">
+                      {targetOp.type === 'launch'
+                        ? `http://127.0.0.1:${targetPort} siap diakses`
+                        : 'Semua proses sandbox target telah dibersihkan'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {targetOp.status === 'error' && (
+                <div className="py-2 space-y-4 animate-in zoom-in-95 duration-200">
+                  <div className="w-14 h-14 mx-auto rounded-full bg-[#FEE2E2] border-2 border-[#EF4444] text-[#DC2626] flex items-center justify-center shadow-md">
+                    <AlertCircle size={32} />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold font-['Space_Grotesk'] text-[#1E1A14]">
+                      {targetOp.type === 'launch'
+                        ? 'GAGAL MELUNCURKAN TARGET'
+                        : 'GAGAL MENGHENTIKAN TARGET'}
+                    </h3>
+                    <p className="text-xs text-[#DC2626] font-['JetBrains_Mono'] bg-[#FEF2F2] p-2.5 rounded-lg border border-[#FCA5A5] text-left">
+                      {targetOp.errorMessage || 'Terjadi kesalahan sistem saat menghubungi engine backend.'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setTargetOp((prev) => ({ ...prev, isOpen: false }))}
+                    className="px-4 py-2 bg-[#1E1A14] hover:bg-[#3D372E] text-white text-xs font-bold font-['Space_Grotesk'] rounded-lg transition-colors cursor-pointer"
+                  >
+                    Tutup Dialog
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
