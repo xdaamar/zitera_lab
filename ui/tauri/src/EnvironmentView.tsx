@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   CheckCircle2,
   XCircle,
@@ -12,19 +12,28 @@ import { CuteAnimeLoading } from './CuteAnimeLoading'
 export function EnvironmentView() {
   const [diag, setDiag] = useState<DiagnosticsResult | null>(null)
   const [loading, setLoading] = useState(true)
+  const isMountedRef = useRef(true)
 
   const loadDiag = async () => {
     setLoading(true)
     try {
       const data = await checkDoctor()
-      setDiag(data)
+      if (isMountedRef.current) {
+        setDiag(data)
+      }
     } finally {
-      setLoading(false)
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
+    isMountedRef.current = true
     loadDiag()
+    return () => {
+      isMountedRef.current = false
+    }
   }, [])
 
   const renderComponentRow = (title: string, item?: ComponentItem) => {

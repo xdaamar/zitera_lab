@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Search,
   Play,
@@ -104,19 +104,28 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
   const [difficulty, setDifficulty] = useState<DifficultyFilter>('ALL')
   const [loading, setLoading] = useState(true)
   const [actionInProgress, setActionInProgress] = useState<Record<string, string>>({})
+  const isMountedRef = useRef(true)
 
   const loadLabs = async () => {
     setLoading(true)
     try {
       const data = await getLabs()
-      setLabs(data)
+      if (isMountedRef.current) {
+        setLabs(data)
+      }
     } finally {
-      setLoading(false)
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
+    isMountedRef.current = true
     loadLabs()
+    return () => {
+      isMountedRef.current = false
+    }
   }, [])
 
   const handleAction = async (labId: string, action: 'start' | 'stop' | 'reset' | 'update') => {

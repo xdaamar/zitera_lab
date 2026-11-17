@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import confetti from 'canvas-confetti'
@@ -57,24 +57,37 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
   ])
   const [terminalInput, setTerminalInput] = useState('')
   const [executing, setExecuting] = useState(false)
+  const terminalBottomRef = useRef<HTMLDivElement | null>(null)
 
-  const loadData = async () => {
+  const loadData = async (isMountedRef = { current: true }) => {
     setLoading(true)
     try {
       const [c, s] = await Promise.all([
         getLabContent(labId),
         getLabStatus(labId).catch(() => null),
       ])
-      setContent(c)
-      setStatus(s)
+      if (isMountedRef.current) {
+        setContent(c)
+        setStatus(s)
+      }
     } finally {
-      setLoading(false)
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
-    loadData()
+    const isMountedRef = { current: true }
+    loadData(isMountedRef)
+    return () => {
+      isMountedRef.current = false
+    }
   }, [labId])
+
+  useEffect(() => {
+    terminalBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [terminalHistory])
 
   const handleToggleTarget = async () => {
     if (!status) return
@@ -118,7 +131,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
     const cmd = terminalInput.trim()
     if (!cmd) return
 
-    setTerminalHistory((prev) => [...prev, { type: 'input', text: `$ ${cmd}` }])
+    setTerminalHistory((prev) => [...prev.slice(-249), { type: 'input', text: `$ ${cmd}` }])
     setTerminalInput('')
     setExecuting(true)
 
@@ -129,14 +142,14 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
       }
       const res = await executeTerminal(cmd, labId)
       if (res.stdout) {
-        setTerminalHistory((prev) => [...prev, { type: 'output', text: res.stdout }])
+        setTerminalHistory((prev) => [...prev.slice(-249), { type: 'output', text: res.stdout }])
       }
       if (res.stderr) {
-        setTerminalHistory((prev) => [...prev, { type: 'error', text: res.stderr }])
+        setTerminalHistory((prev) => [...prev.slice(-249), { type: 'error', text: res.stderr }])
       }
     } catch (err) {
       setTerminalHistory((prev) => [
-        ...prev,
+        ...prev.slice(-249),
         { type: 'error', text: `Command execution error: ${err}` },
       ])
     } finally {
@@ -454,6 +467,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                 [Executing in sandbox environment...]
               </div>
             )}
+            <div ref={terminalBottomRef} />
           </div>
 
           {/* Terminal Input Prompt */}

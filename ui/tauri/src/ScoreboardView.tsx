@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Medal,
   RefreshCw,
@@ -14,21 +14,30 @@ import { CuteAnimeLoading } from './CuteAnimeLoading'
 export function ScoreboardView() {
   const [entries, setEntries] = useState<ScoreboardEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const isMountedRef = useRef(true)
 
   const loadScores = async () => {
     setLoading(true)
     try {
       const data = await getLeaderboard()
-      setEntries(data)
+      if (isMountedRef.current) {
+        setEntries(data)
+      }
     } catch (e) {
       console.error(e)
     } finally {
-      setLoading(false)
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
+    isMountedRef.current = true
     loadScores()
+    return () => {
+      isMountedRef.current = false
+    }
   }, [])
 
   const top3 = entries.slice(0, 3)

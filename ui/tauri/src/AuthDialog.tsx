@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import {
   AVATAR_REGISTRY,
   getAvatarById,
@@ -31,6 +31,15 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -107,9 +116,12 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
   const selectedAvatar = getAvatarById(selectedAvatarId)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs cursor-pointer"
+    >
       <div
-        className="w-full max-w-2xl bg-[#FCFBF8] border-2 border-[#E6E2D8] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-2xl bg-[#FCFBF8] border-2 border-[#E6E2D8] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

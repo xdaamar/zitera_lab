@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   CheckCircle2,
   AlertTriangle,
@@ -10,19 +10,28 @@ import { CuteAnimeLoading } from './CuteAnimeLoading'
 export function ToolsView() {
   const [tools, setTools] = useState<ToolItem[]>([])
   const [loading, setLoading] = useState(true)
+  const isMountedRef = useRef(true)
 
   const loadTools = async () => {
     setLoading(true)
     try {
       const data = await getTools()
-      setTools(data)
+      if (isMountedRef.current) {
+        setTools(data)
+      }
     } finally {
-      setLoading(false)
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
+    isMountedRef.current = true
     loadTools()
+    return () => {
+      isMountedRef.current = false
+    }
   }, [])
 
   return (

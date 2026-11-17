@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
   ShieldCheck,
   FlaskConical,
@@ -34,6 +34,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
   const [leaderboard, setLeaderboard] = useState<ScoreboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [startingLabId, setStartingLabId] = useState<string | null>(null)
+  const isMountedRef = useRef(true)
 
   const loadData = async () => {
     setLoading(true)
@@ -44,17 +45,25 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         checkDoctor(),
         getLeaderboard().catch(() => []),
       ])
-      setLabs(l)
-      setTools(t)
-      setDiagnostics(d)
-      setLeaderboard(lb)
+      if (isMountedRef.current) {
+        setLabs(l)
+        setTools(t)
+        setDiagnostics(d)
+        setLeaderboard(lb)
+      }
     } finally {
-      setLoading(false)
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
+    isMountedRef.current = true
     loadData()
+    return () => {
+      isMountedRef.current = false
+    }
   }, [])
 
   const runningLab = labs.find((l) => l.running)

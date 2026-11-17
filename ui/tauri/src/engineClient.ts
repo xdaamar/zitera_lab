@@ -370,10 +370,19 @@ const MOCK_TOOLS: ToolItem[] = [
   },
 ]
 
-// ── IPC Invoker helper ────────────────────────────────────────────────────────
+// ── IPC Invoker helper (cached dynamic import) ─────────────────────────────────
+let _invokePromise: Promise<typeof import('@tauri-apps/api/core').invoke> | null = null
+
+function getInvoke() {
+  if (!_invokePromise) {
+    _invokePromise = import('@tauri-apps/api/core').then((m) => m.invoke)
+  }
+  return _invokePromise
+}
+
 async function callTauri<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
   try {
-    const { invoke } = await import('@tauri-apps/api/core')
+    const invoke = await getInvoke()
     return await invoke<T>(cmd, args)
   } catch (err) {
     console.warn(`[IPC fallback] invoke("${cmd}") failed:`, err)

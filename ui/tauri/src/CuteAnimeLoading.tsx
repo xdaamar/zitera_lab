@@ -7,6 +7,16 @@ export interface CuteAnimeLoadingProps {
   compact?: boolean
 }
 
+// Preload and cache mascot image globally to prevent repeated DOM allocations
+let _sharedCatImg: HTMLImageElement | null = null
+function getSharedCatImg(): HTMLImageElement {
+  if (!_sharedCatImg) {
+    _sharedCatImg = new Image()
+    _sharedCatImg.src = '/assets/calico_cat.png'
+  }
+  return _sharedCatImg
+}
+
 export function CuteAnimeLoading({
   message = 'INITIALIZING CYBER MATRIX...',
   subMessage = '( •̀ ω •́ )✧ NEKO CORE ONLINE',
@@ -30,8 +40,7 @@ export function CuteAnimeLoading({
     const frequency = 3.5
     const midY = height / 2
 
-    const catImg = new Image()
-    catImg.src = '/assets/calico_cat.png'
+    const catImg = getSharedCatImg()
 
     const render = (now: number) => {
       const elapsed = (now - startTime) / 1000

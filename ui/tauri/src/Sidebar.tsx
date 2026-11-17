@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   LayoutDashboard,
   FlaskConical,
@@ -42,9 +42,24 @@ export function Sidebar({ selectedIndex, onSelect, onOpenAuth }: SidebarProps) {
   const [currentUser, setCurrentUser] = useState<UserModel | null>(getCurrentUser())
   const [isMenuVisible, setIsMenuVisible] = useState(true)
   const [videoError, setVideoError] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
     return subscribeAuth((user) => setCurrentUser(user))
+  }, [])
+
+  // Conserve CPU & GPU: pause hardware video decoding when window is minimized or hidden
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!videoRef.current) return
+      if (document.hidden) {
+        videoRef.current.pause()
+      } else {
+        videoRef.current.play().catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
 
   const activeAvatar = getAvatarById(currentUser?.avatarId ?? 'zeta')
@@ -55,6 +70,7 @@ export function Sidebar({ selectedIndex, onSelect, onOpenAuth }: SidebarProps) {
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-90">
         {!videoError ? (
           <video
+            ref={videoRef}
             src="/assets/sidebar_bg.mp4"
             autoPlay
             loop
