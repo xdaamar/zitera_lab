@@ -8,6 +8,7 @@ import '../../widgets/zitera_card.dart';
 import '../../widgets/cute_anime_loading.dart';
 import '../../widgets/hacker_tilix_entrance.dart';
 import '../../widgets/failure_recovery_dialog.dart';
+import '../../core/utils/browser_launcher.dart';
 
 class LabsView extends StatefulWidget {
   final Function(String) onSelectLab;
@@ -134,6 +135,33 @@ class _LabsViewState extends State<LabsView> {
     try {
       await ZiteraEngineClient.startLab(id);
       await _loadLabs();
+      final lab = _labs.firstWhere(
+        (l) => l.id == id,
+        orElse: () => LabItem(
+          id: id,
+          title: id,
+          installed: true,
+          running: true,
+          port: 8011,
+          version: '1.0.0',
+          status: 'RUNNING',
+          learnReadiness: '',
+          practiceReadiness: '',
+          challengeReadiness: '',
+        ),
+      );
+      final port = lab.port > 0 ? lab.port : 8011;
+      final targetUrl = 'http://127.0.0.1:$port/';
+      BrowserLauncher.openUrl(targetUrl);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lab $id aktif! Membuka $targetUrl di peramban web...'),
+            backgroundColor: ZiteraColors.ready,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         FailureRecoveryDialog.show(
@@ -758,6 +786,13 @@ class _LabsViewState extends State<LabsView> {
                                 ),
                               ] else if (lab.running) ...[
                                 ZiteraButton(
+                                  label: '[Buka Web]',
+                                  icon: Icons.open_in_browser,
+                                  variant: ButtonVariant.primary,
+                                  onPressed: () => BrowserLauncher.openUrl('http://127.0.0.1:${lab.port}/'),
+                                ),
+                                const SizedBox(width: 8),
+                                ZiteraButton(
                                   label: isBusy ? 'Stopping...' : 'Stop',
                                   icon: Icons.stop,
                                   variant: ButtonVariant.danger,
@@ -774,7 +809,7 @@ class _LabsViewState extends State<LabsView> {
                                 ZiteraButton(
                                   label: 'Open Details',
                                   icon: Icons.arrow_forward,
-                                  variant: ButtonVariant.primary,
+                                  variant: ButtonVariant.secondary,
                                   onPressed: () => widget.onSelectLab(lab.id),
                                 ),
                               ] else if (lab.hasUpdate) ...[

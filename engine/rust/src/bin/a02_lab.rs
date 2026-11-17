@@ -613,7 +613,7 @@ fn handle_request(
     });
 
     // --- Health ---
-    if path == "/health" {
+    if path == "/health" || path == "/health/" {
         resp_headers.insert("Content-Type".to_string(), "application/json".to_string());
         let json = serde_json::json!({
             "status": "ok",
@@ -626,7 +626,7 @@ fn handle_request(
     }
 
     // --- Root / or /index.html ---
-    if path == "/" || path == "/index.html" {
+    if path == "/" || path == "/index.html" || path.is_empty() {
         let content = r#"
         <div class="header-banner">
             <div>
@@ -762,7 +762,7 @@ fn handle_request(
     }
 
     // --- Login GET ---
-    if path == "/login" && method == "GET" {
+    if (path == "/login" || path == "/login/") && method == "GET" {
         let form = r#"
         <div class="form-card">
             <div style="text-align: center; margin-bottom: 20px;">
@@ -801,7 +801,7 @@ fn handle_request(
     }
 
     // --- Login POST ---
-    if path == "/login" && method == "POST" {
+    if (path == "/login" || path == "/login/") && method == "POST" {
         let mut form: HashMap<&str, &str> = HashMap::new();
         for pair in body.split('&') {
             if let Some((k, v)) = pair.split_once('=') {
@@ -844,7 +844,7 @@ fn handle_request(
     }
 
     // --- Admin panel ---
-    if path == "/admin" {
+    if path == "/admin" || path == "/admin/" {
         if session_user.is_none() {
             resp_headers.insert("Location".to_string(), "/login".to_string());
             return (302, resp_headers, "Redirecting...".to_string());
@@ -901,7 +901,7 @@ fn handle_request(
     }
 
     // --- Debug/vars endpoint (INTENTIONALLY UNAUTHENTICATED) ---
-    if path == "/debug/vars" {
+    if path == "/debug/vars" || path == "/debug/vars/" {
         state.debug_accessed = true;
         resp_headers.insert("Content-Type".to_string(), "application/json; charset=utf-8".to_string());
         let json = serde_json::json!({

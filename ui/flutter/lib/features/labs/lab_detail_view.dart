@@ -15,6 +15,7 @@ import '../../core/i18n/language_controller.dart';
 import '../../core/i18n/lab_localization.dart';
 import '../../widgets/terminal_console_widget.dart';
 import '../../widgets/failure_recovery_dialog.dart';
+import '../../core/utils/browser_launcher.dart';
 
 class LabDetailView extends StatefulWidget {
   final String labId;
@@ -143,7 +144,19 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
   Future<void> _handleStart() async {
     try {
       await ZiteraEngineClient.startLab(widget.labId);
-      _refreshStatus();
+      await _refreshStatus();
+      final port = _status?.port ?? _content?.manifest.defaultPort ?? 8011;
+      final targetUrl = 'http://127.0.0.1:$port/';
+      BrowserLauncher.openUrl(targetUrl);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lab ${widget.labId} aktif! Membuka $targetUrl di peramban web...'),
+            backgroundColor: ZiteraColors.ready,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         FailureRecoveryDialog.show(
@@ -823,13 +836,30 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                     children: [
                       Row(
                         children: [
-                          Text(
-                            port > 0 ? 'Target URL: http://127.0.0.1:$port' : 'Port: Unassigned',
-                            style: const TextStyle(
-                              fontFamily: 'monospace',
-                              color: ZiteraColors.cyan,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                          InkWell(
+                            onTap: port > 0 ? () => BrowserLauncher.openUrl('http://127.0.0.1:$port/') : null,
+                            borderRadius: BorderRadius.circular(4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    port > 0 ? 'Target URL: http://127.0.0.1:$port' : 'Port: Unassigned',
+                                    style: TextStyle(
+                                      fontFamily: 'monospace',
+                                      color: ZiteraColors.cyan,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      decoration: port > 0 ? TextDecoration.underline : TextDecoration.none,
+                                    ),
+                                  ),
+                                  if (port > 0) ...[
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.open_in_new, size: 13, color: ZiteraColors.cyan),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
                           if (port > 0) ...[
@@ -975,6 +1005,13 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                           ],
                         ),
                       ] else ...[
+                        ZiteraButton(
+                          label: '[BUKA WEB LAB]',
+                          icon: Icons.open_in_browser,
+                          variant: ButtonVariant.primary,
+                          onPressed: () => BrowserLauncher.openUrl('http://127.0.0.1:$port/'),
+                        ),
+                        const SizedBox(width: 8),
                         ZiteraButton(
                           label: 'Stop Runtime',
                           icon: Icons.stop,
@@ -1636,7 +1673,7 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                             style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                           onPressed: () {
-                            Process.run('cmd', ['/c', 'start', 'http://127.0.0.1:$port/']);
+                            BrowserLauncher.openUrl('http://127.0.0.1:$port/');
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Membuka target web http://127.0.0.1:$port/ di peramban...'),
@@ -2012,13 +2049,13 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         ),
                         icon: const Icon(Icons.launch, size: 16),
-                        label: const Text(
-                          'BUKA TARGET LAB (PORTAL APEXFIN)',
-                          style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 11, fontWeight: FontWeight.bold),
+                        label: Text(
+                          'BUKA TARGET LAB (${_status?.title ?? widget.labId})',
+                          style: const TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                         onPressed: () {
                           final port = _content?.manifest.defaultPort ?? _status?.port ?? 8011;
-                          Process.run('cmd', ['/c', 'start', 'http://127.0.0.1:$port/']);
+                          BrowserLauncher.openUrl('http://127.0.0.1:$port/');
                         },
                       ),
                       const SizedBox(width: 10),
