@@ -41,6 +41,7 @@ const NAV_ITEMS: NavItemDef[] = [
 export function Sidebar({ selectedIndex, onSelect, onOpenAuth }: SidebarProps) {
   const [currentUser, setCurrentUser] = useState<UserModel | null>(getCurrentUser())
   const [isMenuVisible, setIsMenuVisible] = useState(true)
+  const [videoError, setVideoError] = useState(false)
 
   useEffect(() => {
     return subscribeAuth((user) => setCurrentUser(user))
@@ -50,21 +51,33 @@ export function Sidebar({ selectedIndex, onSelect, onOpenAuth }: SidebarProps) {
 
   return (
     <aside className="w-[270px] shrink-0 h-full relative border-r-[1.5px] border-[#E6E2D8] flex flex-col justify-between overflow-hidden select-none bg-[#F7F5F0]">
-      {/* 1. Animated Looping WebP / JPG Background (Natural Speed, Vivid Anime Clarity) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-85">
-        <picture>
-          <source srcSet="/assets/sidebar_bg.webp" type="image/webp" />
-          <img
-            src="/assets/sidebar_bg.jpg"
-            alt="Sidebar Ambient"
+      {/* 1. Animated Looping Background (Standard 24 FPS Anime Speed, Smooth & Vivid) */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-90">
+        {!videoError ? (
+          <video
+            src="/assets/sidebar_bg.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
             className="w-full h-full object-cover"
-            onError={(e) => {
-              ;(e.target as HTMLElement).style.display = 'none'
-            }}
+            onError={() => setVideoError(true)}
           />
-        </picture>
+        ) : (
+          <picture>
+            <source srcSet="/assets/sidebar_bg.webp" type="image/webp" />
+            <img
+              src="/assets/sidebar_bg.jpg"
+              alt="Sidebar Ambient"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                ;(e.target as HTMLElement).style.display = 'none'
+              }}
+            />
+          </picture>
+        )}
         {/* Soft, lightweight ambient overlay (reduced thickness so anime video is vivid & clear) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FCFBF8]/30 via-transparent to-[#FCFBF8]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FCFBF8]/25 via-transparent to-[#FCFBF8]/35" />
       </div>
 
       {/* 2. Top Header & Nav Items */}
