@@ -31,7 +31,7 @@ export function EnvironmentView() {
     const isReady = item.status === 'READY' || item.installed
 
     return (
-      <div className="p-4 rounded-xl border border-[#E6E2D8] bg-[#FCFBF8] flex items-center justify-between">
+      <div className="p-4 rounded-xl border-2 border-[#CEC8BF] bg-[#FCFBF8] shadow-[0_3px_0_0_#E4DFD7] flex items-center justify-between">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <span className="font-['Space_Grotesk'] font-bold text-sm text-[#1E1A14]">
@@ -90,7 +90,7 @@ export function EnvironmentView() {
 
         <button
           onClick={loadDiag}
-          className="self-start md:self-auto px-3.5 py-1.5 border border-[#E6E2D8] hover:border-[#2DD4BF] bg-white rounded-lg text-xs font-bold text-[#5C5347] hover:text-[#0F766E] transition-colors flex items-center gap-2"
+          className="self-start md:self-auto px-3.5 py-1.5 border-2 border-[#CEC8BF] shadow-[0_2px_0_0_#E4DFD7] hover:border-[#2DD4BF] hover:shadow-[0_2px_0_0_#5EEAD4] hover:translate-y-0.5 active:translate-y-1 bg-white rounded-lg text-xs font-bold text-[#5C5347] hover:text-[#0F766E] transition-all flex items-center gap-2 cursor-pointer"
         >
           <RefreshCw size={14} />
           <span>Rerun Doctor</span>
@@ -109,7 +109,7 @@ export function EnvironmentView() {
           <div className="space-y-6">
             {/* Quick Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl border border-[#E6E2D8] bg-[#F7F5F0] flex items-center gap-3">
+              <div className="p-4 rounded-xl border-2 border-[#CEC8BF] bg-[#F7F5F0] shadow-[0_3px_0_0_#E4DFD7] flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#CCFBF1] border border-[#2DD4BF] flex items-center justify-center text-[#0F766E]">
                   <Cpu size={20} />
                 </div>
@@ -123,7 +123,7 @@ export function EnvironmentView() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl border border-[#E6E2D8] bg-[#F7F5F0] flex items-center gap-3">
+              <div className="p-4 rounded-xl border-2 border-[#CEC8BF] bg-[#F7F5F0] shadow-[0_3px_0_0_#E4DFD7] flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#FEF3C7] border border-[#FCD34D] flex items-center justify-center text-[#B45309]">
                   <HardDrive size={20} />
                 </div>

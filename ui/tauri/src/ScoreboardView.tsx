@@ -90,7 +90,7 @@ export function ScoreboardView() {
                 return (
                   <div
                     key={entry.userId || idx}
-                    className={`p-5 rounded-2xl border-[1.5px] transition-all flex flex-col items-center text-center relative overflow-hidden ${borderCol}`}
+                    className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center text-center relative overflow-hidden shadow-[0_4px_0_0_rgba(0,0,0,0.06)] ${borderCol}`}
                   >
                     {/* Rank Badge */}
                     <div className="absolute top-3 left-3 flex items-center gap-1 font-['JetBrains_Mono'] font-bold text-xs">
@@ -134,8 +134,8 @@ export function ScoreboardView() {
           )}
 
           {/* Full Standings Table */}
-          <div className="bg-[#FCFBF8] border-[1.5px] border-[#E6E2D8] rounded-xl overflow-hidden shadow-xs">
-            <div className="px-5 py-3.5 bg-[#F7F5F0] border-b border-[#E6E2D8] flex items-center justify-between">
+          <div className="bg-[#FCFBF8] border-2 border-[#CEC8BF] rounded-xl overflow-hidden shadow-[0_3px_0_0_#E4DFD7]">
+            <div className="px-5 py-3.5 bg-[#F7F5F0] border-b-2 border-[#E6E2D8] flex items-center justify-between">
               <span className="text-xs font-['Space_Grotesk'] font-bold text-[#1E1A14]">
                 OPERATIVE STANDINGS ROSTER
               </span>

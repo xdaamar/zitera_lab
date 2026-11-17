@@ -63,7 +63,7 @@ export function ToolsView() {
           {tools.map((tool) => (
             <div
               key={tool.id}
-              className="p-5 rounded-xl border-[1.5px] border-[#E6E2D8] bg-[#FCFBF8] hover:border-[#2DD4BF]/60 transition-all flex flex-col justify-between"
+              className="p-5 rounded-xl border-2 border-[#CEC8BF] bg-[#FCFBF8] shadow-[0_3px_0_0_#E4DFD7] hover:border-[#2DD4BF] hover:shadow-[0_4px_0_0_#2DD4BF] hover:-translate-y-0.5 transition-all flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">

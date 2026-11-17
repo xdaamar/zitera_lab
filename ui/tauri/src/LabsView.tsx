@@ -152,10 +152,10 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
             return (
               <div
                 key={lab.id}
-                className={`p-5 rounded-xl border-[1.5px] transition-all bg-[#FCFBF8] flex flex-col justify-between ${
+                className={`p-5 rounded-xl border-2 transition-all bg-[#FCFBF8] flex flex-col justify-between ${
                   lab.running
-                    ? 'border-[#2DD4BF] shadow-[0_4px_16px_rgba(45,212,191,0.2)] bg-[#F0FDFA]'
-                    : 'border-[#E6E2D8] hover:border-[#2DD4BF]/60 hover:shadow-xs'
+                    ? 'border-[#2DD4BF] shadow-[0_4px_0_0_#2DD4BF,0_8px_20px_rgba(45,212,191,0.25)] bg-[#F0FDFA]'
+                    : 'border-[#CEC8BF] shadow-[0_3px_0_0_#E4DFD7] hover:border-[#2DD4BF] hover:shadow-[0_4px_0_0_#2DD4BF] hover:-translate-y-0.5'
                 }`}
               >
                 <div>
@@ -218,7 +218,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                       <>
                         <button
                           onClick={() => openBrowser(`http://127.0.0.1:${lab.port}`)}
-                          className="px-3 py-1.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs"
+                          className="px-3 py-1.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 border-2 border-[#094D47] shadow-[0_2px_0_0_#094D47] hover:translate-y-0.5 active:translate-y-1 transition-all cursor-pointer"
                         >
                           <span>Buka Web</span>
                           <ExternalLink size={13} />
@@ -226,7 +226,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                         <button
                           onClick={() => handleAction(lab.id, 'stop')}
                           disabled={!!inProgress}
-                          className="px-3 py-1.5 bg-white border border-[#EF4444] text-[#EF4444] hover:bg-[#FEE2E2] text-xs font-bold rounded-lg flex items-center gap-1 disabled:opacity-50"
+                          className="px-3 py-1.5 bg-white border-2 border-[#EF4444] text-[#EF4444] hover:bg-[#FEE2E2] text-xs font-bold rounded-lg flex items-center gap-1 border-2 shadow-[0_2px_0_0_#FCA5A5] hover:translate-y-0.5 active:translate-y-1 transition-all disabled:opacity-50 cursor-pointer"
                         >
                           <Square size={12} />
                           <span>Stop</span>
@@ -234,7 +234,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                         <button
                           onClick={() => handleAction(lab.id, 'reset')}
                           disabled={!!inProgress}
-                          className="p-1.5 bg-white border border-[#E6E2D8] hover:border-[#2DD4BF] text-[#5C5347] rounded-lg transition-colors"
+                          className="p-1.5 bg-white border-2 border-[#CEC8BF] hover:border-[#2DD4BF] text-[#5C5347] rounded-lg shadow-[0_2px_0_0_#E4DFD7] hover:translate-y-0.5 active:translate-y-1 transition-all cursor-pointer"
                           title="Reset target database & files"
                         >
                           <RotateCcw size={14} />
@@ -244,7 +244,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                       <button
                         onClick={() => handleAction(lab.id, 'start')}
                         disabled={!!inProgress}
-                        className="px-4 py-1.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                        className="px-4 py-1.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 border-2 border-[#094D47] shadow-[0_2px_0_0_#094D47] hover:translate-y-0.5 active:translate-y-1 transition-all disabled:opacity-50 cursor-pointer"
                       >
                         <Play size={13} />
                         <span>{inProgress === 'start' ? 'Launching...' : 'RUN LAB'}</span>
@@ -255,7 +255,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                       <button
                         onClick={() => handleAction(lab.id, 'update')}
                         disabled={!!inProgress}
-                        className="px-2.5 py-1.5 bg-[#FEF3C7] border border-[#FCD34D] text-[#B45309] hover:bg-[#FDE68A] text-xs font-bold rounded-lg flex items-center gap-1"
+                        className="px-2.5 py-1.5 bg-[#FEF3C7] border-2 border-[#FCD34D] text-[#B45309] hover:bg-[#FDE68A] text-xs font-bold rounded-lg flex items-center gap-1 shadow-[0_2px_0_0_#FCD34D] hover:translate-y-0.5 active:translate-y-1 transition-all cursor-pointer"
                         title="Update lab package"
                       >
                         <DownloadCloud size={13} />

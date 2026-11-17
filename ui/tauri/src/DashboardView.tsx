@@ -93,31 +93,43 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#FCFBF8]">
-      {/* Top Banner / Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0F766E] to-[#14B8A6] p-6 text-white shadow-lg border border-[#0F766E]">
-        <div className="relative z-10 max-w-xl space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-[11px] font-['JetBrains_Mono'] tracking-wide">
+      {/* Top Banner / Hero (Tactile Neo-Retro Desktop Card with Cyber Texture & HD Mascot) */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#0F766E] via-[#0D9488] to-[#14B8A6] p-6 text-white border-2 border-[#094D47] shadow-[0_4px_0_0_#063934,0_10px_24px_rgba(15,118,110,0.22)] select-none">
+        {/* Subtle Cyber Grid Texture */}
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff24_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-60" />
+        <div className="absolute top-0 right-0 w-96 h-full bg-gradient-to-l from-white/10 to-transparent pointer-events-none" />
+
+        {/* Cyber corner stamp */}
+        <div className="absolute top-3 right-4 text-[9px] font-['JetBrains_Mono'] text-white/60 tracking-widest hidden md:block">
+          [SYS_V4.2 // WIN32_SANDBOX]
+        </div>
+
+        <div className="relative z-10 max-w-xl space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#042F2E]/60 border border-[#2DD4BF]/60 text-[11px] font-['JetBrains_Mono'] font-bold text-[#5EEAD4] shadow-xs tracking-wider">
             <span className="w-2 h-2 rounded-full bg-[#34D399] animate-ping" />
             <span>NATIVE SANDBOX ENGINE // READY</span>
           </div>
-          <h1 className="text-2xl font-bold font-['Space_Grotesk'] tracking-tight">
+
+          <h1 className="text-2xl lg:text-[26px] font-black font-['Space_Grotesk'] tracking-tight text-white drop-shadow-sm leading-tight">
             OWASP Top 10:2025 Defensive Training
           </h1>
-          <p className="text-xs text-white/80 leading-relaxed font-sans">
+
+          <p className="text-[12.5px] text-teal-50 font-normal leading-relaxed font-sans max-w-lg">
             Offline-first security engineering laboratory with native Win32 AppContainer
             containment, deterministic vulnerability targets, and real-time CTF validation.
           </p>
+
           <div className="pt-2 flex items-center gap-3">
             <button
               onClick={() => onNavigate(1)}
-              className="px-4 py-2 bg-white text-[#0F766E] hover:bg-[#F0EDE8] rounded-lg text-xs font-bold font-['Space_Grotesk'] shadow-sm transition-all flex items-center gap-1.5"
+              className="px-4 py-2.5 bg-white text-[#0F766E] hover:bg-[#F0FDFA] border-2 border-white/90 shadow-[0_3px_0_0_#99F6E4,0_6px_12px_rgba(0,0,0,0.12)] hover:shadow-[0_1px_0_0_#99F6E4] hover:translate-y-0.5 active:translate-y-1 font-bold font-['Space_Grotesk'] text-xs tracking-wide rounded-lg flex items-center gap-2 cursor-pointer transition-all"
             >
               <span>Explore Labs Catalog</span>
-              <ArrowRight size={14} />
+              <ArrowRight size={15} />
             </button>
             <button
               onClick={loadData}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs transition-colors"
+              className="p-2.5 bg-white/10 hover:bg-white/20 border-2 border-white/30 text-white shadow-[0_3px_0_0_rgba(255,255,255,0.2)] hover:shadow-[0_1px_0_0_rgba(255,255,255,0.2)] hover:translate-y-0.5 active:translate-y-1 rounded-lg text-xs transition-all cursor-pointer"
               title="Refresh Dashboard"
             >
               <RefreshCw size={15} />
@@ -125,23 +137,23 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
           </div>
         </div>
 
-        {/* Ambient sticker illustration */}
-        <div className="absolute right-4 bottom-2 opacity-90 hidden sm:block pointer-events-none">
+        {/* High-Definition Anime Mascot Sticker (Transparent, Sharp, Vivid) */}
+        <div className="absolute -right-2 -bottom-2 md:right-4 md:-bottom-2 opacity-95 hidden sm:block pointer-events-none">
           <img
-            src="/assets/sticker_pink.png"
-            alt="Mascot"
-            className="w-32 h-32 object-contain drop-shadow-md"
+            src="/assets/mascot_banner_hd.png"
+            alt="Zitera Cyber Mascot"
+            className="w-40 h-40 md:w-48 md:h-48 object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.35)] select-none"
             onError={(e) => {
-              ;(e.target as HTMLElement).style.display = 'none'
+              ;(e.target as HTMLImageElement).src = '/assets/zeta_avatar.png'
             }}
           />
         </div>
       </div>
 
-      {/* 4 Pastel Stat Cards (matches Flutter ZiteraColors) */}
+      {/* 4 Pastel Stat Cards (matches Flutter ZiteraColors with Tactile Desktop Texture) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Stat 1: Challenges Solved */}
-        <div className="p-4 rounded-xl border border-[#FDBA74] bg-[#FFEDD5] text-[#C2410C] shadow-xs flex flex-col justify-between">
+        <div className="p-4 rounded-xl border-2 border-[#FDBA74] bg-[#FFEDD5] text-[#C2410C] shadow-[0_3px_0_0_#FDBA74] hover:shadow-[0_1px_0_0_#FDBA74] hover:translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs font-['Space_Grotesk'] font-bold">
             <span>CTF SOLVES</span>
             <Trophy size={16} />
@@ -155,7 +167,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         </div>
 
         {/* Stat 2: Active Labs */}
-        <div className="p-4 rounded-xl border border-[#5EEAD4] bg-[#CCFBF1] text-[#0F766E] shadow-xs flex flex-col justify-between">
+        <div className="p-4 rounded-xl border-2 border-[#5EEAD4] bg-[#CCFBF1] text-[#0F766E] shadow-[0_3px_0_0_#5EEAD4] hover:shadow-[0_1px_0_0_#5EEAD4] hover:translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs font-['Space_Grotesk'] font-bold">
             <span>LABS READY</span>
             <FlaskConical size={16} />
@@ -169,7 +181,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         </div>
 
         {/* Stat 3: Environment / Runtimes */}
-        <div className="p-4 rounded-xl border border-[#FCD34D] bg-[#FEF3C7] text-[#B45309] shadow-xs flex flex-col justify-between">
+        <div className="p-4 rounded-xl border-2 border-[#FCD34D] bg-[#FEF3C7] text-[#B45309] shadow-[0_3px_0_0_#FCD34D] hover:shadow-[0_1px_0_0_#FCD34D] hover:translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs font-['Space_Grotesk'] font-bold">
             <span>RUNTIME HEALTH</span>
             <ShieldCheck size={16} />
@@ -183,7 +195,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         </div>
 
         {/* Stat 4: Security Tools */}
-        <div className="p-4 rounded-xl border border-[#D8B4FE] bg-[#EDE9FE] text-[#6D28D9] shadow-xs flex flex-col justify-between">
+        <div className="p-4 rounded-xl border-2 border-[#D8B4FE] bg-[#EDE9FE] text-[#6D28D9] shadow-[0_3px_0_0_#D8B4FE] hover:shadow-[0_1px_0_0_#D8B4FE] hover:translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs font-['Space_Grotesk'] font-bold">
             <span>SEC TOOLS</span>
             <Wrench size={16} />
@@ -198,8 +210,8 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
       </div>
 
       {/* Active Lab or Quick Launch Card */}
-      <div className="bg-[#FCFBF8] border-[1.5px] border-[#E6E2D8] rounded-xl p-5 shadow-xs">
-        <div className="flex items-center justify-between mb-3 border-b border-[#E6E2D8] pb-2">
+      <div className="bg-[#FCFBF8] border-2 border-[#CEC8BF] rounded-xl p-5 shadow-[0_3px_0_0_#E4DFD7]">
+        <div className="flex items-center justify-between mb-3 border-b-2 border-[#E6E2D8] pb-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#2DD4BF]" />
             <h2 className="text-sm font-bold font-['Space_Grotesk'] text-[#1E1A14]">
@@ -212,7 +224,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         </div>
 
         {runningLab ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#E6F9F2] border border-[#86EFAC] rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#E6F9F2] border-2 border-[#86EFAC] rounded-lg p-4 shadow-[0_2px_0_0_#86EFAC]">
             <div>
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded bg-[#0F766E] text-white text-[10px] font-bold font-['JetBrains_Mono']">
@@ -230,21 +242,21 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => openBrowser(`http://127.0.0.1:${runningLab.port}`)}
-                className="px-3.5 py-2 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs"
+                className="px-3.5 py-2 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 border-2 border-[#094D47] shadow-[0_2px_0_0_#094D47] hover:translate-y-0.5 active:translate-y-1 transition-all cursor-pointer"
               >
                 <span>Buka Web</span>
                 <ExternalLink size={14} />
               </button>
               <button
                 onClick={() => onOpenLab(runningLab.id)}
-                className="px-3.5 py-2 bg-[#FCFBF8] border border-[#2DD4BF] text-[#0F766E] hover:bg-[#F0FDFA] text-xs font-bold rounded-lg"
+                className="px-3.5 py-2 bg-[#FCFBF8] border-2 border-[#2DD4BF] text-[#0F766E] hover:bg-[#F0FDFA] text-xs font-bold rounded-lg shadow-[0_2px_0_0_#99F6E4] hover:translate-y-0.5 active:translate-y-1 transition-all cursor-pointer"
               >
                 Inspect Lab
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#F7F5F0] border border-[#E6E2D8] rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#F7F5F0] border-2 border-[#E4DFD7] rounded-lg p-4 shadow-[0_2px_0_0_#E4DFD7]">
             <div>
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded bg-[#0F766E] text-white text-[10px] font-bold font-['JetBrains_Mono']">
@@ -262,7 +274,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
             <button
               onClick={() => handleLaunch('A01')}
               disabled={startingLabId === 'A01'}
-              className="px-4 py-2 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs disabled:opacity-50 shrink-0"
+              className="px-4 py-2 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 border-2 border-[#094D47] shadow-[0_2px_0_0_#094D47] hover:translate-y-0.5 active:translate-y-1 disabled:opacity-50 shrink-0 transition-all cursor-pointer"
             >
               <Play size={14} />
               <span>{startingLabId === 'A01' ? 'Starting...' : 'RUN LAB'}</span>
@@ -274,8 +286,8 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
       {/* Grid: Recent Solves Leaderboard Preview + Quick Nav */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Leaderboard snippet (2 cols) */}
-        <div className="md:col-span-2 bg-[#FCFBF8] border-[1.5px] border-[#E6E2D8] rounded-xl p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-3 border-b border-[#E6E2D8] pb-2">
+        <div className="md:col-span-2 bg-[#FCFBF8] border-2 border-[#CEC8BF] rounded-xl p-5 shadow-[0_3px_0_0_#E4DFD7]">
+          <div className="flex items-center justify-between mb-3 border-b-2 border-[#E6E2D8] pb-2">
             <h3 className="text-sm font-bold font-['Space_Grotesk'] text-[#1E1A14]">
               TOP OPERATIVES // LIVE TURSO LEADERBOARD
             </h3>
@@ -292,10 +304,10 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
             {leaderboard.slice(0, 4).map((entry) => (
               <div
                 key={entry.userId || entry.rank}
-                className={`flex items-center justify-between p-2.5 rounded-lg border text-xs transition-colors ${
+                className={`flex items-center justify-between p-2.5 rounded-lg border-2 text-xs transition-all ${
                   entry.isCurrentUser
-                    ? 'bg-[#CCFBF1]/40 border-[#2DD4BF]'
-                    : 'bg-[#F7F5F0] border-[#E6E2D8]'
+                    ? 'bg-[#CCFBF1]/50 border-[#2DD4BF] shadow-[0_2px_0_0_#5EEAD4]'
+                    : 'bg-[#F7F5F0] border-[#E4DFD7] shadow-[0_1px_0_0_#E4DFD7]'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -340,29 +352,29 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         </div>
 
         {/* Quick Nav / Shortcuts (1 col) */}
-        <div className="bg-[#FCFBF8] border-[1.5px] border-[#E6E2D8] rounded-xl p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-[#FCFBF8] border-2 border-[#CEC8BF] rounded-xl p-5 shadow-[0_3px_0_0_#E4DFD7] flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold font-['Space_Grotesk'] text-[#1E1A14] mb-3 border-b border-[#E6E2D8] pb-2">
+            <h3 className="text-sm font-bold font-['Space_Grotesk'] text-[#1E1A14] mb-3 border-b-2 border-[#E6E2D8] pb-2">
               QUICK COMMANDS
             </h3>
             <div className="space-y-2">
               <button
                 onClick={() => onNavigate(1)}
-                className="w-full p-2.5 text-left rounded-lg border border-[#E6E2D8] bg-[#F7F5F0] hover:bg-[#F0FDFA] hover:border-[#2DD4BF] text-xs font-bold text-[#1E1A14] flex items-center justify-between"
+                className="w-full p-2.5 text-left rounded-lg border-2 border-[#E4DFD7] bg-[#F7F5F0] hover:bg-[#F0FDFA] hover:border-[#2DD4BF] text-xs font-bold text-[#1E1A14] flex items-center justify-between shadow-[0_2px_0_0_#E4DFD7] hover:shadow-[0_2px_0_0_#5EEAD4] hover:-translate-y-0.5 transition-all cursor-pointer"
               >
                 <span>Browse All 10 Labs</span>
                 <FlaskConical size={16} className="text-[#0F766E]" />
               </button>
               <button
                 onClick={() => onNavigate(3)}
-                className="w-full p-2.5 text-left rounded-lg border border-[#E6E2D8] bg-[#F7F5F0] hover:bg-[#F0FDFA] hover:border-[#2DD4BF] text-xs font-bold text-[#1E1A14] flex items-center justify-between"
+                className="w-full p-2.5 text-left rounded-lg border-2 border-[#E4DFD7] bg-[#F7F5F0] hover:bg-[#F0FDFA] hover:border-[#2DD4BF] text-xs font-bold text-[#1E1A14] flex items-center justify-between shadow-[0_2px_0_0_#E4DFD7] hover:shadow-[0_2px_0_0_#5EEAD4] hover:-translate-y-0.5 transition-all cursor-pointer"
               >
                 <span>Security Tools Manager</span>
                 <Wrench size={16} className="text-[#6D28D9]" />
               </button>
               <button
                 onClick={() => onNavigate(4)}
-                className="w-full p-2.5 text-left rounded-lg border border-[#E6E2D8] bg-[#F7F5F0] hover:bg-[#F0FDFA] hover:border-[#2DD4BF] text-xs font-bold text-[#1E1A14] flex items-center justify-between"
+                className="w-full p-2.5 text-left rounded-lg border-2 border-[#E4DFD7] bg-[#F7F5F0] hover:bg-[#F0FDFA] hover:border-[#2DD4BF] text-xs font-bold text-[#1E1A14] flex items-center justify-between shadow-[0_2px_0_0_#E4DFD7] hover:shadow-[0_2px_0_0_#5EEAD4] hover:-translate-y-0.5 transition-all cursor-pointer"
               >
                 <span>System Environment Check</span>
                 <ShieldCheck size={16} className="text-[#B45309]" />
@@ -370,7 +382,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[#E6E2D8] flex items-center gap-2">
+          <div className="pt-4 border-t-2 border-[#E6E2D8] flex items-center gap-2">
             <img
               src="/assets/calico_cat.png"
               alt=""
