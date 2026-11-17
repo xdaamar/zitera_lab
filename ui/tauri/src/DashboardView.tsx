@@ -6,7 +6,6 @@ import {
   Wrench,
   Play,
   ExternalLink,
-  Sparkles,
   ArrowRight,
   RefreshCw,
 } from 'lucide-react'
@@ -21,6 +20,7 @@ import {
   type DiagnosticsResult,
 } from './engineClient'
 import { getLeaderboard, type ScoreboardEntry } from './scoreboardService'
+import { CuteAnimeLoading } from './CuteAnimeLoading'
 
 interface DashboardViewProps {
   onNavigate: (index: number) => void
@@ -75,18 +75,11 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
-        <div className="w-16 h-16 rounded-full border-4 border-[#2DD4BF] border-t-transparent animate-spin flex items-center justify-center">
-          <Sparkles className="text-[#0F766E] animate-pulse" size={24} />
-        </div>
-        <div>
-          <div className="text-base font-bold font-['Space_Grotesk'] text-[#1E1A14]">
-            INITIALIZING CYBER DASHBOARD...
-          </div>
-          <div className="text-xs font-['JetBrains_Mono'] text-[#0F766E]">
-            ( •̀ ω •́ )✧ NEKO CORE ONLINE
-          </div>
-        </div>
+      <div className="flex-1 flex items-center justify-center p-8 bg-[#FCFBF8]">
+        <CuteAnimeLoading
+          message="INITIALIZING CYBER DASHBOARD..."
+          subMessage="( •̀ ω •́ )✧ NEKO CORE ONLINE"
+        />
       </div>
     )
   }

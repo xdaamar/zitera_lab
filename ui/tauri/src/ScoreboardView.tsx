@@ -9,6 +9,7 @@ import {
   formatLastSolve,
   type ScoreboardEntry,
 } from './scoreboardService'
+import { CuteAnimeLoading } from './CuteAnimeLoading'
 
 export function ScoreboardView() {
   const [entries, setEntries] = useState<ScoreboardEntry[]>([])
@@ -60,11 +61,11 @@ export function ScoreboardView() {
       </div>
 
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center space-y-3">
-          <div className="w-12 h-12 rounded-full border-3 border-[#2DD4BF] border-t-transparent animate-spin" />
-          <div className="text-xs font-['JetBrains_Mono'] text-[#5C5347]">
-            Fetching Turso pipeline scoreboard...
-          </div>
+        <div className="py-16 flex items-center justify-center">
+          <CuteAnimeLoading
+            message="SYNCING TURSO LEADERBOARD..."
+            subMessage="( 🏆 ✧ω✧) FETCHING LIVE RANKS"
+          />
         </div>
       ) : (
         <>

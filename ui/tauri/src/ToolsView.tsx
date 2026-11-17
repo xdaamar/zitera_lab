@@ -5,6 +5,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { getTools, type ToolItem } from './engineClient'
+import { CuteAnimeLoading } from './CuteAnimeLoading'
 
 export function ToolsView() {
   const [tools, setTools] = useState<ToolItem[]>([])
@@ -52,11 +53,11 @@ export function ToolsView() {
       </div>
 
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center space-y-3">
-          <div className="w-12 h-12 rounded-full border-3 border-[#2DD4BF] border-t-transparent animate-spin" />
-          <div className="text-xs font-['JetBrains_Mono'] text-[#5C5347]">
-            Querying local binaries and PATH...
-          </div>
+        <div className="py-16 flex items-center justify-center">
+          <CuteAnimeLoading
+            message="QUERYING SECURITY TOOLS..."
+            subMessage="( 🛠️ •̀_•́) SCANNING SYSTEM PATH"
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

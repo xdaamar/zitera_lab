@@ -7,6 +7,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { checkDoctor, type DiagnosticsResult, type ComponentItem } from './engineClient'
+import { CuteAnimeLoading } from './CuteAnimeLoading'
 
 export function EnvironmentView() {
   const [diag, setDiag] = useState<DiagnosticsResult | null>(null)
@@ -98,11 +99,11 @@ export function EnvironmentView() {
       </div>
 
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center space-y-3">
-          <div className="w-12 h-12 rounded-full border-3 border-[#2DD4BF] border-t-transparent animate-spin" />
-          <div className="text-xs font-['JetBrains_Mono'] text-[#5C5347]">
-            Validating AppContainer SID and system binaries...
-          </div>
+        <div className="py-16 flex items-center justify-center">
+          <CuteAnimeLoading
+            message="RUNNING SYSTEM DOCTOR..."
+            subMessage="( ˘ ³˘)♥ ISOLATION & BINARY CHECK"
+          />
         </div>
       ) : (
         diag && (

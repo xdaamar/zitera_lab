@@ -27,6 +27,7 @@ import {
   type LabItem,
 } from './engineClient'
 import { recordSolve } from './scoreboardService'
+import { CuteAnimeLoading } from './CuteAnimeLoading'
 
 interface LabDetailViewProps {
   labId: string
@@ -151,11 +152,11 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
 
   if (loading || !content) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-3">
-        <div className="w-12 h-12 rounded-full border-3 border-[#2DD4BF] border-t-transparent animate-spin" />
-        <div className="text-xs font-['JetBrains_Mono'] text-[#5C5347]">
-          Loading curriculum & target session...
-        </div>
+      <div className="flex-1 flex items-center justify-center p-8 bg-[#FCFBF8]">
+        <CuteAnimeLoading
+          message="PREPARING TARGET SANDBOX..."
+          subMessage="( ⚡ •̀ᴗ•́) DEPLOYING WIN32 CONTAINER"
+        />
       </div>
     )
   }

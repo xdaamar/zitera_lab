@@ -18,6 +18,7 @@ import {
   openBrowser,
   type LabItem,
 } from './engineClient'
+import { CuteAnimeLoading } from './CuteAnimeLoading'
 
 interface LabsViewProps {
   onSelectLab: (labId: string) => void
@@ -139,11 +140,11 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
 
       {/* Labs Grid */}
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
-          <div className="w-12 h-12 rounded-full border-3 border-[#2DD4BF] border-t-transparent animate-spin" />
-          <div className="text-xs font-['JetBrains_Mono'] text-[#5C5347]">
-            Enumerating sandboxed labs...
-          </div>
+        <div className="py-16 flex items-center justify-center">
+          <CuteAnimeLoading
+            message="ENUMERATING LABS CATALOG..."
+            subMessage="( ≧ᗜ≦) CYBER MATRIX LOADED"
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
