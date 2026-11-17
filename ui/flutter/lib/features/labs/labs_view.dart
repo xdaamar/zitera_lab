@@ -64,7 +64,7 @@ class _LabsViewState extends State<LabsView> {
               title: cat.title,
               installed: false,
               running: false,
-              port: 0,
+              port: cat.defaultPort,
               version: cat.version,
               status: 'NOT_INSTALLED',
               learnReadiness: 'READY',

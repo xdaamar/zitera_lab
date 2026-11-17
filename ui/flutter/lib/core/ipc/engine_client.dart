@@ -121,6 +121,8 @@ class ZiteraEngineClient {
         fullArgs,
         workingDirectory: wsRoot,
         environment: {'ZITERA_WORKSPACE_ROOT': wsRoot},
+        stdoutEncoding: utf8,
+        stderrEncoding: utf8,
       );
       if (result.stdout == null || result.stdout.toString().trim().isEmpty) {
         final err = result.stderr.toString().trim();

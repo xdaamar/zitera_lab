@@ -4,7 +4,7 @@ Dalam latihan terarah ini, kamu akan mengaudit aplikasi portal internal yang ber
 
 ---
 
-### Tahap 1: Observasi & Pemetaan Response Header (15% â€” Manual)
+### Tahap 1: Observasi & Pemetaan Response Header (15% — Manual)
 Langkah awal dalam audit konfigurasi adalah memeriksa header HTTP dan jejak informasi bawaan server (*information disclosure*).
 
 1. Buka peramban web dan arahkan ke alamat target:
@@ -19,7 +19,7 @@ Langkah awal dalam audit konfigurasi adalah memeriksa header HTTP dan jejak info
 
 ---
 
-### Tahap 2: Pengujian Hipotesis & Penemuan Jalur Terbuka (25% â€” Manual)
+### Tahap 2: Pengujian Hipotesis & Penemuan Jalur Terbuka (25% — Manual)
 Ujilah hipotesis: *Apakah terdapat folder statis atau direktori pemeliharaan yang lupa ditutup oleh administrator?*
 
 1. Administrator sistem sering menempatkan file cadangan pada rute umum seperti `/backup/`, `/backups/`, `/data/`, atau `/debug/`.
@@ -33,7 +33,7 @@ Ujilah hipotesis: *Apakah terdapat folder statis atau direktori pemeliharaan yan
 
 ---
 
-### Tahap 3: Ekstraksi Rahasia & Weaponization (35% â€” Tools: cURL)
+### Tahap 3: Ekstraksi Rahasia & Weaponization (35% — Tools: cURL)
 Gunakan tools terminal cURL untuk mengunduh artefak cadangan dan mengurai kredensial rahasia yang terkandung di dalamnya.
 
 1. Buka terminal di dalam workspace ZITERA_LAB.
@@ -50,7 +50,7 @@ Gunakan tools terminal cURL untuk mengunduh artefak cadangan dan mengurai kreden
 
 ---
 
-### Tahap 4: Remediasi & Verifikasi Hasil (25% â€” Manual & Tools)
+### Tahap 4: Remediasi & Verifikasi Hasil (25% — Manual & Tools)
 Terapkan perbaikan pengerasan konfigurasi dan buktikan bahwa celah telah tertutup secara terverifikasi.
 
 1. Matikan fitur directory browsing pada konfigurasi server:

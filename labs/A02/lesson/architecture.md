@@ -7,26 +7,26 @@ In modern cloud-native architectures relying on microservices and containerized 
 ### Three Pillars of Hardened Configuration Architecture
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 1. Infrastructure as Code (IaC) & Baseline Hardening    â”‚
-â”‚    - Versioned code definitions (Terraform / Ansible)   â”‚
-â”‚    - Enforces CIS Benchmark security baselines          â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                            â”‚
-                            â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 2. CI/CD Automated Linting & Static Security Audits     â”‚
-â”‚    - Static config analyzers (Checkov / Trivy / Hadolint)â”‚
-â”‚    - Fails builds if autoindex or debug ports are found â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                            â”‚
-                            â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 3. Runtime Immutability & Ephemeral Secrets             â”‚
-â”‚    - Containers execute strictly as non-root users      â”‚
-â”‚    - Enforce read-only root filesystems                 â”‚
-â”‚    - Dynamic secrets injection via Vault / KMS          â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────┐
+│ 1. Infrastructure as Code (IaC) & Baseline Hardening    │
+│    - Versioned code definitions (Terraform / Ansible)   │
+│    - Enforces CIS Benchmark security baselines          │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│ 2. CI/CD Automated Linting & Static Security Audits     │
+│    - Static config analyzers (Checkov / Trivy / Hadolint)│
+│    - Fails builds if autoindex or debug ports are found │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│ 3. Runtime Immutability & Ephemeral Secrets             │
+│    - Containers execute strictly as non-root users      │
+│    - Enforce read-only root filesystems                 │
+│    - Dynamic secrets injection via Vault / KMS          │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---

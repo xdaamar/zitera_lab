@@ -4,7 +4,7 @@ In this guided lab exercise, you will conduct a systematic security audit agains
 
 ---
 
-### Stage 1: Observation & System Mapping (15% â€” Manual)
+### Stage 1: Observation & System Mapping (15% — Manual)
 The first step of an authorized assessment is establishing a baseline of normal application behavior.
 
 1. Open your web browser and navigate to the target billing portal:
@@ -21,7 +21,7 @@ The first step of an authorized assessment is establishing a baseline of normal 
 
 ---
 
-### Stage 2: Hypothesis Testing & Fault Injection (25% â€” Manual)
+### Stage 2: Hypothesis Testing & Fault Injection (25% — Manual)
 Now test the core hypothesis: *Does the server validate object ownership against Alice's authenticated session?*
 
 1. In the browser address bar, locate the current URL.
@@ -36,7 +36,7 @@ Now test the core hypothesis: *Does the server validate object ownership against
 
 ---
 
-### Stage 3: Controlled Exploitation & Weaponization (35% â€” Tools: cURL)
+### Stage 3: Controlled Exploitation & Weaponization (35% — Tools: cURL)
 Leverage cURL from the terminal to evaluate the full scope of data exposure and discover high-value assets (*master invoice*).
 
 1. Open a terminal inside the ZITERA_LAB workspace.
@@ -54,7 +54,7 @@ Leverage cURL from the terminal to evaluate the full scope of data exposure and 
 
 ---
 
-### Stage 4: Remediation & Verification (25% â€” Manual & Tools)
+### Stage 4: Remediation & Verification (25% — Manual & Tools)
 The final step is verifying that defensive remediations succeed deterministically.
 
 1. Enforce server-side ownership checks on the backend controller:

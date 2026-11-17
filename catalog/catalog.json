@@ -18,13 +18,21 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Authorization Matrix", "IDOR Detection", "Parameter Tampering"],
+      "skills": [
+        "Authorization Matrix",
+        "IDOR Detection",
+        "Parameter Tampering"
+      ],
       "learning_objectives": [
         "Identify flawed object-level access controls",
         "Audit multi-tenant boundary isolation",
         "Implement server-side authorization enforcement"
       ],
-      "prerequisites": ["HTTP basics", "User session concepts"]
+      "prerequisites": [
+        "HTTP basics",
+        "User session concepts"
+      ],
+      "default_port": 8011
     },
     {
       "id": "A02",
@@ -43,13 +51,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Directory Listing Audit", "Credential Hardening", "Interface Lockdown"],
+      "skills": [
+        "Directory Listing Audit",
+        "Credential Hardening",
+        "Interface Lockdown"
+      ],
       "learning_objectives": [
         "Identify exposed debug and diagnostic endpoints",
         "Detect dangerous unauthenticated directory browsing",
         "Harden default server credentials and configs"
       ],
-      "prerequisites": ["Web server basics"]
+      "prerequisites": [
+        "Web server basics"
+      ],
+      "default_port": 8012
     },
     {
       "id": "A03",
@@ -68,13 +83,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Lockfile Auditing", "Dependency Provenance", "Package Verification"],
+      "skills": [
+        "Lockfile Auditing",
+        "Dependency Provenance",
+        "Package Verification"
+      ],
       "learning_objectives": [
         "Analyze compromised package manifests and lockfiles",
         "Trace unauthorized credential exfiltration scripts",
         "Implement cryptographic package provenance verification"
       ],
-      "prerequisites": ["Package manager basics (npm/cargo)"]
+      "prerequisites": [
+        "Package manager basics (npm/cargo)"
+      ],
+      "default_port": 8013
     },
     {
       "id": "A04",
@@ -93,13 +115,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Cryptographic Hash Audit", "Salt Verification", "Password Storage Standards"],
+      "skills": [
+        "Cryptographic Hash Audit",
+        "Salt Verification",
+        "Password Storage Standards"
+      ],
       "learning_objectives": [
         "Recognize obsolete cryptographic algorithms",
         "Understand how unsalted hashes succumb to precomputed tables",
         "Deploy modern password hashing algorithms (Argon2/bcrypt)"
       ],
-      "prerequisites": ["Basic hashing knowledge"]
+      "prerequisites": [
+        "Basic hashing knowledge"
+      ],
+      "default_port": 8014
     },
     {
       "id": "A05",
@@ -118,13 +147,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["SQL Syntax Injection", "Query Parameterization", "Database Defense"],
+      "skills": [
+        "SQL Syntax Injection",
+        "Query Parameterization",
+        "Database Defense"
+      ],
       "learning_objectives": [
         "Distinguish data from query syntax execution",
         "Execute UNION-based database schema exfiltration",
         "Refactor raw SQL strings into prepared statements"
       ],
-      "prerequisites": ["Basic SQL queries"]
+      "prerequisites": [
+        "Basic SQL queries"
+      ],
+      "default_port": 8015
     },
     {
       "id": "A06",
@@ -143,13 +179,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Threat Modeling", "State Machine Invariants", "Business Logic Validation"],
+      "skills": [
+        "Threat Modeling",
+        "State Machine Invariants",
+        "Business Logic Validation"
+      ],
       "learning_objectives": [
         "Differentiate design flaws from implementation vulnerabilities",
         "Detect illegal state transitions in enterprise workflows",
         "Establish architectural security invariants in business logic"
       ],
-      "prerequisites": ["Workflow / State machine concepts"]
+      "prerequisites": [
+        "Workflow / State machine concepts"
+      ],
+      "default_port": 8016
     },
     {
       "id": "A07",
@@ -168,13 +211,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Rate Limiting", "Lockout Enforcement", "Authentication Defense"],
+      "skills": [
+        "Rate Limiting",
+        "Lockout Enforcement",
+        "Authentication Defense"
+      ],
       "learning_objectives": [
         "Assess authentication mechanisms against automated guessing",
         "Identify failure modes of unrestricted login endpoints",
         "Implement multi-layered rate limiting and progressive delays"
       ],
-      "prerequisites": ["HTTP POST / form submissions"]
+      "prerequisites": [
+        "HTTP POST / form submissions"
+      ],
+      "default_port": 8017
     },
     {
       "id": "A08",
@@ -193,13 +243,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Digital Signatures", "Integrity Validation", "Secure Deserialization"],
+      "skills": [
+        "Digital Signatures",
+        "Integrity Validation",
+        "Secure Deserialization"
+      ],
       "learning_objectives": [
         "Evaluate the risks of accepting untrusted configuration updates",
         "Demonstrate code/config tampering without integrity checks",
         "Implement asymmetric signature verification for payload ingestion"
       ],
-      "prerequisites": ["Asymmetric cryptography concepts"]
+      "prerequisites": [
+        "Asymmetric cryptography concepts"
+      ],
+      "default_port": 8018
     },
     {
       "id": "A09",
@@ -218,13 +275,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Security Event Telemetry", "Audit Trail Design", "SIEM Alert Rules"],
+      "skills": [
+        "Security Event Telemetry",
+        "Audit Trail Design",
+        "SIEM Alert Rules"
+      ],
       "learning_objectives": [
         "Audit high-privilege operations for logging coverage",
         "Identify blind spots that permit undetected adversary movement",
         "Design tamper-evident structured security audit events"
       ],
-      "prerequisites": ["Logging & system administration basics"]
+      "prerequisites": [
+        "Logging & system administration basics"
+      ],
+      "default_port": 8019
     },
     {
       "id": "A10",
@@ -243,13 +307,20 @@
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
-      "skills": ["Fail-Safe Defaults", "Defensive Exception Handling", "Boundary Guarding"],
+      "skills": [
+        "Fail-Safe Defaults",
+        "Defensive Exception Handling",
+        "Boundary Guarding"
+      ],
       "learning_objectives": [
         "Identify fail-open security flaws in exception handling blocks",
         "Induce upstream failure states that bypass authorization checks",
         "Enforce strict fail-closed defaults across all boundary guards"
       ],
-      "prerequisites": ["Error/Exception handling basics"]
+      "prerequisites": [
+        "Error/Exception handling basics"
+      ],
+      "default_port": 8020
     }
   ]
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import '../ipc/engine_client.dart';
 import '../storage/storage_paths.dart';
@@ -188,6 +189,8 @@ class ComponentReadinessChecker {
           ['--version'],
           workingDirectory: wsRoot,
           environment: {'ZITERA_WORKSPACE_ROOT': wsRoot},
+          stdoutEncoding: utf8,
+          stderrEncoding: utf8,
         ).timeout(
           const Duration(seconds: 6),
           onTimeout: () => ProcessResult(-1, -1, '', 'Engine version command timed out'),

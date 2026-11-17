@@ -197,7 +197,7 @@ pub fn get_lab_status_cached(
             title: lab_id.to_string(),
             installed: false,
             running: false,
-            port: 0,
+            port: crate::models::default_port_for_lab(lab_id),
             url: None,
             version: "N/A".to_string(),
             status: "INVALID_ID".to_string(),
@@ -234,7 +234,7 @@ pub fn get_lab_status_cached(
             title,
             installed: false,
             running: false,
-            port: 0,
+            port: crate::models::default_port_for_lab(lab_id),
             url: None,
             version: "N/A".to_string(),
             status: "NOT_INSTALLED".to_string(),
@@ -249,20 +249,25 @@ pub fn get_lab_status_cached(
 
     match read_manifest(&lab_dir) {
         Ok(manifest) => {
+            let default_p = if manifest.default_port > 0 {
+                manifest.default_port
+            } else {
+                crate::models::default_port_for_lab(&manifest.id)
+            };
             let (is_running, port, url) = if manifest.runtime == "native_sandboxed" {
                 if let Some(rt) = get_runtime_state(&lab_dir) {
                     (true, rt.port, Some(rt.entry_url))
                 } else {
-                    (false, 0, None)
+                    (false, default_p, None)
                 }
             } else {
-                let running = !crate::system::is_port_available(manifest.default_port);
+                let running = !crate::system::is_port_available(default_p);
                 let u = if running {
-                    Some(format!("http://127.0.0.1:{}", manifest.default_port))
+                    Some(format!("http://127.0.0.1:{}", default_p))
                 } else {
                     None
                 };
-                (running, manifest.default_port, u)
+                (running, default_p, u)
             };
             let status_str = if is_running { "RUNNING" } else { "STOPPED" };
 
@@ -365,7 +370,7 @@ pub fn get_lab_status_cached(
                 title,
                 installed: false,
                 running: false,
-                port: 0,
+                port: crate::models::default_port_for_lab(lab_id),
                 url: None,
                 version: "UNKNOWN".to_string(),
                 status: "INCOMPLETE_INSTALL".to_string(),

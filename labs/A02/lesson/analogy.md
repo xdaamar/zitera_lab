@@ -20,7 +20,7 @@ To understand the core nature of Security Misconfiguration, imagine a state-of-t
 ### 3. The Intruder's Effortless Entry
 A casual burglar walks down the residential street:
 1. The intruder has no need for blowtorches, heavy drills, or lock picks.
-2. The intruder simply strolls up to the front entrance keypad and punches in the most predictable combination in the world: **`1234`** â€” and the heavy deadbolt slides back instantly.
+2. The intruder simply strolls up to the front entrance keypad and punches in the most predictable combination in the world: **`1234`** — and the heavy deadbolt slides back instantly.
 3. Even if the front door had been locked, walking around the side reveals the propped-open garage door, where vehicle spare keys and confidential financial folders sit exposed on a workbench.
 
 ---

@@ -8,39 +8,39 @@ Untuk mencegah kerentanan Broken Access Control secara menyeluruh pada skala ent
 
 ```
 [ KLIEN / BROWSER ]
-       â”‚  Request HTTP: GET /invoice/2
-       â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 1. API Gateway / Reverse Proxy                         â”‚
-â”‚    - Rate Limiting                                     â”‚
-â”‚    - Validasi Format Token / Session Signature         â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚
-                       â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 2. Middleware Autentikasi (AuthN)                      â”‚
-â”‚    - Membaca Cookie / Header Authorization             â”‚
-â”‚    - Mengidentifikasi identitas pengguna: user_id=1    â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚
-                       â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 3. Policy Enforcement Point (PEP)                      â”‚
-â”‚    - Memeriksa apakah user_id=1 diizinkan membaca      â”‚
-â”‚      faktur invoice_id=2                               â”‚
-â”‚    - Mengirim konteks ke Policy Decision Point (PDP)   â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚  Otorisasi GAGAL (Bukan Pemilik)
-                       â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º [ 403 / 404 Deny ]
-                       â”‚  Otorisasi SUKSES
-                       â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 4. Lapisan Akses Data (Data Access Layer / DAL)        â”‚
-â”‚    - Query berlingkup penyewa (Tenant Scoping)         â”‚
-â”‚    - SELECT * FROM invoices WHERE id=2 AND owner_id=1  â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚
-                       â–¼
+       │  Request HTTP: GET /invoice/2
+       ▼
+┌────────────────────────────────────────────────────────┐
+│ 1. API Gateway / Reverse Proxy                         │
+│    - Rate Limiting                                     │
+│    - Validasi Format Token / Session Signature         │
+└──────────────────────┬─────────────────────────────────┘
+                       │
+                       ▼
+┌────────────────────────────────────────────────────────┐
+│ 2. Middleware Autentikasi (AuthN)                      │
+│    - Membaca Cookie / Header Authorization             │
+│    - Mengidentifikasi identitas pengguna: user_id=1    │
+└──────────────────────┬─────────────────────────────────┘
+                       │
+                       ▼
+┌────────────────────────────────────────────────────────┐
+│ 3. Policy Enforcement Point (PEP)                      │
+│    - Memeriksa apakah user_id=1 diizinkan membaca      │
+│      faktur invoice_id=2                               │
+│    - Mengirim konteks ke Policy Decision Point (PDP)   │
+└──────────────────────┬─────────────────────────────────┘
+                       │  Otorisasi GAGAL (Bukan Pemilik)
+                       ├────────────────────────► [ 403 / 404 Deny ]
+                       │  Otorisasi SUKSES
+                       ▼
+┌────────────────────────────────────────────────────────┐
+│ 4. Lapisan Akses Data (Data Access Layer / DAL)        │
+│    - Query berlingkup penyewa (Tenant Scoping)         │
+│    - SELECT * FROM invoices WHERE id=2 AND owner_id=1  │
+└──────────────────────┬─────────────────────────────────┘
+                       │
+                       ▼
 [ DATABASE SISTEM TERISOLASI ]
 ```
 
@@ -60,7 +60,7 @@ Untuk mencegah kerentanan Broken Access Control secara menyeluruh pada skala ent
 
 | Peran (Role) | Baca Faktur Sendiri | Baca Faktur Orang Lain | Unduh Master Invoice | Ubah Tarif Penagihan |
 | :--- | :---: | :---: | :---: | :---: |
-| **Anonymous (Tamu)** | âŒ | âŒ | âŒ | âŒ |
-| **Standard User (Alice/Bob)** | âœ… | âŒ | âŒ | âŒ |
-| **Auditor / Finance Staff** | âœ… | âœ… (Read-Only) | âŒ | âŒ |
-| **System Administrator** | âœ… | âœ… | âœ… | âœ… |
+| **Anonymous (Tamu)** | ❌ | ❌ | ❌ | ❌ |
+| **Standard User (Alice/Bob)** | ✅ | ❌ | ❌ | ❌ |
+| **Auditor / Finance Staff** | ✅ | ✅ (Read-Only) | ❌ | ❌ |
+| **System Administrator** | ✅ | ✅ | ✅ | ✅ |

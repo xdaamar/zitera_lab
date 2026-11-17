@@ -703,7 +703,8 @@ class _LabDetailViewState extends State<LabDetailView> with SingleTickerProvider
     final manifest = _content?.manifest;
     final title = manifest?.title ?? _status?.title ?? widget.labId;
     final owaspCode = manifest?.owasp ?? 'OWASP';
-    final port = manifest?.defaultPort ?? _status?.port ?? 0;
+    final rawPort = manifest?.defaultPort ?? _status?.port ?? 0;
+    final port = rawPort > 0 ? rawPort : canonicalPortForLab(widget.labId);
     final isRunning = _status?.running ?? false;
     final hasMissingRecommended = _status?.challengeReadiness == 'PARTIAL' && !_dismissToolWarning;
 

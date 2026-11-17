@@ -109,6 +109,17 @@ class ToolItem {
   }
 }
 
+int canonicalPortForLab(String labId) {
+  final clean = labId.trim().toUpperCase();
+  if (clean.startsWith('A') && clean.length == 3) {
+    final num = int.tryParse(clean.substring(1));
+    if (num != null && num >= 1 && num <= 10) {
+      return 8010 + num;
+    }
+  }
+  return 8011;
+}
+
 class LabItem {
   final String id;
   final String title;
@@ -144,12 +155,14 @@ class LabItem {
 
   factory LabItem.fromJson(Map<String, dynamic> json) {
     final ver = json['version'] as String? ?? '1.0.0';
+    final labId = json['id'] as String? ?? '';
+    final parsedPort = (json['port'] as num?)?.toInt() ?? 0;
     return LabItem(
-      id: json['id'] as String? ?? '',
+      id: labId,
       title: json['title'] as String? ?? '',
       installed: json['installed'] as bool? ?? false,
       running: json['running'] as bool? ?? false,
-      port: json['port'] as int? ?? 0,
+      port: parsedPort > 0 ? parsedPort : canonicalPortForLab(labId),
       url: json['url'] as String?,
       version: ver,
       status: json['status'] as String? ?? 'NOT_INSTALLED',
@@ -187,6 +200,7 @@ class CatalogEntry {
   final String? installedVersion;
   final bool hasUpdate;
   final String latestVersion;
+  final int defaultPort;
 
   CatalogEntry({
     required this.id,
@@ -212,6 +226,7 @@ class CatalogEntry {
     this.installedVersion,
     this.hasUpdate = false,
     this.latestVersion = '',
+    this.defaultPort = 8011,
   });
 
   factory CatalogEntry.fromJson(Map<String, dynamic> json) {
@@ -219,6 +234,7 @@ class CatalogEntry {
     final rawTitle = json['title'] as String? ?? '';
     final rawDesc = json['description'] as String? ?? '';
     final ver = json['version'] as String? ?? '1.0.0';
+    final parsedPort = (json['default_port'] as num?)?.toInt() ?? 0;
     return CatalogEntry(
       id: rawId,
       packageId: json['package_id'] as String? ?? 'zitera-lab-${rawId.toLowerCase()}',
@@ -243,6 +259,7 @@ class CatalogEntry {
       installedVersion: json['installed_version'] as String?,
       hasUpdate: json['has_update'] as bool? ?? false,
       latestVersion: json['latest_version'] as String? ?? ver,
+      defaultPort: parsedPort > 0 ? parsedPort : canonicalPortForLab(rawId),
     );
   }
 }
@@ -318,7 +335,9 @@ class LabManifest {
       difficulty: json['difficulty'] as String? ?? 'Beginner',
       runtime: json['runtime'] as String? ?? 'native_sandboxed',
       entrypoint: json['entrypoint'] as String? ?? '',
-      defaultPort: json['default_port'] as int? ?? 0,
+      defaultPort: ((json['default_port'] as num?)?.toInt() ?? 0) > 0
+          ? (json['default_port'] as num).toInt()
+          : canonicalPortForLab(rawId),
       estimatedMinutes: json['estimated_minutes'] as int? ?? 45,
       modes: (json['modes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       shortDescription: json['short_description'] as String? ?? '',

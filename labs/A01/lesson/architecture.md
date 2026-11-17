@@ -8,39 +8,39 @@ To permanently eradicate Broken Access Control vulnerabilities across enterprise
 
 ```
 [ CLIENT / BROWSER ]
-       â”‚  HTTP Request: GET /invoice/2
-       â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 1. API Gateway / Reverse Proxy                         â”‚
-â”‚    - Rate Limiting                                     â”‚
-â”‚    - Token & Session Signature Validation              â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚
-                       â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 2. Authentication Middleware (AuthN)                   â”‚
-â”‚    - Inspects Cookie / Authorization Bearer header     â”‚
-â”‚    - Establishes verified identity: user_id=1          â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚
-                       â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 3. Policy Enforcement Point (PEP)                      â”‚
-â”‚    - Checks whether user_id=1 is permitted to read    â”‚
-â”‚      target resource invoice_id=2                      â”‚
-â”‚    - Sends context to Policy Decision Point (PDP)      â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚  Authorization DENIED (Not Owner)
-                       â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º [ 403 / 404 Deny ]
-                       â”‚  Authorization GRANTED
-                       â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 4. Data Access Layer (DAL)                             â”‚
-â”‚    - Scoped multi-tenant queries (Tenant Scoping)      â”‚
-â”‚    - SELECT * FROM invoices WHERE id=2 AND owner_id=1  â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚
-                       â–¼
+       │  HTTP Request: GET /invoice/2
+       ▼
+┌────────────────────────────────────────────────────────┐
+│ 1. API Gateway / Reverse Proxy                         │
+│    - Rate Limiting                                     │
+│    - Token & Session Signature Validation              │
+└──────────────────────┬─────────────────────────────────┘
+                       │
+                       ▼
+┌────────────────────────────────────────────────────────┐
+│ 2. Authentication Middleware (AuthN)                   │
+│    - Inspects Cookie / Authorization Bearer header     │
+│    - Establishes verified identity: user_id=1          │
+└──────────────────────┬─────────────────────────────────┘
+                       │
+                       ▼
+┌────────────────────────────────────────────────────────┐
+│ 3. Policy Enforcement Point (PEP)                      │
+│    - Checks whether user_id=1 is permitted to read    │
+│      target resource invoice_id=2                      │
+│    - Sends context to Policy Decision Point (PDP)      │
+└──────────────────────┬─────────────────────────────────┘
+                       │  Authorization DENIED (Not Owner)
+                       ├────────────────────────► [ 403 / 404 Deny ]
+                       │  Authorization GRANTED
+                       ▼
+┌────────────────────────────────────────────────────────┐
+│ 4. Data Access Layer (DAL)                             │
+│    - Scoped multi-tenant queries (Tenant Scoping)      │
+│    - SELECT * FROM invoices WHERE id=2 AND owner_id=1  │
+└──────────────────────┬─────────────────────────────────┘
+                       │
+                       ▼
 [ ISOLATED DATABASE ENGINE ]
 ```
 
@@ -60,7 +60,7 @@ To permanently eradicate Broken Access Control vulnerabilities across enterprise
 
 | Role | Read Own Invoices | Read Others' Invoices | Download Master Invoices | Modify System Rates |
 | :--- | :---: | :---: | :---: | :---: |
-| **Anonymous (Guest)** | âŒ | âŒ | âŒ | âŒ |
-| **Standard User (Alice/Bob)** | âœ… | âŒ | âŒ | âŒ |
-| **Auditor / Finance Staff** | âœ… | âœ… (Read-Only) | âŒ | âŒ |
-| **System Administrator** | âœ… | âœ… | âœ… | âœ… |
+| **Anonymous (Guest)** | ❌ | ❌ | ❌ | ❌ |
+| **Standard User (Alice/Bob)** | ✅ | ❌ | ❌ | ❌ |
+| **Auditor / Finance Staff** | ✅ | ✅ (Read-Only) | ❌ | ❌ |
+| **System Administrator** | ✅ | ✅ | ✅ | ✅ |

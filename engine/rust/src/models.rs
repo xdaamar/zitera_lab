@@ -320,9 +320,31 @@ pub struct CatalogLabItem {
     pub has_update: bool,
     #[serde(default)]
     pub latest_version: String,
+    #[serde(default)]
+    pub default_port: Option<u16>,
+}
+
+pub fn default_port_for_lab(lab_id: &str) -> u16 {
+    match lab_id.trim().to_ascii_uppercase().as_str() {
+        "A01" => 8011,
+        "A02" => 8012,
+        "A03" => 8013,
+        "A04" => 8014,
+        "A05" => 8015,
+        "A06" => 8016,
+        "A07" => 8017,
+        "A08" => 8018,
+        "A09" => 8019,
+        "A10" => 8020,
+        _ => 8011,
+    }
 }
 
 impl CatalogLabItem {
+    pub fn default_port(&self) -> u16 {
+        self.default_port
+            .unwrap_or_else(|| default_port_for_lab(&self.id))
+    }
     pub fn package_id(&self) -> String {
         self.package_id
             .clone()

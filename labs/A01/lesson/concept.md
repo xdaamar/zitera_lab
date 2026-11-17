@@ -14,11 +14,11 @@ Insecure Direct Object Reference (IDOR) occurs when an application exposes a dir
 
 ```
                  [ ADMINISTRATOR ]
-                        â–²
-                        â”‚  Vertical Authorization (Privilege Escalation)
-                        â”‚  (e.g., Standard user invoking /admin/dashboard)
-                        â–¼
-[ USER ALICE ] â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º [ USER BOB ]
+                        ▲
+                        │  Vertical Authorization (Privilege Escalation)
+                        │  (e.g., Standard user invoking /admin/dashboard)
+                        ▼
+[ USER ALICE ] ◄─────────────► [ USER BOB ]
              Horizontal Authorization (IDOR / BOLA)
              (e.g., Alice reading Bob's /invoice/2)
 ```

@@ -20,7 +20,7 @@ Untuk memahami esensi Security Misconfiguration, bayangkan sebuah rumah pintar (
 ### 3. Eksploitasi oleh Penyusup
 Seorang pencuri amatir berjalan menyusuri kompleks perumahan:
 1. Pencuri tidak perlu repot-repot membawa alat las pemotong baja, bor listrik, atau dinamit untuk membobol dinding rumah.
-2. Pencuri cukup berjalan santai ke panel pintu depan dan menekan kombinasi angka paling umum di dunia: **`1234`** â€” dan pintu langsung terbuka lebar!
+2. Pencuri cukup berjalan santai ke panel pintu depan dan menekan kombinasi angka paling umum di dunia: **`1234`** — dan pintu langsung terbuka lebar!
 3. Jika pintu depan terkunci, pencuri cukup melangkah ke samping rumah dan menemukan pintu garasi samping yang diganjal batu, di mana seluruh dokumen asuransi dan kunci cadangan mobil tersimpan rapi di rak terbuka.
 
 ---

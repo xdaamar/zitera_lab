@@ -327,6 +327,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8011),
             },
             CatalogLabItem {
                 id: "A02".to_string(),
@@ -360,6 +361,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8012),
             },
             CatalogLabItem {
                 id: "A03".to_string(),
@@ -393,6 +395,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8013),
             },
             CatalogLabItem {
                 id: "A04".to_string(),
@@ -426,6 +429,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8014),
             },
             CatalogLabItem {
                 id: "A05".to_string(),
@@ -459,6 +463,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8015),
             },
             CatalogLabItem {
                 id: "A06".to_string(),
@@ -492,6 +497,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8016),
             },
             CatalogLabItem {
                 id: "A07".to_string(),
@@ -525,6 +531,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8017),
             },
             CatalogLabItem {
                 id: "A08".to_string(),
@@ -558,6 +565,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8018),
             },
             CatalogLabItem {
                 id: "A09".to_string(),
@@ -591,6 +599,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8019),
             },
             CatalogLabItem {
                 id: "A10".to_string(),
@@ -624,6 +633,7 @@ pub fn default_catalog() -> Catalog {
                 installed_version: None,
                 has_update: false,
                 latest_version: String::new(),
+                default_port: Some(8020),
             },
         ],
         signature: None,

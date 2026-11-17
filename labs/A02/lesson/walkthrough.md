@@ -4,7 +4,7 @@ In this guided exercise, you will audit an internal web portal running at `http:
 
 ---
 
-### Stage 1: Observation & Response Header Inspection (15% â€” Manual)
+### Stage 1: Observation & Response Header Inspection (15% — Manual)
 The initial stage of a configuration audit involves scrutinizing server banner disclosures and evaluating missing defensive headers.
 
 1. Open your web browser and navigate to the target portal:
@@ -19,7 +19,7 @@ The initial stage of a configuration audit involves scrutinizing server banner d
 
 ---
 
-### Stage 2: Hypothesis Testing & Route Discovery (25% â€” Manual)
+### Stage 2: Hypothesis Testing & Route Discovery (25% — Manual)
 Test the core hypothesis: *Did the system administrator leave maintenance or static backup folders publicly accessible?*
 
 1. System administrators frequently park backup archives under common naming conventions such as `/backup/`, `/backups/`, `/data/`, or `/debug/`.
@@ -33,7 +33,7 @@ Test the core hypothesis: *Did the system administrator leave maintenance or sta
 
 ---
 
-### Stage 3: Controlled Extraction & Weaponization (35% â€” Tools: cURL)
+### Stage 3: Controlled Extraction & Weaponization (35% — Tools: cURL)
 Utilize terminal tooling to fetch the exposed backup archive and parse confidential secrets contained within the payload.
 
 1. Open a terminal inside the ZITERA_LAB workspace.
@@ -50,7 +50,7 @@ Utilize terminal tooling to fetch the exposed backup archive and parse confident
 
 ---
 
-### Stage 4: Remediation & Verification (25% â€” Manual & Tools)
+### Stage 4: Remediation & Verification (25% — Manual & Tools)
 Apply system hardening controls and verify that the vulnerability is closed deterministically.
 
 1. Disable directory browsing in the web server configuration:

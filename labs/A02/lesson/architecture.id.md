@@ -7,26 +7,26 @@ Dalam arsitektur modern yang mengandalkan infrastruktur komputasi awan dan konta
 ### Tiga Fondasi Arsitektur Konfigurasi Aman
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 1. Infrastructure as Code (IaC) & Baseline Hardening    â”‚
-â”‚    - Didefinisikan dalam kode (Terraform / Ansible)     â”‚
-â”‚    - Mengacu pada standar CIS Benchmarks                â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                            â”‚
-                            â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 2. Pipeline Otomatisasi CI/CD & Static Auditing         â”‚
-â”‚    - Linter konfigurasi (Checkov / Trivy / Hadolint)    â”‚
-â”‚    - Blokir build jika autoindex aktif / port debug ada â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                            â”‚
-                            â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ 3. Runtime Immutability & Secret Management             â”‚
-â”‚    - Kontainer berjalan sebagai 'non-root user'         â”‚
-â”‚    - Root filesystem bersifat 'read-only'               â”‚
-â”‚    - Rahasia dipasok via Vault / AWS Secrets Manager    â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+┌─────────────────────────────────────────────────────────┐
+│ 1. Infrastructure as Code (IaC) & Baseline Hardening    │
+│    - Didefinisikan dalam kode (Terraform / Ansible)     │
+│    - Mengacu pada standar CIS Benchmarks                │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│ 2. Pipeline Otomatisasi CI/CD & Static Auditing         │
+│    - Linter konfigurasi (Checkov / Trivy / Hadolint)    │
+│    - Blokir build jika autoindex aktif / port debug ada │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│ 3. Runtime Immutability & Secret Management             │
+│    - Kontainer berjalan sebagai 'non-root user'         │
+│    - Root filesystem bersifat 'read-only'               │
+│    - Rahasia dipasok via Vault / AWS Secrets Manager    │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
