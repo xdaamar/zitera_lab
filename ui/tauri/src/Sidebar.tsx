@@ -50,8 +50,8 @@ export function Sidebar({ selectedIndex, onSelect, onOpenAuth }: SidebarProps) {
 
   return (
     <aside className="w-[270px] shrink-0 h-full relative border-r-[1.5px] border-[#E6E2D8] flex flex-col justify-between overflow-hidden select-none bg-[#F7F5F0]">
-      {/* 1. Animated Looping WebP / JPG Background */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-35">
+      {/* 1. Animated Looping WebP / JPG Background (Natural Speed, Vivid Anime Clarity) */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-85">
         <picture>
           <source srcSet="/assets/sidebar_bg.webp" type="image/webp" />
           <img
@@ -63,7 +63,8 @@ export function Sidebar({ selectedIndex, onSelect, onOpenAuth }: SidebarProps) {
             }}
           />
         </picture>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FCFBF8]/80 via-[#FCFBF8]/60 to-[#FCFBF8]/90" />
+        {/* Soft, lightweight ambient overlay (reduced thickness so anime video is vivid & clear) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FCFBF8]/30 via-transparent to-[#FCFBF8]/40" />
       </div>
 
       {/* 2. Top Header & Nav Items */}
