@@ -59,34 +59,44 @@ export function App() {
         onOpenAuth={() => setAuthOpen(true)}
       />
 
-      {/* 3. Main Dynamic Content Area */}
+      {/* 3. Main Dynamic Content Area with Smooth Tilix-Style Page Entrance */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {activeLabId ? (
-          <LabDetailView labId={activeLabId} onBack={handleBackFromLab} />
-        ) : (
-          <>
-            {navIndex === 0 && (
-              <DashboardView
-                onNavigate={(idx) => {
-                  setNavIndex(idx as NavIndex)
-                  setActiveLabId(null)
-                }}
-                onOpenLab={handleOpenLab}
-              />
-            )}
-            {navIndex === 1 && <LabsView onSelectLab={handleOpenLab} />}
-            {navIndex === 2 && <ScoreboardView />}
-            {navIndex === 3 && <ToolsView />}
-            {navIndex === 4 && <EnvironmentView />}
-            {navIndex === 5 && (
-              <SettingsView
-                cursorEnabled={cursorEnabled}
-                onToggleCursor={handleToggleCursor}
-                onOpenAuth={() => setAuthOpen(true)}
-              />
-            )}
-          </>
-        )}
+        <div
+          key={activeLabId ? `lab-${activeLabId}` : `nav-${navIndex}`}
+          className="flex-1 flex flex-col h-full overflow-hidden relative animate-page-enter"
+        >
+          {/* Subtle neon scan-beam sweep line across top border on page change */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] z-50 pointer-events-none overflow-hidden">
+            <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#2DD4BF] to-transparent animate-beam-sweep" />
+          </div>
+
+          {activeLabId ? (
+            <LabDetailView labId={activeLabId} onBack={handleBackFromLab} />
+          ) : (
+            <>
+              {navIndex === 0 && (
+                <DashboardView
+                  onNavigate={(idx) => {
+                    setNavIndex(idx as NavIndex)
+                    setActiveLabId(null)
+                  }}
+                  onOpenLab={handleOpenLab}
+                />
+              )}
+              {navIndex === 1 && <LabsView onSelectLab={handleOpenLab} />}
+              {navIndex === 2 && <ScoreboardView />}
+              {navIndex === 3 && <ToolsView />}
+              {navIndex === 4 && <EnvironmentView />}
+              {navIndex === 5 && (
+                <SettingsView
+                  cursorEnabled={cursorEnabled}
+                  onToggleCursor={handleToggleCursor}
+                  onOpenAuth={() => setAuthOpen(true)}
+                />
+              )}
+            </>
+          )}
+        </div>
       </main>
 
       {/* 4. Auth & Avatar Modal Dialog */}

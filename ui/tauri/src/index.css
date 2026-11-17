@@ -106,6 +106,53 @@ body {
   50%       { transform: scale(1.15) rotate(-10deg); }
 }
 
+/* ─── High-Tech Tilix-Style Page Entrance (Super Smooth, Hardware-Accelerated) ─── */
+@keyframes page-enter-smooth {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes beam-sweep-pane {
+  0% {
+    transform: translate3d(-100%, 0, 0);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(300%, 0, 0);
+    opacity: 0;
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter-smooth 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.animate-beam-sweep {
+  animation: beam-sweep-pane 480ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Subtle dot-grid ambient texture matching Flutter Matrix Grid */
+.cyber-dot-grid {
+  background-image: radial-gradient(rgba(30, 26, 20, 0.08) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+
 /* Animated Cyber Morphing Blob & Mascot FX */
 @keyframes cyber-morph-blob {
   0%, 100% {

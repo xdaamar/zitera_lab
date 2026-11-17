@@ -486,7 +486,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
             ;(e.target as HTMLElement).style.display = 'none'
           }}
         />
-        <div className="absolute inset-0 bg-[#FCFBF8]/50" />
+        <div className="absolute inset-0 bg-[#FCFBF8]/50 cyber-dot-grid" />
       </div>
 
       <div className="relative z-10 h-full overflow-y-auto p-6 space-y-6">

@@ -54,7 +54,7 @@ export function ScoreboardView() {
             ;(e.target as HTMLElement).style.display = 'none'
           }}
         />
-        <div className="absolute inset-0 bg-[#FCFBF8]/50" />
+        <div className="absolute inset-0 bg-[#FCFBF8]/50 cyber-dot-grid" />
       </div>
 
       <div className="relative z-10 h-full overflow-y-auto p-6 space-y-6">
@@ -76,7 +76,7 @@ export function ScoreboardView() {
 
         <button
           onClick={loadScores}
-          className="self-start md:self-auto px-3.5 py-1.5 border border-[#E6E2D8] hover:border-[#2DD4BF] bg-white rounded-lg text-xs font-bold text-[#5C5347] hover:text-[#0F766E] transition-colors flex items-center gap-2"
+          className="self-start md:self-auto px-3.5 py-1.5 border-2 border-[#CEC8BF] shadow-[0_2px_0_0_#E4DFD7] hover:border-[#2DD4BF] hover:shadow-[0_2px_0_0_#5EEAD4] hover:translate-y-0.5 active:translate-y-1 bg-white rounded-lg text-xs font-bold text-[#5C5347] hover:text-[#0F766E] transition-all flex items-center gap-2 cursor-pointer"
         >
           <RefreshCw size={14} />
           <span>Refresh Standings</span>
