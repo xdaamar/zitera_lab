@@ -294,7 +294,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => openBrowser(`http://127.0.0.1:${runningLab.port}`)}
+                onClick={() => openBrowser(runningLab.url || `http://127.0.0.1:${runningLab.port}/`)}
                 className="px-3.5 py-2 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 border-2 border-[#094D47] shadow-[0_2px_0_0_#094D47] hover:translate-y-0.5 active:translate-y-1 transition-all cursor-pointer"
               >
                 <span>Buka Web</span>

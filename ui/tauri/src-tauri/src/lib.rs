@@ -63,12 +63,38 @@ fn engine_path(app: &tauri::AppHandle) -> String {
     "zitera-engine.exe".to_string()
 }
 
+/// Locates the project workspace root containing catalog and labs.
+fn find_project_root() -> Option<PathBuf> {
+    if let Ok(mut cwd) = std::env::current_dir() {
+        loop {
+            if cwd.join("catalog").join("catalog.json").exists() || cwd.join(".git").exists() {
+                return Some(cwd);
+            }
+            if !cwd.pop() {
+                break;
+            }
+        }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        let mut cur = exe;
+        while cur.pop() {
+            if cur.join("catalog").join("catalog.json").exists() || cur.join(".git").exists() {
+                return Some(cur);
+            }
+        }
+    }
+    None
+}
+
 /// Run an engine sub-command and return its stdout as a JSON string.
 /// argv: slice of args *after* the binary name, e.g. `&["--json", "lab", "list"]`
 fn run_engine(app: &tauri::AppHandle, argv: &[&str]) -> Result<String, String> {
     let bin = engine_path(app);
     let mut cmd = Command::new(&bin);
     cmd.args(argv);
+    if let Some(root) = find_project_root() {
+        cmd.current_dir(root);
+    }
 
     #[cfg(target_os = "windows")]
     {
@@ -200,11 +226,17 @@ fn check_doctor(app: tauri::AppHandle) -> Result<String, String> {
 fn open_browser(url: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        let mut cmd = Command::new("cmd");
-        cmd.args(["/c", "start", "", &url]);
+        // Use rundll32 FileProtocolHandler to preserve full URLs, tokens, and query strings
+        // without CMD shell character parsing restrictions.
+        let mut cmd = Command::new("rundll32.exe");
+        cmd.args(["url.dll,FileProtocolHandler", &url]);
         cmd.creation_flags(CREATE_NO_WINDOW);
-        cmd.spawn()
-            .map_err(|e| format!("open_browser failed: {e}"))?;
+        if cmd.spawn().is_err() {
+            let mut fallback = Command::new("cmd");
+            fallback.args(["/c", "start", "", &url]);
+            fallback.creation_flags(CREATE_NO_WINDOW);
+            fallback.spawn().map_err(|e| format!("open_browser failed: {e}"))?;
+        }
     }
     #[cfg(target_os = "macos")]
     {

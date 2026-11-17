@@ -408,8 +408,8 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
         await loadLabs()
         // Auto-open browser on launch matching Flutter behavior
         const current = labs.find((l) => l.id === labId)
-        const port = current?.port || 8011
-        openBrowser(`http://127.0.0.1:${port}`)
+        const targetUrl = current?.url || `http://127.0.0.1:${current?.port || 8011}/`
+        openBrowser(targetUrl)
       } else if (action === 'stop') {
         await stopLab(labId)
         await loadLabs()
@@ -1029,7 +1029,7 @@ function TactileLabCard({
           {isRunning ? (
             <>
               <button
-                onClick={() => openBrowser(`http://127.0.0.1:${lab.port}`)}
+                onClick={() => openBrowser(lab.url || `http://127.0.0.1:${lab.port}/`)}
                 className="px-3.5 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 border-2 border-[#1E40AF] shadow-[0_3px_0_0_#1E3A8A] hover:shadow-[0_1px_0_0_#1E3A8A] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
               >
                 <span>Buka Web</span>

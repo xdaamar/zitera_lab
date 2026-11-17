@@ -406,6 +406,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
   }
 
   const targetPort = status?.port ?? content.manifest.defaultPort ?? 8011
+  const activeTargetUrl = status?.url || `http://127.0.0.1:${targetPort}/`
   const briefing = getMissionBriefing(labId)
   const interactiveCurriculum = getInteractiveCurriculumForLab(labId, targetPort)
 
@@ -472,9 +473,9 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
           {status?.running ? (
             <>
               <button
-                onClick={() => openBrowser(`http://127.0.0.1:${targetPort}`)}
+                onClick={() => openBrowser(activeTargetUrl)}
                 className="px-3 py-1.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold font-['Space_Grotesk'] rounded-lg flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-                title={`Buka http://127.0.0.1:${targetPort} di browser`}
+                title={`Buka ${activeTargetUrl} di browser`}
               >
                 <span>Buka Web (: {targetPort})</span>
                 <ExternalLink size={13} />
@@ -934,12 +935,12 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                         Target URL Sandbox:
                       </span>{' '}
                       <code className="px-2 py-1 rounded bg-[#F0EDE8] text-[#0F766E] font-['JetBrains_Mono']">
-                        http://127.0.0.1:{targetPort}
+                        {activeTargetUrl}
                       </code>
                     </div>
                     {status?.running ? (
                       <button
-                        onClick={() => openBrowser(`http://127.0.0.1:${targetPort}`)}
+                        onClick={() => openBrowser(activeTargetUrl)}
                         className="px-3 py-1 bg-[#F0EDE8] hover:bg-[#E6E2D8] text-[#0F766E] font-bold rounded flex items-center gap-1 font-['Space_Grotesk'] cursor-pointer"
                       >
                         <span>Buka di Peramban</span>
@@ -1072,7 +1073,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                       </button>
                       {status?.running ? (
                         <button
-                          onClick={() => openBrowser(`http://127.0.0.1:${targetPort}`)}
+                          onClick={() => openBrowser(activeTargetUrl)}
                           className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg bg-[#0F766E] hover:bg-[#115E59] text-white flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:translate-y-0.5"
                         >
                           <span>Buka Target (: {targetPort})</span>
@@ -1279,7 +1280,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                     </h3>
                     <p className="text-xs text-[#5C5347] mt-1 font-['JetBrains_Mono']">
                       {targetOp.type === 'launch'
-                        ? `http://127.0.0.1:${targetPort} siap diakses`
+                        ? `${activeTargetUrl} siap diakses`
                         : 'Semua proses sandbox target telah dibersihkan'}
                     </p>
                   </div>

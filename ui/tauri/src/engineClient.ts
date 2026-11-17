@@ -396,14 +396,64 @@ async function callTauri<T>(cmd: string, args: Record<string, unknown> = {}): Pr
 
 // ── Public API methods ────────────────────────────────────────────────────────
 
+function normalizeLabItem(raw: any): LabItem {
+  if (!raw) return MOCK_LABS[0]
+  const data = raw.data ?? raw
+  const id = String(data.id ?? 'A01').toUpperCase()
+  const port = Number(data.port ?? 8011)
+  const isRunning = Boolean(data.running === true || data.status === 'RUNNING')
+  
+  let url: string | null = data.url ?? null
+  if (isRunning && !url) {
+    url = `http://127.0.0.1:${port}/`
+  } else if (url && typeof url === 'string') {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `http://${url}`
+    }
+    if (!url.endsWith('/') && !url.includes('?') && !url.includes('#')) {
+      url = `${url}/`
+    }
+  }
+
+  const defaultMock = MOCK_LABS.find((l) => l.id.toUpperCase() === id)
+
+  return {
+    id,
+    title: data.title ?? defaultMock?.title ?? `Lab ${id}`,
+    installed: Boolean(data.installed ?? true),
+    running: isRunning,
+    port,
+    url: url ?? undefined,
+    version: data.version ?? defaultMock?.version ?? '1.0.0',
+    status: isRunning ? 'RUNNING' : (data.status ?? 'STOPPED'),
+    learnReadiness: data.learn_readiness ?? data.learnReadiness ?? defaultMock?.learnReadiness ?? 'READY',
+    practiceReadiness: data.practice_readiness ?? data.practiceReadiness ?? defaultMock?.practiceReadiness ?? 'READY',
+    challengeReadiness: data.challenge_readiness ?? data.challengeReadiness ?? defaultMock?.challengeReadiness ?? 'READY',
+    recommendedTools: data.recommended_tools ?? data.recommendedTools ?? defaultMock?.recommendedTools ?? [],
+    hasUpdate: Boolean(data.has_update ?? data.hasUpdate ?? false),
+    latestVersion: data.latest_version ?? data.latestVersion ?? data.version ?? defaultMock?.latestVersion ?? '1.0.0',
+  }
+}
+
 export async function getLabs(): Promise<LabItem[]> {
   try {
     const data = await callTauri<LabItem[] | string>('get_labs')
+    let parsed: any = data
     if (typeof data === 'string') {
-      const parsed = JSON.parse(data)
-      return Array.isArray(parsed) ? parsed : parsed.labs ?? MOCK_LABS
+      try {
+        parsed = JSON.parse(data)
+      } catch {
+        parsed = data
+      }
     }
-    return Array.isArray(data) ? data : MOCK_LABS
+    const rawList = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed?.data)
+        ? parsed.data
+        : Array.isArray(parsed?.labs)
+          ? parsed.labs
+          : MOCK_LABS
+    return rawList.map(normalizeLabItem)
   } catch {
     return MOCK_LABS
   }
@@ -412,8 +462,16 @@ export async function getLabs(): Promise<LabItem[]> {
 export async function getLabStatus(labId: string): Promise<LabItem> {
   try {
     const data = await callTauri<LabItem | string>('get_lab_status', { labId })
-    if (typeof data === 'string') return JSON.parse(data) as LabItem
-    return data
+    let parsed: any = data
+    if (typeof data === 'string') {
+      try {
+        parsed = JSON.parse(data)
+      } catch {
+        parsed = data
+      }
+    }
+    const rawObj = parsed?.data ?? parsed
+    return normalizeLabItem(rawObj)
   } catch {
     const found = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
     return found ?? MOCK_LABS[0]
@@ -422,7 +480,16 @@ export async function getLabStatus(labId: string): Promise<LabItem> {
 
 export async function startLab(labId: string): Promise<string> {
   try {
-    return await callTauri<string>('start_lab', { labId })
+    const res = await callTauri<string>('start_lab', { labId })
+    if (typeof res === 'string') {
+      try {
+        const parsed = JSON.parse(res)
+        return parsed.data || parsed.message || res
+      } catch {
+        return res
+      }
+    }
+    return String(res)
   } catch {
     const lab = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
     if (lab) lab.running = true
@@ -432,7 +499,16 @@ export async function startLab(labId: string): Promise<string> {
 
 export async function stopLab(labId: string): Promise<string> {
   try {
-    return await callTauri<string>('stop_lab', { labId })
+    const res = await callTauri<string>('stop_lab', { labId })
+    if (typeof res === 'string') {
+      try {
+        const parsed = JSON.parse(res)
+        return parsed.data || parsed.message || res
+      } catch {
+        return res
+      }
+    }
+    return String(res)
   } catch {
     const lab = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
     if (lab) lab.running = false
@@ -560,10 +636,25 @@ export async function getLabContent(labId: string): Promise<LabContent> {
 }
 
 export async function openBrowser(url: string): Promise<void> {
+  let targetUrl = url.trim()
+  if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+    targetUrl = `http://${targetUrl}`
+  }
+  // Ensure trailing slash for bare host:port without paths, query params or fragments
   try {
-    await callTauri<void>('open_browser', { url })
+    const parsed = new URL(targetUrl)
+    if (parsed.pathname === '') {
+      parsed.pathname = '/'
+      targetUrl = parsed.toString()
+    }
   } catch {
-    window.open(url, '_blank')
+    // If standard URL parsing fails, proceed with targetUrl
+  }
+
+  try {
+    await callTauri<void>('open_browser', { url: targetUrl })
+  } catch {
+    window.open(targetUrl, '_blank')
   }
 }
 
