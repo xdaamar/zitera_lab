@@ -75,18 +75,46 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 bg-[#FCFBF8]">
-        <CuteAnimeLoading
-          message="INITIALIZING CYBER DASHBOARD..."
-          subMessage="( •̀ ω •́ )✧ NEKO CORE ONLINE"
-        />
+      <div className="flex-1 h-full overflow-hidden relative flex items-center justify-center p-8 bg-[#FCFBF8]">
+        {/* Pinned Ambient Background Artwork */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
+          <img
+            src="/assets/bg_dashboard.jpg"
+            alt=""
+            className="w-full h-full object-cover object-center opacity-20"
+            onError={(e) => {
+              ;(e.target as HTMLElement).style.display = 'none'
+            }}
+          />
+          <div className="absolute inset-0 bg-[#FCFBF8]/82" />
+        </div>
+        <div className="relative z-10">
+          <CuteAnimeLoading
+            message="INITIALIZING CYBER DASHBOARD..."
+            subMessage="( •̀ ω •́ )✧ NEKO CORE ONLINE"
+          />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#FCFBF8]">
-      {/* Top Banner / Hero (Tactile Neo-Retro Desktop Card with Cyber Texture & HD Mascot) */}
+    <div className="flex-1 h-full overflow-hidden relative bg-[#FCFBF8]">
+      {/* Pinned Ambient Background Artwork (Matches Flutter Positioned.fill outside SingleChildScrollView) */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
+        <img
+          src="/assets/bg_dashboard.jpg"
+          alt=""
+          className="w-full h-full object-cover object-center opacity-22"
+          onError={(e) => {
+            ;(e.target as HTMLElement).style.display = 'none'
+          }}
+        />
+        <div className="absolute inset-0 bg-[#FCFBF8]/80" />
+      </div>
+
+      <div className="relative z-10 h-full overflow-y-auto p-6 space-y-6">
+        {/* Top Banner / Hero (Tactile Neo-Retro Desktop Card with Cyber Texture & HD Mascot) */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#0F766E] via-[#0D9488] to-[#14B8A6] p-6 text-white border-2 border-[#094D47] shadow-[0_4px_0_0_#063934,0_10px_24px_rgba(15,118,110,0.22)] select-none">
         {/* Subtle Cyber Grid Texture */}
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff24_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-60" />
@@ -412,6 +440,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

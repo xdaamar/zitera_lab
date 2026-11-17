@@ -163,21 +163,21 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
   })
 
   return (
-    <div className="flex-1 overflow-y-auto relative bg-[#FCFBF8]">
-      {/* 1. Ambient Background Artwork Texture (Matches Flutter bg_labs.jpg) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-10">
+    <div className="flex-1 h-full overflow-hidden relative bg-[#FCFBF8]">
+      {/* 1. Pinned Ambient Background Artwork Texture (Matches Flutter bg_labs.jpg) */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
         <img
           src="/assets/bg_labs.jpg"
           alt=""
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center opacity-22"
           onError={(e) => {
             ;(e.target as HTMLElement).style.display = 'none'
           }}
         />
-        <div className="absolute inset-0 bg-[#FCFBF8]/85" />
+        <div className="absolute inset-0 bg-[#FCFBF8]/80" />
       </div>
 
-      <div className="relative z-10 p-6 space-y-6">
+      <div className="relative z-10 h-full overflow-y-auto p-6 space-y-6">
         {/* 2. Top Header & Primary Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b-2 border-[#E6E2D8] pb-5">
           <div>

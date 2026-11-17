@@ -34,8 +34,22 @@ export function ScoreboardView() {
   const top3 = entries.slice(0, 3)
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#FCFBF8]">
-      {/* Header */}
+    <div className="flex-1 h-full overflow-hidden relative bg-[#FCFBF8]">
+      {/* Pinned Ambient Background Artwork (Matches Flutter bg_dashboard.jpg) */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
+        <img
+          src="/assets/bg_dashboard.jpg"
+          alt=""
+          className="w-full h-full object-cover object-center opacity-20"
+          onError={(e) => {
+            ;(e.target as HTMLElement).style.display = 'none'
+          }}
+        />
+        <div className="absolute inset-0 bg-[#FCFBF8]/82" />
+      </div>
+
+      <div className="relative z-10 h-full overflow-y-auto p-6 space-y-6">
+        {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E6E2D8] pb-5">
         <div>
           <div className="flex items-center gap-2">
@@ -211,6 +225,7 @@ export function ScoreboardView() {
           </div>
         </>
       )}
+      </div>
     </div>
   )
 }

@@ -152,11 +152,25 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
 
   if (loading || !content) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 bg-[#FCFBF8]">
-        <CuteAnimeLoading
-          message="PREPARING TARGET SANDBOX..."
-          subMessage="( ⚡ •̀ᴗ•́) DEPLOYING WIN32 CONTAINER"
-        />
+      <div className="flex-1 h-full overflow-hidden relative flex items-center justify-center p-8 bg-[#FCFBF8]">
+        {/* Pinned Ambient Lab Wallpaper */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
+          <img
+            src="/assets/bg_labs.jpg"
+            alt=""
+            className="w-full h-full object-cover object-center opacity-20"
+            onError={(e) => {
+              ;(e.target as HTMLElement).style.display = 'none'
+            }}
+          />
+          <div className="absolute inset-0 bg-[#FCFBF8]/82" />
+        </div>
+        <div className="relative z-10">
+          <CuteAnimeLoading
+            message="PREPARING TARGET SANDBOX..."
+            subMessage="( ⚡ •̀ᴗ•́) DEPLOYING WIN32 CONTAINER"
+          />
+        </div>
       </div>
     )
   }
@@ -261,7 +275,21 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
       {/* Main Split Layout: Content + Hacker Tilix Terminal */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Column: Markdown content or challenge */}
-        <div className="flex-1 overflow-y-auto p-6 border-r border-[#E6E2D8] space-y-6">
+        <div className="flex-1 h-full overflow-hidden relative border-r border-[#E6E2D8] bg-[#FCFBF8]">
+          {/* Pinned Ambient Lab Wallpaper */}
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
+            <img
+              src="/assets/bg_labs.jpg"
+              alt=""
+              className="w-full h-full object-cover object-center opacity-18"
+              onError={(e) => {
+                ;(e.target as HTMLElement).style.display = 'none'
+              }}
+            />
+            <div className="absolute inset-0 bg-[#FCFBF8]/85" />
+          </div>
+
+          <div className="relative z-10 h-full overflow-y-auto p-6 space-y-6">
           {activeTab === 'theory' && (
             <div className="prose-zitera max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -381,6 +409,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Right Column: Hacker Tilix Terminal Widget */}
