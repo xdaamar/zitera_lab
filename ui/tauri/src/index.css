@@ -106,6 +106,99 @@ body {
   50%       { transform: scale(1.15) rotate(-10deg); }
 }
 
+/* Animated Cyber Morphing Blob & Mascot FX */
+@keyframes cyber-morph-blob {
+  0%, 100% {
+    border-radius: 62% 38% 70% 30% / 30% 68% 32% 70%;
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    border-radius: 35% 65% 42% 58% / 58% 32% 68% 42%;
+    transform: rotate(90deg) scale(1.06);
+  }
+  50% {
+    border-radius: 70% 30% 55% 45% / 45% 65% 35% 55%;
+    transform: rotate(180deg) scale(0.96);
+  }
+  75% {
+    border-radius: 40% 60% 30% 70% / 60% 35% 65% 40%;
+    transform: rotate(270deg) scale(1.04);
+  }
+}
+
+@keyframes cyber-morph-reverse {
+  0%, 100% {
+    border-radius: 45% 55% 35% 65% / 60% 40% 60% 40%;
+    transform: rotate(360deg) scale(1);
+  }
+  50% {
+    border-radius: 65% 35% 60% 40% / 40% 60% 40% 60%;
+    transform: rotate(180deg) scale(1.08);
+  }
+}
+
+@keyframes cyber-hud-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cyber-hud-counter-spin {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes mascot-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+@keyframes cyber-energy-pulse {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.1);
+  }
+}
+
+.animate-cyber-blob {
+  animation: cyber-morph-blob 12s ease-in-out infinite;
+}
+
+.animate-cyber-blob-reverse {
+  animation: cyber-morph-reverse 16s ease-in-out infinite;
+}
+
+.animate-hud-spin {
+  animation: cyber-hud-spin 22s linear infinite;
+}
+
+.animate-hud-counter-spin {
+  animation: cyber-hud-counter-spin 30s linear infinite;
+}
+
+.animate-mascot-float {
+  animation: mascot-float 4.5s ease-in-out infinite;
+}
+
+.animate-energy-pulse {
+  animation: cyber-energy-pulse 3s ease-in-out infinite;
+}
+
 /* Markdown prose */
 .prose-zitera h1, .prose-zitera h2, .prose-zitera h3 {
   font-family: 'Space Grotesk', sans-serif;

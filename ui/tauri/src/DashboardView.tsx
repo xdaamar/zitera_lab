@@ -137,16 +137,39 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
           </div>
         </div>
 
-        {/* High-Definition Anime Mascot Sticker (Transparent, Sharp, Vivid) */}
-        <div className="absolute -right-2 -bottom-2 md:right-4 md:-bottom-2 opacity-95 hidden sm:block pointer-events-none">
-          <img
-            src="/assets/mascot_banner_hd.png"
-            alt="Zitera Cyber Mascot"
-            className="w-40 h-40 md:w-48 md:h-48 object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.35)] select-none"
-            onError={(e) => {
-              ;(e.target as HTMLImageElement).src = '/assets/zeta_avatar.png'
-            }}
-          />
+        {/* Animated Cyber Mascot with Dynamic Morphing Organic Shape & Tech HUD */}
+        <div className="absolute -right-6 -bottom-6 md:right-2 md:-bottom-4 hidden sm:block pointer-events-none select-none">
+          <div className="relative w-56 h-56 md:w-64 md:h-64 flex items-center justify-center">
+            {/* 1. Outer Neon Aura Glow (Pulsing soft radiant energy) */}
+            <div className="absolute inset-4 bg-gradient-to-tr from-[#2DD4BF]/40 via-[#38BDF8]/35 to-[#F472B6]/40 blur-xl rounded-full animate-energy-pulse" />
+
+            {/* 2. Counter-rotating Organic Liquid Shape Layer */}
+            <div className="absolute inset-6 bg-gradient-to-br from-[#065F46]/70 via-[#0D9488]/60 to-[#DB2777]/35 border border-[#5EEAD4]/40 shadow-[0_0_20px_rgba(45,212,191,0.35)] animate-cyber-blob-reverse opacity-80" />
+
+            {/* 3. Primary Organic Morphing Cyber Shape (Random dynamic fluid silhouette) */}
+            <div className="absolute inset-8 bg-gradient-to-tr from-[#0F766E]/85 via-[#14B8A6]/75 to-[#F472B6]/40 border-2 border-white/50 shadow-[inset_0_0_15px_rgba(255,255,255,0.25),0_8px_25px_rgba(15,118,110,0.5)] animate-cyber-blob backdrop-blur-xs" />
+
+            {/* 4. Rotating Cyber Tech HUD Rings (Sci-fi circular radar markings) */}
+            <div className="absolute inset-6 rounded-full border border-dashed border-[#5EEAD4]/50 animate-hud-spin pointer-events-none" />
+            <div className="absolute inset-10 rounded-full border border-dotted border-white/35 animate-hud-counter-spin pointer-events-none" />
+
+            {/* 5. Floating Cyber Particle Accents */}
+            <span className="absolute top-5 left-8 w-2 h-2 rounded-full bg-[#5EEAD4] shadow-[0_0_8px_#5EEAD4] animate-ping" />
+            <span className="absolute bottom-8 left-10 w-1.5 h-1.5 rounded-full bg-[#F472B6] shadow-[0_0_6px_#F472B6] animate-pulse" />
+            <span className="absolute top-10 right-8 w-2 h-2 rounded-full bg-white shadow-[0_0_6px_white] animate-pulse" />
+
+            {/* 6. High-Definition Anime Mascot Sticker (Gentle 3D Float Animation) */}
+            <div className="relative z-10 animate-mascot-float flex items-center justify-center">
+              <img
+                src="/assets/mascot_banner_hd.png"
+                alt="Zitera Cyber Mascot"
+                className="w-44 h-44 md:w-52 md:h-52 object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.4)] select-none"
+                onError={(e) => {
+                  ;(e.target as HTMLImageElement).src = '/assets/zeta_avatar.png'
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
