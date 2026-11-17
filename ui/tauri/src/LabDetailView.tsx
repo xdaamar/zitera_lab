@@ -388,12 +388,12 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
           <img
             src="/assets/bg_labs.jpg"
             alt=""
-            className="w-full h-full object-cover object-center opacity-20"
+            className="w-full h-full object-cover object-center opacity-80"
             onError={(e) => {
               ;(e.target as HTMLElement).style.display = 'none'
             }}
           />
-          <div className="absolute inset-0 bg-[#FCFBF8]/82" />
+          <div className="absolute inset-0 bg-[#FCFBF8]/55" />
         </div>
         <div className="relative z-10">
           <CuteAnimeLoading
@@ -600,12 +600,12 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
             <img
               src="/assets/bg_labs.jpg"
               alt=""
-              className="w-full h-full object-cover object-center opacity-18"
+              className="w-full h-full object-cover object-center opacity-85"
               onError={(e) => {
                 ;(e.target as HTMLElement).style.display = 'none'
               }}
             />
-            <div className="absolute inset-0 bg-[#FCFBF8]/85" />
+            <div className="absolute inset-0 bg-[#FCFBF8]/50" />
           </div>
 
           {/* Reading Scrollable Content */}

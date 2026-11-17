@@ -41,12 +41,12 @@ export function ToolsView() {
         <img
           src="/assets/bg_tools.jpg"
           alt=""
-          className="w-full h-full object-cover object-center opacity-22"
+          className="w-full h-full object-cover object-center opacity-85"
           onError={(e) => {
             ;(e.target as HTMLElement).style.display = 'none'
           }}
         />
-        <div className="absolute inset-0 bg-[#FCFBF8]/80" />
+        <div className="absolute inset-0 bg-[#FCFBF8]/50" />
       </div>
 
       <div className="relative z-10 h-full overflow-y-auto p-6 space-y-6">
