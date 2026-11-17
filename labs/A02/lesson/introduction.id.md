@@ -1,54 +1,51 @@
 # A02: Security Misconfiguration — Kesalahan Konfigurasi Berujung Malapetaka
 
-Security Misconfiguration menempati peringkat ke-2 (**#2**) dalam daftar risiko keamanan web **OWASP Top 10:2025**. Kerentanan ini merupakan salah satu vektor serangan paling umum di seluruh ekosistem cloud dan enterprise, sering kali menjadi pintu masuk awal (*initial access*) paling mudah bagi penyerang siber karena tidak memerlukan eksploitasi logika kode rumit.
+Security Misconfiguration menempati peringkat ke-2 (**#2**) dalam daftar risiko keamanan web **OWASP Top 10:2025**. Kerentanan ini merupakan salah satu pintu masuk penyerang (*initial access*) paling umum di seluruh ekosistem cloud dan enterprise, karena sering kali tidak membutuhkan eksploitasi kode yang rumit, melainkan cukup memanfaatkan kelalaian admin atau developer yang lupa mengubah pengaturan bawaan pabrik (*default settings*).
 
 ---
 
-### 1. Alasan Kuat / Mengapa Ini Sangat Penting (Why It Matters)
-Banyak organisasi menghabiskan miliaran rupiah untuk membeli firewall generasi terbaru dan enkripsi tercanggih, namun roboh hanya karena satu opsi konfigurasi default tidak dimatikan:
+### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+Banyak korporasi menghabiskan miliaran rupiah membeli firewall tercanggih, namun jebol seketika hanya karena satu opsi konfigurasi dibiarkan terbuka:
 
 - **Insiden Nyata Berdampak Finansial Raksasa**:
-  - **Kebocoran AWS S3 Bucket (Accenture, Booz Allen, GoDaddy)**: Ratusan juta rekaman rahasia, kunci privat SSH, dan basis data pelanggan bocor ke internet publik hanya karena opsi perizinan bucket dibiarkan `Public Read` secara default.
-  - **Denda Regulasi Global**: Komisi Perdagangan Federal AS (FTC) dan otoritas kepatuhan privasi UE (GDPR) secara konsisten menjatuhkan denda puluhan hingga ratusan juta dolar atas kelalaian membiarkan password default (`admin:admin`) dan endpoint diagnostik terbuka.
-- **Waktu Penetrasi Eksponensial**:
-  Penyerang tidak perlu membongkar algoritma kriptografi jika folder `/backups/` dapat diakses bebas atau akun pengelola sistem masih menggunakan kata sandi bawaan vendor. Bot scanner otomatis di internet (seperti Shodan dan Censys) menemukan server salah konfigurasi dalam hitungan detik.
+  - **Kebocoran Cloud Storage Bucket (Accenture, Booz Allen, GoDaddy)**: Ratusan juta rekaman rahasia, kunci privat SSH, dan basis data pelanggan bocor ke internet publik hanya karena perizinan bucket dibiarkan `Public Read` secara default.
+  - **Denda Regulasi Masif**: Otoritas privasi global (GDPR) dan nasional (**UU PDP No. 27/2022**) menjatuhkan sanksi administratif dan denda hingga puluhan miliar rupiah atas kelalaian membiarkan password default (`admin:admin`) dan endpoint diagnostik terbuka di lingkungan produksi.
+- **Waktu Penetrasi Sangat Cepat**:
+  Peretas tidak perlu meretas algoritma kriptografi jika folder `/backups/` dapat diakses bebas atau akun admin masih menggunakan kata sandi bawaan. Bot scanner internet (seperti Shodan dan Censys) menemukan server salah konfigurasi dalam hitungan detik.
 
 ---
 
-### 2. Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
-Dalam laboratorium ini, Anda menghadapi platform orkestrasi infrastruktur cloud enterprise: **CloudCore OpsGateway (Enterprise Cloud Management & Microservices Monitor)** yang berjalan pada port `8012`.
+### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+Metodologi investigasi terstruktur pada target:
 
-Sistem ini merepresentasikan gerbang ingress kontrol kluster Kubernetes komersial:
-- **Operations Gateway**: Mengatur lalu lintas manajemen antar microservices internal (`auth-proxy`, `telemetry-collector`, `backup-manager`, `billing-engine`).
-- **Telemetry & Diagnostic Endpoints**: Endpoint `/debug/vars` yang tidak sengaja dibiarkan aktif di lingkungan produksi, mengekspos variabel runtime, versi kernel, path direktori server internal, dan daftar rute sensitif.
-- **Snapshot Storage Volume**: Direktori statis `/backups/` di mana server web Nginx/Werkzeug menjalankan fitur *directory listing / autoindex*, memungkinkan publik menjelajahi dan mengunduh seluruh arsip konfigurasi cadangan (`backup_config.json.bak`).
-- **Administrative Control Plane**: Portal login `/login` dan konsol supervisor `/admin` yang masih menggunakan kredensial bawaan pabrik.
-
----
-
-### 3. Sasaran, Temuan & Eksekusi (Search, Find, and Execute)
-Metodologi investigasi terstruktur yang harus Anda kuasai:
-
-1. **Apa yang Dicari (Reconnaissance Targets)**:
-   - Header respons HTTP yang membocorkan teknologi server (*fingerprinting*).
-   - Rute diagnostik standar industri: `/debug/vars`, `/health`, `/server-status`, `/actuator`.
-   - File cadangan dengan ekstensi berbahaya: `.bak`, `.old`, `.json.bak`, `.sql.gz`, `.env`.
+1. **Apa yang Dicari (The Target)**:
+   - Header HTTP respons yang membocorkan teknologi server (*fingerprinting*).
+   - Rute diagnostik dan debug standar: `/debug/vars`, `/server-status`, `/actuator`, `/env`.
+   - File cadangan (*backup artifacts*) dengan ekstensi berbahaya: `.bak`, `.old`, `.json.bak`, `.sql.gz`.
 2. **Apa Temuan yang Menandakan Celah (Vulnerability Indicators)**:
-   - Direktori `/backups/` mengembalikan daftar file alih-alih `403 Forbidden` (*Unauthenticated Directory Browsing*).
-   - Variabel runtime `/debug/vars` mengonfirmasi `default_credentials_enabled: true` dan `debug_mode: true`.
-3. **Eksekusi Eksploitasi Terukur (Strategic Execution)**:
-   - Unduh arsip konfigurasi cadangan `backup_config.json.bak`.
-   - Lakukan inspeksi statis terhadap properti `admin_system_key` dan kredensial database internal.
-   - Autentikasi ke konsol supervisor `/admin` menggunakan akun default `admin` / `admin` untuk mengonfirmasi pengambilalihan hak akses penuh.
+   - Server mengembalikan status `200 OK` dengan daftar file pada direktori `/backups/` (*Directory Indexing / Autoindex Enabled*).
+   - Endpoint `/debug/vars` membocorkan variabel sistem: `debug_mode: true`, `backup_storage_path: "/app/backups/"`.
+3. **Eksekusi Eksploitasi Terukur (The Strategic Execution)**:
+   - Unduh file konfigurasi cadangan `backup_config.json.bak` dari folder terbuka.
+   - Dapatkan kunci sistem autoritatif `admin_system_key` berformat `ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}`.
+   - Masuk ke konsol supervisor `/admin` menggunakan kredensial default pabrik `admin` / `admin`.
 
 ---
 
-### 4. Pondasi Kuat: Spektrum Kesalahan Konfigurasi
-Security Misconfiguration dapat terjadi di setiap lapisan tumpukan teknologi:
+### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+Langkah pengerasan (*system hardening*) standar industri:
+- **Matikan Directory Browsing**: Nonaktifkan opsi `autoindex` pada server web (Nginx/Apache).
+- **Nonaktifkan Endpoint Debug di Produksi**: Pastikan `DEBUG = False` dan blokir seluruh rute diagnostik `/debug/*` dari akses luar.
+- **Wajibkan Ganti Kredensial Default**: Sistem harus memaksa pergantian password pada saat booting/inisialisasi pertama kali.
+- **Pindahkan Direktori Backup ke Luar Web Root**: Jangan pernah menyimpan file cadangan di dalam folder yang dapat diakses melalui HTTP.
 
-| Lapisan Sistem | Contoh Cacat Konfigurasi | Dampak Risiko |
-| :--- | :--- | :--- |
-| **Aplikasi Web** | `DEBUG=True`, stack trace verbose di browser | Bocornya path file sistem, kunci `SECRET_KEY`, dan snippet kode |
-| **Web Server** | Opsi `autoindex on` aktif pada web server | Pengguna dapat menjelajahi dan menyedot seluruh file di direktori |
-| **Manajemen Akun** | Password default pabrik (`admin:admin`, `root:root`) | Pengambilalihan akun administratif secara instan |
-| **Penyimpanan Cloud** | Bucket backup publik tanpa autentikasi token | Ekstraksi dump database dan kunci sertifikat SSL/TLS |
+---
+
+### Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam laboratorium ini, kamu menghadapi platform orkestrasi infrastruktur cloud enterprise: **CloudCore OpsGateway (Enterprise Cloud Management & Microservices Monitor)** yang beroperasi pada port `8012`.
+
+Komponen arsitektur yang kamu hadapi:
+- **Operations Gateway**: Mengatur lalu lintas manajemen antar-microservices internal.
+- **Telemetry & Diagnostic Endpoints**: Endpoint `/debug/vars` yang tidak sengaja dibiarkan aktif di lingkungan produksi, mengekspos variabel runtime dan path direktori.
+- **Snapshot Storage Volume**: Direktori statis `/backups/` yang membuka direktori file secara publik (*autoindex enabled*).
+- **Administrative Control Plane**: Portal login `/login` dan konsol supervisor `/admin` yang masih menggunakan kredensial bawaan pabrik `admin:admin`.

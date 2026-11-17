@@ -1,60 +1,52 @@
-﻿# Analogi Dunia Nyata: Kamera CCTV yang Dicabut dan Buku Tamu Kosong
+﻿# Analogi Dunia Nyata: Kamera CCTV Bank Dimatikan Demi Hemat Listrik
 
-Untuk memahami **Security Logging & Alerting Failures (OWASP A09:2025)**, bayangkan sistem keamanan fisik di sebuah fasilitas brankas deposit bernilai tinggi.
-
----
-
-## Skenario 1: Bank dengan Fasilitas Pengawasan Penuh (Sistem Aman)
-
-Di sebuah bank modern dengan prosedur pengawasan ketat:
-
-```
-[ Pintu Gerbang Depan ]
-       │
-       ├─ Ada orang mencurigakan mencoba memasukkan kunci palsu 3 kali berturut-turut.
-       │  ▼
-       │  Kamera CCTV beresolusi tinggi otomatis merekam wajah dan waktu kejadian.
-       │  ▼
-       │  Sensor getar mendeteksi upaya pembobolan dan membunyikan sirine di ruang jaga.
-       │  ▼
-       └─ Petugas keamanan langsung bergerak mengamankan lokasi sebelum pintu terbuka!
-```
-
-Jika seorang teknisi meminta akses ke ruang server brankas:
-- Petugas keamanan mencatat kartu identitas teknisi, jam masuk, tujuan, dan nama supervisor yang menyetujui di buku register fisik dan digital.
-- Setiap perpindahan kunci terekam dalam video tanpa ada jeda rekaman (*zero blind spots*).
+Untuk memahami apa itu **Security Logging and Monitoring Failures**, bayangkan sebuah kantor cabang bank penyimpanan emas:
 
 ---
 
-## Skenario 2: Kegagalan Pengawasan & Alarm Bisu (Skenario Lab Zitera SOC)
+### Cerita: Gedung Bank Penyimpanan Emas Mewah
+Bayangkan sebuah bank memiliki brankas baja tebal dan pintu berlapis untuk melindungi emas batangan:
 
-Sekarang bayangkan jika bank tersebut dijalankan dengan prosedur pengawasan yang rusak total:
-
-```
-[ Pintu Gerbang Depan ]
-       │
-       ├─ Seorang penyusup mencoba 1.000 kombinasi kunci pintu gerbang.
-       │  ▼
-       │  Lampu alarm TIDAK PERNAH MENYALA (Alerts Fired = 0).
-       │  ▼
-       │  Buku tamu penjaga gerbang TETAP KOSONG MELOMPONG.
-       │  ▼
-       └─ Penjaga keamanan di meja resepsionis tertidur lelap tanpa menyadari ada serangan.
-```
-
-Lalu penyusup tersebut berjalan ke loket administrasi dan berkata:
-> *"Tolong ubah status saya dari tamu biasa menjadi Direktur Utama Bank."*
-
-Petugas administrasi langsung memberikan tanda pengenal Direktur Utama:
-- **TIDAK ADA SATU BARIS PUN CATATAN** yang dibuat di buku register.
-- Di layar monitor ruang pengawas, tulisan status tetap berkedip: `MONITORING PASSIVE (0 ALERTS FIRED)`.
+1. **Keputusan Konyol Manajemen Gedung**:
+   Suatu hari, kepala operasional gedung melihat tagihan listrik bulanan yang membengkak. Demi menghemat anggaran listrik, ia mengambil keputusan:
+   - **Mematikan seluruh kamera CCTV** di lorong brankas.
+   - **Mencabut kabel sirine alarm kebakaran dan alarm pencuri**.
+   - **Membuang buku tamu pos satpam** agar satpam tidak repot mencatat siapa saja orang yang masuk keluar gedung.
+2. **Maling Masuk Menginap di Brankas**:
+   Malam harinya, seorang pencuri masuk melalui pintu ventilasi. Pencuri mencoba membongkar gembok brankas berkali-kali menggunakan linggis.
+   Karena alarm dimatikan, tidak ada satupun sirine yang berbunyi.
+   Karena kamera CCTV dimatikan, tidak ada rekaman video wajah pencuri.
+   Pencuri itu bahkan leluasa membawa kasur lipat dan menginap di samping brankas selama berminggu-minggu sampai berhasil membobol pintu baja tersebut!
+3. **Penyelidikan yang Buta Total**:
+   Tiga bulan kemudian, pihak bank baru tersadar bahwa seluruh emas di dalam brankas telah raib. Saat polisi datang untuk menyelidiki:
+   - Tidak ada rekaman CCTV.
+   - Tidak ada catatan buku tamu siapa yang datang.
+   - Tidak ada log alarm yang mencatat jam berapa pintu brankas dibuka paksa.
+   Polisi tidak bisa melacak siapa pelakunya karena **gedung tersebut mengalami kebutaan total**!
 
 ---
 
-## Apa Pelajaran Penting untuk Arsitektur Perangkat Lunak?
+### Pelajaran Keamanan
+Pencurian terjadi bukan hanya karena gemboknya berhasil dibuka, melainkan karena **tidak ada sistem pengawasan yang mengawasi dan membunyikan alarm saat kejahatan sedang berlangsung**.
 
-Dalam implementasi rentan `Zitera SOC Audit & Telemetry Console`:
-1. Penyerang dapat mengirimkan puluhan tebakan password ke `/api/auth/login`. Sistem mengembalikan error 401, tetapi **sama sekali tidak mencatat kegagalan tersebut ke array audit log**, dan penghitung alert tetap bernilai 0.
-2. Penyerang dapat memanggil `/api/admin/role_escalate` untuk mengangkat hak pengguna menjadi `super_admin`. Sistem mengabulkan eskalasi hak tersebut **tanpa menambahkan rekaman ke audit log**.
+Itulah yang terjadi pada sistem komputer yang rentan terhadap **Logging and Monitoring Failures**:
+Aplikasi tidak mencatat ketika ada orang yang salah mengetik password berkali-kali, dan tidak membunyikan notifikasi ketika ada pengguna biasa yang mengangkat dirinya sendiri menjadi Admin Eksekutif!
 
-Sistem ini beroperasi dalam kegelapan total. Administrator tidak akan pernah mengetahui bahwa mereka telah diretas sampai data perusahaan bocor ke forum gelap di internet.
+---
+
+### Tabel Perbandingan: Dunia Fisik vs Dunia Web (FleetTrack)
+
+| Komponen | Dunia Fisik (Gedung Bank) | Dunia Web (FleetTrack Logistics) |
+| :--- | :--- | :--- |
+| **Kamera Pengawas** | Kamera CCTV di setiap sudut lorong | Log aktivitas terpusat (*Centralized Audit Logging*) |
+| **Sirine Alarm** | Sirine darurat yang berbunyi saat pintu dijebol | Sistem peringatan waktu nyata (*Real-time SIEM Alerting*) |
+| **Aksi Mencurigakan** | Orang asing mencoba 5 kunci berbeda | 5 kali percobaan login gagal berturut-turut |
+| **Eskalasi Ilegal** | Orang biasa masuk ruang direktur & ganti plang nama | Panggilan ke `/api/admin/role_escalate` |
+| **Celah Telemetri** | CCTV dan sirine alarm dicabut kabelnya | Backend tidak mencatat log kegagalan atau eskalasi |
+| **Dampak** | Maling bebas menginap di brankas | Penyerang menjadi super admin tanpa jejak di SOC |
+
+---
+
+### Inti Pelajaran (Key Takeaway)
+> [!TIP]
+> Pertahanan siber tidak ada artinya jika kamu buta terhadap apa yang sedang terjadi di dalam sistemmu. Pencatatan log yang lengkap dan sistem alarm waktu nyata (*real-time alerting*) adalah mata dan telinga para pembela keamanan (*Defenders / SOC*) untuk menggagalkan serangan sebelum kerugian terjadi!

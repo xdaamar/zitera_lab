@@ -52,7 +52,7 @@ Utilize terminal tooling to fetch the exposed backup archive and parse confident
    cat backup_config.json.bak
    ```
 4. **Payload Analysis:** Locate sensitive operational parameters such as `admin_system_key`, internal database connection strings, and system activation flags disclosed within the unencrypted text document.
-5. Authenticate at `/admin` using the recovered system key to verify administrative privilege and secure the challenge flag `ZITERA{...}`.
+5. Alternatively, authenticate at `/login` using the default administrator credentials (`admin:admin`) to access the `/admin` root cluster console and verify the administrative flag banner.
 
 ---
 

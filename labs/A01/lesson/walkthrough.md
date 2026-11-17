@@ -1,6 +1,6 @@
-# Practice Walkthrough: Investigating & Proving IDOR
+# Practice Walkthrough: Investigating & Proving IDOR on VaultPay Enterprise
 
-In this guided lab exercise, you will conduct a systematic security audit against the internal billing portal running at `http://127.0.0.1:8011`. This exercise follows a target composition of **60% manual analytical techniques** and **40% terminal-based tool execution**.
+In this guided lab exercise, you will conduct a systematic security audit against the institutional treasury portal **VaultPay Enterprise** running at `http://127.0.0.1:8011`. This exercise follows a target composition of **60% manual analytical techniques** and **40% terminal-based tool execution**.
 
 ---
 
@@ -12,57 +12,52 @@ The first step of an authorized assessment is establishing a baseline of normal 
 2. Authenticate using the standard test account:
    - **Username:** `alice`
    - **Password:** `password123`
-3. Click on the **"My Invoices"** section. Notice that the web UI exclusively renders Alice's legitimate invoices.
-4. Open your browser Developer Tools (press **F12** or `Ctrl + Shift + I`) and switch to the **Network** tab.
-5. Click on Alice's invoice and inspect the raw HTTP request details:
-   - **Request URL:** `http://127.0.0.1:8011/invoice/1`
-   - **Method:** `GET`
-   - **Headers:** Notice the session cookie `session_id=...` that identifies your session as Alice.
+3. Click on the **"Dispatched Wire Settlement Ledger"** section. Notice that the web UI exclusively renders Alice's legitimate record:
+   - `TRX-VLT-1001` (Cloud Infrastructure Compute Retainer - $4,950.00).
+4. Click **"View Voucher #1 &rarr;"** and inspect the URL:
+   `http://127.0.0.1:8011/wire/1`
+   - The numerical index `1` is a Direct Object Reference passed directly to backend queries.
 
 ---
 
-### Stage 2: Hypothesis Testing & Fault Injection (25% — Manual)
+### Stage 2: Hypothesis Testing & Parameter Tampering (25% — Manual)
 Now test the core hypothesis: *Does the server validate object ownership against Alice's authenticated session?*
 
-1. In the browser address bar, locate the current URL.
-2. Alter the path parameter from:
-   `http://127.0.0.1:8011/invoice/1`
+1. In the browser address bar, alter the path parameter from:
+   `http://127.0.0.1:8011/wire/1`
    to:
-   `http://127.0.0.1:8011/invoice/2`
-3. Press **Enter** and analyze the resulting output:
+   `http://127.0.0.1:8011/wire/2`
+2. Press **Enter** and analyze the resulting output:
    - **Observation:** The page renders successfully with an HTTP `200 OK` status.
-   - **Evidence Harvested:** The invoice displayed on your screen belongs to another user: **Bob**!
-   - **Critical Analysis:** The request carried Alice's valid session cookie, but the backend returned Bob's private financial invoice without enforcing authorization. This confirms an active IDOR vulnerability.
+   - **Evidence Harvested:** The voucher displayed on your screen belongs to senior analyst **Robert Sterling (Bob)** (`TRX-VLT-1002`, $1,450.00)!
+   - **Critical Analysis:** The request carried Alice's valid session cookie, but the backend returned Bob's private financial voucher without enforcing object-level authorization.
 
 ---
 
-### Stage 3: Controlled Exploitation & Weaponization (35% — Tools: cURL)
-Leverage cURL from the terminal to evaluate the full scope of data exposure and discover high-value assets (*master invoice*).
+### Stage 3: Controlled Exploitation & Secret Extraction (35% — Tools: cURL)
+Leverage cURL or the browser to access high-value sovereign assets.
 
-1. Open a terminal inside the ZITERA_LAB workspace.
-2. Extract Alice's session cookie from the browser Network tab.
-3. Craft an explicit cURL command to inspect unauthorized records:
+1. Test special administrative / regulatory clearing index #42:
+   `http://127.0.0.1:8011/wire/42` or `http://127.0.0.1:8011/invoice/42`
+2. System renders the **Restricted Sovereign Ledger** for VP Controller Marcus Reid:
+   - Reference: `TRX-VLT-9901-SOVEREIGN`
+   - Amount: `$99,999.00`
+   - Compliance Memo: Contains the SOX-404 verification seal:
+     `ZITERA{b10k3n_4cc355_c0ntr01_m45t3r}`
+
+3. Replicate via command-line using cURL:
    ```bash
-   curl -s -i "http://127.0.0.1:8011/invoice/2" -H "Cookie: session_id=YOUR_ALICE_SESSION"
+   # 1. Login as Alice and store cookie jar
+   curl -s -c cookies.txt -d "username=alice&password=password123" http://127.0.0.1:8011/login
+
+   # 2. Extract Bob's record via IDOR
+   curl -s -b cookies.txt http://127.0.0.1:8011/wire/2
+
+   # 3. Retrieve executive voucher #42
+   curl -s -b cookies.txt http://127.0.0.1:8011/invoice/42
    ```
-4. Perform systematic inspection against reserved or administrative identifiers (such as `id=0`, `id=3`, or admin records):
-   ```bash
-   # Probe initial indices or special administrative records
-   curl -s "http://127.0.0.1:8011/invoice/0" -H "Cookie: session_id=YOUR_ALICE_SESSION"
-   ```
-5. Observe how the response body leaks the hidden master billing record, which is never linked in standard navigation menus.
 
 ---
 
-### Stage 4: Remediation & Verification (25% — Manual & Tools)
-The final step is verifying that defensive remediations succeed deterministically.
-
-1. Enforce server-side ownership checks on the backend controller:
-   ```python
-   # Verify that invoice.owner_id == session['user_id']
-   ```
-2. Re-execute the cURL probe against invoice #2 using Alice's credentials:
-   ```bash
-   curl -s -i "http://127.0.0.1:8011/invoice/2" -H "Cookie: session_id=YOUR_ALICE_SESSION"
-   ```
-3. **Success Criteria:** The server must return an HTTP **`403 Forbidden`** or **`404 Not Found`** status, conclusively proving that unauthorized cross-user access is permanently blocked.
+### Stage 4: Verification & Flag Submission (25%)
+Submit the captured flag `ZITERA{b10k3n_4cc355_c0ntr01_m45t3r}` to the Zitera Lab challenge tab to complete the lab!

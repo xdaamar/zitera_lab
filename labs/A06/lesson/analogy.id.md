@@ -1,41 +1,46 @@
-﻿# Analogi Dunia Nyata: Pintu Baja Brankas dan Dinding Papan Gipsum
+﻿# Analogi Dunia Nyata: Mesin Kasir Toko yang Tombol "Lunas" Bisa Ditekan Pembeli
 
-Untuk memahami mengapa Insecure Design tidak bisa diperbaiki hanya dengan memperbagus sintaksis kode, bayangkan sebuah bank yang membangun ruang penyimpanan emas batangan:
-
----
-
-### 1. Pintu Brankas Terbaik di Dunia (Kode Implementasi Sempurna)
-Direksi bank menginvestasikan miliaran rupiah untuk membeli pintu brankas baja terbaik dari pabrik ternama:
-- Pintu terbuat dari baja padat berbobot 10 ton tahan ledakan dinamit.
-- Mekanisme kunci menggunakan kombinasi dial biometrik ganda dan pemindai retina.
-- Engsel pintu dilumasi dengan sempurna dan tidak pernah macet (*zero implementation bugs*).
+Untuk memahami apa itu **Insecure Design** tanpa kebingungan teknis, mari kita gunakan analogi kasir toko elektronik:
 
 ---
 
-### 2. Kesalahan Gambar Arsitektur Gedung (Insecure Design)
-Saat arsitek gedung menggambar cetak biru bangunan, demi menghemat anggaran dan mempercepat penyelesaian proyek:
-- Arsitek merancang dinding pembatas brankas bukan dari cor beton bertulang tebal, melainkan hanya menggunakan rangka kayu dan **papan gipsum tipis (drywall)** setebal 1 sentimeter.
-- Tidak ada satu pun insinyur yang menanyakan: *"Bagaimana jika pencuri tidak mencoba membobol pintu baja, melainkan menyerang dindingnya?"* (*ketiadaan threat modeling*).
+### Cerita: Toko Elektronik Mewah dengan Kasir Otomatis
+Bayangkan sebuah toko gadget mewah merancang sistem kasir mandiri (*Self-Checkout Counter*):
+
+1. **Aturan Bisnis Resmi**:
+   Pemilik toko menetapkan aturan:
+   - Barang seharga di bawah 500 ribu (misal: casing HP, kabel charger) boleh langsung dibayar di mesin kasir tanpa pengawasan staf.
+   - Barang mahal di atas 50 juta (misal: Laptop Gaming Tier-0, Server Rak) **wajib diperiksa oleh Manajer Toko** sebelum diserahkan ke pembeli. Manajer harus memeriksa kartu identitas dan bukti transfer bank.
+2. **Cacat Desain Mesin Kasir**:
+   Arsitek sistem yang merancang mesin kasir membuat layar sentuh dengan 4 tombol status:
+   `[ 1. DRAFT ]` $\rightarrow$ `[ 2. TINJAUAN MANAJER ]` $\rightarrow$ `[ 3. KLIRING BANK ]` $\rightarrow$ `[ 4. SUDAH LUNAS / DISPATCHED ]`
+   Namun, arsitek tersebut lupa membuat tombol nomor 4 terkunci untuk pembeli! Tombol nomor 4 dibiarkan menyala hijau di layar sentuh pembeli.
+3. **Aksi Pembeli Nakal**:
+   Seorang pembeli memilih server komputer seharga $50,000 (sekitar 800 juta rupiah). Layar kasir menampilkan status: `DRAFT`.
+   Tanpa memanggil manajer toko dan tanpa mentransfer uang sepeser pun, pembeli itu langsung menekan tombol layar sentuh nomor 4: **`[ SUDAH LUNAS / DISPATCHED ]`**!
+4. **Hasilnya**:
+   Mesin kasir mencetak struk bertuliskan: *"Barang lunas! Silakan bawa pulang barang Anda."* Petugas keamanan di pintu keluar melihat struk bertuliskan "Lunas" dan mempersilakan pembeli itu keluar dengan membawa server mahal tersebut!
 
 ---
 
-### 3. Eksploitasi Tanpa Perlawanan
-Suatu malam, seorang pencuri masuk ke gedung bank:
-1. Pencuri melihat pintu baja 10 ton yang kokoh dan langsung mengabaikannya karena tahu pintu itu mustahil dibobol.
-2. Pencuri berjalan 2 langkah ke sisi samping pintu, mengeluarkan pisau saku sederhana dari sakunya, lalu mengerat papan gipsum dalam waktu 15 detik.
-3. Pencuri melangkah masuk melalui lubang dinding dan mengangkut seluruh emas batangan dengan santai.
+### Pelajaran Keamanan
+Bukan mesin kasirnya yang rusak secara fisik (tidak ada kabel yang konslet, tidak ada kaca yang pecah). Sistem berfungsi 100% sesuai instruksi perangkat lunak.
+Namun, **desain logika alur kerjanya yang cacat secara fundamental**: Mengizinkan pembeli menentukan sendiri status pesanannya!
 
 ---
 
-### 4. Evaluasi Pasca-Insiden
-Ketika polisi dan auditor datang:
-- Pintu baja brankas diperiksa: sistem sensornya menyatakan pintu tetap terkunci 100% aman dan bekerja sesuai spesifikasi pabrik.
-- Tidak ada baut yang longgar atau kabel yang putus pada pintu brankas.
-- Namun seluruh bank tetap bangkrut karena emasnya telah lenyap.
+### Tabel Perbandingan: Dunia Fisik vs Dunia Web (Zitera Procurement)
+
+| Unsur Alur | Dunia Fisik (Mesin Kasir Toko) | Dunia Web (Zitera Procurement) |
+| :--- | :--- | :--- |
+| **Aset Bernilai Tinggi** | Server komputer rak seharga $50,000 | Permohonan Order `#9999` ($50,000) status `DRAFT` |
+| **Aturan Kebijakan Bisnis** | Wajib verifikasi fisik identitas oleh Manajer | Pesanan $\ge \$500$ wajib status `MANAGER_APPROVED` |
+| **Cacat Desain** | Tombol "Lunas" di layar sentuh bebas ditekan pembeli | Endpoint `/api/orders/<id>/transition` menerima input klien |
+| **Eksploitasi** | Pembeli menekan tombol "Lunas" langsung | Klien mengirim JSON `{"target_state": "DISPATCHED"}` |
+| **Dampak** | Barang dibawa kabur tanpa pembayaran | Sistem menyetujui pengiriman dan membuka Flag rahasia |
 
 ---
 
-### Pesan Utama Keamanan
-Dalam rekayasa sistem:
-- Menulis kode yang bebas dari bug memori atau syntax error adalah seperti membeli pintu baja 10 ton.
-- Namun jika arsitektur alur bisnis Anda mengizinkan klien melompati tahap persetujuan, Anda sedang membangun brankas dengan dinding papan gipsum.
+### Inti Pelajaran (Key Takeaway)
+> [!TIP]
+> Keamanan yang kuat harus dirancang sejak awal (*Secure by Design*). Jangan pernah mengizinkan klien memilih status berikutnya dalam suatu proses transaksi! Server harus menjadi satu-satunya pihak yang berhak mengubah status berdasarkan aturan bisnis yang ketat.

@@ -1,50 +1,49 @@
-﻿# A07: Authentication Failures — Kegagalan Mekanisme Autentikasi Rumah Sakit
+﻿# A07: Authentication Failures — Jebolnya Gerbang Autentikasi Pengguna
 
-Authentication Failures menempati peringkat ke-7 (**#7**) dalam daftar risiko keamanan web **OWASP Top 10:2025** (sebelumnya dikenal sebagai *Identification and Authentication Failures*). Kerentanan ini terjadi ketika aplikasi gagal memverifikasi identitas pengguna secara andal, tidak menerapkan pembatasan laju percobaan (*rate limiting*), mengizinkan kredensial lemah yang mudah ditebak, atau gagal memberlakukan penguncian akun (*account lockout*) setelah serangkaian kegagalan masuk.
-
----
-
-### 1. Alasan Kuat / Mengapa Ini Sangat Penting (Why It Matters)
-Dalam sektor kesehatan (*healthcare*), pertahanan autentikasi bukan sekadar pelindung data finansial, melainkan benteng keselamatan nyawa pasien:
-
-- **Dampak Kritis terhadap Pasien & Regulasi HIPAA**:
-  - Pelanggaran terhadap catatan medis elektronik (*Electronic Health Records / EHR*) di bawah **HIPAA** dan regulasi privasi data medis global dapat menimbulkan sanksi denda perdata hingga jutaan dolar serta pencabutan akreditasi rumah sakit.
-  - Jika akun dokter atau staf anestesi dibajak akibat password lemah tanpa MFA, penyerang dapat mengubah dosis obat pasien, mengakses rekam medis rahasia, atau menyandera sistem klinik (*ransomware deployment*).
-- **Serangan Otomatis Skala Masif (*Automated Credential Stuffing*)**:
-  Penyerang menggunakan daftar password hasil kebocoran publik (*credential dumps*) dan botnet otomatis untuk menguji jutaan kombinasi username/password per detik. Tanpa adanya *rate limiting* dan CAPTCHA, akun pengguna dengan PIN sederhana akan jebol dalam hitungan detik.
+Identification and Authentication Failures menempati peringkat ke-7 (**#7**) dalam daftar risiko **OWASP Top 10:2025**. Kerentanan ini terjadi ketika mekanisme verifikasi identitas pengguna, pengelolaan sesi, atau perlindungan kata sandi diimplementasikan secara lemah, sehingga memungkinkan penyerang menebak, mencuri, atau memalsukan identitas pengguna lain.
 
 ---
 
-### 2. Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
-Dalam praktikum ini, Anda mengaudit portal rekam medis klinis rumah sakit: **NexHealth Portal (Hospital Electronic Medical Records & Patient Portal)** yang beroperasi pada port `8017`.
+### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+Autentikasi adalah gerbang utama pembuktian identitas (*identity assertion*). Jika gerbang ini tidak memiliki pembatasan:
 
-Komponen arsitektur NexHealth Portal:
-- **Clinical Practitioner Sign In**: Antarmuka masuk staf medis (`/login` dan `/api/login`) yang meminta Staff Identifier (`admin` sebagai Chief Medical Officer) dan Security PIN 4-digit.
-- **Cacat Autentikasi Fatal**:
-  - Ketiadaan mekanisme *rate limiting* (pembatasan request per IP/per akun).
-  - Ketiadaan *lockout policy* setelah 3-5 kali salah input.
-  - Penggunaan PIN 4-digit yang dapat ditebak (menggunakan tahun rilis sistem saat ini: `2026`).
-- **Clinical Records Dashboard (`/admin`)**: Dashboard rekam medis pasien terproteksi yang menampilkan data triage, bangsal ICU, dan catatan audit autoritatif Chief Medical Officer.
+- **Pengambilalihan Akun Eksekutif Massal (*Account Takeover / ATO*)**:
+  Bot peretas dapat menembakkan puluhan ribu kombinasi kata sandi atau PIN per detik (*brute-force* atau *credential stuffing*) ke endpoint login. Tanpa adanya *rate-limiting*, akun direktur atau dokter rumah sakit dapat dijebol dalam hitungan menit.
+  - Insiden nyata kebocoran rekam medis rumah sakit dan portal kesehatan: Pelanggaran privasi data pasien di bawah standar **HIPAA** internasional dan **UU PDP No. 27/2022** berisiko denda miliaran rupiah dan gugatan hukum perdata atas kebocoran riwayat penyakit rahasia pasien.
+- **Biaya Pemulihan Kepercayaan Finansial**:
+  Serangan pengambilalihan akun yang sukses merusak integritas seluruh sistem transaksi digital, memicu sanksi pencabutan sertifikasi kepatuhan ISO 27001 dan pemutusan kerja sama asuransi kesehatan pihak ketiga.
 
 ---
 
-### 3. Sasaran, Temuan & Eksekusi (Search, Find, and Execute)
-Metodologi pengujian kelemahan autentikasi terstruktur:
+### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+Metodologi pengujian ketahanan autentikasi:
 
 1. **Apa yang Dicari (What to Search)**:
-   - Endpoint login web dan REST API: `/login`, `/api/login`.
-   - Header respons HTTP yang menunjukkan ketiadaan kontrol rate-limit (misalnya tidak ada header `Retry-After` atau `X-RateLimit-*`).
+   - Formulir masuk sistem: `/login`, `/api/login`, `/auth/verify`.
+   - Panjang dan kompleksitas kata sandi/PIN yang diizinkan (misal PIN numerik 4-digit yang ruang kombinasinya hanya $10.000$ kemungkinan: `0000` - `9999`).
 2. **Apa Temuan yang Menandakan Celah (Vulnerability Indicators)**:
-   - Mengirimkan 10 kali percobaan login yang salah secara berurutan tidak menghasilkan penolakan status `429 Too Many Requests` maupun penundaan respons (*progressive delay*).
-   - Form mengizinkan PIN pendek 4-angka (`0000` - `9999`, hanya 10.000 kemungkinan kombinasi).
+   - Mengirimkan 5, 10, hingga puluhan percobaan login yang salah berturut-turut tidak memicu penguncian akun (*no account lockout*), tidak meminta CAPTCHA, dan tidak memperlambat waktu respons (*zero rate-limiting / no throttling*).
 3. **Eksekusi Eksploitasi Terukur (Strategic Execution)**:
-   - Lakukan pengujian terarah terhadap PIN 4-digit tahun rilis aktif (`2026`) untuk akun `admin`.
-   - Masuk ke sesi Chief Medical Officer di `/admin` dan eksfiltrasi segel validasi kepatuhan HIPAA berformat `ZITERA{...}`.
+   - Lakukan pengujian terarah (*targeted brute-force*) terhadap PIN umum 4-digit akun administrator (`admin`).
+   - Gunakan PIN siklus rilis sistem (`2026`).
+   - Masuk ke konsol klinis `/admin` untuk mengekstrak bendera autoritatif `ZITERA{4uth_f41lur3_brut3_f0rc3_2026}`.
 
 ---
 
-### 4. Pondasi Kuat: Tiga Lapisan Pertahanan Autentikasi
-Sistem autentikasi enterprise yang tangguh wajib menerapkan pertahanan berlapis (*Defense-in-Depth*):
-1. **Multi-Factor Authentication (MFA)**: Menggabungkan sesuatu yang Anda ketahui (*knowledge: password*), sesuatu yang Anda miliki (*possession: token hardware/TOTP*), atau karakteristik fisik (*biometrics: sidik jari/wajah*).
-2. **Exponential Backoff & Rate Limiting**: Menambah waktu tunggu secara eksponensial (1 detik, 2 detik, 4 detik, 8 detik...) setiap kali terjadi kegagalan masuk guna menggagalkan serangan otomatis.
-3. **Password & PIN Complexity Guardrails**: Melarang keras PIN 4-angka sederhana untuk akun berprivelege tinggi seperti direksi atau dokter rumah sakit.
+### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+Pertahanan autentikasi standar industri:
+- **Terapkan Rate Limiting & Slow Down**: Batasi jumlah percobaan login maksimal 5 kali per menit per IP atau per akun (misal menggunakan token bucket algoritma Redis).
+- **Terapkan Kunci Akun Progresif (*Progressive Account Lockout*)**: Kunci sementara akun selama 15 menit jika terjadi 5 kali kegagalan berurutan.
+- **Wajibkan Multi-Factor Authentication (MFA)**: Tambahkan lapisan kedua (TOTP via Google Authenticator atau WebAuthn FIDO2).
+- **Tolak PIN / Password Terlalu Pendek**: Larang penggunaan kata sandi umum atau PIN 4-digit sederhana untuk akun dengan hak akses tinggi.
+
+---
+
+### Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam praktikum ini, kamu mengaudit sistem informasi rekam medis rumah sakit: **NexHealth Portal / OmniAuth Admin Gateway (Hospital EMR & Inpatient Management System)** yang beroperasi pada port `8017`.
+
+Komponen arsitektur:
+- **Clinical Staff Portal**: Melayani login dokter dan administrator medis via `/login`.
+- **Celah Tanpa Pembatas Frekuensi**: Handler login backend menerima request tak terbatas tanpa middleware rate-limiting.
+- **PIN Administratif Lemah**: Akun `admin` menggunakan PIN 4-digit sederhana (`2026`).
+- **Konsol Supervisor Klinis**: Halaman `/admin` yang memuat bukti kepatuhan medis dan flag CTF.

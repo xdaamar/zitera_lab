@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import confetti from 'canvas-confetti'
 import {
   ArrowLeft,
@@ -28,6 +26,7 @@ import {
   Sparkles,
   PanelRightClose,
   Loader2,
+  BookOpen,
 } from 'lucide-react'
 import {
   getLabContent,
@@ -43,6 +42,15 @@ import {
 } from './engineClient'
 import { recordSolve } from './scoreboardService'
 import { CuteAnimeLoading } from './CuteAnimeLoading'
+import { getInteractiveCurriculumForLab } from './lessonInteractiveData'
+import {
+  AnalogyCard,
+  CoreConceptCard,
+  InteractiveWalkthroughCard,
+  RemediationCard,
+  ArchitectureFlowCard,
+} from './LessonCards'
+import { LessonMarkdownRenderer } from './LessonMarkdownRenderer'
 
 interface LabDetailViewProps {
   labId: string
@@ -299,7 +307,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
       }
       try {
         localStorage.setItem(`zitera_completed_${labId}`, JSON.stringify(Array.from(next)))
-      } catch (_) {}
+      } catch {}
       return next
     })
   }
@@ -317,7 +325,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
         setChallengeSolved(true)
         try {
           localStorage.setItem(`zitera_solved_${labId}`, 'true')
-        } catch (_) {}
+        } catch {}
 
         // Trigger confetti celebration!
         confetti({
@@ -399,6 +407,16 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
 
   const targetPort = status?.port ?? content.manifest.defaultPort ?? 8011
   const briefing = getMissionBriefing(labId)
+  const interactiveCurriculum = getInteractiveCurriculumForLab(labId, targetPort)
+
+  const handleSendToTerminal = (cmd: string) => {
+    setTerminalOpen(true)
+    setTerminalInput(cmd)
+    setTerminalHistory((prev) => [
+      ...prev.slice(-248),
+      { type: 'output', text: `[Tilix Terminal] Perintah siap dieksekusi: ${cmd}` },
+    ])
+  }
 
   // Current curriculum section navigation indices
   const currentSectionIndex = CURRICULUM_SECTIONS.findIndex((s) => s.key === activeSection)
@@ -714,14 +732,56 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                     </button>
                   </div>
 
-                  {/* Indonesian Markdown Render */}
-                  <div className="p-6 md:p-8 rounded-xl border border-[#E6E2D8] bg-white shadow-xs">
-                    <div className="prose-zitera max-w-none">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {currentLessonMarkdown ||
-                          `# ${content.manifest.title}\n\nMateri kurikulum sedang dimuat...`}
-                      </ReactMarkdown>
+                  {/* Section 2: Dedicated Tactile Analogy Card */}
+                  {activeSection === 'analogy' && (
+                    <AnalogyCard data={interactiveCurriculum.analogy} />
+                  )}
+
+                  {/* Section 3: Dedicated Tactile Core Concept Card */}
+                  {activeSection === 'concept' && (
+                    <CoreConceptCard data={interactiveCurriculum.concept} />
+                  )}
+
+                  {/* Section 4: Dedicated Tactile System Architecture Card */}
+                  {activeSection === 'architecture' && (
+                    <ArchitectureFlowCard targetPort={targetPort} />
+                  )}
+
+                  {/* Section 5: Dedicated Interactive Step-by-Step Walkthrough Card */}
+                  {activeSection === 'walkthrough' && (
+                    <InteractiveWalkthroughCard
+                      data={interactiveCurriculum.walkthrough}
+                      targetPort={targetPort}
+                      onSendToTerminal={handleSendToTerminal}
+                    />
+                  )}
+
+                  {/* Section 6: Dedicated Remediation Code Comparison Card */}
+                  {activeSection === 'remediation' && (
+                    <RemediationCard data={interactiveCurriculum.remediation} />
+                  )}
+
+                  {/* Comprehensive Deep-Dive Lesson Reading Container with Anti-Fatigue Typography */}
+                  <div className="rounded-2xl border-2 border-[#E6E2D8] bg-white shadow-[0_4px_0_0_#CEC8BF,0_12px_24px_rgba(0,0,0,0.03)] p-6 md:p-8 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-[#E6E2D8] text-xs font-['Space_Grotesk'] font-bold text-[#78716C]">
+                      <div className="flex items-center gap-2">
+                        <BookOpen size={16} className="text-[#0F766E]" />
+                        <span className="uppercase tracking-wider">
+                          MODUL MATERI LENGKAP & DEEP DIVE TUTORIAL
+                        </span>
+                      </div>
+                      <span className="font-['JetBrains_Mono'] text-[11px] text-[#9C9080]">
+                        ZITERA CURRICULUM // ID
+                      </span>
                     </div>
+
+                    <LessonMarkdownRenderer
+                      markdown={
+                        currentLessonMarkdown ||
+                        `# ${content.manifest.title}\n\nMateri kurikulum sedang dimuat...`
+                      }
+                      onSendToTerminal={handleSendToTerminal}
+                    />
                   </div>
 
                   {/* Requirement: Menu Tanda Selesai & Navigasi di Bawah (User tidak perlu scroll ke atas untuk menandai selesai!) */}
@@ -859,10 +919,11 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                       <Trophy size={18} />
                       <span>MISI & SASARAN TANTANGAN CTF</span>
                     </div>
-                    <div className="prose-zitera max-w-none text-xs font-sans text-[#7C2D12]">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {content.challengeObjective}
-                      </ReactMarkdown>
+                    <div className="text-xs font-sans text-[#7C2D12]">
+                      <LessonMarkdownRenderer
+                        markdown={content.challengeObjective}
+                        onSendToTerminal={handleSendToTerminal}
+                      />
                     </div>
                   </div>
 

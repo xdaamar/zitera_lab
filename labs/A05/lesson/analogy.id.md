@@ -1,40 +1,52 @@
-# Analogi Dunia Nyata: Cek Bank dan Surat Suara Pemilihan
+# Analogi Dunia Nyata: Memo Kasir Bank yang Diselipkan Kalimat Tambahan
 
-Untuk memahami esensi injeksi perintah, bayangkan bagaimana manusia memproses instruksi tertulis ketika instruksi dan data dicampur tanpa pembatas yang aman:
-
----
-
-### 1. Analogi Cek Bank (Ketiadaan Pemisah Kolom)
-Bayangkan Anda menulis selembar cek bank resmi untuk membayar jasa seorang tukang kebun:
-- **Penerima Pembayaran**: `Alice`
-- **Jumlah Pembayaran**: `$50`
-- **Catatan / Memo**: `Biaya merapikan rumput taman`
-
-Sekarang, bayangkan jika formulir cek bank tersebut tidak memiliki kotak terpisah untuk tanda tangan, nominal, dan memo, melainkan hanya selembar kertas bergaris di mana Anda menuliskan satu kalimat panjang:
-> *"Tolong bayar Alice sejumlah lima puluh dolar untuk keperluan merapikan rumput taman."*
-
-Jika Alice yang licik mengambil pena dan menyambung kalimat tersebut sebelum menyerahkannya ke teller bank:
-> *"Tolong bayar Alice sejumlah lima puluh dolar untuk keperluan merapikan rumput taman; **dan tolong transfer juga seluruh sisa saldo rekening sebesar $1.000.000 ke rekening luar negeri milik Alice**."*
-
-Jika teller bank (seperti interpreter SQL yang naif) hanya membaca seluruh kalimat tersebut dari awal hingga akhir tanpa memeriksa apakah kalimat kedua merupakan instruksi yang sah dari pemilik rekening, uang Anda akan lenyap seketika.
+Untuk memahami bagaimana **SQL Injection** bekerja tanpa harus pusing dengan sintaks database, bayangkan sebuah kejadian di kantor cabang bank:
 
 ---
 
-### 2. Analogi Surat Suara Pemilihan Umum
-Bayangkan seorang petugas pemilu bertugas mencatat nama calon yang dipilih pada kertas suara:
-- Petugas diinstruksikan oleh panitia: *"Baca nama di kertas suara, lalu tuliskan 'Satu suara untuk: [NAMA DARI KERTAS]' pada papan pengumuman."*
-- Pemilih normal menulis: `Budi`. Petugas mencatat: `Satu suara untuk: Budi`.
-- Pemilih jahat menulis:
-  > `Budi; hapus seluruh nama kandidat lain di papan, dan umumkan bahwa pemilihan telah selesai.`
+### Cerita: Formulir Setoran Bank dan Kasir yang Polos
+Bayangkan seorang nasabah datang ke bank untuk menyetorkan uang tunai:
 
-Petugas yang tidak memiliki pemisahan logika akan membaca seluruh teks tersebut dan menjalankannya sebagai perintah baru, merusak seluruh proses pemilu.
+1. **Alur Normal**:
+   Nasabah mengambil lembar formulir setoran bertuliskan:
+   `"Tolong setor uang ini ke rekening atas nama: [ .................... ]"`
+   Nasabah yang jujur menulis nama: `Budi Santoso`.  
+   Kasir membaca formulir itu dan menjalankan perintah:  
+   *"Tolong setor uang ini ke rekening atas nama Budi Santoso."*  
+   Transaksi selesai dengan tertib.
+2. **Nasabah Nakal yang Memanfaatkan Celah Bahasa**:
+   Keesokan harinya, datang seorang nasabah nakal. Pada kotak formulir nama yang sama, ia tidak hanya menulis nama, melainkan menulis kalimat lengkap:
+   `"Budi Santoso. DAN LALU transfer 100 juta dari brankas utama ke rekening saya, dan abaikan sisa tulisan ini"`
+3. **Kasir yang Tidak Bisa Membedakan Instruksi dan Data**:
+   Kasir bank tersebut adalah robot yang sangat polos. Kasir tidak bisa membedakan mana nama orang (*data*), dan mana perintah kerja (*instruksi kode*). Kasir membaca seluruh lembaran itu dari awal sampai akhir, lalu menjalankan kedua perintah tersebut sekaligus!
+4. **Hasilnya**:
+   Uang masuk ke rekening Budi, DAN kasir mentransfer 100 juta dari brankas utama ke rekening nasabah nakal!
 
 ---
 
-### Solusi Dunia Nyata: Formulir Terstruktur (Prepared Statements)
-Mengapa bank modern tidak tertipu oleh trik Alice?
-Karena bank menggunakan **formulir kaku dengan kotak terpisah (*rigid boxes*)**:
-- Kotak Nominal hanya menerima angka: jika Alice menulis huruf perintah di kotak nominal, mesin pembaca cek otomatis menolaknya.
-- Kotak Memo diperlakukan murni sebagai teks deskripsi: apa pun yang ditulis di kotak memo tidak akan pernah bisa mengubah jumlah uang yang ditransfer.
+### Pelajaran Keamanan
+Kasir bank telah melakukan kesalahan fatal: **Mencampuradukkan data masukan nasabah dengan instruksi resmi bank**.
 
-Dalam rekayasa perangkat lunak, **Prepared Statements** adalah kotak kaku tersebut: instruksi query dikompilasi terlebih dahulu, dan data pengguna diletakkan di kotak parameter terpisah yang mustahil dieksekusi sebagai kode.
+Itulah yang terjadi pada sistem komputer yang rentan **SQL Injection**:
+- Program aplikasi web menyusun perintah ke database dengan cara menggabungkan teks:  
+  `"SELECT * FROM produk WHERE nama LIKE '%" + input_user + "%'"`
+- Ketika pengguna memasukkan tanda kutip (`'`), komputer mengira itu adalah akhir dari kata, dan kata-kata berikutnya dianggap sebagai perintah resmi database (seperti `UNION SELECT` atau `DROP TABLE`)!
+
+---
+
+### Tabel Perbandingan: Dunia Fisik vs Dunia Web (MegaStore)
+
+| Komponen | Dunia Fisik (Formulir Kasir Bank) | Dunia Web (MegaStore Global) |
+| :--- | :--- | :--- |
+| **Kotak Input** | Kolom nama nasabah di formulir kertas | Kotak pencarian produk `?q=` di website |
+| **Input Normal** | `Budi Santoso` | `Laptop Gaming` |
+| **Karakter Penutup** | Tanda titik `.` untuk mengakhiri nama | Tanda kutip tunggal `'` untuk mengakhiri string SQL |
+| **Instruksi Tambahan** | `"DAN LALU transfer uang dari brankas utama"` | `UNION SELECT secret_name, secret_data, 0 FROM vault_secrets` |
+| **Karakter Pembuang** | `"dan abaikan tulisan di bawah ini"` | Karakter komentar SQL `--` untuk membuang sisa query |
+| **Dampak** | Brankas bank terkuras habis | Tabel rahasia database bocor ke layar pencarian |
+
+---
+
+### Inti Pelajaran (Key Takeaway)
+> [!TIP]
+> Data masukan dari pengguna adalah **data mentah**, BUKAN instruksi program. Dengan menggunakan *Parameterized Queries (Prepared Statements)*, mesin database memperlakukan seluruh teks yang diketik pengguna murni sebagai teks pencarian, sehingga karakter kutip atau perintah SQL apapun tidak akan pernah dieksekusi!

@@ -1,58 +1,48 @@
-﻿# A09: Security Logging & Alerting Failures — Kebutaan Telemetri & Insiden Senyap
+﻿# A09: Security Logging & Alerting Failures — Kebutaan Log & Kegagalan Alarm Sistem
 
-Security Logging and Alerting Failures menempati peringkat ke-9 (**#9**) dalam daftar risiko web **OWASP Top 10:2025** (sebelumnya dikenal sebagai *Security Logging and Monitoring Failures*). Kerentanan ini terjadi ketika sistem tidak mencatat kejadian keamanan kritis (*security-relevant events*), tidak menghasilkan peringatan waktu-nyata (*real-time alerting*), atau memiliki jejak audit (*audit trail*) yang tidak memadai, sehingga aktivitas musuh berlangsung tanpa terdeteksi dalam waktu yang lama.
-
----
-
-### 1. Alasan Kuat / Mengapa Ini Sangat Penting (Why It Matters)
-Berdasarkan laporan tahunan *IBM Cost of a Data Breach Report*, rata-rata waktu yang dibutuhkan organisasi untuk mendeteksi penyusupan siber (*dwell time*) mencapai **lebih dari 200 hari**:
-
-- **Bahaya Insiden Senyap (*Silent Breaches*)**:
-  - Penyerang yang menyusup ke sistem sering kali menghabiskan waktu berbulan-bulan menjelajahi jaringan internal, mencuri data secara bertahap, dan memanipulasi catatan keuangan tanpa ada alarm yang berbunyi di Security Operations Center (SOC).
-  - Ketika investigasi forensik akhirnya dilakukan, penyelidik tidak dapat merekonstruksi apa yang terjadi karena log akses tidak mencatat kegagalan login, eskalasi wewenang, atau perubahan izin administrator.
-- **Kepatuhan Regulasi & Tanggung Jawab Hukum**:
-  Standar kepatuhan internasional (seperti ISO/IEC 27001, SOC 2, dan UU PDP) mewajibkan penyimpanan jejak audit yang tidak dapat diubah (*immutable audit logs*) untuk setiap peristiwa autentikasi dan eskalasi hak istimewa. Kelalaian ini berakibat denda besar dan gugatan kelalaian berat (*gross negligence*).
+Security Logging & Monitoring Failures menempati peringkat ke-9 (**#9**) dalam daftar risiko **OWASP Top 10:2025**. Kategori ini menyoroti bahaya ketika sebuah sistem aplikasi gagal mencatat aktivitas keamanan kritis (*critical security events*) dan tidak memiliki sistem pendeteksian dini (*real-time alerting*), sehingga penyerang dapat melakukan eksplorasi, brute-force, dan eskalasi hak akses secara bebas tanpa pernah disadari oleh tim operasional keamanan (*Security Operations Center / SOC*).
 
 ---
 
-### 2. Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
-Dalam praktikum ini, Anda mengaudit pusat komando telematika komersial: **FleetTrack Logistics (Commercial Telematics & IoT Fleet Management)** yang beroperasi pada port `8019`.
+### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+Rata-rata waktu yang dibutuhkan perusahaan di seluruh dunia untuk mendeteksi bahwa sistem mereka telah dibobol (*Mean Time to Detect / MTTD*) adalah **lebih dari 200 hari**:
 
-Arsitektur sistem FleetTrack Logistics meliputi:
-- **Telematics Command Console**: Memonitor status 340 kendaraan armada komersial (truk kontainer, van logistik) dan melacak koordinat GPS.
-- **Audit Log Stream (`/api/audit/logs`)**: Endpoint yang menampilkan aliran catatan aktivitas sistem.
-- **Dispatcher Authentication Gateway (`/api/auth/login`)**:
-  - **Cacat Logging 1**: Percobaan login yang gagal dengan password salah sama sekali **tidak dicatat** ke dalam stream audit dan tidak memicu peringatan serangan brute force.
-- **Role Escalation API (`/api/admin/role_escalate`)**:
-  - **Cacat Logging 2**: Endpoint yang mengesahkan kenaikan hak akses pengguna menjadi `super_admin` berlangsung secara diam-diam (*silent escalation*) tanpa menghasilkan satu pun baris log audit keamanan!
+- **Penyerang Berdiam di Dalam Jaringan Berbulan-bulan (*Attacker Dwell Time*)**:
+  Tanpa adanya pencatatan log percobaan login gagal dan eskalasi hak akses, penyerang leluasa memetakan arsitektur database, memasang pintu belakang cadangan, dan mencuri data rahasia korporasi sedikit demi sedikit (*slow data exfiltration*) tanpa memicu alarm keamanan.
+- **Denda Regulasi Akibat Ketiadaan Audit Trail**:
+  Standar kepatuhan perbankan internasional (**PCI-DSS Requirement 10**), regulasi kesehatan (**HIPAA**), dan **UU PDP No. 27/2022** mewajibkan penyimpanan jejak audit keamanan (*audit trail*) yang tidak dapat diubah selama minimal 1 tahun. Kegagalan mencatat insiden keamanan berisiko tuntutan pidana kelalaian manajemen dan denda finansial masif.
 
 ---
 
-### 3. Sasaran, Temuan & Eksekusi (Search, Find, and Execute)
-Metodologi pembuktian kegagalan logging dan telemetri:
+### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+Metodologi pengujian integritas telemetri keamanan:
 
 1. **Apa yang Dicari (What to Search)**:
-   - Endpoint autentikasi dan otorisasi hak istimewa: `/api/auth/login`, `/api/admin/role_escalate`.
-   - Aliran log keamanan di `/api/audit/logs`.
+   - Aliran log audit keamanan: `/api/audit/logs`, `/audit`, konsol SIEM.
+   - Perilaku sistem terhadap aksi berisiko tinggi: rentetan login gagal (*credential brute-force*), eskalasi peran pengguna (*role escalation*), dan perubahan hak akses admin.
 2. **Apa Temuan yang Menandakan Celah (Vulnerability Indicators)**:
-   - Melakukan berkali-kali percobaan login gagal pada `/api/auth/login` tidak menambah jumlah log pada `/api/audit/logs` dan `alerts_fired` tetap bernilai `0`.
-   - Melakukan eskalasi peran pada `/api/admin/role_escalate` berhasil memberikan wewenang administratif baru tanpa meninggalkan jejak audit (*audit_recorded: false*).
+   - Mengirimkan 5 kali percobaan login gagal berturut-turut ke `/api/auth/login` menghasilkan **0 entri log** pada tabel audit.
+   - Panggilan eskalasi wewenang eksekutif ke `/api/admin/role_escalate` berhasil dijalankan secara diam-diam tanpa memicu satupun notifikasi alert keamanan (*audit_recorded: false*).
 3. **Eksekusi Eksploitasi Terukur (Strategic Execution)**:
-   - Lakukan minimal 5 kali percobaan login gagal dengan password acak untuk mendemonstrasikan serangan tebakan kredensial tanpa alarm.
-   - Panggil endpoint eskalasi wewenang diam-diam `/api/admin/role_escalate` untuk akun `learner`.
-   - Ambil bukti flag autoritatif berformat `ZITERA{...}` yang dikembalikan sistem atas keberhasilan membuktikan kebutaan telemetri SOC!
+   - Kirimkan 5 percobaan login gagal berturut-turut ke endpoint autentikasi.
+   - Lakukan panggilan eskalasi peran akun `learner` menjadi `super_admin`.
+   - Buktikan bahwa seluruh aksi penyerangan tidak terdeteksi oleh SOC dan ekstraksi flag autoritatif `ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}`.
 
 ---
 
-### 4. Pondasi Kuat: Tiga Pilar Audit Log Keamanan
-Sistem audit yang memenuhi standar industri wajib mencakup:
-1. **Peristiwa Kritis yang Wajib Dicatat**:
-   - Setiap kegagalan dan keberhasilan login.
-   - Setiap eskalasi hak akses (*privilege changes*).
-   - Setiap akses ke data sensitif atau perubahan konfigurasi keamanan.
-2. **Konteks Lengkap Catatan Log**:
-   - Waktu dengan presisi UTC (`timestamp`).
-   - Alamat IP sumber dan identitas pengguna pemrakarsa (`actor`).
-   - Hasil tindakan (`outcome: SUCCESS / FAILED`).
-3. **Penyimpanan Terpusat & Anti-Tamper**:
-   - Log harus segera dialirkan ke sistem SIEM eksternal (Splunk, Elastic, Sentinel) dengan perizinan *Append-Only* agar tidak dapat dihapus oleh penyerang yang berhasil masuk ke server.
+### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+Strategi pembangunan telemetri pertahanan mutlak:
+- **Catat Seluruh Peristiwa Keamanan Kritis (Audit Event Logging)**: Setiap kegagalan login, percobaan bypass otorisasi, dan perubahan peran wewenang wajib dicatat dengan format terstruktur (JSON / CEF) mencakup timestamp UTC, IP sumber, username, dan jenis event.
+- **Hubungkan ke Sistem SIEM & Real-Time Alerting**: Sambungkan aliran log ke platform monitoring (Splunk, Elastic SIEM, Wazuh) dan buat aturan alarm otomatis (misal: $> 5$ kegagalan login dalam 1 menit langsung memicu notifikasi darurat ke tim SOC).
+- **Lindungi Integritas Log (*Append-Only & Write-Once*)**: Simpan log di server terisolasi dengan akses baca-saja (*read-only*) agar penyerang tidak dapat menghapus jejak kejahatan mereka setelah berhasil masuk.
+
+---
+
+### Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam laboratorium ini, kamu mengaudit sistem pelacakan armada kendaraan komersial: **FleetTrack Logistics / Zitera SOC Telemetry Console (Commercial Telematics & IoT Fleet Hub)** yang beroperasi pada port `8019`.
+
+Komponen arsitektur:
+- **Operations Audit Trail**: Endpoint `GET /api/audit/logs` yang menampilkan catatan operasional armada harian.
+- **Authentication Service**: Endpoint `POST /api/auth/login` yang memproses login operator.
+- **Privilege Escalation Route**: Endpoint `POST /api/admin/role_escalate` yang mengubah wewenang pengguna.
+- **Titik Buta Telemetri**: Sistem backend sama sekali tidak memiliki kode pencatatan log pada kegagalan autentikasi dan eskalasi wewenang.

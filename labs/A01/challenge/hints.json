@@ -19,7 +19,7 @@
     {
       "tier": 4,
       "type": "near_solution",
-      "hint": "Try accessing /invoice/42 or check the administrative export endpoint /api/invoice/42 while logged in as Alice."
+      "hint": "Try accessing /invoice/42 or /wire/42 directly while logged in as Alice."
     }
   ]
 }

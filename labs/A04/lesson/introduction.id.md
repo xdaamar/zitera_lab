@@ -1,54 +1,49 @@
-# A04: Cryptographic Failures — Kelemahan Enkripsi & Pembongkaran Hash
+# A04: Cryptographic Failures — Kelemahan Sandi & Kriptografi Usang
 
-Cryptographic Failures menempati peringkat ke-4 (**#4**) dalam daftar risiko keamanan web **OWASP Top 10:2025** (sebelumnya dikenal sebagai *Sensitive Data Exposure*). Kerentanan ini terjadi ketika sistem menggunakan algoritma kriptografi usang yang telah terbukti rusak secara matematis, mengabaikan penggunaan *salt* acak pada penyimpanan kata sandi, atau gagal melindungi data sensitif saat transit dan saat tersimpan (*at rest*).
-
----
-
-### 1. Alasan Kuat / Mengapa Ini Sangat Penting (Why It Matters)
-Banyak organisasi perbankan dan enterprise keliru berasumsi bahwa "karena sudah di-hash, data pasti aman". Faktanya:
-
-- **Bencana Sejarah Kebocoran Kredensial**:
-  - **Kebocoran LinkedIn (117 Juta Akun)**: LinkedIn menyimpan password pengguna menggunakan SHA-1 tanpa *salt*. Akibatnya, lebih dari 90% password berhasil dibongkar penyerang dalam hitungan hari menggunakan tabel pencarian (*rainbow tables*).
-  - **Insiden Adobe (153 Juta Akun)**: Menggunakan enkripsi simetris mode ECB (*Electronic Codebook*) tanpa IV acak, sehingga pola data identik menghasilkan ciphertext identik yang memudahkan peretas merekonstruksi password asli.
-- **Sanksi Kepatuhan Standar Perbankan (PCI-DSS & ISO 27001)**:
-  Standar keamanan industri kartu pembayaran (PCI-DSS v4.0) secara tegas melarang penggunaan MD5 dan SHA-1 untuk fungsi hashing password atau integritas data finansial. Pelanggaran standar ini berakibat pencabutan lisensi pemrosesan kartu kredit dan denda berat.
+Cryptographic Failures menempati peringkat ke-4 (**#4**) dalam daftar risiko **OWASP Top 10:2025**. Kerentanan ini sebelumnya dikenal sebagai *Sensitive Data Exposure*, berfokus pada kegagalan sistem dalam melindungi kerahasiaan (*confidentiality*) dan integritas (*integrity*) data sensitif menggunakan algoritma kriptografi yang kuat dan modern.
 
 ---
 
-### 2. Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
-Dalam praktikum ini, Anda mengaudit gerbang pengelola kunci perbankan: **SafeKey Corporate Vault (Banking Encryption & Credential Vault)** yang beroperasi pada port `8014`.
+### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+Kriptografi adalah benteng pertahanan terakhir data sensitif saat database berhasil dibobol penyerang. Jika algoritma kriptografinya lemah:
 
-Arsitektur sistem SafeKey Vault mencakup:
-- **Banking HSM Appliance**: Mensimulasikan modul keamanan perangkat keras (Hardware Security Module) FIPS 140-2 Level 3 yang mengelola sertifikat interbank SWIFT dan sertifikat otoritas akar (Root CA).
-- **Legacy Migration Audit Endpoint**: Rute `/api/audit/hashes` yang mengekspos tabel audit migrasi kredensial lama, membocorkan hash password operator perbankan tanpa *salt*.
-- **Vault Authentication Gate**: Formulir masuk `/login` yang memverifikasi kata sandi pengguna dengan menghitung nilai hash MD5 sederhana dan mencocokkannya ke database.
-- **Master Cryptographic Enclave**: Halaman rahasia `/vault` yang hanya dapat diakses oleh Security Officer (`admin`) dan menyimpan Master Banking Key Authorization Seal.
+- **Kebocoran Kredensial Pengguna Massal**:
+  Jika penyerang berhasil mencuri tabel pengguna yang memuat hash password MD5 atau SHA-1 tanpa salt, jutaan kata sandi nasabah dapat didekripsi dalam hitungan detik menggunakan tabel pencarian siap pakai (*Rainbow Tables*).
+  - Kasus nyata kebocoran data raksasa seperti insiden **LinkedIn (2012)**: 6,5 juta hash SHA-1 tanpa salt bocor ke forum hacker, di mana lebih dari 90% password berhasil dibongkar dalam waktu kurang dari seminggu.
+- **Sanksi Kepatuhan Hukum Berat**:
+  Standar industri perbankan (**PCI-DSS v4.0**), regulasi privasi internasional (**GDPR**), dan undang-undang nasional (**UU PDP No. 27/2022**) secara eksplisit melarang penggunaan MD5 dan SHA-1 untuk melindungi kredensial atau nomor kartu kredit. Pelanggaran mengakibatkan pencabutan lisensi operasional sistem pembayaran dan denda puluhan miliar rupiah.
 
 ---
 
-### 3. Sasaran, Temuan & Eksekusi (Search, Find, and Execute)
-Metodologi audit kriptografi terstruktur:
+### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+Metodologi audit kriptografi profesional:
 
 1. **Apa yang Dicari (What to Search)**:
-   - Endpoint audit kredensial atau ekspor data pengguna: `/api/audit/hashes`.
-   - String hash heksadesimal dengan panjang 32 karakter (karakteristik MD5: 128-bit heksadesimal).
+   - Endpoint audit, telemetri, atau ekspor data kredensial: `/api/audit/hashes`, `/api/v1/users/export`.
+   - String hash berukuran 32 karakter heksadesimal (MD5) atau 40 karakter heksadesimal (SHA-1).
+   - Indikator ketiadaan salt (karakter acak tambahan yang unik per pengguna).
 2. **Apa Temuan yang Menandakan Celah (Vulnerability Indicators)**:
-   - Hash password disimpan dalam bentuk `MD5 (Unsalted)`.
-   - Hash akun administrator (`admin`) adalah `21232f297a57a5a743894a0e4a801fc3`.
+   - Endpoint audit mengembalikan hash bertipe `MD5 (Unsalted)` atau `Legacy Migration Hash`.
+   - Hash `21232f297a57a5a743894a0e4a801fc3` untuk pengguna `admin` langsung cocok dengan kamus kata sandi standar (`admin`).
 3. **Eksekusi Eksploitasi Terukur (Strategic Execution)**:
-   - Gunakan tabel pencarian (*lookup table* / rainbow table) atau kalkulator hash untuk merekonstruksi teks asli (*plaintext*) dari hash tersebut (dihasilkan dari kata sandi sederhana `admin`).
-   - Lakukan autentikasi pada formulir `/login` menggunakan akun `admin` dan kata sandi yang telah dipecahkan.
-   - Buka konsol Master Key Vault di `/vault` dan eksfiltrasi segel enkripsi autoritatif `ZITERA{...}`.
+   - Lakukan pembalikan hash (*hash reversal / lookup*) terhadap hash administrator.
+   - Lakukan autentikasi sah pada form login `/login` menggunakan kredensial hasil pemecahan.
+   - Akses enklave brankas master `/vault` untuk mengekstraksi flag autoritatif `ZITERA{cryp70_f41lur35_w34k_k3y_2026}`.
 
 ---
 
-### 4. Pondasi Kuat: Hashing vs Enkripsi vs Encoding
-Pahami perbedaan mendasar agar tidak terjadi kerancuan terminologi:
+### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+Panduan pengerasan kriptografi standar:
+- **Tinggalkan MD5 dan SHA-1**: Gunakan fungsi hash adaptif yang sengaja dibuat lambat dan tahan serangan GPU: **Argon2id** (standar emas saat ini), **bcrypt** (work factor $\ge 12$), atau **PBKDF2** (iterasi $\ge 600.000$).
+- **Gunakan Salt Unik Kriptografis Secara Otomatis**: Setiap password wajib diberi salt acak unik sebelum di-hash agar nilai hash dari kata sandi yang sama menjadi berbeda bagi tiap pengguna.
+- **Lindungi Data Bergerak & Diam**: Gunakan TLS 1.3 untuk komunikasi jaringan, dan enkripsi data tersimpan (*data-at-rest*) menggunakan AES-256-GCM.
 
-| Konsep | Karakteristik | Sifat Pembalikan | Contoh Penggunaan Tepat |
-| :--- | :--- | :--- | :--- |
-| **Encoding** | Representasi format data (Base64, Hex) | Dapat dibalik tanpa kunci rahasia | Transmisi data biner via HTTP |
-| **Encryption** | Pengacakan data menggunakan kunci kriptografis | Dapat didekripsi jika memiliki kunci | Kerahasiaan data tersimpan (AES-256-GCM) |
-| **Hashing** | Fungsi matematika satu arah (*one-way*) | Tidak dapat didekripsi secara matematis | Verifikasi integritas & kata sandi |
+---
 
-> **Prinsip Pertahanan Modern:** Kata sandi **HARUS** disimpan menggunakan fungsi hash yang lambat (*memory-hard slow hashing functions*) seperti **Argon2id**, **bcrypt**, atau **PBKDF2** dengan *salt* acak unik per pengguna minimal 16-byte untuk menggagalkan komputasi GPU dan rainbow table.
+### Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam laboratorium ini, kamu menghadapi brankas kredensial perbankan: **SafeKey Corporate Vault / CryptoVault KMS (Banking Key Management & Credential Vault)** yang beroperasi pada port `8014`.
+
+Komponen arsitektur:
+- **Legacy Audit Endpoint**: Jalur `/api/audit/hashes` yang mengekspos hash kata sandi staf perbendaharaan tanpa salt.
+- **Authentication Gateway**: Endpoint `/login` yang memvalidasi kecocokan hash masukan pengguna dengan hash database.
+- **Master Cryptographic Vault**: Enklave tertutup `/vault` yang hanya dapat diakses setelah login sukses sebagai Chief Information Security Officer (`admin`).

