@@ -3,17 +3,35 @@ import {
   Sparkles,
   Database,
   User,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
 } from 'lucide-react'
 import { getCurrentUser, logout, subscribeAuth, type UserModel } from './authService'
 import { getAvatarById } from './AvatarRegistry'
+import { ZOOM_PRESETS, MIN_ZOOM, MAX_ZOOM } from './ZoomControls'
 
 interface SettingsViewProps {
   cursorEnabled: boolean
   onToggleCursor: (val: boolean) => void
   onOpenAuth: () => void
+  zoom: number
+  onZoomIn: () => void
+  onZoomOut: () => void
+  onResetZoom: () => void
+  onSetZoom: (val: number) => void
 }
 
-export function SettingsView({ cursorEnabled, onToggleCursor, onOpenAuth }: SettingsViewProps) {
+export function SettingsView({
+  cursorEnabled,
+  onToggleCursor,
+  onOpenAuth,
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onResetZoom,
+  onSetZoom,
+}: SettingsViewProps) {
   const [currentUser, setCurrentUser] = useState<UserModel | null>(getCurrentUser())
   const [language, setLanguage] = useState<'id' | 'en'>('en')
 
@@ -184,6 +202,70 @@ export function SettingsView({ cursorEnabled, onToggleCursor, onOpenAuth }: Sett
               >
                 ID
               </button>
+            </div>
+          </div>
+
+          {/* UI Zoom & Display Scaling */}
+          <div className="p-3.5 bg-[#F7F5F0] rounded-lg border-2 border-[#E4DFD7] space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14] flex items-center gap-1.5">
+                  <ZoomIn size={14} className="text-[#0F766E]" />
+                  <span>Display Scaling & Zoom</span>
+                </div>
+                <div className="text-[10px] text-[#5C5347] font-['JetBrains_Mono']">
+                  Sesuaikan ukuran teks, layout, dan elemen aplikasi (Ctrl + / - / Wheel)
+                </div>
+              </div>
+
+              {/* Stepper + Current Value */}
+              <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border-2 border-[#E4DFD7] shadow-xs">
+                <button
+                  onClick={onZoomOut}
+                  disabled={zoom <= MIN_ZOOM}
+                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F0EDE8] active:bg-[#E6E2D8] text-[#5C5347] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  title="Zoom Out (Ctrl -)"
+                >
+                  <ZoomOut size={13} />
+                </button>
+                <button
+                  onClick={onResetZoom}
+                  className="px-2 py-0.5 rounded text-xs font-bold font-['JetBrains_Mono'] text-[#0F766E] hover:bg-[#CCFBF1] cursor-pointer flex items-center gap-1"
+                  title="Klik untuk Reset ke 100% (Ctrl 0)"
+                >
+                  <span>{Math.round(zoom * 100)}%</span>
+                  {Math.round(zoom * 100) !== 100 && <RotateCcw size={10} />}
+                </button>
+                <button
+                  onClick={onZoomIn}
+                  disabled={zoom >= MAX_ZOOM}
+                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F0EDE8] active:bg-[#E6E2D8] text-[#5C5347] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  title="Zoom In (Ctrl +)"
+                >
+                  <ZoomIn size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+              <span className="text-[10px] font-['JetBrains_Mono'] text-[#9C9080] mr-1">Presets:</span>
+              {ZOOM_PRESETS.map((preset) => {
+                const isActive = Math.round(zoom * 100) === Math.round(preset * 100)
+                return (
+                  <button
+                    key={preset}
+                    onClick={() => onSetZoom(preset)}
+                    className={`px-2.5 py-1 text-[11px] font-['JetBrains_Mono'] font-bold rounded-md border transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-[#0F766E] text-white border-[#094D47] shadow-xs'
+                        : 'bg-white text-[#5C5347] border-[#E4DFD7] hover:border-[#2DD4BF] hover:text-[#0F766E]'
+                    }`}
+                  >
+                    {Math.round(preset * 100)}%
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

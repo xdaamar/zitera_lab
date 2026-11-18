@@ -10,6 +10,7 @@ import { ToolsView } from './ToolsView'
 import { EnvironmentView } from './EnvironmentView'
 import { SettingsView } from './SettingsView'
 import { initAuth } from './authService'
+import { useZoomManager, ZoomFloatingWidget, ZoomToast } from './ZoomControls'
 import './App.css'
 
 export function App() {
@@ -24,6 +25,8 @@ export function App() {
       return true
     }
   })
+
+  const { zoom, zoomIn, zoomOut, resetZoom, setZoom, toastVisible } = useZoomManager()
 
   useEffect(() => {
     initAuth()
@@ -92,6 +95,11 @@ export function App() {
                   cursorEnabled={cursorEnabled}
                   onToggleCursor={handleToggleCursor}
                   onOpenAuth={() => setAuthOpen(true)}
+                  zoom={zoom}
+                  onZoomIn={zoomIn}
+                  onZoomOut={zoomOut}
+                  onResetZoom={resetZoom}
+                  onSetZoom={setZoom}
                 />
               )}
             </>
@@ -99,7 +107,18 @@ export function App() {
         </div>
       </main>
 
-      {/* 4. Auth & Avatar Modal Dialog */}
+      {/* 4. Quick Zoom Floating Capsule (Ctrl + / - / Wheel / Click) */}
+      <ZoomFloatingWidget
+        zoom={zoom}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
+        onReset={resetZoom}
+      />
+
+      {/* 5. Zoom HUD Toast Badge */}
+      <ZoomToast zoom={zoom} visible={toastVisible} />
+
+      {/* 6. Auth & Avatar Modal Dialog */}
       <AuthDialog isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
   )
