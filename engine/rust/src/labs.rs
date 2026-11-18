@@ -601,10 +601,16 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
             })
             .unwrap_or(false);
 
+        let candidate_root = workspace_root.join("engine/zitera-engine.exe");
+        let candidate_direct = workspace_root.join("zitera-engine.exe");
         let candidate_release = workspace_root.join("engine/rust/target/release/zitera-engine.exe");
         let candidate_debug = workspace_root.join("engine/rust/target/debug/zitera-engine.exe");
         let engine_exe = if is_engine_binary && current_exe.exists() {
             current_exe
+        } else if candidate_root.exists() {
+            candidate_root
+        } else if candidate_direct.exists() {
+            candidate_direct
         } else if candidate_release.exists() {
             candidate_release
         } else if candidate_debug.exists() {

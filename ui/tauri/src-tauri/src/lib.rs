@@ -19,7 +19,7 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 /// Locate `zitera-engine.exe` next to the current executable, bundled resources,
 /// common workspace dev locations, or fall back to PATH.
 fn engine_path(app: &tauri::AppHandle) -> String {
-    // 1. Try next to current exe (production / bundle)
+    // 1. Try next to current exe (production / bundle / run folder)
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(parent) = exe_path.parent() {
             let candidate = parent.join("zitera-engine.exe");
@@ -29,6 +29,22 @@ fn engine_path(app: &tauri::AppHandle) -> String {
             let candidate_res = parent.join("resources").join("zitera-engine.exe");
             if candidate_res.exists() {
                 return candidate_res.to_string_lossy().into_owned();
+            }
+        }
+
+        // Walk up from current exe directory to find repository engine binaries
+        let mut cur = exe_path;
+        while cur.pop() {
+            let candidates = [
+                cur.join("zitera-engine.exe"),
+                cur.join("engine").join("zitera-engine.exe"),
+                cur.join("engine").join("rust").join("target").join("release").join("zitera-engine.exe"),
+                cur.join("engine").join("rust").join("target").join("debug").join("zitera-engine.exe"),
+            ];
+            for cand in &candidates {
+                if cand.exists() {
+                    return cand.to_string_lossy().into_owned();
+                }
             }
         }
     }
@@ -41,20 +57,22 @@ fn engine_path(app: &tauri::AppHandle) -> String {
         }
     }
 
-    // 3. Try relative to current working directory (development)
-    if let Ok(cwd) = std::env::current_dir() {
-        let candidates = [
-            cwd.join("engine").join("zitera-engine.exe"),
-            cwd.join("engine").join("rust").join("target").join("release").join("zitera-engine.exe"),
-            cwd.join("engine").join("rust").join("target").join("debug").join("zitera-engine.exe"),
-            cwd.join("..").join("..").join("engine").join("zitera-engine.exe"),
-            cwd.join("..").join("..").join("engine").join("rust").join("target").join("release").join("zitera-engine.exe"),
-            cwd.join("..").join("..").join("engine").join("rust").join("target").join("debug").join("zitera-engine.exe"),
-        ];
-
-        for cand in &candidates {
-            if cand.exists() {
-                return cand.to_string_lossy().into_owned();
+    // 3. Try relative to current working directory (walking up)
+    if let Ok(mut cwd) = std::env::current_dir() {
+        loop {
+            let candidates = [
+                cwd.join("zitera-engine.exe"),
+                cwd.join("engine").join("zitera-engine.exe"),
+                cwd.join("engine").join("rust").join("target").join("release").join("zitera-engine.exe"),
+                cwd.join("engine").join("rust").join("target").join("debug").join("zitera-engine.exe"),
+            ];
+            for cand in &candidates {
+                if cand.exists() {
+                    return cand.to_string_lossy().into_owned();
+                }
+            }
+            if !cwd.pop() {
+                break;
             }
         }
     }

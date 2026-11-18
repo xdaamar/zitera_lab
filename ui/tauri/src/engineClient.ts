@@ -474,7 +474,13 @@ export async function getLabStatus(labId: string): Promise<LabItem> {
     return normalizeLabItem(rawObj)
   } catch {
     const found = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
-    return found ?? MOCK_LABS[0]
+    const fallback = found ? { ...found } : { ...MOCK_LABS[0] }
+    // If in Tauri desktop app, never falsely report running on IPC failure
+    if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
+      fallback.running = false
+      fallback.status = 'STOPPED'
+    }
+    return fallback
   }
 }
 
@@ -484,13 +490,24 @@ export async function startLab(labId: string): Promise<string> {
     if (typeof res === 'string') {
       try {
         const parsed = JSON.parse(res)
+        if (parsed.success === false) {
+          throw new Error(parsed.error || parsed.message || 'Gagal memulai lab')
+        }
         return parsed.data || parsed.message || res
-      } catch {
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('Gagal')) {
+          throw e
+        }
         return res
       }
     }
     return String(res)
-  } catch {
+  } catch (err: unknown) {
+    if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
+      console.error('[startLab] Tauri engine IPC error:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(msg || 'Gagal menyalakan engine backend.')
+    }
     const lab = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
     if (lab) lab.running = true
     return `[MOCK] Lab ${labId} started on port ${lab?.port ?? 8011}`
@@ -509,7 +526,12 @@ export async function stopLab(labId: string): Promise<string> {
       }
     }
     return String(res)
-  } catch {
+  } catch (err: unknown) {
+    if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
+      console.error('[stopLab] Tauri engine IPC error:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(msg || 'Gagal menghentikan engine backend.')
+    }
     const lab = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
     if (lab) lab.running = false
     return `[MOCK] Lab ${labId} stopped.`
