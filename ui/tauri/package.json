@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:debug": "tauri build --debug --no-bundle",
     "tauri": "tauri",
     "lint": "oxlint",
     "preview": "vite preview"
