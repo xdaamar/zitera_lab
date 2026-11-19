@@ -1,5 +1,5 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Prevents additional console/CMD popup window on Windows in both debug and release
+#![windows_subsystem = "windows"]
 
 fn main() {
   app_lib::run();
