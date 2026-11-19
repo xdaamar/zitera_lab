@@ -48,7 +48,7 @@ export function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#FCFBF8] text-[#1E1A14]">
+    <div className="flex h-full w-full overflow-hidden bg-[#FCFBF8] text-[#1E1A14]">
       {/* 1. Custom Kawaii Cat Paw Cursor with sparkle trail */}
       <KawaiiCursor enabled={cursorEnabled} />
 

@@ -7,6 +7,24 @@ export const ZOOM_STEP = 0.1
 
 export const ZOOM_PRESETS = [0.75, 0.9, 1.0, 1.1, 1.25, 1.5]
 
+/**
+ * Invokes native WebView2 controller zoom via Tauri IPC.
+ * This changes the browser zoom factor directly (identical to native browser Ctrl+/Ctrl-).
+ * Layout reflows and fills 100% of the window without letterboxing or canvas shrink.
+ */
+async function setNativeZoom(scale: number): Promise<boolean> {
+  try {
+    if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke('set_app_zoom', { scale })
+      return true
+    }
+  } catch (err) {
+    console.warn('[Zoom] Native webview zoom invoke failed:', err)
+  }
+  return false
+}
+
 export function useZoomManager() {
   const [zoom, setZoomState] = useState<number>(() => {
     try {
@@ -34,7 +52,28 @@ export function useZoomManager() {
     } catch {
       // ignore
     }
-    ;(document.documentElement as HTMLElement).style.zoom = String(clamped)
+
+    setNativeZoom(clamped).then((ok) => {
+      if (ok) {
+        // Clear any lingering CSS zoom properties
+        if (document.documentElement.style.zoom) {
+          document.documentElement.style.zoom = ''
+        }
+        if (document.body.style.zoom) {
+          document.body.style.zoom = ''
+          document.body.style.width = ''
+          document.body.style.height = ''
+        }
+      } else {
+        // Fallback for regular web browsers (dev preview):
+        // Scale body while dynamically adjusting width/height so it fills 100% of the viewport seamlessly.
+        document.documentElement.style.zoom = ''
+        const body = document.body
+        body.style.zoom = String(clamped)
+        body.style.width = `${(100 / clamped).toFixed(3)}vw`
+        body.style.height = `${(100 / clamped).toFixed(3)}vh`
+      }
+    })
 
     if (showToast) {
       setToastVisible(true)
@@ -49,8 +88,8 @@ export function useZoomManager() {
 
   // Apply on mount
   useEffect(() => {
-    ;(document.documentElement as HTMLElement).style.zoom = String(zoom)
-  }, [zoom])
+    applyZoom(zoom, false)
+  }, [applyZoom, zoom])
 
   const zoomIn = useCallback(() => {
     applyZoom(zoom + ZOOM_STEP)

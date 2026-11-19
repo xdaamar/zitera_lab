@@ -316,6 +316,12 @@ fn clear_auth_session(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Sets the webview zoom factor natively (equivalent to browser Ctrl+ / Ctrl-).
+#[tauri::command]
+fn set_app_zoom(window: tauri::WebviewWindow, scale: f64) -> Result<(), String> {
+    window.set_zoom(scale).map_err(|e| e.to_string())
+}
+
 // ---------------------------------------------------------------------------
 // App entry-point
 // ---------------------------------------------------------------------------
@@ -354,6 +360,8 @@ pub fn run() {
             get_auth_session,
             save_auth_session,
             clear_auth_session,
+            // Window Zoom
+            set_app_zoom,
         ])
         .run(tauri::generate_context!())
         .expect("error while building tauri application");
