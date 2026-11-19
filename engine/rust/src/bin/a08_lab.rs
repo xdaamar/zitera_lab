@@ -1,9 +1,10 @@
-// A08: Software or Data Integrity Failures — Native Sandboxed Lab Binary
-// Simulates an IoT Edge Device / Firmware Service that ingests update packages
-// and configuration manifests without cryptographic verification or signature checking:
-//   - Ingests untrusted JSON configuration payloads directly into runtime state
-//   - Bypasses digital signature / hash verification
-//   - Exposes master flag when unverified/tampered package is deployed
+// A08: Software or Data Integrity Failures — DataFlow Analytics
+// Enterprise BI & Data Processing Engine
+// Simulates an enterprise analytics platform with intentional software/data integrity flaws:
+//   - Ingests untrusted pipeline configurations and models without cryptographic signature verification
+//   - Bypasses HMAC integrity digest checking
+//   - Interactive BI model catalog and pipeline execution CRUD
+//   - Exposes master flag when unverified/tampered pipeline package is deployed
 //
 // Communicates via stdio JSON protocol (StdioMessage format).
 
@@ -13,15 +14,16 @@ use std::process::exit;
 
 const FLAG: &str = "ZITERA{1nt3gr1ty_f41lur3_un51gn3d_p4ck4g3}";
 const LAB_ID: &str = "A08";
-const LAB_VERSION: &str = "1.0.0";
+const LAB_VERSION: &str = "2.0.0";
 
-#[allow(dead_code)]
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
-struct ConfigParams {
-    telemetry_level: String,
-    enforce_mtls: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    debug_backdoor: Option<bool>,
+struct PipelineModel {
+    id: u32,
+    name: String,
+    framework: String,
+    ingestion_rate: String,
+    status: String,
+    last_verified: String,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -40,13 +42,15 @@ impl DeviceConfig {
             signer: "zitera-root-authority".to_string(),
             params: serde_json::json!({
                 "telemetry_level": "standard",
-                "enforce_mtls": true
+                "enforce_mtls": true,
+                "sandbox_isolation": "strict"
             }),
         }
     }
 }
 
 struct AppState {
+    models: Vec<PipelineModel>,
     active_config: DeviceConfig,
     tampered_accepted: bool,
     deployment_count: u32,
@@ -55,6 +59,32 @@ struct AppState {
 impl AppState {
     fn new() -> Self {
         Self {
+            models: vec![
+                PipelineModel {
+                    id: 1,
+                    name: "Revenue_Forecasting_Q4".to_string(),
+                    framework: "PyTorch 2.3".to_string(),
+                    ingestion_rate: "12,400 ev/s".to_string(),
+                    status: "Active".to_string(),
+                    last_verified: "Signed (Root CA)".to_string(),
+                },
+                PipelineModel {
+                    id: 2,
+                    name: "Customer_Churn_Classifier".to_string(),
+                    framework: "Scikit-Learn".to_string(),
+                    ingestion_rate: "4,200 ev/s".to_string(),
+                    status: "Active".to_string(),
+                    last_verified: "Signed (Root CA)".to_string(),
+                },
+                PipelineModel {
+                    id: 3,
+                    name: "Executive_Audit_Stream".to_string(),
+                    framework: "Apache Arrow".to_string(),
+                    ingestion_rate: "1,850 ev/s".to_string(),
+                    status: "Idle".to_string(),
+                    last_verified: "Signed (Root CA)".to_string(),
+                },
+            ],
             active_config: DeviceConfig::default_factory(),
             tampered_accepted: false,
             deployment_count: 0,
@@ -69,27 +99,156 @@ impl AppState {
 
 fn css() -> &'static str {
     r#"
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f1f5f9; margin: 0; padding: 32px; }
-.card { background: #131b2e; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; max-width: 760px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-.header { border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.badge { background: #0284c7; color: #e0f2fe; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-.banner { background: #1e1b4b; border-left: 4px solid #6366f1; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #e0e7ff; line-height: 1.5; border-radius: 4px; }
-.warning { background: #451a03; border-left: 4px solid #f59e0b; padding: 12px; margin-bottom: 20px; font-size: 13px; color: #fef3c7; border-radius: 4px; }
-.success-banner { background: #064e3b; border-left: 4px solid #10b981; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #ecfdf5; border-radius: 4px; }
-.pre-box { background: #090d16; border: 1px solid #1e293b; padding: 14px; border-radius: 6px; overflow-x: auto; color: #38bdf8; font-family: monospace; font-size: 13px; }
-.field { margin-bottom: 16px; }
-label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
-textarea, input[type="text"] { width: 100%; box-sizing: border-box; padding: 10px; background: #090d16; border: 1px solid #334155; color: white; border-radius: 6px; font-family: monospace; font-size: 13px; }
-button { padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 13px; }
-.btn-primary { background: #0284c7; color: white; }
-.btn-primary:hover { background: #0369a1; }
-.btn-danger { background: #b91c1c; color: white; }
-.btn-danger:hover { background: #991b1b; }
-.btn-secondary { background: #334155; color: white; margin-left: 8px; }
-.btn-secondary:hover { background: #475569; }
-.flag-box { background: #064e3b; border: 2px dashed #10b981; border-radius: 8px; padding: 16px; margin-top: 18px; color: #a7f3d0; font-family: monospace; font-size: 15px; font-weight: bold; text-align: center; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+:root {
+    --bg-page: #f8fafc;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --accent-light: #eef2ff;
+    --success: #10b981;
+    --success-light: #ecfdf5;
+    --danger: #ef4444;
+    --danger-light: #fef2f2;
+    --warning: #f59e0b;
+    --warning-light: #fffbeb;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 32px 20px;
+}
+.container { max-width: 1040px; margin: 0 auto; }
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+}
+.header-title h1 { font-size: 20px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.header-title p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 9999px;
+}
+.badge-indigo { background: var(--accent-light); color: var(--accent); border: 1px solid #c7d2fe; }
+.badge-emerald { background: var(--success-light); color: var(--success); border: 1px solid #a7f3d0; }
+.badge-amber { background: var(--warning-light); color: #d97706; border: 1px solid #fde68a; }
+.badge-rose { background: var(--danger-light); color: var(--danger); border: 1px solid #fecaca; }
+.banner-info {
+    background: #eef2ff;
+    border-left: 4px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #312e81;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+.banner-success {
+    background: var(--success-light);
+    border-left: 4px solid var(--success);
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #065f46;
+    margin-bottom: 24px;
+}
+.banner-warning {
+    background: var(--warning-light);
+    border-left: 4px solid var(--warning);
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #92400e;
+    margin-bottom: 24px;
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+th { background: #f1f5f9; padding: 12px 14px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); }
+td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8fafc; }
+.pre-box {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 14px;
+    color: #38bdf8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+.field { margin-bottom: 14px; }
+label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+input[type="text"], textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+textarea { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.4; }
+input:focus, textarea:focus { border-color: var(--accent); ring: 2px solid #c7d2fe; }
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: #f1f5f9; color: var(--text-secondary); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: #dc2626; }
+.flag-box {
+    background: #ecfdf5;
+    border: 2px dashed #10b981;
+    border-radius: 8px;
+    padding: 18px;
+    margin: 20px 0;
+    color: #065f46;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+}
 "#
 }
 
@@ -138,59 +297,110 @@ fn urldecode(input: &str) -> String {
 fn render_index_page(state: &AppState, message: Option<(&str, bool)>) -> String {
     let config_json = serde_json::to_string_pretty(&state.active_config).unwrap_or_default();
     let mut html = String::new();
-    html.push_str("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>Zitera Edge Device — Firmware & Config Ingestion (A08)</title>");
+    html.push_str("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">");
+    html.push_str("<title>DataFlow Analytics — Enterprise BI & Ingestion Hub</title>");
     html.push_str("<style>");
     html.push_str(css());
-    html.push_str("</style></head><body><div class=\"card\">");
-    
-    html.push_str("<div class=\"header\"><div><h2 style=\"margin: 0;\">Zitera Edge // Firmware & Config Ingestion</h2>");
-    html.push_str("<div style=\"color: #94a3b8; font-size: 12px; margin-top: 4px;\">OWASP A08:2025 • Software or Data Integrity Failures</div></div>");
-    html.push_str("<span class=\"badge\">LAB A08 • PORT 8018</span></div>");
+    html.push_str("</style></head><body><div class=\"container\">");
 
-    html.push_str("<div class=\"banner\"><strong>INTEGRITY FLAW AUDIT:</strong> The device ingestion service at <code>POST /api/deploy_update</code> applies incoming JSON configuration payloads directly without validating cryptographic signatures, public key certificates, or HMAC integrity digests.</div>");
+    // Header
+    html.push_str("<div class=\"card\"><div class=\"header\">");
+    html.push_str("<div class=\"header-title\"><h1>📊 DataFlow Analytics</h1>");
+    html.push_str("<p>Enterprise BI Engine & Pipeline Configuration Ingestion (OWASP A08:2025)</p></div>");
+    html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
+    html.push_str("<span class=\"badge badge-indigo\">PORT 8018</span>");
+    if state.tampered_accepted {
+        html.push_str("<span class=\"badge badge-rose\">INTEGRITY COMPROMISED</span>");
+    } else {
+        html.push_str("<span class=\"badge badge-emerald\">SIGNATURES ENFORCED</span>");
+    }
+    html.push_str("</div></div>");
+
+    // Info Banner
+    html.push_str("<div class=\"banner-info\">");
+    html.push_str("<strong>DATA INTEGRITY AUDIT NOTICE:</strong> DataFlow processes automated BI analytics pipelines. ");
+    html.push_str("The backend configuration loader at <code>POST /api/deploy_update</code> receives pipeline definitions. ");
+    html.push_str("Although enterprise guidelines mandate cryptographic digital signatures, the parser blindly accepts deserialized JSON packages where <code>signature_verified</code> is falsified or <code>debug_backdoor: true</code> is injected, bypassing integrity validation entirely.");
+    html.push_str("</div>");
 
     if let Some((msg, is_err)) = message {
         if is_err {
-            html.push_str(&format!("<div class=\"warning\">⚠ {}</div>", html_escape(msg)));
+            html.push_str(&format!("<div class=\"banner-warning\">⚠ {}</div>", html_escape(msg)));
         } else {
-            html.push_str(&format!("<div class=\"success-banner\">✓ {}</div>", html_escape(msg)));
+            html.push_str(&format!("<div class=\"banner-success\">✓ {}</div>", html_escape(msg)));
         }
     }
 
     if state.tampered_accepted {
         html.push_str("<div class=\"flag-box\">");
-        html.push_str("<div>SECURITY INTEGRITY VIOLATION DETECTED! UNVERIFIED PACKAGE ACTIVE:</div>");
-        html.push_str(&format!("<div style=\"margin-top: 8px; font-size: 16px;\">{}</div>", FLAG));
-        html.push_str("</div><br/>");
+        html.push_str("<div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;\">SECURITY INTEGRITY VIOLATION DETECTED // MASTER ANALYTICS KERNEL UNLOCKED:</div>");
+        html.push_str(&format!("<div style=\"font-size: 16px;\">{}</div>", FLAG));
+        html.push_str("</div>");
     }
 
-    html.push_str("<div class=\"grid\"><div>");
-    html.push_str("<h3 style=\"margin-top: 0; font-size: 15px; color: #38bdf8;\">Active Device Configuration</h3>");
+    // Two Columns
+    html.push_str("<div class=\"grid-2\">");
+
+    // Column 1: Active BI Models
+    html.push_str("<div>");
+    html.push_str("<h2 style=\"font-size: 15px; font-weight: 700; margin-bottom: 12px;\">Active Analytics Pipelines</h2>");
+    html.push_str("<div class=\"table-wrap\"><table><thead><tr>");
+    html.push_str("<th>Model Name</th><th>Framework</th><th>Throughput</th><th>Integrity</th>");
+    html.push_str("</tr></thead><tbody>");
+    for m in &state.models {
+        html.push_str("<tr>");
+        html.push_str(&format!("<td><strong>{}</strong></td>", html_escape(&m.name)));
+        html.push_str(&format!("<td><code>{}</code></td>", html_escape(&m.framework)));
+        html.push_str(&format!("<td>{}</td>", html_escape(&m.ingestion_rate)));
+        html.push_str(&format!("<td><span class=\"badge badge-emerald\">{}</span></td>", html_escape(&m.last_verified)));
+        html.push_str("</tr>");
+    }
+    html.push_str("</tbody></table></div>");
+
+    // Add Model Form
+    html.push_str("<div style=\"margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);\">");
+    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; margin-bottom: 10px;\">Register New Analytics Model</h3>");
+    html.push_str("<form method=\"POST\" action=\"/models/new\">");
+    html.push_str("<div class=\"field\"><label>Model Identifier</label><input type=\"text\" name=\"name\" placeholder=\"e.g. Anomaly_Detection_v1\" required></div>");
+    html.push_str("<div class=\"field\"><label>Execution Framework</label><input type=\"text\" name=\"framework\" placeholder=\"e.g. ONNX Runtime / PyTorch\" required></div>");
+    html.push_str("<div class=\"field\"><label>Target Ingestion Throughput</label><input type=\"text\" name=\"throughput\" placeholder=\"e.g. 8,500 ev/s\" required></div>");
+    html.push_str("<button type=\"submit\" class=\"btn btn-secondary\" style=\"width: 100%;\">Register Model</button>");
+    html.push_str("</form></div>");
+
+    html.push_str("</div>");
+
+    // Column 2: Ingestion Manifest & Config
+    html.push_str("<div>");
+    html.push_str("<h2 style=\"font-size: 15px; font-weight: 700; margin-bottom: 12px;\">Active Kernel Runtime Manifest</h2>");
     html.push_str(&format!("<div class=\"pre-box\">{}</div>", html_escape(&config_json)));
-    html.push_str("</div><div>");
-    html.push_str("<h3 style=\"margin-top: 0; font-size: 15px; color: #38bdf8;\">Deploy Untrusted Update Package</h3>");
+
+    html.push_str("<div style=\"margin-top: 20px;\">");
+    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; margin-bottom: 8px;\">Deploy Untrusted Configuration Package</h3>");
     html.push_str("<form method=\"POST\" action=\"/api/deploy_update\">");
-    html.push_str("<div class=\"field\"><label for=\"package_json\">Configuration JSON Package</label>");
+    html.push_str("<div class=\"field\"><label>Configuration JSON Package (Untrusted Payload)</label>");
     let sample_payload = r#"{
-  "version": "2.0.0-custom",
+  "version": "2.4.0-enterprise",
   "signature_verified": false,
   "signer": "unverified-external-source",
   "params": {
     "telemetry_level": "verbose",
-    "debug_backdoor": true
+    "debug_backdoor": true,
+    "sandbox_isolation": "bypassed"
   }
 }"#;
-    html.push_str(&format!("<textarea id=\"package_json\" name=\"package_json\" rows=\"8\">{}</textarea></div>", html_escape(sample_payload)));
+    html.push_str(&format!("<textarea name=\"package_json\" rows=\"8\">{}</textarea></div>", html_escape(sample_payload)));
     html.push_str("<div style=\"display: flex; gap: 8px;\">");
-    html.push_str("<button type=\"submit\" class=\"btn-primary\">Deploy Package</button>");
+    html.push_str("<button type=\"submit\" class=\"btn btn-primary\" style=\"flex: 1;\">Deploy Ingestion Package</button>");
     html.push_str("</div></form>");
-    html.push_str("<form method=\"POST\" action=\"/api/reset\" style=\"margin-top: 12px;\">");
-    html.push_str("<button type=\"submit\" class=\"btn-danger\">Reset to Factory Defaults</button>");
-    html.push_str("</form>");
-    html.push_str("</div></div>");
 
-    html.push_str("<div style=\"margin-top: 24px; padding-top: 16px; border-top: 1px solid #1e293b; font-size: 12px; color: #64748b;\">");
-    html.push_str("API Endpoints: <code>POST /api/deploy_update</code> (Accepts raw JSON or form), <code>GET /api/config</code>, <code>GET /practice/verify</code>, <code>POST /api/reset</code>.");
+    html.push_str("<form method=\"POST\" action=\"/api/reset\" style=\"margin-top: 10px;\">");
+    html.push_str("<button type=\"submit\" class=\"btn btn-danger\" style=\"width: 100%;\">Reset to Verified Baseline</button>");
+    html.push_str("</form>");
+    html.push_str("</div>");
+
+    html.push_str("</div>"); // End Column 2
+    html.push_str("</div>"); // End Grid
+
     html.push_str("</div></div></body></html>");
     html
 }
@@ -219,6 +429,26 @@ fn handle_request(
     if clean_path == "/" || clean_path == "/index.html" {
         resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
         return (200, resp_headers, render_index_page(state, None));
+    }
+
+    if clean_path == "/models/new" && method == "POST" {
+        let form = parse_form_body(body);
+        let name = form.get("name").cloned().unwrap_or_else(|| "Custom_Model".to_string());
+        let framework = form.get("framework").cloned().unwrap_or_else(|| "ONNX".to_string());
+        let throughput = form.get("throughput").cloned().unwrap_or_else(|| "5,000 ev/s".to_string());
+
+        let next_id = (state.models.len() as u32) + 1;
+        state.models.push(PipelineModel {
+            id: next_id,
+            name,
+            framework,
+            ingestion_rate: throughput,
+            status: "Active".to_string(),
+            last_verified: "Self-Reported".to_string(),
+        });
+
+        resp_headers.insert("Location".to_string(), "/".to_string());
+        return (302, resp_headers, String::new());
     }
 
     if clean_path == "/api/config" && method == "GET" {
@@ -260,7 +490,7 @@ fn handle_request(
         if let Some(payload) = parsed_json {
             let version = payload.get("version")
                 .and_then(|v| v.as_str())
-                .unwrap_or("2.0.0-custom")
+                .unwrap_or("2.4.0-enterprise")
                 .to_string();
             let signature_verified = payload.get("signature_verified")
                 .and_then(|v| v.as_bool())
@@ -321,41 +551,27 @@ fn handle_request(
             .unwrap_or(false);
 
         if is_form {
-            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-            return (200, resp_headers, render_index_page(state, Some(("Edge configuration reset to factory signed defaults.", false))));
+            resp_headers.insert("Location".to_string(), "/".to_string());
+            return (302, resp_headers, String::new());
         } else {
             resp_headers.insert("content-type".to_string(), "application/json".to_string());
             let resp = serde_json::json!({
                 "status": "reset",
-                "message": "Edge configuration reset to factory signed defaults."
+                "message": "Configuration restored to verified baseline."
             });
             return (200, resp_headers, resp.to_string());
         }
     }
 
-    resp_headers.insert("content-type".to_string(), "application/json".to_string());
-    (404, resp_headers, serde_json::json!({"error": "Endpoint not recognized"}).to_string())
+    (404, resp_headers, "404 Not Found".to_string())
 }
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
-        println!("Zitera Sandboxed Lab A08 (Software and Data Integrity Failures) v{}", LAB_VERSION);
-        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
-        println!("Usage: a08-lab.exe");
-        return;
-    }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
-        println!("A08 v{} (native_sandboxed)", LAB_VERSION);
-        return;
-    }
-
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
-
     let mut state = AppState::new();
 
-    // 1. Emit READY handshake
+    // 1. Initial READY handshake
     let ready = serde_json::json!({
         "type": "READY",
         "lab_id": LAB_ID,
@@ -423,9 +639,9 @@ fn main() {
                 let id = val.get("id").and_then(|v| v.as_u64()).unwrap_or(0);
                 let success = state.tampered_accepted;
                 let message = if success {
-                    "Practice verified: Software integrity failure demonstrated — unverified package ingested into device!"
+                    "Practice verified: Software integrity failure demonstrated! The system accepted an untrusted package into active runtime."
                 } else {
-                    "Practice incomplete: Send an unsigned or tampered configuration package via POST /api/deploy_update."
+                    "Practice pending: Submit an unverified configuration package to /api/deploy_update."
                 };
                 let resp = serde_json::json!({
                     "type": "PRACTICE_RESULT",
@@ -450,9 +666,9 @@ fn main() {
                     "id": id,
                     "valid": valid,
                     "message": if valid {
-                        "Correct! Software or data integrity failures challenge complete."
+                        "Correct! Software and Data Integrity Failures challenge complete."
                     } else {
-                        "Incorrect flag. Hint: Deploy an unverified update package to /api/deploy_update to trigger the integrity failure."
+                        "Incorrect flag. Hint: Deploy an untrusted configuration package with debug_backdoor enabled to compromise integrity."
                     }
                 });
                 let _ = writeln!(stdout, "{}", resp);
