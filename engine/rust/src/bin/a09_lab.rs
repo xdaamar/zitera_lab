@@ -1,8 +1,10 @@
-// A09: Security Logging & Alerting Failures — Native Sandboxed Lab Binary
-// Simulates a Security Operations Center (SOC) telemetry and audit logging service:
-//   - Brute force authentication attempts on /api/auth/login generate zero SOC alerts
-//   - Privilege / role escalations on /api/admin/role_escalate are completely omitted from audit logs
-//   - Master flag is revealed once 5+ brute-force attempts and a silent escalation occur
+// A09: Security Logging & Alerting Failures — FleetTrack Logistics
+// Commercial Telematics & Global Fleet Management System
+// Simulates an enterprise logistics telematics platform with intentional monitoring blindspots:
+//   - Zero rate-limit alerting or SOC threshold detection during credential attacks
+//   - High-privilege route override and role escalations occur completely unlogged
+//   - Interactive fleet vehicle dispatch CRUD and telematics audit stream
+//   - Master flag is revealed once blindspot conditions (5+ failed logins and silent escalation) are met
 //
 // Communicates via stdio JSON protocol (StdioMessage format).
 
@@ -12,7 +14,17 @@ use std::process::exit;
 
 const FLAG: &str = "ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}";
 const LAB_ID: &str = "A09";
-const LAB_VERSION: &str = "1.0.0";
+const LAB_VERSION: &str = "2.0.0";
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+struct FleetVehicle {
+    id: u32,
+    unit_code: String,
+    driver: String,
+    origin_dest: String,
+    cargo: String,
+    status: String,
+}
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct AuditLogEntry {
@@ -23,6 +35,7 @@ struct AuditLogEntry {
 }
 
 struct AppState {
+    vehicles: Vec<FleetVehicle>,
     audit_logs: Vec<AuditLogEntry>,
     failed_login_count: u32,
     unlogged_escalation_occurred: bool,
@@ -31,14 +44,52 @@ struct AppState {
 impl AppState {
     fn new() -> Self {
         Self {
-            audit_logs: Vec::new(),
+            vehicles: vec![
+                FleetVehicle {
+                    id: 1,
+                    unit_code: "TRK-901".to_string(),
+                    driver: "Alex Murphy".to_string(),
+                    origin_dest: "Seattle -> Portland".to_string(),
+                    cargo: "Precision Medical Hardware".to_string(),
+                    status: "In Transit".to_string(),
+                },
+                FleetVehicle {
+                    id: 2,
+                    unit_code: "TRK-404".to_string(),
+                    driver: "Carlos Gomez".to_string(),
+                    origin_dest: "Dallas -> Austin".to_string(),
+                    cargo: "Cold-Chain Pharmaceuticals".to_string(),
+                    status: "Delivered".to_string(),
+                },
+                FleetVehicle {
+                    id: 3,
+                    unit_code: "TRK-102".to_string(),
+                    driver: "Sarah Connor".to_string(),
+                    origin_dest: "Chicago -> Detroit".to_string(),
+                    cargo: "Industrial Microcontrollers".to_string(),
+                    status: "Depot Standby".to_string(),
+                },
+            ],
+            audit_logs: vec![
+                AuditLogEntry {
+                    time: "10:14:02".to_string(),
+                    category: "TELEMATICS".to_string(),
+                    event: "GPS waypoint ping TRK-901 verified (Route I-5)".to_string(),
+                    severity: "INFO".to_string(),
+                },
+                AuditLogEntry {
+                    time: "10:28:44".to_string(),
+                    category: "DISPATCH".to_string(),
+                    event: "Scheduled delivery confirmation TRK-404 received".to_string(),
+                    severity: "INFO".to_string(),
+                },
+            ],
             failed_login_count: 0,
             unlogged_escalation_occurred: false,
         }
     }
 
     fn reset(&mut self) {
-        self.audit_logs.clear();
         self.failed_login_count = 0;
         self.unlogged_escalation_occurred = false;
     }
@@ -46,30 +97,144 @@ impl AppState {
 
 fn css() -> &'static str {
     r#"
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f1f5f9; margin: 0; padding: 32px; }
-.card { background: #131b2e; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; max-width: 820px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-.header { border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.badge { background: #ef4444; color: #fef2f2; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-.banner { background: #3b0764; border-left: 4px solid #a855f7; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #f3e8ff; line-height: 1.5; border-radius: 4px; }
-.status-pill { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: bold; margin-bottom: 12px; }
-.status-passive { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
-.status-alert { background: #7f1d1d; color: #fecaca; }
-.flag-box { background: #064e3b; border: 2px dashed #10b981; border-radius: 8px; padding: 16px; margin-top: 18px; color: #a7f3d0; font-family: monospace; font-size: 15px; font-weight: bold; text-align: center; }
-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
-th, td { border: 1px solid #1e293b; padding: 10px; text-align: left; }
-th { background: #090d16; color: #38bdf8; font-weight: 600; }
-tr:nth-child(even) { background: #0e1526; }
-button { padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 13px; }
-.btn-primary { background: #ef4444; color: white; }
-.btn-primary:hover { background: #dc2626; }
-.btn-secondary { background: #6366f1; color: white; }
-.btn-secondary:hover { background: #4f46e5; }
-.btn-danger { background: #334155; color: white; }
-.btn-danger:hover { background: #475569; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
-.metric-box { background: #090d16; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; text-align: center; }
-.metric-num { font-size: 28px; font-weight: bold; color: #f87171; margin-top: 4px; font-family: monospace; }
+:root {
+    --bg-page: #f8fafc;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-light: #eff6ff;
+    --success: #10b981;
+    --success-light: #ecfdf5;
+    --danger: #ef4444;
+    --danger-light: #fef2f2;
+    --warning: #f59e0b;
+    --warning-light: #fffbeb;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 32px 20px;
+}
+.container { max-width: 1040px; margin: 0 auto; }
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+}
+.header-title h1 { font-size: 20px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.header-title p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 9999px;
+}
+.badge-blue { background: var(--accent-light); color: var(--accent); border: 1px solid #bfdbfe; }
+.badge-emerald { background: var(--success-light); color: var(--success); border: 1px solid #a7f3d0; }
+.badge-amber { background: var(--warning-light); color: #d97706; border: 1px solid #fde68a; }
+.badge-rose { background: var(--danger-light); color: var(--danger); border: 1px solid #fecaca; }
+.banner-info {
+    background: #eff6ff;
+    border-left: 4px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1e3a8a;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+.banner-notice {
+    background: #f1f5f9;
+    border-left: 4px solid #64748b;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+th { background: #f1f5f9; padding: 12px 14px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); }
+td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8fafc; }
+.stat-box {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+.stat-num { font-size: 26px; font-weight: 700; color: var(--accent); margin-top: 4px; font-family: ui-monospace, monospace; }
+.field { margin-bottom: 14px; }
+label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+input:focus { border-color: var(--accent); ring: 2px solid #bfdbfe; }
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: #f1f5f9; color: var(--text-secondary); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-purple { background: #7c3aed; color: white; }
+.btn-purple:hover { background: #6d28d9; }
+.flag-box {
+    background: #ecfdf5;
+    border: 2px dashed #10b981;
+    border-radius: 8px;
+    padding: 18px;
+    margin: 20px 0;
+    color: #065f46;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+}
 "#
 }
 
@@ -117,78 +282,136 @@ fn urldecode(input: &str) -> String {
 
 fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
     let mut html = String::new();
-    html.push_str("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>Zitera Security Operations — Audit & Telemetry Console (A09)</title>");
+    html.push_str("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">");
+    html.push_str("<title>FleetTrack Logistics — Telematics & Fleet Console</title>");
     html.push_str("<style>");
     html.push_str(css());
-    html.push_str("</style></head><body><div class=\"card\">");
+    html.push_str("</style></head><body><div class=\"container\">");
 
-    html.push_str("<div class=\"header\"><div><h2 style=\"margin: 0;\">Zitera SOC // Telemetry & Audit Console</h2>");
-    html.push_str("<div style=\"color: #94a3b8; font-size: 12px; margin-top: 4px;\">OWASP A09:2025 • Security Logging & Alerting Failures</div></div>");
-    html.push_str("<span class=\"badge\">LAB A09 • PORT 8019</span></div>");
+    // Header
+    html.push_str("<div class=\"card\"><div class=\"header\">");
+    html.push_str("<div class=\"header-title\"><h1>🚚 FleetTrack Logistics</h1>");
+    html.push_str("<p>Commercial Telematics & Fleet Operations Console (OWASP A09:2025)</p></div>");
+    html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
+    html.push_str("<span class=\"badge badge-blue\">PORT 8019</span>");
+    if state.failed_login_count >= 5 && state.unlogged_escalation_occurred {
+        html.push_str("<span class=\"badge badge-rose\">SOC BLINDSPOT CONFIRMED</span>");
+    } else {
+        html.push_str("<span class=\"badge badge-amber\">SOC TELEMETRY PASSIVE</span>");
+    }
+    html.push_str("</div></div>");
 
-    html.push_str("<div class=\"banner\"><strong>LOGGING & ALERTING BLINDSPOTS:</strong> Authentication failures on <code>POST /api/auth/login</code> do not trigger alerts or threshold locks. High-privilege role escalations on <code>POST /api/admin/role_escalate</code> are executed completely unrecorded in the audit stream.</div>");
+    // Banner
+    html.push_str("<div class=\"banner-info\">");
+    html.push_str("<strong>SECURITY MONITORING AUDIT DIRECTIVE:</strong> FleetTrack monitors long-haul container trucks and warehouse operations. ");
+    html.push_str("Critical operational blindspots exist in the telemetry layer: brute-force login attempts at <code>POST /api/auth/login</code> do not increment SIEM alert counters or trigger automated account lockouts. ");
+    html.push_str("Furthermore, privilege and role escalation events at <code>POST /api/admin/role_escalate</code> completely evade the audit trail without creating log entries.");
+    html.push_str("</div>");
 
     if let Some(msg) = banner_msg {
-        html.push_str(&format!("<div style=\"background: #1e293b; border-left: 4px solid #38bdf8; padding: 12px; margin-bottom: 20px; font-size: 13px; color: #f1f5f9; border-radius: 4px;\">ℹ {}</div>", html_escape(msg)));
+        html.push_str(&format!("<div class=\"banner-notice\">ℹ {}</div>", html_escape(msg)));
     }
 
     let is_unlocked = state.failed_login_count >= 5 && state.unlogged_escalation_occurred;
     if is_unlocked {
         html.push_str("<div class=\"flag-box\">");
-        html.push_str("<div>TELEMETRY BLINDSPOT REPRODUCED! 5 FAILED LOGINS & SILENT ESCALATION WITHOUT SOC DETECTION:</div>");
-        html.push_str(&format!("<div style=\"margin-top: 8px; font-size: 16px;\">{}</div>", FLAG));
-        html.push_str("</div><br/>");
+        html.push_str("<div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;\">TELEMETRY BLINDSPOT VERIFIED // 5 FAILED LOGINS & SILENT PRIVILEGE ESCALATION WITHOUT SOC ALERT:</div>");
+        html.push_str(&format!("<div style=\"font-size: 16px;\">{}</div>", FLAG));
+        html.push_str("</div>");
     }
 
-    html.push_str("<div class=\"grid\">");
-    html.push_str("<div class=\"metric-box\"><div style=\"font-size: 13px; color: #94a3b8;\">Unlogged Failed Logins</div>");
-    html.push_str(&format!("<div class=\"metric-num\">{}</div>", state.failed_login_count));
-    html.push_str("<div style=\"font-size: 11px; color: #64748b; margin-top: 4px;\">Threshold required: 5+ attempts</div></div>");
+    // Grid 2 Columns
+    html.push_str("<div class=\"grid-2\">");
 
-    html.push_str("<div class=\"metric-box\"><div style=\"font-size: 13px; color: #94a3b8;\">Silent Role Escalation</div>");
-    let esc_label = if state.unlogged_escalation_occurred { "OCCURRED (UNLOGGED)" } else { "NONE" };
-    let esc_color = if state.unlogged_escalation_occurred { "#34d399" } else { "#94a3b8" };
-    html.push_str(&format!("<div class=\"metric-num\" style=\"color: {}; font-size: 18px; margin-top: 10px;\">{}</div>", esc_color, esc_label));
-    html.push_str("<div style=\"font-size: 11px; color: #64748b; margin-top: 4px;\">Zero audit log entries recorded</div></div>");
+    // Column 1: Fleet Roster & Dispatch Form
+    html.push_str("<div>");
+    html.push_str("<h2 style=\"font-size: 15px; font-weight: 700; margin-bottom: 12px;\">Active Commercial Fleet</h2>");
+    html.push_str("<div class=\"table-wrap\"><table><thead><tr>");
+    html.push_str("<th>Unit</th><th>Driver</th><th>Route</th><th>Status</th>");
+    html.push_str("</tr></thead><tbody>");
+    for v in &state.vehicles {
+        let badge_class = match v.status.as_str() {
+            "In Transit" => "badge-blue",
+            "Delivered" => "badge-emerald",
+            _ => "badge-amber",
+        };
+        html.push_str("<tr>");
+        html.push_str(&format!("<td><strong>{}</strong></td>", html_escape(&v.unit_code)));
+        html.push_str(&format!("<td>{}</td>", html_escape(&v.driver)));
+        html.push_str(&format!("<td><span style=\"font-size: 12px;\">{}</span><br/><span style=\"font-size: 11px; color: var(--text-muted);\">{}</span></td>", html_escape(&v.origin_dest), html_escape(&v.cargo)));
+        html.push_str(&format!("<td><span class=\"badge {}\">{}</span></td>", badge_class, html_escape(&v.status)));
+        html.push_str("</tr>");
+    }
+    html.push_str("</tbody></table></div>");
+
+    // Dispatch Vehicle Form
+    html.push_str("<div style=\"margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);\">");
+    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; margin-bottom: 10px;\">Dispatch Vehicle Route</h3>");
+    html.push_str("<form method=\"POST\" action=\"/fleet/dispatch\">");
+    html.push_str("<div style=\"display: grid; grid-template-columns: 1fr 1fr; gap: 10px;\">");
+    html.push_str("<div class=\"field\"><label>Vehicle Unit Code</label><input type=\"text\" name=\"unit_code\" placeholder=\"e.g. TRK-708\" required></div>");
+    html.push_str("<div class=\"field\"><label>Assigned Driver</label><input type=\"text\" name=\"driver\" placeholder=\"e.g. John Doe\" required></div>");
+    html.push_str("</div>");
+    html.push_str("<div class=\"field\"><label>Transit Corridor (Origin -> Destination)</label><input type=\"text\" name=\"route\" placeholder=\"e.g. Denver -> Phoenix\" required></div>");
+    html.push_str("<div class=\"field\"><label>Cargo Description</label><input type=\"text\" name=\"cargo\" placeholder=\"e.g. High-density server racks\" required></div>");
+    html.push_str("<button type=\"submit\" class=\"btn btn-secondary\" style=\"width: 100%;\">Dispatch Route</button>");
+    html.push_str("</form></div>");
+
     html.push_str("</div>");
 
-    html.push_str("<div style=\"margin-top: 20px;\"><h3 style=\"margin-bottom: 10px; font-size: 15px; color: #38bdf8;\">Telemetry Trigger Simulation</h3>");
-    html.push_str("<div style=\"display: flex; gap: 10px; flex-wrap: wrap;\">");
-    html.push_str("<form method=\"POST\" action=\"/api/auth/login\" style=\"margin: 0;\">");
+    // Column 2: SOC Blindspot Testing & Telemetry Audit Stream
+    html.push_str("<div>");
+    html.push_str("<h2 style=\"font-size: 15px; font-weight: 700; margin-bottom: 12px;\">SOC Telemetry Status</h2>");
+
+    html.push_str("<div style=\"display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;\">");
+    html.push_str("<div class=\"stat-box\">");
+    html.push_str("<div style=\"font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;\">Unlogged Failed Logins</div>");
+    html.push_str(&format!("<div class=\"stat-num\">{}</div>", state.failed_login_count));
+    html.push_str("<div style=\"font-size: 11px; color: var(--text-muted); margin-top: 2px;\">Threshold: 5+ attempts</div></div>");
+
+    html.push_str("<div class=\"stat-box\">");
+    html.push_str("<div style=\"font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;\">Silent Escalation</div>");
+    let esc_label = if state.unlogged_escalation_occurred { "CONFIRMED" } else { "PENDING" };
+    let esc_color = if state.unlogged_escalation_occurred { "var(--success)" } else { "var(--text-muted)" };
+    html.push_str(&format!("<div class=\"stat-num\" style=\"color: {}; font-size: 16px; margin-top: 10px;\">{}</div>", esc_color, esc_label));
+    html.push_str("<div style=\"font-size: 11px; color: var(--text-muted); margin-top: 2px;\">Zero SIEM events recorded</div></div>");
+    html.push_str("</div>");
+
+    // Action buttons
+    html.push_str("<div style=\"display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;\">");
+    html.push_str("<form method=\"POST\" action=\"/api/auth/login\">");
     html.push_str("<input type=\"hidden\" name=\"username\" value=\"admin\">");
     html.push_str("<input type=\"hidden\" name=\"password\" value=\"wrong_password\">");
-    html.push_str("<button type=\"submit\" class=\"btn-primary\">Simulate Failed Login</button></form>");
+    html.push_str("<button type=\"submit\" class=\"btn btn-primary\" style=\"width: 100%;\">Simulate Failed Login Attempt</button></form>");
 
-    html.push_str("<form method=\"POST\" action=\"/api/admin/role_escalate\" style=\"margin: 0;\">");
-    html.push_str("<input type=\"hidden\" name=\"user\" value=\"learner\">");
+    html.push_str("<form method=\"POST\" action=\"/api/admin/role_escalate\">");
+    html.push_str("<input type=\"hidden\" name=\"user\" value=\"pentester\">");
     html.push_str("<input type=\"hidden\" name=\"role\" value=\"super_admin\">");
-    html.push_str("<button type=\"submit\" class=\"btn-secondary\">Simulate Silent Escalation</button></form>");
+    html.push_str("<button type=\"submit\" class=\"btn btn-purple\" style=\"width: 100%;\">Simulate Silent Privilege Escalation</button></form>");
 
-    html.push_str("<form method=\"POST\" action=\"/api/reset\" style=\"margin: 0;\">");
-    html.push_str("<button type=\"submit\" class=\"btn-danger\">Reset Incident States</button></form>");
-    html.push_str("</div></div>");
-
-    html.push_str("<div style=\"margin-top: 24px;\">");
-    html.push_str(&format!("<h3 style=\"margin-bottom: 8px; font-size: 15px; color: #38bdf8;\">SOC Audit Trail (Entries: {})</h3>", state.audit_logs.len()));
-    if state.audit_logs.is_empty() {
-        html.push_str("<div style=\"background: #090d16; border: 1px solid #1e293b; border-radius: 6px; padding: 20px; text-align: center; color: #64748b; font-size: 13px;\">No audit logs recorded. The system is operating in complete telemetry darkness.</div>");
-    } else {
-        html.push_str("<table><thead><tr><th>Time</th><th>Category</th><th>Event</th><th>Severity</th></tr></thead><tbody>");
-        for log in &state.audit_logs {
-            html.push_str(&format!(
-                "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
-                html_escape(&log.time),
-                html_escape(&log.category),
-                html_escape(&log.event),
-                html_escape(&log.severity)
-            ));
-        }
-        html.push_str("</tbody></table>");
-    }
+    html.push_str("<form method=\"POST\" action=\"/api/reset\">");
+    html.push_str("<button type=\"submit\" class=\"btn btn-danger\" style=\"width: 100%;\">Reset Audit Incident Counters</button></form>");
     html.push_str("</div>");
 
-    html.push_str("<div style=\"margin-top: 24px; padding-top: 16px; border-top: 1px solid #1e293b; font-size: 12px; color: #64748b;\">");
-    html.push_str("API Endpoints: <code>POST /api/auth/login</code>, <code>POST /api/admin/role_escalate</code>, <code>GET /api/audit/logs</code>, <code>GET /practice/verify</code>, <code>POST /api/reset</code>.");
+    // Audit logs table
+    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; margin-bottom: 8px;\">SOC Audit Trail (Entries: ") ;
+    html.push_str(&format!("{})</h3>", state.audit_logs.len()));
+    html.push_str("<div class=\"table-wrap\"><table><thead><tr>");
+    html.push_str("<th>Time</th><th>Category</th><th>Event</th><th>Severity</th>");
+    html.push_str("</tr></thead><tbody>");
+    for log in &state.audit_logs {
+        html.push_str("<tr>");
+        html.push_str(&format!("<td><code>{}</code></td>", html_escape(&log.time)));
+        html.push_str(&format!("<td><strong>{}</strong></td>", html_escape(&log.category)));
+        html.push_str(&format!("<td style=\"font-size: 12px;\">{}</td>", html_escape(&log.event)));
+        html.push_str(&format!("<td><span class=\"badge badge-blue\">{}</span></td>", html_escape(&log.severity)));
+        html.push_str("</tr>");
+    }
+    html.push_str("</tbody></table></div>");
+
+    html.push_str("</div>"); // End Column 2
+    html.push_str("</div>"); // End Grid
+
     html.push_str("</div></div></body></html>");
     html
 }
@@ -217,6 +440,35 @@ fn handle_request(
     if clean_path == "/" || clean_path == "/index.html" {
         resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
         return (200, resp_headers, render_index_page(state, None));
+    }
+
+    if clean_path == "/fleet/dispatch" && method == "POST" {
+        let form = parse_form_body(body);
+        let unit_code = form.get("unit_code").cloned().unwrap_or_else(|| "TRK-000".to_string());
+        let driver = form.get("driver").cloned().unwrap_or_else(|| "Driver".to_string());
+        let route = form.get("route").cloned().unwrap_or_else(|| "Depot -> Depot".to_string());
+        let cargo = form.get("cargo").cloned().unwrap_or_else(|| "General Freight".to_string());
+
+        let next_id = (state.vehicles.len() as u32) + 1;
+        state.vehicles.push(FleetVehicle {
+            id: next_id,
+            unit_code: unit_code.clone(),
+            driver,
+            origin_dest: route,
+            cargo,
+            status: "In Transit".to_string(),
+        });
+
+        // Add benign operational audit log
+        state.audit_logs.push(AuditLogEntry {
+            time: "10:45:00".to_string(),
+            category: "DISPATCH".to_string(),
+            event: format!("Dispatched vehicle {} to transit schedule", unit_code),
+            severity: "INFO".to_string(),
+        });
+
+        resp_headers.insert("Location".to_string(), "/".to_string());
+        return (302, resp_headers, String::new());
     }
 
     if clean_path == "/api/audit/logs" && method == "GET" {
@@ -250,85 +502,54 @@ fn handle_request(
     }
 
     if clean_path == "/api/auth/login" && method == "POST" {
+        state.failed_login_count += 1;
         let is_form = headers.get("content-type")
             .map(|ct| ct.contains("application/x-www-form-urlencoded"))
             .unwrap_or(false);
 
-        let (user, pwd) = if is_form {
-            let form = parse_form_body(body);
-            let u = form.get("username").cloned().unwrap_or_else(|| "guest".to_string());
-            let p = form.get("password").cloned().unwrap_or_default();
-            (u, p)
-        } else if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(body) {
-            let u = json_val.get("username").and_then(|v| v.as_str()).unwrap_or("guest").to_string();
-            let p = json_val.get("password").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            (u, p)
-        } else {
-            ("guest".to_string(), String::new())
-        };
-
-        if user == "admin" && pwd == "correct_horse_battery" {
-            if is_form {
-                resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-                return (200, resp_headers, render_index_page(state, Some("Authenticated as admin.")));
-            } else {
-                resp_headers.insert("content-type".to_string(), "application/json".to_string());
-                let resp = serde_json::json!({
-                    "status": "authenticated",
-                    "role": "admin"
-                });
-                return (200, resp_headers, resp.to_string());
-            }
-        } else {
-            // VULNERABILITY: Fails to record failed attempt in security audit trail and raises zero alerts
-            state.failed_login_count += 1;
-            if is_form {
-                resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-                return (200, resp_headers, render_index_page(state, Some(&format!("Failed login attempt recorded (Total unlogged: {}). Zero alerts fired.", state.failed_login_count))));
-            } else {
-                resp_headers.insert("content-type".to_string(), "application/json".to_string());
-                let resp = serde_json::json!({
-                    "error": "Invalid credentials",
-                    "attempt": state.failed_login_count
-                });
-                return (401, resp_headers, resp.to_string());
-            }
-        }
-    }
-
-    if clean_path == "/api/admin/role_escalate" && method == "POST" {
-        let is_form = headers.get("content-type")
-            .map(|ct| ct.contains("application/x-www-form-urlencoded"))
-            .unwrap_or(false);
-
-        let (target_user, new_role) = if is_form {
-            let form = parse_form_body(body);
-            let u = form.get("user").cloned().unwrap_or_else(|| "learner".to_string());
-            let r = form.get("role").cloned().unwrap_or_else(|| "super_admin".to_string());
-            (u, r)
-        } else if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(body) {
-            let u = json_val.get("user").and_then(|v| v.as_str()).unwrap_or("learner").to_string();
-            let r = json_val.get("role").and_then(|v| v.as_str()).unwrap_or("super_admin").to_string();
-            (u, r)
-        } else {
-            ("learner".to_string(), "super_admin".to_string())
-        };
-
-        // VULNERABILITY: Silent escalation without writing to audit_logs!
-        state.unlogged_escalation_occurred = true;
-
+        // Security logging flaw: authentication failures are NOT appended to audit_logs!
         if is_form {
             resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-            let msg = format!("User {} escalated to {} silently without audit trail entry.", target_user, new_role);
+            let msg = format!(
+                "Login attempt failed (Count: {}). NOTICE: Zero SOC alerts were triggered.",
+                state.failed_login_count
+            );
             return (200, resp_headers, render_index_page(state, Some(&msg)));
         } else {
             resp_headers.insert("content-type".to_string(), "application/json".to_string());
             let mut resp = serde_json::json!({
-                "status": "granted",
-                "message": format!("User {} escalated to {} silently without audit trail entry.", target_user, new_role),
+                "status": "denied",
+                "message": "Invalid username or password",
+                "failed_attempts": state.failed_login_count,
+                "soc_alert_triggered": false
+            });
+            if state.failed_login_count >= 5 && state.unlogged_escalation_occurred {
+                if let Some(map) = resp.as_object_mut() {
+                    map.insert("flag".to_string(), serde_json::json!(FLAG));
+                }
+            }
+            return (401, resp_headers, resp.to_string());
+        }
+    }
+
+    if clean_path == "/api/admin/role_escalate" && method == "POST" {
+        state.unlogged_escalation_occurred = true;
+        let is_form = headers.get("content-type")
+            .map(|ct| ct.contains("application/x-www-form-urlencoded"))
+            .unwrap_or(false);
+
+        // Security logging flaw: role escalation is silently applied with zero audit trail!
+        if is_form {
+            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+            return (200, resp_headers, render_index_page(state, Some("Privilege escalation applied silently. No SIEM or audit log entry was generated.")));
+        } else {
+            resp_headers.insert("content-type".to_string(), "application/json".to_string());
+            let mut resp = serde_json::json!({
+                "status": "success",
+                "message": "Role escalated to super_admin. Notice: Zero audit records generated.",
                 "audit_recorded": false
             });
-            if state.failed_login_count >= 5 {
+            if state.failed_login_count >= 5 && state.unlogged_escalation_occurred {
                 if let Some(map) = resp.as_object_mut() {
                     map.insert("flag".to_string(), serde_json::json!(FLAG));
                 }
@@ -344,41 +565,27 @@ fn handle_request(
             .unwrap_or(false);
 
         if is_form {
-            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-            return (200, resp_headers, render_index_page(state, Some("Telemetry logs and incident states reset.")));
+            resp_headers.insert("Location".to_string(), "/".to_string());
+            return (302, resp_headers, String::new());
         } else {
             resp_headers.insert("content-type".to_string(), "application/json".to_string());
             let resp = serde_json::json!({
                 "status": "reset",
-                "message": "Telemetry logs and incident states reset."
+                "message": "Incident counters reset."
             });
             return (200, resp_headers, resp.to_string());
         }
     }
 
-    resp_headers.insert("content-type".to_string(), "application/json".to_string());
-    (404, resp_headers, serde_json::json!({"error": "Endpoint not recognized"}).to_string())
+    (404, resp_headers, "404 Not Found".to_string())
 }
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
-        println!("Zitera Sandboxed Lab A09 (Security Logging and Monitoring Failures) v{}", LAB_VERSION);
-        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
-        println!("Usage: a09-lab.exe");
-        return;
-    }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
-        println!("A09 v{} (native_sandboxed)", LAB_VERSION);
-        return;
-    }
-
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
-
     let mut state = AppState::new();
 
-    // 1. Emit READY handshake
+    // 1. Initial READY handshake
     let ready = serde_json::json!({
         "type": "READY",
         "lab_id": LAB_ID,
@@ -446,9 +653,9 @@ fn main() {
                 let id = val.get("id").and_then(|v| v.as_u64()).unwrap_or(0);
                 let success = state.failed_login_count >= 5 && state.unlogged_escalation_occurred;
                 let message = if success {
-                    "Practice verified: Security logging and alerting failure demonstrated!"
+                    "Practice verified: Security logging & alerting failure reproduced! 5 brute-force attacks and 1 silent privilege escalation triggered zero SOC alerts."
                 } else {
-                    "Practice incomplete: Perform >= 5 failed logins and 1 unlogged role escalation."
+                    "Practice pending: Perform >= 5 failed logins and 1 unlogged role escalation via POST /api/admin/role_escalate."
                 };
                 let resp = serde_json::json!({
                     "type": "PRACTICE_RESULT",
@@ -473,9 +680,9 @@ fn main() {
                     "id": id,
                     "valid": valid,
                     "message": if valid {
-                        "Correct! Security logging and alerting failures challenge complete."
+                        "Correct! Security Logging & Alerting Failures challenge complete."
                     } else {
-                        "Incorrect flag. Hint: Trigger 5 failed logins, then silently escalate a role via /api/admin/role_escalate."
+                        "Incorrect flag. Hint: Trigger 5 failed logins and a silent privilege escalation to uncover the blindspot flag."
                     }
                 });
                 let _ = writeln!(stdout, "{}", resp);

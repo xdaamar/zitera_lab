@@ -1,9 +1,11 @@
-// A10: Mishandling of Exceptional Conditions — Native Sandboxed Lab Binary
-// Simulates a Payment & Security Gate with a critical architectural fail-open defect:
-//   - Denies unauthorized access during normal token verification
+// A10: Mishandling of Exceptional Conditions — TemplateCloud Settlement Gate
+// Commercial SaaS Billing & Payment Security Gateway
+// Simulates an enterprise document generation & payment settlement service with an architectural fail-open defect:
+//   - Denies unauthorized guest transactions during nominal token verification
 //   - Falls back to ALLOW_ACCESS = true (fail-open) whenever an upstream parser exception,
-//     timeout, or malformed parameter is encountered
-//   - Exposes master flag when fail-open state is induced
+//     malformed parameter, or timeout occurs to avoid blocking checkout revenue
+//   - Interactive SaaS billing invoices and document template CRUD
+//   - Exposes master flag when the fail-open condition is induced
 //
 // Communicates via stdio JSON protocol (StdioMessage format).
 
@@ -13,9 +15,20 @@ use std::process::exit;
 
 const FLAG: &str = "ZITERA{f41l_0p3n_3xc3pt10n5_un4uth0r1z3d}";
 const LAB_ID: &str = "A10";
-const LAB_VERSION: &str = "1.0.0";
+const LAB_VERSION: &str = "2.0.0";
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+struct InvoiceTemplate {
+    id: u32,
+    code: String,
+    client: String,
+    tier: String,
+    amount: String,
+    status: String,
+}
 
 struct AppState {
+    invoices: Vec<InvoiceTemplate>,
     fail_open_triggered: bool,
     evaluation_count: u32,
 }
@@ -23,6 +36,32 @@ struct AppState {
 impl AppState {
     fn new() -> Self {
         Self {
+            invoices: vec![
+                InvoiceTemplate {
+                    id: 1,
+                    code: "INV-2026-081".to_string(),
+                    client: "ApexFin Capital".to_string(),
+                    tier: "Enterprise Tier".to_string(),
+                    amount: "$14,500.00".to_string(),
+                    status: "Settled".to_string(),
+                },
+                InvoiceTemplate {
+                    id: 2,
+                    code: "INV-2026-082".to_string(),
+                    client: "CloudPulse Global".to_string(),
+                    tier: "Growth Tier".to_string(),
+                    amount: "$3,800.00".to_string(),
+                    status: "Pending Gate".to_string(),
+                },
+                InvoiceTemplate {
+                    id: 3,
+                    code: "INV-2026-083".to_string(),
+                    client: "DataFlow Labs".to_string(),
+                    tier: "Dedicated Cluster".to_string(),
+                    amount: "$8,250.00".to_string(),
+                    status: "Pending Gate".to_string(),
+                },
+            ],
             fail_open_triggered: false,
             evaluation_count: 0,
         }
@@ -36,26 +75,145 @@ impl AppState {
 
 fn css() -> &'static str {
     r#"
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0c0f17; color: #f1f5f9; margin: 0; padding: 32px; }
-.card { background: #141a29; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; max-width: 800px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-.header { border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.badge { background: #f43f5e; color: #fff1f2; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-.banner { background: #4c0519; border-left: 4px solid #f43f5e; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #ffe4e6; line-height: 1.5; border-radius: 4px; }
-.info-box { background: #0f172a; border-left: 4px solid #38bdf8; padding: 12px; margin-bottom: 20px; font-size: 13px; color: #e2e8f0; border-radius: 4px; }
-.flag-box { background: #064e3b; border: 2px dashed #10b981; border-radius: 8px; padding: 16px; margin-top: 18px; color: #a7f3d0; font-family: monospace; font-size: 15px; font-weight: bold; text-align: center; }
-.pre-box { background: #090d16; border: 1px solid #1e293b; padding: 12px; border-radius: 6px; overflow-x: auto; color: #38bdf8; font-family: monospace; font-size: 13px; }
-button { padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 13px; }
-.btn-primary { background: #f43f5e; color: white; }
-.btn-primary:hover { background: #e11d48; }
-.btn-secondary { background: #475569; color: white; }
-.btn-secondary:hover { background: #64748b; }
-.btn-reset { background: #334155; color: white; }
-.btn-reset:hover { background: #475569; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
-.state-indicator { padding: 12px; border-radius: 6px; font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 16px; }
-.state-closed { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
-.state-open { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
+:root {
+    --bg-page: #f8fafc;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --accent: #e11d48;
+    --accent-hover: #be123c;
+    --accent-light: #fff1f2;
+    --success: #10b981;
+    --success-light: #ecfdf5;
+    --danger: #ef4444;
+    --danger-light: #fef2f2;
+    --warning: #f59e0b;
+    --warning-light: #fffbeb;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 32px 20px;
+}
+.container { max-width: 1040px; margin: 0 auto; }
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+}
+.header-title h1 { font-size: 20px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.header-title p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 9999px;
+}
+.badge-rose { background: var(--accent-light); color: var(--accent); border: 1px solid #fecdd3; }
+.badge-emerald { background: var(--success-light); color: var(--success); border: 1px solid #a7f3d0; }
+.badge-amber { background: var(--warning-light); color: #d97706; border: 1px solid #fde68a; }
+.banner-info {
+    background: #fff1f2;
+    border-left: 4px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #881337;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+.banner-notice {
+    background: #f1f5f9;
+    border-left: 4px solid #64748b;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+th { background: #f1f5f9; padding: 12px 14px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); }
+td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8fafc; }
+.state-box {
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.state-closed { background: #f1f5f9; border: 1px solid var(--border-color); color: var(--text-secondary); }
+.state-open { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.field { margin-bottom: 14px; }
+label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+input[type="text"], select {
+    width: 100%;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+input:focus, select:focus { border-color: var(--accent); ring: 2px solid #fecdd3; }
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: #f1f5f9; color: var(--text-secondary); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-danger { background: #334155; color: white; }
+.btn-danger:hover { background: #475569; }
+.flag-box {
+    background: #ecfdf5;
+    border: 2px dashed #10b981;
+    border-radius: 8px;
+    padding: 18px;
+    margin: 20px 0;
+    color: #065f46;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+}
 "#
 }
 
@@ -103,50 +261,116 @@ fn urldecode(input: &str) -> String {
 
 fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
     let mut html = String::new();
-    html.push_str("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><title>Zitera Payment & Security Gate — Fail-Open Evaluation (A10)</title>");
+    html.push_str("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">");
+    html.push_str("<title>TemplateCloud Studio — Settlement Gate</title>");
     html.push_str("<style>");
     html.push_str(css());
-    html.push_str("</style></head><body><div class=\"card\">");
+    html.push_str("</style></head><body><div class=\"container\">");
 
-    html.push_str("<div class=\"header\"><div><h2 style=\"margin: 0;\">Zitera Gate // Fail-Open Evaluation</h2>");
-    html.push_str("<div style=\"color: #94a3b8; font-size: 12px; margin-top: 4px;\">OWASP A10:2025 • Mishandling of Exceptional Conditions</div></div>");
-    html.push_str("<span class=\"badge\">LAB A10 • PORT 8020</span></div>");
+    // Header
+    html.push_str("<div class=\"card\"><div class=\"header\">");
+    html.push_str("<div class=\"header-title\"><h1>📄 TemplateCloud Studio</h1>");
+    html.push_str("<p>Commercial SaaS Billing & Payment Settlement Gate (OWASP A10:2025)</p></div>");
+    html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
+    html.push_str("<span class=\"badge badge-rose\">PORT 8020</span>");
+    if state.fail_open_triggered {
+        html.push_str("<span class=\"badge badge-rose\">FAIL-OPEN ACTIVE</span>");
+    } else {
+        html.push_str("<span class=\"badge badge-emerald\">FAIL-CLOSED ENFORCED</span>");
+    }
+    html.push_str("</div></div>");
 
-    html.push_str("<div class=\"banner\"><strong>MISHANDLED EXCEPTION AUDIT:</strong> The payment verification gate at <code>POST /api/gate/verify</code> enforces authorization by default, but when an unhandled exception or timeout occurs, its generic exception catch block defaults to <code>ALLOW_ACCESS = true</code> to avoid blocking legitimate transactions.</div>");
+    // Info Banner
+    html.push_str("<div class=\"banner-info\">");
+    html.push_str("<strong>MISHANDLED EXCEPTION AUDIT NOTICE:</strong> TemplateCloud processes enterprise document generation and customer invoice payments. ");
+    html.push_str("The payment gateway verification service at <code>POST /api/gate/verify</code> enforces strict access tokens during normal operation. ");
+    html.push_str("However, due to a revenue protection policy, the exception handling architecture implements a dangerous fail-open pattern: when an unhandled upstream timeout, null parameter, or malformed exception is received, the catch block defaults to <code>ALLOW_ACCESS = true</code>, granting full settlement access without authorization.");
+    html.push_str("</div>");
 
     if let Some(msg) = banner_msg {
-        html.push_str(&format!("<div class=\"info-box\">ℹ {}</div>", html_escape(msg)));
+        html.push_str(&format!("<div class=\"banner-notice\">ℹ {}</div>", html_escape(msg)));
     }
 
     if state.fail_open_triggered {
-        html.push_str("<div class=\"state-indicator state-open\">⚠ GATE STATE: FAIL-OPEN ACTIVE (UNAUTHORIZED ACCESS GRANTED VIA EXCEPTION)</div>");
+        html.push_str("<div class=\"state-box state-open\">");
+        html.push_str("<div>⚠ GATE STATE: FAIL-OPEN ACTIVE // UNAUTHORIZED TRANSACTION SETTLED</div>");
+        html.push_str("<span class=\"badge badge-rose\">BYPASS SUCCESS</span>");
+        html.push_str("</div>");
+
         html.push_str("<div class=\"flag-box\">");
-        html.push_str("<div>SECURITY EXCEPTION FAILED-OPEN! MASTER AUTHORIZATION FLAG REVEALED:</div>");
-        html.push_str(&format!("<div style=\"margin-top: 8px; font-size: 16px;\">{}</div>", FLAG));
-        html.push_str("</div><br/>");
+        html.push_str("<div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;\">SECURITY EXCEPTION FAILED-OPEN // MASTER AUTHORIZATION FLAG REVEALED:</div>");
+        html.push_str(&format!("<div style=\"font-size: 16px;\">{}</div>", FLAG));
+        html.push_str("</div>");
     } else {
-        html.push_str("<div class=\"state-indicator state-closed\">✓ GATE STATE: NORMAL OPERATION (FAIL-CLOSED ENFORCED)</div>");
+        html.push_str("<div class=\"state-box state-closed\">");
+        html.push_str("<div>✓ GATE STATE: NORMAL OPERATION // UNAUTHORIZED REQUESTS REJECTED</div>");
+        html.push_str("<span class=\"badge badge-emerald\">SECURE</span>");
+        html.push_str("</div>");
     }
 
-    html.push_str("<div class=\"grid\"><div>");
-    html.push_str("<h3 style=\"margin-top: 0; font-size: 15px; color: #38bdf8;\">Test Normal Verification</h3>");
-    html.push_str("<form method=\"POST\" action=\"/api/gate/verify\">");
-    html.push_str("<input type=\"hidden\" name=\"token\" value=\"unauthorized_guest_token\">");
-    html.push_str("<button type=\"submit\" class=\"btn-secondary\" style=\"width: 100%;\">Submit Unauthorized Token (Expect Deny)</button></form>");
-    html.push_str("</div><div>");
-    html.push_str("<h3 style=\"margin-top: 0; font-size: 15px; color: #38bdf8;\">Induce Exceptional Condition</h3>");
-    html.push_str("<form method=\"POST\" action=\"/api/gate/verify\">");
-    html.push_str("<input type=\"hidden\" name=\"simulate_exception\" value=\"UPSTREAM_GATEWAY_TIMEOUT\">");
-    html.push_str("<button type=\"submit\" class=\"btn-primary\" style=\"width: 100%;\">Simulate Upstream Timeout (Trigger Fail-Open)</button></form>");
-    html.push_str("</div></div>");
+    // Grid 2 Columns
+    html.push_str("<div class=\"grid-2\">");
 
-    html.push_str("<div style=\"margin-top: 20px;\">");
-    html.push_str("<form method=\"POST\" action=\"/api/reset\">");
-    html.push_str("<button type=\"submit\" class=\"btn-reset\">Reset Gate to Default Closed State</button></form>");
+    // Column 1: Active Invoices & New Template Form
+    html.push_str("<div>");
+    html.push_str("<h2 style=\"font-size: 15px; font-weight: 700; margin-bottom: 12px;\">Document Billing Invoices</h2>");
+    html.push_str("<div class=\"table-wrap\"><table><thead><tr>");
+    html.push_str("<th>Code</th><th>Client</th><th>Amount</th><th>Status</th>");
+    html.push_str("</tr></thead><tbody>");
+    for inv in &state.invoices {
+        let badge_class = match inv.status.as_str() {
+            "Settled" => "badge-emerald",
+            _ => "badge-amber",
+        };
+        html.push_str("<tr>");
+        html.push_str(&format!("<td><code>{}</code></td>", html_escape(&inv.code)));
+        html.push_str(&format!("<td><strong>{}</strong><br/><span style=\"font-size: 11px; color: var(--text-muted);\">{}</span></td>", html_escape(&inv.client), html_escape(&inv.tier)));
+        html.push_str(&format!("<td>{}</td>", html_escape(&inv.amount)));
+        html.push_str(&format!("<td><span class=\"badge {}\">{}</span></td>", badge_class, html_escape(&inv.status)));
+        html.push_str("</tr>");
+    }
+    html.push_str("</tbody></table></div>");
+
+    // Create Invoice Form
+    html.push_str("<div style=\"margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);\">");
+    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; margin-bottom: 10px;\">Generate New Invoice Template</h3>");
+    html.push_str("<form method=\"POST\" action=\"/invoices/new\">");
+    html.push_str("<div class=\"field\"><label>Client Corporate Name</label><input type=\"text\" name=\"client\" placeholder=\"e.g. Sterling Holdings\" required></div>");
+    html.push_str("<div style=\"display: grid; grid-template-columns: 1fr 1fr; gap: 10px;\">");
+    html.push_str("<div class=\"field\"><label>Subscription Tier</label><select name=\"tier\"><option value=\"Enterprise Tier\">Enterprise Tier</option><option value=\"Dedicated Cluster\">Dedicated Cluster</option><option value=\"Growth Tier\">Growth Tier</option></select></div>");
+    html.push_str("<div class=\"field\"><label>Settlement Amount</label><input type=\"text\" name=\"amount\" placeholder=\"e.g. $5,200.00\" required></div>");
+    html.push_str("</div>");
+    html.push_str("<button type=\"submit\" class=\"btn btn-secondary\" style=\"width: 100%;\">Generate Document Template</button>");
+    html.push_str("</form></div>");
+
     html.push_str("</div>");
 
-    html.push_str("<div style=\"margin-top: 24px; padding-top: 16px; border-top: 1px solid #1e293b; font-size: 12px; color: #64748b;\">");
-    html.push_str("API Endpoints: <code>POST /api/gate/verify</code> (accepts <code>{\"token\": null}</code> or <code>{\"simulate_exception\": \"UPSTREAM_TIMEOUT\"}</code>), <code>GET /practice/verify</code>, <code>POST /api/reset</code>.");
+    // Column 2: Payment Security Gate Evaluation
+    html.push_str("<div>");
+    html.push_str("<h2 style=\"font-size: 15px; font-weight: 700; margin-bottom: 12px;\">Payment Security Gate Verification</h2>");
+
+    html.push_str("<div class=\"card\" style=\"padding: 16px; background: #f8fafc; border-color: var(--border-color); margin-bottom: 16px;\">");
+    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; margin-bottom: 8px;\">Normal Verification Request</h3>");
+    html.push_str("<p style=\"font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;\">Test standard evaluation with an unauthorized token. The gate strictly returns Denied.</p>");
+    html.push_str("<form method=\"POST\" action=\"/api/gate/verify\">");
+    html.push_str("<input type=\"hidden\" name=\"token\" value=\"unauthorized_guest_token\">");
+    html.push_str("<button type=\"submit\" class=\"btn btn-secondary\" style=\"width: 100%;\">Submit Unauthorized Token (Expect Deny)</button></form>");
+    html.push_str("</div>");
+
+    html.push_str("<div class=\"card\" style=\"padding: 16px; background: #fff1f2; border-color: #fecdd3; margin-bottom: 16px;\">");
+    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; color: #9f1239; margin-bottom: 8px;\">Trigger Exceptional Condition</h3>");
+    html.push_str("<p style=\"font-size: 12px; color: #881337; margin-bottom: 12px;\">Simulate an upstream parser timeout or malformed exception parameter to induce fail-open behavior.</p>");
+    html.push_str("<form method=\"POST\" action=\"/api/gate/verify\">");
+    html.push_str("<input type=\"hidden\" name=\"simulate_exception\" value=\"UPSTREAM_GATEWAY_TIMEOUT\">");
+    html.push_str("<button type=\"submit\" class=\"btn btn-primary\" style=\"width: 100%;\">Simulate Upstream Timeout (Trigger Fail-Open)</button></form>");
+    html.push_str("</div>");
+
+    html.push_str("<form method=\"POST\" action=\"/api/reset\">");
+    html.push_str("<button type=\"submit\" class=\"btn btn-danger\" style=\"width: 100%;\">Reset Gate to Default Closed State</button></form>");
+
+    html.push_str("</div>"); // End Column 2
+    html.push_str("</div>"); // End Grid
+
     html.push_str("</div></div></body></html>");
     html
 }
@@ -175,6 +399,26 @@ fn handle_request(
     if clean_path == "/" || clean_path == "/index.html" {
         resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
         return (200, resp_headers, render_index_page(state, None));
+    }
+
+    if clean_path == "/invoices/new" && method == "POST" {
+        let form = parse_form_body(body);
+        let client = form.get("client").cloned().unwrap_or_else(|| "Client Corp".to_string());
+        let tier = form.get("tier").cloned().unwrap_or_else(|| "Enterprise Tier".to_string());
+        let amount = form.get("amount").cloned().unwrap_or_else(|| "$1,000.00".to_string());
+
+        let next_id = (state.invoices.len() as u32) + 1;
+        state.invoices.push(InvoiceTemplate {
+            id: next_id,
+            code: format!("INV-2026-{:03}", next_id + 83),
+            client,
+            tier,
+            amount,
+            status: "Pending Gate".to_string(),
+        });
+
+        resp_headers.insert("Location".to_string(), "/".to_string());
+        return (302, resp_headers, String::new());
     }
 
     if clean_path == "/practice/verify" && method == "GET" {
@@ -229,11 +473,11 @@ fn handle_request(
         if is_form {
             resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
             let msg = if fail_open {
-                "Exceptional condition induced! Gate fell back to OPEN (access granted)."
+                "Exceptional condition induced! Settlement Gate fell back to OPEN (access granted)."
             } else if authorized {
-                "Valid token verified. Access granted."
+                "Valid token verified. Settlement access granted."
             } else {
-                "Token evaluation failed. Access denied (Gate closed)."
+                "Token evaluation failed. Settlement access denied (Gate closed)."
             };
             return (200, resp_headers, render_index_page(state, Some(msg)));
         } else {
@@ -265,41 +509,27 @@ fn handle_request(
             .unwrap_or(false);
 
         if is_form {
-            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-            return (200, resp_headers, render_index_page(state, Some("Gate state reset to default fail-closed.")));
+            resp_headers.insert("Location".to_string(), "/".to_string());
+            return (302, resp_headers, String::new());
         } else {
             resp_headers.insert("content-type".to_string(), "application/json".to_string());
             let resp = serde_json::json!({
                 "status": "reset",
-                "message": "Transaction gate state reset to fail-closed default."
+                "message": "Gate reset to closed state."
             });
             return (200, resp_headers, resp.to_string());
         }
     }
 
-    resp_headers.insert("content-type".to_string(), "application/json".to_string());
-    (404, resp_headers, serde_json::json!({"error": "Endpoint not recognized"}).to_string())
+    (404, resp_headers, "404 Not Found".to_string())
 }
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
-        println!("Zitera Sandboxed Lab A10 (Server-Side Request Forgery & Mishandled Failures) v{}", LAB_VERSION);
-        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
-        println!("Usage: a10-lab.exe");
-        return;
-    }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
-        println!("A10 v{} (native_sandboxed)", LAB_VERSION);
-        return;
-    }
-
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
-
     let mut state = AppState::new();
 
-    // 1. Emit READY handshake
+    // 1. Initial READY handshake
     let ready = serde_json::json!({
         "type": "READY",
         "lab_id": LAB_ID,
@@ -367,9 +597,9 @@ fn main() {
                 let id = val.get("id").and_then(|v| v.as_u64()).unwrap_or(0);
                 let success = state.fail_open_triggered;
                 let message = if success {
-                    "Practice verified: Exceptional condition failure demonstrated — gate failed open!"
+                    "Practice verified: Exceptional condition failure reproduced! The gate fell back to open and authorized the transaction."
                 } else {
-                    "Practice incomplete: Induce an upstream parsing/timeout exception via POST /api/gate/verify."
+                    "Practice pending: Induce an upstream parsing exception via POST /api/gate/verify."
                 };
                 let resp = serde_json::json!({
                     "type": "PRACTICE_RESULT",
@@ -394,9 +624,9 @@ fn main() {
                     "id": id,
                     "valid": valid,
                     "message": if valid {
-                        "Correct! Mishandling of exceptional conditions challenge complete."
+                        "Correct! Mishandling of Exceptional Conditions challenge complete."
                     } else {
-                        "Incorrect flag. Hint: Trigger an unhandled exception or timeout condition on /api/gate/verify."
+                        "Incorrect flag. Hint: Induce an upstream timeout or malformed exception parameter to trigger the fail-open fallback."
                     }
                 });
                 let _ = writeln!(stdout, "{}", resp);
