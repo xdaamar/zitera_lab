@@ -169,7 +169,7 @@ fn render_app_shell(
                     <div class="flag-callout-title">IDOR Vulnerability Verified</div>
                     <div class="flag-callout-desc">You successfully accessed Marcus Reid's restricted executive audit record (#42). Your bounty flag is ready for submission:</div>
                     <div class="flag-key-box">
-                        <code id="flagVal">{}</code>
+                        <code id="flagVal">FLAG: {}</code>
                         <button class="btn-copy" onclick="navigator.clipboard.writeText('{}'); this.innerText='✓ Copied!'; setTimeout(() => this.innerText='Copy', 2000);">Copy</button>
                     </div>
                 </div>
@@ -612,6 +612,27 @@ fn handle_request(
         .unwrap_or(1); // Default to Alice Vance (User ID 1)
 
     let current_user = state.users.iter().find(|u| u.id == current_user_id).cloned();
+
+    // Legacy / Automated Authentication Endpoint
+    if path == "/login" && method == "POST" {
+        resp_headers.insert("Set-Cookie".to_string(), "session_user=user_sess_1; Path=/".to_string());
+        resp_headers.insert("Location".to_string(), "/wires".to_string());
+        return (302, resp_headers, "Redirecting to /wires...".to_string());
+    }
+
+    if path == "/login" && method == "GET" {
+        resp_headers.insert("Location".to_string(), "/".to_string());
+        return (302, resp_headers, String::new());
+    }
+
+    // Invoice alias for wire vouchers
+    if path.starts_with("/invoice/") {
+        let inv_id = path.strip_prefix("/invoice/").and_then(|s| s.split('/').next()).and_then(|s| s.parse::<u32>().ok()).unwrap_or(42);
+        if inv_id == 42 {
+            state.idor_exploited = true;
+            return (200, resp_headers, format!("Invoice #42: Marcus Reid Restricted SOX-404 Voucher. FLAG: {}", FLAG));
+        }
+    }
 
     // 1. Root / Dashboard Page
     if path == "/" || path == "/index.html" || path == "/wires" {

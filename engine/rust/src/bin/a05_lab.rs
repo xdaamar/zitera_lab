@@ -70,6 +70,33 @@ impl AppState {
                 notes: "High-volume settlement broker integration.".to_string(),
                 is_confidential: false,
             },
+            Deal {
+                id: 5,
+                customer: "Rackmount Server 2U Infrastructure".to_string(),
+                deal_value: 18500.0,
+                stage: "Proposal Sent".to_string(),
+                contact_email: "infra@zitera-rack.org".to_string(),
+                notes: "Rackmount Server 2U Procurement with Edge Firewall Gateway and Biometric Access Terminal.".to_string(),
+                is_confidential: false,
+            },
+            Deal {
+                id: 6,
+                customer: "Edge Firewall Gateway Services".to_string(),
+                deal_value: 29000.0,
+                stage: "Contract Signed".to_string(),
+                contact_email: "netsec@zitera-edge.org".to_string(),
+                notes: "Edge Firewall Gateway perimeter hardware installation.".to_string(),
+                is_confidential: false,
+            },
+            Deal {
+                id: 7,
+                customer: "Biometric Access Terminal Fleet".to_string(),
+                deal_value: 14500.0,
+                stage: "Discovery".to_string(),
+                contact_email: "access@zitera-terminal.org".to_string(),
+                notes: "Biometric Access Terminal enterprise security upgrade.".to_string(),
+                is_confidential: false,
+            },
         ];
 
         Self {
@@ -387,7 +414,8 @@ fn handle_request(
     }
 
     // 2. Deals Pipeline / Search (Index)
-    if path == "/" || path == "/index.html" || path.starts_with("/deals/search") {
+    let clean_path = path.split('?').next().unwrap_or(path);
+    if clean_path == "/" || clean_path == "/index.html" || clean_path.starts_with("/deals/search") {
         let mut query = String::new();
         if let Some(q_str) = path.split('?').nth(1) {
             for pair in q_str.split('&') {
@@ -418,11 +446,11 @@ fn handle_request(
             rendered_deals = state.deals.clone();
             rendered_deals.push(Deal {
                 id: 99,
-                customer: "Marcus Reid (VP Controller) Sovereign Reserve".to_string(),
+                customer: "PROJECT_ZITERA_CORE_FLAG Marcus Reid (VP Controller) Sovereign Reserve".to_string(),
                 deal_value: 5000000.0,
                 stage: "BOARD_RESERVE_ESCROW".to_string(),
                 contact_email: "m.reid@apexcorp.internal".to_string(),
-                notes: format!("SOX-404 Compliance Vault Key: {}", FLAG),
+                notes: format!("PROJECT_ZITERA_CORE_FLAG SOX-404 Compliance Vault Key: {}", FLAG),
                 is_confidential: true,
             });
         } else if q_lower.contains("or 1=1") || q_lower.contains("or '1'='1") || q_lower.contains("or 2>1") {

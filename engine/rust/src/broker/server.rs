@@ -231,26 +231,48 @@ fn process_parsed_request(
     session_manager: &BrokerSessionManager,
     handler: &Arc<dyn LabRequestHandler>,
 ) -> HttpResponse {
-    // 1. Validate Session Token or bind transparently to the active session
-    let session = if parsed.session_token.is_empty() {
-        session_manager
+    // 1. If session token is missing, redirect to the active session URL (Rule: Session Isolation)
+    if parsed.session_token.is_empty() {
+        let active = session_manager
             .active_session()
-            .unwrap_or_else(|| session_manager.create_session("lab", None))
-    } else {
-        match session_manager.validate_session(&parsed.session_token) {
-            Ok(s) => s,
-            Err(SessionError::InvalidToken) => {
-                return HttpResponse::text(400, "Bad Request", "Malformed session token");
-            }
-            Err(SessionError::SessionNotFound) => {
-                return HttpResponse::text(404, "Not Found", "Session not found");
-            }
-            Err(SessionError::Terminated) => {
-                return HttpResponse::text(410, "Gone", "Lab session has been terminated");
-            }
-            Err(SessionError::Expired) => {
-                return HttpResponse::text(401, "Unauthorized", "Lab session has expired");
-            }
+            .unwrap_or_else(|| session_manager.create_session("lab", None));
+        let mut sub = parsed.subpath.clone();
+        if sub.starts_with('/') {
+            sub.remove(0);
+        }
+        if let Some(ref q) = parsed.query {
+            sub.push('?');
+            sub.push_str(q);
+        }
+        let location = format!("/session/{}/{}", active.session_id, sub);
+        let (status, reason) = if parsed.method == "POST" || parsed.method == "PUT" || parsed.method == "DELETE" {
+            (307, "Temporary Redirect")
+        } else {
+            (302, "Found")
+        };
+        let mut resp = HttpResponse::new(
+            status,
+            reason,
+            format!("Redirecting to /session/{}/{}...", active.session_id, sub).into_bytes(),
+        );
+        resp.headers.push(("Location".to_string(), location));
+        return resp;
+    }
+
+    // 2. Validate Session Token
+    let session = match session_manager.validate_session(&parsed.session_token) {
+        Ok(s) => s,
+        Err(SessionError::InvalidToken) => {
+            return HttpResponse::text(400, "Bad Request", "Malformed session token");
+        }
+        Err(SessionError::SessionNotFound) => {
+            return HttpResponse::text(404, "Not Found", "Session not found");
+        }
+        Err(SessionError::Terminated) => {
+            return HttpResponse::text(410, "Gone", "Lab session has been terminated");
+        }
+        Err(SessionError::Expired) => {
+            return HttpResponse::text(401, "Unauthorized", "Lab session has expired");
         }
     };
 

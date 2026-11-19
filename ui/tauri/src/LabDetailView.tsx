@@ -593,11 +593,10 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
               </span>
             )}
           </button>
-        </div>
 
-        {/* Section Completion Progress Counter */}
-        <div className="hidden lg:flex items-center gap-2 pb-2 shrink-0">
-          <div className="px-2.5 py-1 rounded-md bg-[#CCFBF1] border border-[#2DD4BF]/40 text-[11px] font-['JetBrains_Mono'] font-bold text-[#0F766E] flex items-center gap-1.5">
+          {/* Section Completion Progress Counter (Inline with Tab Row to Prevent Truncation) */}
+          <div className="h-4 w-px bg-[#E6E2D8] mx-2 self-center hidden sm:block" />
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 mb-1 rounded-md bg-[#CCFBF1] border border-[#2DD4BF]/40 text-[11px] font-['JetBrains_Mono'] font-bold text-[#0F766E] self-center shrink-0">
             <Sparkles size={12} />
             <span>Materi: {completedSections.size}/6 Selesai</span>
           </div>

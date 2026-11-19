@@ -1,6 +1,6 @@
 # ZITERA_LAB // Build & Verification Guide
 
-This guide details the complete developer build, compilation, test, and verification procedures for ZITERA_LAB.
+This guide details the complete developer build, compilation, test, and verification procedures for ZITERA_LAB (Modern Tauri v2 Desktop & Native Sandboxed Rust Architecture).
 
 ---
 
@@ -9,12 +9,12 @@ This guide details the complete developer build, compilation, test, and verifica
 ### Developer Workstation Requirements
 - **Operating System:** Windows 10 (Build 19041+) or Windows 11 x64
 - **Rust Toolchain:** `stable-x86_64-pc-windows-msvc` (Rust 1.75+)
+- **Node.js & npm:** Node.js 18+ & npm 9+ (for Tauri v2 frontend)
 - **C++ Build Tools:** Visual Studio 2022 Build Tools (MSVC v143+ `cl.exe`, `link.exe`)
-- **Flutter SDK:** Flutter 3.19+ (Channel `stable`, desktop enabled)
 - **PowerShell:** PowerShell 5.1+ or PowerShell 7+
 
 > [!NOTE]
-> **End-User Zero-Developer Guarantee:** Non-developer students and educational users do **NOT** require Git, Python, Rust, Cargo, Node.js, Docker, WSL2, or Visual Studio Build Tools. The distribution artifact is a completely self-contained Windows per-user runtime.
+> **End-User Zero-Developer Guarantee:** Non-developer students and educational users do **NOT** require Git, Python, Rust, Cargo, Node.js, Docker, WSL2, or Visual Studio Build Tools. The distribution artifact in `ui/tauri/run/` is completely self-contained and ready to execute immediately.
 
 ---
 
@@ -23,18 +23,8 @@ This guide details the complete developer build, compilation, test, and verifica
 Launch a PowerShell prompt and initialize the MSVC x64 build environment:
 
 ```powershell
-# Set deterministic release flag (required for WDAC & reproducible builds)
+# Set deterministic release flag (required for reproducible builds)
 $env:CARGO_INCREMENTAL = "0"
-
-# Optional: Initialize MSVC vcvars64 if cl.exe is not in PATH
-$vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-if (Test-Path $vcvars) {
-    cmd.exe /c "call `"$vcvars`" && set" | ForEach-Object {
-        if ($_ -match '^(.*?)=(.*)$') {
-            [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
-        }
-    }
-}
 ```
 
 ---
@@ -49,96 +39,69 @@ Set-Location engine\rust
 cargo build --release --bin zitera-engine
 ```
 The output binary is produced at:
-`engine\rust\target\release\zitera-engine.exe`
+`engine\rust\target\release\zitera-engine.exe` (and copied to `ui\tauri\run\zitera-engine.exe`).
 
-### 3.2 Building Laboratory Executables
-Each of the 10 hands-on laboratories compiles to a standalone, sandboxed Windows binary:
+### 3.2 Building Laboratory Executables (A01 - A10)
+Each of the 10 hands-on laboratories compiles to a standalone, sandboxed native Windows binary:
 
 ```powershell
-# Example: Building Lab A01 (Broken Access Control)
+Set-Location engine\rust
+# Example: Building Lab A01 through A10
 cargo build --release --bin a01_lab
+cargo build --release --bin a02_lab
+cargo build --release --bin a03_lab
+cargo build --release --bin a04_lab
+cargo build --release --bin a05_lab
+cargo build --release --bin a06_lab
+cargo build --release --bin a07_lab
+cargo build --release --bin a08_lab
+cargo build --release --bin a09_lab
+cargo build --release --bin a10_lab
 
-# Deploy binary to the lab workspace directory
-New-Item -ItemType Directory -Path ..\..\labs\A01\bin -Force | Out-Null
+# Deploy binary to respective lab directories
 Copy-Item target\release\a01_lab.exe ..\..\labs\A01\bin\a01-lab.exe -Force
+# (Repeated for A02-A10)
 ```
 
-### 3.3 Building the Flutter Desktop UI
-To build the native Windows Flutter presentation bundle:
+### 3.3 Building the Tauri v2 Desktop Application
+To compile the Tauri v2 desktop user interface (React 19 + TypeScript + Vite + Tailwind CSS):
 
 ```powershell
-Set-Location ..\..\ui\flutter
-flutter pub get
-flutter analyze
-flutter build windows --release
+Set-Location ui\tauri
+npm install
+npm run build
+npx tauri build --no-bundle
 ```
-The output desktop executable bundle is placed in:
-`ui\flutter\build\windows\x64\runner\Release\`
+The production standalone executable will be located at:
+`ui\tauri\src-tauri\target\release\app.exe` (or `ui\tauri\run\app.exe`).
 
 ---
 
 ## 4. How to Test & Verify
 
-### 4.1 Running Core Rust Tests
+### 4.1 Running All 10 Lab Integration & Exploitation Tests
 ```powershell
 Set-Location engine\rust
-# Run full unit and integration test matrix (101 tests)
+cargo test --release test_a
+```
+All 10 labs (`test_a01` through `test_a10`) run automated lifecycle spawning, reverse proxy routing, vulnerability parameter tampering, flag extraction, and scoring validation.
+
+### 4.2 Running Full Core Rust Engine Tests
+```powershell
+Set-Location engine\rust
 cargo test --release --bin zitera-engine
 ```
 
-### 4.2 Running Full Automated Release Gate
-To run the automated, 7-stage release qualification gate:
+### 4.3 Running the Application Directly
+Double-click `ui\tauri\run\app.exe` or execute:
 ```powershell
-Set-Location ..\..
-.\scripts\verify_release.ps1
+Set-Location ui\tauri\run
+.\app.exe
 ```
-This executes:
-1. Environment and toolchain readiness
-2. Core engine release compilation
-3. Rust security and isolation test matrix
-4. Curriculum validation across all 10 labs (`A01` through `A10`)
-5. Distribution installer lifecycle tests
-6. Clean machine zero-dependency proof
-7. Release qualification summary
-
-### 4.3 Running Security Gate Verification
-To run the automated, 17-control security release gate:
-```powershell
-Set-Location ..\..
-.\scripts\verify_security_gate.ps1
-```
-Evaluates all 17 defense-in-depth controls (AppContainer isolation, Job Object limits, loopback proxy binding, anti-downgrade counter, path canonicalization, PII scrubbing) with zero warnings.
-
-### 4.4 Running Performance Benchmarking
-To benchmark startup, catalog load, probe latency, and save operations:
-```powershell
-.\scripts\benchmark_baseline.ps1
-```
-Ensures sub-second responsiveness across all core orchestration operations.
-
----
-
-## 5. Building Release Candidates
-
-### 5.1 Building Release Candidate 1 (RC1)
-```powershell
-.\scripts\release\build_release.ps1 -Version "2.0.0-rc1"
-```
-Compiles `zitera-engine.exe` with non-incremental determinism (`CARGO_INCREMENTAL=0`), executes release test suites, computes SHA256 checksums, and produces `dist/release_manifest.json`.
-
-### 5.2 Building Hardened Release Candidate 2 (RC2)
-```powershell
-.\scripts\release\build_rc2.ps1 -Version "2.0.0-rc2"
-```
-Evaluates all 9 enterprise edge cases (path spaces, v2 schema persistence, file locking, corruption repair, clean uninstall), hashes outputs, and generates `dist/ZITERA_LAB_RC2_windows_x64.zip`.
-
----
-
-## 6. Development Mode (Live Iteration)
-
-To run the application with Flutter hot-reload during local development:
-```powershell
-Set-Location ui\flutter
-flutter run -d windows
-```
-The Flutter frontend automatically connects to the compiled `zitera-engine.exe` in `engine\rust\target\release\` or in the workspace root.
+This runs the full standalone bootcamp environment:
+- Animated anime sidebar & ambient cyberpunk laboratory themes
+- 10 interactive SaaS labs with commercial aesthetics
+- Integrated Tilix command-line terminal emulator
+- YouTube Video Bootcamp theater drawer with custom URL settings
+- HackerOne / Bugcrowd bug bounty blueprints and automated 4-pillar triage grading engine
+- Verifiable Z-CWPT cryptographic certification generator

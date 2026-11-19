@@ -2086,7 +2086,7 @@ mod tests {
         );
         let resp_root = send_req(&req_root);
         assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_root.contains("Internal Financial Accounting Portal"));
+        assert!(resp_root.contains("ApexFin") || resp_root.contains("Internal Financial Accounting Portal"));
 
         // 5. Test POST /login -> Authenticate as alice
         let login_body = "username=alice&password=password123";
@@ -2469,7 +2469,7 @@ mod tests {
         );
         let resp_root = send_req(&req_root);
         assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_root.contains("ApexCorp"));
+        assert!(resp_root.contains("PackNexus") || resp_root.contains("ApexCorp"));
 
         // 5. GET /packages/audit/package_lock_audit.json -> Supply chain audit manifest
         let req_audit = format!(
@@ -2587,7 +2587,7 @@ mod tests {
         );
         let resp_root = send_req(&req_root);
         assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_root.contains("CryptoVault"));
+        assert!(resp_root.contains("SafeKey") || resp_root.contains("CryptoVault"));
 
         // 5. GET /api/audit/hashes -> Unsalted MD5 password hashes exposed
         let req_hashes = format!(
@@ -2850,7 +2850,7 @@ mod tests {
         );
         let resp_login_get = send_req(&req_login_get);
         assert!(resp_login_get.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_login_get.contains("OmniAuth // Admin Gateway"));
+        assert!(resp_login_get.contains("NexHealth") || resp_login_get.contains("OmniAuth // Admin Gateway"));
 
         // 5. POST /session/{token}/login with wrong password -> 200 OK with error (no lockout)
         let fail_body = "username=admin&password=0000";
@@ -2980,7 +2980,7 @@ mod tests {
         );
         let resp_index = send_req(&req_index);
         assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_index.contains("Zitera Edge // Firmware & Config Ingestion"));
+        assert!(resp_index.contains("DataFlow") || resp_index.contains("Zitera Edge // Firmware & Config Ingestion"));
 
         // 5. GET /session/{token}/api/config -> default factory configuration
         let req_config = format!(
@@ -3076,7 +3076,7 @@ mod tests {
         );
         let resp_index = send_req(&req_index);
         assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_index.contains("Zitera SOC // Telemetry & Audit Console"));
+        assert!(resp_index.contains("FleetTrack") || resp_index.contains("Zitera SOC // Telemetry & Audit Console"));
 
         // 5. Practice verification initially -> failed (no attacks yet)
         let verif_pre = verify_practice(&repo_root, "A09").unwrap();
@@ -3174,7 +3174,7 @@ mod tests {
         );
         let resp_index = send_req(&req_index);
         assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_index.contains("Zitera Gate // Fail-Open Evaluation"));
+        assert!(resp_index.contains("TemplateCloud") || resp_index.contains("Zitera Gate // Fail-Open Evaluation"));
 
         // 5. Practice verification initially -> failed (no exception induced)
         let verif_pre = verify_practice(&repo_root, "A10").unwrap();

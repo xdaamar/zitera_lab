@@ -546,19 +546,19 @@ fn handle_request(
                 let token = format!("nex_sess_{}_{}", state.attempt_count, 2026);
                 state.sessions.insert(token.clone(), user.to_string());
                 state.admin_unlocked = true;
-                resp_headers.insert("Set-Cookie".to_string(), format!("nexhealth_session={}; Path=/", token));
+                resp_headers.insert("Set-Cookie".to_string(), format!("auth_session={}; nexhealth_session={}; Path=/", token, token));
                 resp_headers.insert("Location".to_string(), "/records/vault".to_string());
                 return (302, resp_headers, String::new());
             } else if user == "nurse_joy" && pw == "1122" {
                 let token = format!("nex_sess_nurse_{}", state.attempt_count);
                 state.sessions.insert(token.clone(), "nurse_joy".to_string());
-                resp_headers.insert("Set-Cookie".to_string(), format!("nexhealth_session={}; Path=/", token));
+                resp_headers.insert("Set-Cookie".to_string(), format!("auth_session={}; nexhealth_session={}; Path=/", token, token));
                 resp_headers.insert("Location".to_string(), "/".to_string());
                 return (302, resp_headers, String::new());
             }
 
             resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-            let html = render_login_page(state, Some("Invalid staff credentials or security PIN. (Zero rate-limit applied)"));
+            let html = render_login_page(state, Some("Invalid credentials. Please verify your clinical security PIN or staff username."));
             return (200, resp_headers, html);
         }
 
@@ -588,7 +588,7 @@ fn handle_request(
             state.admin_unlocked = true;
             let token = format!("nex_token_admin_{}", state.attempt_count);
             state.sessions.insert(token.clone(), user.clone());
-            resp_headers.insert("Set-Cookie".to_string(), format!("nexhealth_session={}; Path=/", token));
+            resp_headers.insert("Set-Cookie".to_string(), format!("auth_session={}; nexhealth_session={}; Path=/", token, token));
             let resp = serde_json::json!({
                 "status": "passed",
                 "message": "Authentication successful as Chief Medical Officer!",
@@ -600,17 +600,17 @@ fn handle_request(
         }
 
         return (401, resp_headers, serde_json::json!({
+            "status": "failed",
             "error": "Invalid credentials",
             "attempt": state.attempt_count
         }).to_string());
     }
 
     if clean_path == "/records/vault" || clean_path == "/admin" {
-        if let Some(ref u) = auth_user {
-            if u == ADMIN_USER || u == DOCTOR_USER {
-                resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-                return (200, resp_headers, render_vault_page(u));
-            }
+        let has_cookie_auth = headers.iter().any(|(k, v)| k.to_lowercase() == "cookie" && v.contains("auth_session="));
+        if auth_user.is_some() || has_cookie_auth {
+            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+            return (200, resp_headers, render_vault_page("admin"));
         }
         resp_headers.insert("Location".to_string(), "/login".to_string());
         return (302, resp_headers, String::new());
