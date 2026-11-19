@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:tauri": "tauri dev -c \"{\\\"build\\\":{\\\"devUrl\\\":\\\"http://localhost:5173\\\",\\\"beforeDevCommand\\\":\\\"npm run dev\\\"}}\"",
     "build": "tsc -b && vite build",
     "build:debug": "tauri build --debug --no-bundle",
+    "build:release": "tauri build --no-bundle",
     "tauri": "tauri",
     "lint": "oxlint",
     "preview": "vite preview"

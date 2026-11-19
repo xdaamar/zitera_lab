@@ -36,19 +36,19 @@ impl AppState {
 fn css() -> &'static str {
     r#"
 :root {
-    --bg-main: #090d16;
-    --bg-surface: #111827;
-    --bg-card: #1f2937;
-    --border: #374151;
+    --bg-main: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-card: #f1f5f9;
+    --border: #e2e8f0;
     --border-accent: #0284c7;
-    --text-primary: #f9fafb;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
-    --accent: #38bdf8;
-    --accent-glow: rgba(56, 189, 248, 0.15);
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --success: #10b981;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --accent: #0284c7;
+    --accent-glow: rgba(2, 132, 199, 0.08);
+    --warning: #d97706;
+    --danger: #dc2626;
+    --success: #059669;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -59,7 +59,7 @@ body {
     min-height: 100vh;
 }
 a { color: var(--accent); text-decoration: none; transition: color 0.15s ease; }
-a:hover { color: #7dd3fc; text-decoration: underline; }
+a:hover { color: #0369a1; text-decoration: underline; }
 
 /* Top Enterprise Header */
 .top-nav {
@@ -95,11 +95,12 @@ a:hover { color: #7dd3fc; text-decoration: underline; }
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.01em;
+    color: var(--text-primary);
 }
 .brand-badge {
-    background-color: #1e293b;
-    color: #38bdf8;
-    border: 1px solid #0369a1;
+    background-color: #f1f5f9;
+    color: #0284c7;
+    border: 1px solid #e2e8f0;
     font-size: 11px;
     padding: 2px 8px;
     border-radius: 9999px;
@@ -113,7 +114,7 @@ a:hover { color: #7dd3fc; text-decoration: underline; }
     font-weight: 500;
 }
 .nav-item {
-    color: var(--text-secondary);
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -136,16 +137,15 @@ a:hover { color: #7dd3fc; text-decoration: underline; }
     border-radius: 9999px;
     font-size: 12px;
     font-weight: 500;
-    background-color: rgba(16, 185, 129, 0.1);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
 }
 .status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background-color: #10b981;
-    box-shadow: 0 0 8px #10b981;
 }
 
 /* Page Layout */
@@ -290,18 +290,18 @@ a:hover { color: #7dd3fc; text-decoration: underline; }
     text-decoration: none;
 }
 .action-btn.secondary {
-    background-color: var(--bg-card);
+    background-color: #ffffff;
     border: 1px solid var(--border);
     color: var(--text-primary);
 }
 .action-btn.secondary:hover {
-    background-color: #374151;
+    background-color: #f1f5f9;
 }
 
 /* Warnings and Notices */
 .alert-banner {
-    background-color: rgba(245, 158, 11, 0.08);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    background-color: #fffbeb;
+    border: 1px solid #fde68a;
     border-left: 4px solid var(--warning);
     border-radius: 6px;
     padding: 14px 18px;
@@ -311,22 +311,22 @@ a:hover { color: #7dd3fc; text-decoration: underline; }
     gap: 12px;
 }
 .alert-banner.critical {
-    background-color: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.3);
+    background-color: #fff1f2;
+    border-color: #fecdd3;
     border-left-color: var(--danger);
 }
 .alert-content h4 {
     font-size: 13px;
     font-weight: 700;
-    color: #fbbf24;
+    color: #b45309;
     margin-bottom: 2px;
 }
 .alert-banner.critical .alert-content h4 {
-    color: #f87171;
+    color: #b91c1c;
 }
 .alert-content p {
     font-size: 12px;
-    color: #e2e8f0;
+    color: #475569;
 }
 
 /* Data Table */
@@ -336,6 +336,7 @@ a:hover { color: #7dd3fc; text-decoration: underline; }
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 24px;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
 }
 table.enterprise-table {
     width: 100%;
@@ -344,7 +345,7 @@ table.enterprise-table {
     text-align: left;
 }
 table.enterprise-table th {
-    background-color: var(--bg-card);
+    background-color: #f8fafc;
     color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
@@ -362,7 +363,7 @@ table.enterprise-table tr:last-child td {
     border-bottom: none;
 }
 table.enterprise-table tr:hover td {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: #f8fafc;
 }
 .tag {
     display: inline-block;
@@ -372,10 +373,10 @@ table.enterprise-table tr:hover td {
     font-weight: 600;
     font-family: monospace;
 }
-.tag.danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-.tag.warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-.tag.info { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
-.tag.success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.tag.danger { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+.tag.warning { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+.tag.info { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+.tag.success { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
 
 /* Form Styles */
 .form-card {
@@ -385,16 +386,17 @@ table.enterprise-table tr:hover td {
     padding: 32px;
     max-width: 440px;
     margin: 40px auto;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
 }
 .form-card h2 {
     font-size: 18px;
     font-weight: 700;
     margin-bottom: 6px;
+    color: var(--text-primary);
 }
 .form-card p.subtitle {
     font-size: 13px;
-    color: var(--text-secondary);
+    color: var(--text-muted);
     margin-bottom: 24px;
 }
 .form-group {
@@ -411,7 +413,7 @@ table.enterprise-table tr:hover td {
 .form-input {
     width: 100%;
     padding: 10px 12px;
-    background-color: var(--bg-main);
+    background-color: #ffffff;
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text-primary);
@@ -442,29 +444,30 @@ table.enterprise-table tr:hover td {
 
 /* Flag Hero Box */
 .flag-banner {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 95, 70, 0.25));
-    border: 2px solid #10b981;
+    background: #f0fdf4;
+    border: 2px solid #86efac;
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 24px;
     text-align: center;
+    color: #14532d;
 }
 .flag-banner h2 {
-    color: #34d399;
+    color: #15803d;
     font-size: 18px;
     font-weight: 800;
     margin-bottom: 8px;
 }
 .flag-box {
     display: inline-block;
-    background-color: #064e3b;
-    color: #a7f3d0;
+    background-color: #ffffff;
+    color: #14532d;
     font-family: "JetBrains Mono", Consolas, monospace;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
     padding: 8px 16px;
     border-radius: 6px;
-    border: 1px dashed #34d399;
+    border: 1px dashed #22c55e;
     margin: 8px 0;
     user-select: all;
 }
@@ -510,6 +513,7 @@ footer {
     font-size: 12px;
     color: var(--text-muted);
     margin-top: 40px;
+    background: #ffffff;
 }
 "#
 }

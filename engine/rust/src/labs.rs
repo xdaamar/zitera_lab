@@ -623,54 +623,30 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
         {
             use std::os::windows::process::CommandExt;
             const CREATE_NO_WINDOW: u32 = 0x08000000;
-            const DETACHED_PROCESS: u32 = 0x00000008;
-            const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x01000000;
-            const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
 
-            let log_path = lab_dir.join(".serve.log");
-            let log_file_out = std::fs::OpenOptions::new()
-                .create(true)
-                .write(true)
-                .truncate(true)
-                .open(&log_path)
-                .ok();
-            let log_file_err = log_file_out.as_ref().and_then(|f| f.try_clone().ok());
+            // Spawn detached lab broker daemon via PowerShell Start-Process to guarantee complete detachment from calling process
+            let ps_script = format!(
+                "Start-Process -FilePath '{}' -ArgumentList 'lab','serve','{}' -WorkingDirectory '{}' -WindowStyle Hidden",
+                engine_exe.to_string_lossy(),
+                lab_id,
+                workspace_root.to_string_lossy()
+            );
+            let mut ps_cmd = std::process::Command::new("powershell");
+            ps_cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &ps_script]);
+            ps_cmd.creation_flags(CREATE_NO_WINDOW);
 
-            let mut cmd = std::process::Command::new(&engine_exe);
-            cmd.args(["lab", "serve", lab_id]);
-            cmd.current_dir(workspace_root);
-            cmd.stdin(std::process::Stdio::null());
-            if let Some(f_out) = log_file_out {
-                cmd.stdout(std::process::Stdio::from(f_out));
-            } else {
+            if ps_cmd.status().is_err() {
+                // Fall back to direct Command spawn if PowerShell execution failed
+                const DETACHED_PROCESS: u32 = 0x00000008;
+                const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+                let mut cmd = std::process::Command::new(&engine_exe);
+                cmd.args(["lab", "serve", lab_id]);
+                cmd.current_dir(workspace_root);
+                cmd.stdin(std::process::Stdio::null());
                 cmd.stdout(std::process::Stdio::null());
-            }
-            if let Some(f_err) = log_file_err {
-                cmd.stderr(std::process::Stdio::from(f_err));
-            } else {
                 cmd.stderr(std::process::Stdio::null());
-            }
-
-            cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_BREAKAWAY_FROM_JOB | CREATE_NEW_PROCESS_GROUP);
-            if cmd.spawn().is_err() {
-                // If parent job forbids breakaway (e.g. running inside IDE / CI / terminal job object),
-                // spawn via PowerShell Start-Process using Windows Shell execution to ensure complete detachment.
-                let ps_script = format!(
-                    "Start-Process -FilePath '{}' -ArgumentList 'lab','serve','{}' -WorkingDirectory '{}' -WindowStyle Hidden",
-                    engine_exe.to_string_lossy(),
-                    lab_id,
-                    workspace_root.to_string_lossy()
-                );
-                let mut ps_cmd = std::process::Command::new("powershell");
-                ps_cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &ps_script]);
-                ps_cmd.creation_flags(CREATE_NO_WINDOW);
-                if let Err(e) = ps_cmd.status() {
-                    // Fall back to direct spawn without breakaway flag
-                    cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
-                    cmd.spawn().map_err(|e2| {
-                        format!("Failed to launch lab broker background process: {} / {}", e, e2)
-                    })?;
-                }
+                cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
+                let _ = cmd.spawn();
             }
         }
 

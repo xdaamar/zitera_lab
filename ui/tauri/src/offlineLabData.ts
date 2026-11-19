@@ -16,11 +16,11 @@ export interface MissionBriefing {
 export const OFFLINE_MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
   "A01": {
     "labId": "A01",
-    "targetAppName": "VaultPay Enterprise",
-    "targetAppSubtitle": "Fintech B2B Treasury & Wire Transfer Portal",
-    "whyItMatters": "Kerentanan peringkat #1 OWASP Top 10:2025. Celah IDOR pada transaksi kawat B2B memungkinkan kebocoran jutaan data faktur dan transfer dana ilegal antar perusahaan. Pelanggaran regulasi perlindungan data pribadi (UU PDP No. 27/2022 & GDPR) mengancam denda miliaran rupiah dan sanksi pembekuan izin perbankan. Di program bug bounty global, celah IDOR berdampak finansial tinggi rutin diganjar hadiah $1,500 – $8,000+.",
-    "targetArchitecture": "Arsitektur portal treasury perbankan VaultPay berbasis Flask/REST API. Endpoint faktur /invoice/<id> dan API transfer dana /api/invoice/<id> mengekspos identifier numerik sekuensial internal tanpa verifikasi kepemilikan sesi (Object-Level Authorization) di sisi server.",
-    "missionObjectives": "1. Petakan parameter ID numerik pada alur invoice pengguna sah (alice).\n2. Lakukan manipulasi parameter (parameter tampering) untuk mengakses faktur sensitif milik tenant lain.\n3. Temukan catatan master faktur administrator tersembunyi (ID: 42) dan ekstrak flag bukti eksploitasi ZITERA{...}."
+    "targetAppName": "ApexFin Corporate Treasury",
+    "targetAppSubtitle": "Fintech B2B Corporate Treasury & Wire Settlement Platform",
+    "whyItMatters": "Kerentanan peringkat #1 OWASP Top 10:2025. Celah IDOR / BOLA pada transaksi kawat B2B memungkinkan kebocoran jutaan data transfer dana dan voucher perbendaharaan antar entitas korporasi. Pelanggaran regulasi perlindungan data perbankan (UU PDP No. 27/2022 & GDPR) mengancam denda miliaran rupiah dan pembekuan izin kliring. Di program bug bounty enterprise global (HackerOne/Bugcrowd), celah BOLA/IDOR berdampak finansial tinggi rutin diganjar hadiah $2,000 – $10,000+.",
+    "targetArchitecture": "Arsitektur portal treasury ApexFin dengan backend Rust high-performance native sandboxed broker. Endpoint voucher transfer /wires/view?id=<id> (dan /wire/<id>) mengekspos identifier numerik sekuensial tanpa validasi kepemilikan sesi (Object-Level Authorization) di sisi server.",
+    "missionObjectives": "1. Lakukan audit pada alur transfer dana akun operasional Alice Vance (#1).\n2. Lakukan manipulasi parameter (IDOR parameter tampering) pada voucher transfer untuk mengakses catatan tenant eksekutif.\n3. Temukan memo audit SOX-404 tersembunyi milik Marcus Reid (ID: 42) dan ekstrak flag bounty ZITERA{b10k3n_4cc355_c0ntr01_m45t3r}."
   },
   "A02": {
     "labId": "A02",
