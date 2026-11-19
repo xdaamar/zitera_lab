@@ -137,16 +137,15 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         <div className="relative z-10 max-w-xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#042F2E]/60 border border-[#2DD4BF]/60 text-[11px] font-['JetBrains_Mono'] font-bold text-[#5EEAD4] shadow-xs tracking-wider">
             <span className="w-2 h-2 rounded-full bg-[#34D399] animate-ping" />
-            <span>NATIVE SANDBOX ENGINE // READY</span>
+            <span>BOOTCAMP EDITION 2026/2027 // READY</span>
           </div>
 
           <h1 className="text-2xl lg:text-[26px] font-black font-['Space_Grotesk'] tracking-tight text-white drop-shadow-sm leading-tight">
-            OWASP Top 10:2025 Defensive Training
+            Web Penetration Testing & Bug Bounty Bootcamp
           </h1>
 
           <p className="text-[12.5px] text-teal-50 font-normal leading-relaxed font-sans max-w-lg">
-            Offline-first security engineering laboratory with native Win32 AppContainer
-            containment, deterministic vulnerability targets, and real-time CTF validation.
+            Laboratorium profesional modern dengan target klon entitas komersial nyata, stateful CRUD, video YouTube bootcamp terintegrasi, dan template laporan HackerOne berstandar industri.
           </p>
 
           <div className="pt-2 flex items-center gap-3">

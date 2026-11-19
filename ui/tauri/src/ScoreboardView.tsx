@@ -3,6 +3,7 @@ import {
   Medal,
   RefreshCw,
   Clock,
+  Award,
 } from 'lucide-react'
 import {
   getLeaderboard,
@@ -10,11 +11,69 @@ import {
   type ScoreboardEntry,
 } from './scoreboardService'
 import { CuteAnimeLoading } from './CuteAnimeLoading'
+import { CertificateModal } from './CertificateModal'
+import { getCurrentUser } from './authService'
+
+const LAB_BOUNTY_MAP: Record<string, number> = {
+  A01: 5000,
+  A02: 8500,
+  A03: 4500,
+  A04: 7000,
+  A05: 6000,
+  A06: 3500,
+  A07: 4500,
+  A08: 6500,
+  A09: 2500,
+  A10: 6000,
+}
 
 export function ScoreboardView() {
   const [entries, setEntries] = useState<ScoreboardEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [certModalOpen, setCertModalOpen] = useState(false)
   const isMountedRef = useRef(true)
+
+  const currentUser = getCurrentUser()
+  const studentName = currentUser?.username || 'Security Operative'
+
+  // Calculate local user solves
+  const labIds = ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09', 'A10']
+  const solvedLabs = labIds.filter((id) => {
+    try {
+      return localStorage.getItem(`zitera_solved_${id}`) === 'true'
+    } catch {
+      return false
+    }
+  })
+  const currentLeaderboardEntry = entries.find((e) => e.isCurrentUser)
+  const solvedCount = Math.max(solvedLabs.length, currentLeaderboardEntry?.labsSolved ?? 0)
+
+  // Calculate total simulated bounty
+  let totalBountyEarnedUsd = 0
+  for (const id of labIds) {
+    let isSolved = false
+    try {
+      isSolved = localStorage.getItem(`zitera_solved_${id}`) === 'true'
+    } catch {}
+    if (isSolved) {
+      totalBountyEarnedUsd += LAB_BOUNTY_MAP[id] || 4000
+    }
+  }
+  if (totalBountyEarnedUsd === 0 && solvedCount > 0) {
+    totalBountyEarnedUsd = solvedCount * 5000
+  }
+  const formattedBounty = `$${totalBountyEarnedUsd.toLocaleString('en-US')} USD`
+  const progressPercent = Math.min(100, Math.round((solvedCount / 10) * 100))
+  const isFullyCertified = solvedCount >= 10
+
+  const rankTitle =
+    solvedCount >= 10
+      ? 'Certified Sovereign Web Pentester (Z-CWPT)'
+      : solvedCount >= 6
+      ? 'Senior Web Penetration Tester'
+      : solvedCount >= 3
+      ? 'Bug Bounty Hunter'
+      : 'Security Apprentice'
 
   const loadScores = async () => {
     setLoading(true)
@@ -92,6 +151,71 @@ export function ScoreboardView() {
         </div>
       ) : (
         <>
+          {/* Bootcamp Certification & Bounty Portfolio Card */}
+          <div className="rounded-2xl border-2 border-[#2DD4BF] bg-gradient-to-r from-[#F0FDF4] via-white to-[#F7F5F0] p-5 sm:p-6 shadow-[0_4px_0_0_#0F766E,0_12px_24px_rgba(15,118,110,0.06)] space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6E2D8]">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0F766E] to-[#14B8A6] text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Award size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-[#CCFBF1] text-[#0F766E] border border-[#2DD4BF] uppercase">
+                      BOOTCAMP CREDENTIAL
+                    </span>
+                    <span className="text-xs font-mono text-[#78716C]">
+                      // {rankTitle}
+                    </span>
+                  </div>
+                  <h2 className="text-base sm:text-lg font-bold font-['Space_Grotesk'] text-[#1E1A14] mt-0.5">
+                    Zitera Certified Web Penetration Tester (Z-CWPT)
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 self-start sm:self-auto">
+                <div className="text-left sm:text-right">
+                  <div className="text-[10px] font-mono text-[#78716C] uppercase font-bold">
+                    SIMULATED BOUNTY EARNINGS
+                  </div>
+                  <div className="text-base sm:text-lg font-bold font-mono text-[#15803D]">
+                    {formattedBounty}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setCertModalOpen(true)}
+                  className={`px-3.5 py-2 text-xs font-bold font-['Space_Grotesk'] rounded-xl border-2 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                    isFullyCertified
+                      ? 'bg-[#10B981] hover:bg-[#059669] text-white border-[#059669]'
+                      : 'bg-white hover:bg-[#F0EDE8] text-[#0F766E] border-[#2DD4BF]'
+                  }`}
+                >
+                  <Award size={14} />
+                  <span>{isFullyCertified ? 'Unduh Sertifikat (Z-CWPT)' : 'Pratinjau Sertifikat'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Progress Bar & Badges */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono font-bold">
+                <span className="text-[#5C5347]">
+                  Progres Kelulusan: {solvedCount} / 10 Modul Selesai ({progressPercent}%)
+                </span>
+                <span className="text-[#0F766E]">
+                  {isFullyCertified ? '✓ MEMENUHI SYARAT SERTIFIKASI' : 'TARGET: 10/10 LABS'}
+                </span>
+              </div>
+              <div className="w-full h-3 bg-[#E6E2D8] rounded-full overflow-hidden p-0.5">
+                <div
+                  className="h-full bg-gradient-to-r from-[#2DD4BF] to-[#0F766E] rounded-full transition-all duration-500"
+                  style={{ width: `${Math.max(4, progressPercent)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Podium Top 3 */}
           {top3.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
@@ -235,6 +359,14 @@ export function ScoreboardView() {
         </>
       )}
       </div>
+
+      {/* Official Certificate Modal */}
+      <CertificateModal
+        isOpen={certModalOpen}
+        onClose={() => setCertModalOpen(false)}
+        studentName={studentName}
+        totalBountyEarned={formattedBounty}
+      />
     </div>
   )
 }

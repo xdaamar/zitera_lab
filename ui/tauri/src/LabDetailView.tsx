@@ -52,6 +52,7 @@ import {
   BugBountyReportCard,
 } from './LessonCards'
 import { VideoDrawerModal, YouTubeIcon } from './VideoDrawerModal'
+import { HackerOneTriagerCard } from './HackerOneTriagerCard'
 import { LessonMarkdownRenderer } from './LessonMarkdownRenderer'
 
 interface LabDetailViewProps {
@@ -1023,6 +1024,13 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                       </div>
                     )}
                   </form>
+
+                  {/* HackerOne Bug Bounty Report Triage & Grading Card */}
+                  <HackerOneTriagerCard
+                    labId={labId}
+                    referenceReport={bugBountyReport}
+                    targetPort={targetPort}
+                  />
 
                   {/* Progressive Hints Section */}
                   <div className="space-y-3">
