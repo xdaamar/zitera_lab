@@ -18,10 +18,13 @@ import {
   Unlock,
   Split,
   SquareCode,
+  DollarSign,
+  ShieldAlert,
 } from 'lucide-react'
 import type {
   LabInteractiveCurriculum,
   WalkthroughStep,
+  BugBountyReportData,
 } from './lessonInteractiveData'
 
 // ── 1. ANALOGY CARD COMPONENT ──
@@ -883,3 +886,209 @@ export function ArchitectureFlowCard({
     </div>
   )
 }
+
+// ── 6. BUG BOUNTY & HACKERONE REPORT CARD COMPONENT ──
+export function BugBountyReportCard({
+  report,
+  onSendToTerminal,
+}: {
+  report: BugBountyReportData
+  onSendToTerminal?: (cmd: string) => void
+}) {
+  const [copiedReport, setCopiedReport] = useState(false)
+  const [copiedCurl, setCopiedCurl] = useState(false)
+
+  const handleCopyReport = () => {
+    const markdown = `# ${report.reportTitle}
+
+**Severity**: ${report.severity} (${report.cvssScore} - \`${report.cvssVector}\`)
+**Asset / Scope**: \`${report.assetScope}\`
+**Estimated Bounty**: ${report.bountyRange}
+
+---
+
+## 1. Vulnerability Summary
+${report.summary}
+
+## 2. Steps to Reproduce
+${report.stepsToReproduce.join('\n')}
+
+## 3. Proof of Concept (cURL)
+\`\`\`bash
+${report.pocCurl}
+\`\`\`
+
+## 4. Impact Assessment
+${report.impact}
+
+## 5. Remediation Recommendation
+${report.remediationRecommendation}
+
+---
+*Reported via Zitera Lab Web Pentest & Bug Bounty Bootcamp*
+`
+    navigator.clipboard.writeText(markdown)
+    setCopiedReport(true)
+    setTimeout(() => setCopiedReport(false), 2000)
+  }
+
+  const handleCopyCurl = () => {
+    navigator.clipboard.writeText(report.pocCurl)
+    setCopiedCurl(true)
+    setTimeout(() => setCopiedCurl(false), 2000)
+  }
+
+  const severityColor =
+    report.severity === 'Critical'
+      ? 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]'
+      : report.severity === 'High'
+      ? 'bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]'
+      : 'bg-[#EFF6FF] border-[#BFDBFE] text-[#2563EB]'
+
+  return (
+    <div className="rounded-2xl border-2 border-[#F59E0B] bg-white shadow-[0_5px_0_0_#B45309,0_16px_32px_rgba(245,158,11,0.08)] p-6 md:p-7 space-y-6 animate-in fade-in duration-200">
+      {/* Top Banner with HackerOne / Bounty Branding */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#E6E2D8]">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FEF3C7] to-[#FDE68A] border-2 border-[#F59E0B] flex items-center justify-center text-2xl shadow-xs shrink-0">
+            <span>🏆 💰</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold font-['JetBrains_Mono'] px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309] border border-[#FDE68A] uppercase tracking-wider">
+              HACKERONE & BUGCROWD // REPORT BLUEPRINT
+            </span>
+            <h3 className="text-base md:text-lg font-bold font-['Space_Grotesk'] text-[#1E1A14] mt-1">
+              {report.reportTitle}
+            </h3>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className={`px-3 py-1 rounded-lg border text-xs font-['Space_Grotesk'] font-bold flex items-center gap-1.5 ${severityColor}`}>
+            <ShieldAlert size={14} />
+            <span>{report.severity.toUpperCase()} ({report.cvssScore})</span>
+          </div>
+          <div className="px-3 py-1 rounded-lg bg-[#DCFCE7] border border-[#86EFAC] text-xs font-['Space_Grotesk'] font-bold text-[#15803D] flex items-center gap-1.5">
+            <DollarSign size={14} />
+            <span>Bounty: {report.bountyRange}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Scope & CVSS Meta Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="p-3.5 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] space-y-1">
+          <span className="text-[10px] font-mono font-bold text-[#78716C] uppercase tracking-wider">
+            TARGET IN-SCOPE ASSET
+          </span>
+          <div className="text-xs font-mono font-bold text-[#1E1A14] truncate">
+            {report.assetScope}
+          </div>
+        </div>
+        <div className="p-3.5 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] space-y-1">
+          <span className="text-[10px] font-mono font-bold text-[#78716C] uppercase tracking-wider">
+            CVSS v3.1 VECTOR
+          </span>
+          <div className="text-xs font-mono text-[#0F766E] truncate">
+            {report.cvssVector}
+          </div>
+        </div>
+      </div>
+
+      {/* Executive Summary */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14] uppercase tracking-wider">
+          1. Vulnerability Summary & Root Cause
+        </h4>
+        <div className="p-4 rounded-xl bg-white border border-[#E6E2D8] text-xs sm:text-sm text-[#3D372E] leading-relaxed font-['Plus_Jakarta_Sans'] shadow-2xs">
+          {report.summary}
+        </div>
+      </div>
+
+      {/* Steps to Reproduce */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14] uppercase tracking-wider">
+          2. Step-by-Step Proof of Concept (Triage Checklist)
+        </h4>
+        <div className="p-4 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] space-y-2">
+          {report.stepsToReproduce.map((step, idx) => (
+            <div key={idx} className="text-xs text-[#5C5347] font-['Plus_Jakarta_Sans'] leading-relaxed flex items-start gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] mt-1.5 shrink-0" />
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* PoC cURL Terminal Box */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs font-['Space_Grotesk'] font-bold text-[#1E1A14]">
+          <span className="uppercase tracking-wider">3. Minimal Reproducing Command (PoC cURL)</span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleCopyCurl}
+              className="px-2 py-1 text-[11px] rounded bg-white border border-[#E6E2D8] hover:bg-[#F0EDE8] text-[#5C5347] flex items-center gap-1 transition-all cursor-pointer"
+            >
+              {copiedCurl ? <Check size={12} className="text-[#10B981]" /> : <Copy size={12} />}
+              <span>{copiedCurl ? 'Tersalin' : 'Salin cURL'}</span>
+            </button>
+            {onSendToTerminal && (
+              <button
+                onClick={() => onSendToTerminal(report.pocCurl)}
+                className="px-2 py-1 text-[11px] rounded bg-[#0F766E] hover:bg-[#0D655E] text-white flex items-center gap-1 transition-all cursor-pointer font-bold"
+              >
+                <TerminalIcon size={12} />
+                <span>Kirim ke Tilix</span>
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="p-3.5 rounded-xl bg-[#090D16] border border-[#1E293B] text-[#38BDF8] font-mono text-xs overflow-x-auto shadow-inner">
+          <code>{report.pocCurl}</code>
+        </div>
+      </div>
+
+      {/* Impact & Remediation Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-4 rounded-xl bg-[#FEF2F2]/50 border border-[#FECACA] space-y-1.5">
+          <h5 className="text-xs font-bold font-['Space_Grotesk'] text-[#991B1B] uppercase tracking-wider">
+            4. Business & Regulatory Impact
+          </h5>
+          <p className="text-xs text-[#7F1D1D] leading-relaxed font-['Plus_Jakarta_Sans']">
+            {report.impact}
+          </p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-[#F0FDF4]/50 border border-[#BBF7D0] space-y-1.5">
+          <h5 className="text-xs font-bold font-['Space_Grotesk'] text-[#166534] uppercase tracking-wider">
+            5. Remediation for Engineering
+          </h5>
+          <p className="text-xs text-[#14532D] leading-relaxed font-['Plus_Jakarta_Sans']">
+            {report.remediationRecommendation}
+          </p>
+        </div>
+      </div>
+
+      {/* Main Copy Action Button */}
+      <div className="pt-2">
+        <button
+          onClick={handleCopyReport}
+          className="w-full py-3 px-4 rounded-xl font-bold font-['Space_Grotesk'] text-xs sm:text-sm bg-gradient-to-r from-[#D97706] to-[#B45309] hover:from-[#B45309] hover:to-[#92400E] text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+        >
+          {copiedReport ? (
+            <>
+              <Check size={16} />
+              <span>Format Laporan Berhasil Disalin ke Clipboard!</span>
+            </>
+          ) : (
+            <>
+              <Copy size={16} />
+              <span>Salin Format Laporan Bug Bounty Lengkap (Markdown)</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+

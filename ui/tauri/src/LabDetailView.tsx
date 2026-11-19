@@ -42,14 +42,16 @@ import {
 } from './engineClient'
 import { recordSolve } from './scoreboardService'
 import { CuteAnimeLoading } from './CuteAnimeLoading'
-import { getInteractiveCurriculumForLab } from './lessonInteractiveData'
+import { getInteractiveCurriculumForLab, getBugBountyReportForLab } from './lessonInteractiveData'
 import {
   AnalogyCard,
   CoreConceptCard,
   InteractiveWalkthroughCard,
   RemediationCard,
   ArchitectureFlowCard,
+  BugBountyReportCard,
 } from './LessonCards'
+import { VideoDrawerModal, YouTubeIcon } from './VideoDrawerModal'
 import { LessonMarkdownRenderer } from './LessonMarkdownRenderer'
 
 interface LabDetailViewProps {
@@ -156,6 +158,9 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
       return false
     }
   })
+
+  // Video Bootcamp Modal State
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
 
   // CTF Challenge state
   const [flagInput, setFlagInput] = useState('')
@@ -409,6 +414,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
   const activeTargetUrl = status?.url || `http://127.0.0.1:${targetPort}/`
   const briefing = getMissionBriefing(labId)
   const interactiveCurriculum = getInteractiveCurriculumForLab(labId, targetPort)
+  const bugBountyReport = getBugBountyReportForLab(labId, targetPort)
 
   const handleSendToTerminal = (cmd: string) => {
     setTerminalOpen(true)
@@ -511,6 +517,16 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
           )}
 
           <div className="h-4 w-px bg-[#E6E2D8]" />
+
+          {/* Video Bootcamp YouTube Button */}
+          <button
+            onClick={() => setVideoModalOpen(true)}
+            className="px-3 py-1.5 rounded-lg border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] text-xs font-bold font-['Space_Grotesk'] flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+            title="Tonton Video Bootcamp YouTube"
+          >
+            <YouTubeIcon size={15} className="text-[#DC2626]" />
+            <span>Video Bootcamp</span>
+          </button>
 
           {/* Requirement 1: Collapsible Terminal Panel Toggle Button */}
           <button
@@ -750,11 +766,17 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
 
                   {/* Section 5: Dedicated Interactive Step-by-Step Walkthrough Card */}
                   {activeSection === 'walkthrough' && (
-                    <InteractiveWalkthroughCard
-                      data={interactiveCurriculum.walkthrough}
-                      targetPort={targetPort}
-                      onSendToTerminal={handleSendToTerminal}
-                    />
+                    <>
+                      <InteractiveWalkthroughCard
+                        data={interactiveCurriculum.walkthrough}
+                        targetPort={targetPort}
+                        onSendToTerminal={handleSendToTerminal}
+                      />
+                      <BugBountyReportCard
+                        report={bugBountyReport}
+                        onSendToTerminal={handleSendToTerminal}
+                      />
+                    </>
                   )}
 
                   {/* Section 6: Dedicated Remediation Code Comparison Card */}
@@ -1314,6 +1336,14 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
           </div>
         </div>
       )}
+
+      {/* Video Bootcamp YouTube Modal */}
+      <VideoDrawerModal
+        isOpen={videoModalOpen}
+        onClose={() => setVideoModalOpen(false)}
+        labId={labId}
+        labTitle={content.manifest.title}
+      />
     </div>
   )
 }
