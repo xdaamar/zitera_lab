@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "W01",
+  "package_id": "zitera-lab-w01",
+  "slug": "w01-cross-site-request-forgery-csrf-and-",
+  "title": "Cross-Site Request Forgery (CSRF) & Token Defense",
+  "owasp": "W01:2026",
+  "standard": "web-security",
+  "standard_version": "2026",
+  "category_id": "W01",
+  "category_name": "Web Security",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/w01-lab.exe",
+  "default_port": 8021,
+  "estimated_minutes": 45,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Pelajari bagaimana browser secara otomatis menyertakan cookie sesi pada request lintas origin dan cara mengamankannya de...",
+  "skills": [
+    "CSRF",
+    "SameSite Cookie",
+    "Anti-CSRF Token",
+    "Cross-Origin Defense"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Cross-Site Request Forgery (CSRF) & Token Defense",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

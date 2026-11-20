@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "F03",
+  "package_id": "zitera-lab-f03",
+  "slug": "f03-authentication-vs-authorization-and-",
+  "title": "Authentication vs Authorization & Trust Boundaries",
+  "owasp": "F03:2026",
+  "standard": "foundations",
+  "standard_version": "2026",
+  "category_id": "F03",
+  "category_name": "Foundations",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Beginner",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/f03-lab.exe",
+  "default_port": 8028,
+  "estimated_minutes": 25,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Pahami perbedaan fundamental 'siapa Anda' (AuthN) dan 'apa izin Anda' (AuthZ), serta batas kepercayaan antara browser da...",
+  "skills": [
+    "AuthN vs AuthZ",
+    "Trust Boundary",
+    "Client Bypass",
+    "Access Principles"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Authentication vs Authorization & Trust Boundaries",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

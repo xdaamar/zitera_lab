@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "W05",
+  "package_id": "zitera-lab-w05",
+  "slug": "w05-path-traversal-and-local-file-inclus",
+  "title": "Path Traversal & Local File Inclusion (LFI)",
+  "owasp": "W05:2026",
+  "standard": "web-security",
+  "standard_version": "2026",
+  "category_id": "W05",
+  "category_name": "Web Security",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/w05-lab.exe",
+  "default_port": 8025,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Pahami bagaimana karakter dot-dot-slash (../) memanipulasi path sistem berkas server untuk membaca file konfigurasi raha...",
+  "skills": [
+    "Path Traversal",
+    "LFI",
+    "Directory Traversal",
+    "File Reading Defense"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Path Traversal & Local File Inclusion (LFI)",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

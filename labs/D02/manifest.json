@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "D02",
+  "package_id": "zitera-lab-d02",
+  "slug": "d02-binary-and-package-cryptographic-int",
+  "title": "Binary & Package Cryptographic Integrity",
+  "owasp": "D02:2026",
+  "standard": "defensive-security",
+  "standard_version": "2026",
+  "category_id": "D02",
+  "category_name": "Defensive Security",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/d02-lab.exe",
+  "default_port": 8033,
+  "estimated_minutes": 45,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Verifikasi ringkasan hash SHA-256 dan tanda tangan digital asimetris Ed25519 untuk mendeteksi manipulasi biner pihak ket...",
+  "skills": [
+    "Ed25519",
+    "SHA-256",
+    "Binary Integrity",
+    "Signature Verification"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Binary & Package Cryptographic Integrity",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

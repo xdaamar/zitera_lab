@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A12",
+  "package_id": "zitera-lab-a12",
+  "slug": "a12-oauth-2.0-and-account-linking-takeov",
+  "title": "OAuth 2.0 & Account Linking Takeover",
+  "owasp": "A12:2026",
+  "standard": "advanced-attacks",
+  "standard_version": "2026",
+  "category_id": "A12",
+  "category_name": "Advanced Attacks",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Advanced",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a12-lab.exe",
+  "default_port": 8035,
+  "estimated_minutes": 50,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Audit kelemahan implementasi parameter state pada alur OAuth 2.0 Authorization Code yang memungkinkan pembajakan akun pe...",
+  "skills": [
+    "OAuth 2.0",
+    "State Parameter",
+    "Account Takeover",
+    "SSO Security"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja OAuth 2.0 & Account Linking Takeover",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

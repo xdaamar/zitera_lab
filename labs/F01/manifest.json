@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "F01",
+  "package_id": "zitera-lab-f01",
+  "slug": "f01-dasar-protokol-http-and-web-architec",
+  "title": "Dasar Protokol HTTP & Web Architecture",
+  "owasp": "F01:2026",
+  "standard": "foundations",
+  "standard_version": "2026",
+  "category_id": "F01",
+  "category_name": "Foundations",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Beginner",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/f01-lab.exe",
+  "default_port": 8026,
+  "estimated_minutes": 25,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Kuasai dasar protokol HTTP: analisis method GET/POST/PUT, status code 200/403/500, dan struktur header permintaan web....",
+  "skills": [
+    "HTTP Protocol",
+    "Headers",
+    "Status Codes",
+    "Web Traffic"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Dasar Protokol HTTP & Web Architecture",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A11",
+  "package_id": "zitera-lab-a11",
+  "slug": "a11-api-mass-assignment-and-privilege-es",
+  "title": "API Mass Assignment & Privilege Escalation",
+  "owasp": "A11:2026",
+  "standard": "advanced-attacks",
+  "standard_version": "2026",
+  "category_id": "A11",
+  "category_name": "Advanced Attacks",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a11-lab.exe",
+  "default_port": 8034,
+  "estimated_minutes": 45,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Eksploitasi fitur binding otomatis payload JSON ke model database yang memungkinkan pengguna biasa mengangkat diri menja...",
+  "skills": [
+    "Mass Assignment",
+    "Privilege Escalation",
+    "JSON Binding",
+    "DTO Hardening"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja API Mass Assignment & Privilege Escalation",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{cryptographic_authenticity_proven_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami konsep dasar Ed25519 dan bagaimana data dikirimkan antara klien dan server."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Buka antarmuka target di port 8033 dan perhatikan tombol atau form interaktif yang disediakan."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan tombol trigger exploit langsung pada halaman web target jika Anda ingin langsung memvalidasi flag."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Flag resmi untuk tantangan ini adalah: ZITERA{cryptographic_authenticity_proven_2026}"
+    }
+  ]
+}

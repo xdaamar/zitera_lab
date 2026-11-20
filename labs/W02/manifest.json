@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "W02",
+  "package_id": "zitera-lab-w02",
+  "slug": "w02-server-side-request-forgery-ssrf-and",
+  "title": "Server-Side Request Forgery (SSRF) & Metadata Service",
+  "owasp": "W02:2026",
+  "standard": "web-security",
+  "standard_version": "2026",
+  "category_id": "W02",
+  "category_name": "Web Security",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Advanced",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/w02-lab.exe",
+  "default_port": 8022,
+  "estimated_minutes": 50,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Eksploitasi fitur fetch URL internal untuk memindai port privat lokal dan mengakses metadata service yang tersembunyi da...",
+  "skills": [
+    "SSRF",
+    "Cloud Metadata",
+    "Loopback Bypass",
+    "Network Segmentation"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Server-Side Request Forgery (SSRF) & Metadata Service",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

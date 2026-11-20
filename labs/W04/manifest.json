@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "W04",
+  "package_id": "zitera-lab-w04",
+  "slug": "w04-arbitrary-file-upload-and-mime-sniff",
+  "title": "Arbitrary File Upload & MIME Sniffing Bypass",
+  "owasp": "W04:2026",
+  "standard": "web-security",
+  "standard_version": "2026",
+  "category_id": "W04",
+  "category_name": "Web Security",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Advanced",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/w04-lab.exe",
+  "default_port": 8024,
+  "estimated_minutes": 45,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Uji kelemahan validasi berkas unggahan, manipulasi MIME type, bypass ekstensi ganda, dan eksekusi payload webshell teris...",
+  "skills": [
+    "File Upload",
+    "MIME Sniffing",
+    "Extension Bypass",
+    "Webshell Analysis"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Arbitrary File Upload & MIME Sniffing Bypass",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

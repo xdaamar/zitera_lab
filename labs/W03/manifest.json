@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "W03",
+  "package_id": "zitera-lab-w03",
+  "slug": "w03-broken-object-level-authorization-ap",
+  "title": "Broken Object Level Authorization (API BOLA)",
+  "owasp": "W03:2026",
+  "standard": "api-security",
+  "standard_version": "2026",
+  "category_id": "W03",
+  "category_name": "API Security",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/w03-lab.exe",
+  "default_port": 8023,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Identifikasi celah otorisasi level objek pada REST API modern di mana manipulasi ID pesanan membocorkan transaksi pelang...",
+  "skills": [
+    "API BOLA",
+    "Object Authorization",
+    "REST Security",
+    "IDOR API"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Broken Object Level Authorization (API BOLA)",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

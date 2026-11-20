@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "D01",
+  "package_id": "zitera-lab-d01",
+  "slug": "d01-web-server-log-analysis-and-threat-d",
+  "title": "Web Server Log Analysis & Threat Detection",
+  "owasp": "D01:2026",
+  "standard": "defensive-security",
+  "standard_version": "2026",
+  "category_id": "D01",
+  "category_name": "Defensive Security",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/d01-lab.exe",
+  "default_port": 8032,
+  "estimated_minutes": 45,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Analisis berkas log web server, identifikasi jejak scanning botnet, injeksi SQL, dan rekonstruksi timeline insiden keama...",
+  "skills": [
+    "Log Forensics",
+    "Threat Hunting",
+    "Incident Response",
+    "Pattern Analysis"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Web Server Log Analysis & Threat Detection",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

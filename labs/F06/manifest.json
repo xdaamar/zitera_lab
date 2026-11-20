@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "F06",
+  "package_id": "zitera-lab-f06",
+  "slug": "f06-mekanisme-lab-zitera-and-pengiriman-",
+  "title": "Mekanisme Lab ZITERA & Pengiriman Flag CTF",
+  "owasp": "F06:2026",
+  "standard": "foundations",
+  "standard_version": "2026",
+  "category_id": "F06",
+  "category_name": "Foundations",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Beginner",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/f06-lab.exe",
+  "default_port": 8031,
+  "estimated_minutes": 20,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Orientasi lengkap alur kerja ZITERA LAB: kontrol sandbox, status readiness, terminal interaktif, dan format verifikasi f...",
+  "skills": [
+    "CTF Workflow",
+    "Flag Submission",
+    "Sandbox Mechanics",
+    "Verification"
+  ],
+  "learning_objectives": [
+    "Menganalisis mekanisme kerja Mekanisme Lab ZITERA & Pengiriman Flag CTF",
+    "Mengidentifikasi indikator kerentanan pada endpoint target",
+    "Menerapkan teknik pertahanan dan secure coding"
+  ],
+  "prerequisites": [
+    "Pemahaman dasar protokol web HTTP",
+    "Konsep dasar client-server"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

@@ -48,6 +48,21 @@ const STICKER_MAP: Record<string, string> = {
   A08: '/assets/sticker_purple.png',
   A09: '/assets/sticker_pink.png',
   A10: '/assets/sticker_duck.png',
+  W01: '/assets/sticker_cat_laptop.png',
+  W02: '/assets/sticker_bunny.png',
+  W03: '/assets/sticker_hamster.png',
+  W04: '/assets/sticker_shiba.png',
+  W05: '/assets/sticker_pink.png',
+  F01: '/assets/sticker_duck.png',
+  F02: '/assets/sticker_blonde.png',
+  F03: '/assets/sticker_purple.png',
+  F04: '/assets/sticker_cat_laptop.png',
+  F05: '/assets/sticker_bunny.png',
+  F06: '/assets/sticker_hamster.png',
+  D01: '/assets/sticker_shiba.png',
+  D02: '/assets/sticker_pink.png',
+  A11: '/assets/sticker_blonde.png',
+  A12: '/assets/sticker_purple.png',
 }
 
 interface LabMetadata {
@@ -127,6 +142,111 @@ const LAB_DETAILS: Record<string, LabMetadata> = {
     domain: 'Commercial SaaS Email & PDF Document Generator',
     desc: 'Weaponize complex server-side template injection (SSTI) and remote code execution across edge renderers.',
     skills: ['SSTI', 'RCE', 'Sandbox Escape', 'Advanced Exploitation'],
+    difficulty: 'Advanced',
+  },
+  W01: {
+    targetApp: 'NexusPay Wire Portal',
+    domain: 'Fintech Interbank Settlement & Wire Gateway',
+    desc: 'Pelajari bagaimana browser menyertakan cookie sesi pada request lintas origin dan mitigasi anti-CSRF token.',
+    skills: ['CSRF', 'SameSite Cookie', 'Anti-CSRF Token', 'Cross-Origin Defense'],
+    difficulty: 'Intermediate',
+  },
+  W02: {
+    targetApp: 'CloudFetch Webhook Dispatcher',
+    domain: 'Cloud Integration & Microservice Webhook Engine',
+    desc: 'Eksploitasi fitur fetch URL internal untuk memindai port privat lokal dan mengakses metadata service.',
+    skills: ['SSRF', 'Cloud Metadata', 'Loopback Bypass', 'Network Segmentation'],
+    difficulty: 'Advanced',
+  },
+  W03: {
+    targetApp: 'ShopMatrix Order Gateway',
+    domain: 'B2B E-Commerce Wholesale & Order Routing API',
+    desc: 'Identifikasi celah otorisasi level objek pada REST API modern di mana manipulasi ID pesanan membocorkan transaksi lain.',
+    skills: ['API BOLA', 'Object Authorization', 'REST Security', 'IDOR API'],
+    difficulty: 'Intermediate',
+  },
+  W04: {
+    targetApp: 'DocuCloud Asset Manager',
+    domain: 'Enterprise Cloud Document & Asset Repository',
+    desc: 'Uji kelemahan validasi berkas unggahan, manipulasi MIME type, bypass ekstensi ganda, dan eksekusi payload.',
+    skills: ['File Upload', 'MIME Sniffing', 'Extension Bypass', 'Webshell Analysis'],
+    difficulty: 'Advanced',
+  },
+  W05: {
+    targetApp: 'Enterprise DocViewer',
+    domain: 'Corporate Document Management & Report Reader',
+    desc: 'Pahami bagaimana karakter dot-dot-slash memanipulasi path sistem berkas server untuk membaca file rahasia.',
+    skills: ['Path Traversal', 'LFI', 'Directory Traversal', 'File Reading Defense'],
+    difficulty: 'Intermediate',
+  },
+  F01: {
+    targetApp: 'HTTP Protocol Inspector',
+    domain: 'Cybersecurity Educational Core Architecture',
+    desc: 'Kuasai dasar protokol HTTP: analisis method GET/POST/PUT, status code 200/403/500, dan struktur header permintaan web.',
+    skills: ['HTTP Protocol', 'Headers', 'Status Codes', 'Web Traffic'],
+    difficulty: 'Beginner',
+  },
+  F02: {
+    targetApp: 'SessionGuard Simulator',
+    domain: 'Session Management & Web State Engineering',
+    desc: 'Pahami sifat stateless HTTP, pemeriksaan atribut keamanan cookie (HttpOnly, Secure, SameSite), dan siklus hidup token.',
+    skills: ['Cookies', 'HttpOnly', 'SameSite', 'Session Management'],
+    difficulty: 'Beginner',
+  },
+  F03: {
+    targetApp: 'TrustBoundary Analyzer',
+    domain: 'Core Security Architecture & Threat Modeling',
+    desc: 'Pahami perbedaan fundamental siapa Anda (AuthN) dan apa izin Anda (AuthZ), serta batas kepercayaan klien-server.',
+    skills: ['AuthN vs AuthZ', 'Trust Boundary', 'Client Bypass', 'Access Principles'],
+    difficulty: 'Beginner',
+  },
+  F04: {
+    targetApp: 'CryptoLab Sandbox',
+    domain: 'Applied Cryptography & Data Protection Core',
+    desc: 'Hilangkan kerancuan antara Base64, SHA-256, dan AES. Pelajari sifat satu arah cryptographic hash dan peran salt.',
+    skills: ['Base64', 'SHA-256', 'AES', 'Salting & Hashing'],
+    difficulty: 'Beginner',
+  },
+  F05: {
+    targetApp: 'SQL Query Compiler Visualizer',
+    domain: 'Database Engineering & Injection Prevention',
+    desc: 'Pelajari bagaimana parser SQL mengompilasi string query dan amati titik bahaya di mana data input mengubah sintaks.',
+    skills: ['SQL Grammar', 'Query Trees', 'Parameterized Queries', 'Data Separation'],
+    difficulty: 'Beginner',
+  },
+  F06: {
+    targetApp: 'Zitera Cadet Onboarding Station',
+    domain: 'Zitera Lab Operational Architecture',
+    desc: 'Orientasi lengkap alur kerja ZITERA LAB: kontrol sandbox, status readiness, terminal interaktif, dan format verifikasi flag.',
+    skills: ['CTF Workflow', 'Flag Submission', 'Sandbox Mechanics', 'Verification'],
+    difficulty: 'Beginner',
+  },
+  D01: {
+    targetApp: 'CyberSentinel Log SIEM',
+    domain: 'Enterprise Incident Detection & Threat Hunting',
+    desc: 'Analisis berkas log web server, identifikasi jejak scanning botnet, injeksi SQL, dan rekonstruksi timeline insiden.',
+    skills: ['Log Forensics', 'Threat Hunting', 'Incident Response', 'Pattern Analysis'],
+    difficulty: 'Intermediate',
+  },
+  D02: {
+    targetApp: 'SigCheck Package Validator',
+    domain: 'Software Supply Chain & Binary Authenticity',
+    desc: 'Verifikasi ringkasan hash SHA-256 dan tanda tangan digital asimetris Ed25519 untuk mendeteksi manipulasi biner.',
+    skills: ['Ed25519', 'SHA-256', 'Binary Integrity', 'Signature Verification'],
+    difficulty: 'Intermediate',
+  },
+  A11: {
+    targetApp: 'UserHub Identity Admin',
+    domain: 'Enterprise User Directory & RBAC Gateway',
+    desc: 'Eksploitasi fitur binding otomatis payload JSON ke model database yang memungkinkan eskalasi peran menjadi administrator.',
+    skills: ['Mass Assignment', 'Privilege Escalation', 'JSON Binding', 'DTO Hardening'],
+    difficulty: 'Intermediate',
+  },
+  A12: {
+    targetApp: 'SocialAuth Connect Gateway',
+    domain: 'Federated Identity & Single Sign-On Portal',
+    desc: 'Audit kelemahan implementasi parameter state pada alur OAuth 2.0 Authorization Code yang memungkinkan pembajakan akun.',
+    skills: ['OAuth 2.0', 'State Parameter', 'Account Takeover', 'SSO Security'],
     difficulty: 'Advanced',
   },
 }
@@ -342,9 +462,303 @@ const CATEGORY_STYLES: Record<string, CategoryStyle> = {
     badgeText: '#BE123C',
     badgeShadow: '#FECDD3',
   },
+  W01: {
+    id: 'W01',
+    name: 'CSRF & Token Defense',
+    slug: 'csrf',
+    owaspTag: 'WEB W01:2026',
+    accent: '#0891B2',
+    border: '#22D3EE',
+    shadow: '#0891B2',
+    glowRgba: 'rgba(34,211,238,0.22)',
+    bgLight: '#ECFEFF',
+    cartridgeBg: '#CFFAFE',
+    cartridgeBorder: '#22D3EE',
+    cartridgeText: '#0891B2',
+    cartridgeShadow: '#A5F3FC',
+    badgeBg: '#CFFAFE',
+    badgeBorder: '#22D3EE',
+    badgeText: '#0891B2',
+    badgeShadow: '#A5F3FC',
+  },
+  W02: {
+    id: 'W02',
+    name: 'SSRF & Cloud Metadata',
+    slug: 'ssrf-cloud',
+    owaspTag: 'WEB W02:2026',
+    accent: '#EA580C',
+    border: '#FB923C',
+    shadow: '#EA580C',
+    glowRgba: 'rgba(251,146,60,0.22)',
+    bgLight: '#FFF7ED',
+    cartridgeBg: '#FFEDD5',
+    cartridgeBorder: '#FB923C',
+    cartridgeText: '#EA580C',
+    cartridgeShadow: '#FED7AA',
+    badgeBg: '#FFEDD5',
+    badgeBorder: '#FB923C',
+    badgeText: '#EA580C',
+    badgeShadow: '#FED7AA',
+  },
+  W03: {
+    id: 'W03',
+    name: 'API BOLA / IDOR',
+    slug: 'api-bola',
+    owaspTag: 'API W03:2026',
+    accent: '#4F46E5',
+    border: '#818CF8',
+    shadow: '#4F46E5',
+    glowRgba: 'rgba(129,140,248,0.22)',
+    bgLight: '#EEF2FF',
+    cartridgeBg: '#E0E7FF',
+    cartridgeBorder: '#818CF8',
+    cartridgeText: '#4F46E5',
+    cartridgeShadow: '#C7D2FE',
+    badgeBg: '#E0E7FF',
+    badgeBorder: '#818CF8',
+    badgeText: '#4F46E5',
+    badgeShadow: '#C7D2FE',
+  },
+  W04: {
+    id: 'W04',
+    name: 'Arbitrary File Upload',
+    slug: 'file-upload',
+    owaspTag: 'WEB W04:2026',
+    accent: '#D97706',
+    border: '#FBBF24',
+    shadow: '#D97706',
+    glowRgba: 'rgba(251,191,36,0.22)',
+    bgLight: '#FFFBEB',
+    cartridgeBg: '#FEF3C7',
+    cartridgeBorder: '#FBBF24',
+    cartridgeText: '#D97706',
+    cartridgeShadow: '#FDE68A',
+    badgeBg: '#FEF3C7',
+    badgeBorder: '#FBBF24',
+    badgeText: '#D97706',
+    badgeShadow: '#FDE68A',
+  },
+  W05: {
+    id: 'W05',
+    name: 'Path Traversal & LFI',
+    slug: 'path-traversal',
+    owaspTag: 'WEB W05:2026',
+    accent: '#DC2626',
+    border: '#F87171',
+    shadow: '#DC2626',
+    glowRgba: 'rgba(248,113,113,0.22)',
+    bgLight: '#FEF2F2',
+    cartridgeBg: '#FEE2E2',
+    cartridgeBorder: '#F87171',
+    cartridgeText: '#DC2626',
+    cartridgeShadow: '#FECACA',
+    badgeBg: '#FEE2E2',
+    badgeBorder: '#F87171',
+    badgeText: '#DC2626',
+    badgeShadow: '#FECACA',
+  },
+  F01: {
+    id: 'F01',
+    name: 'HTTP Protocol Basics',
+    slug: 'http-basics',
+    owaspTag: 'FOUNDATION F01',
+    accent: '#059669',
+    border: '#34D399',
+    shadow: '#059669',
+    glowRgba: 'rgba(52,211,153,0.22)',
+    bgLight: '#ECFDF5',
+    cartridgeBg: '#D1FAE5',
+    cartridgeBorder: '#34D399',
+    cartridgeText: '#059669',
+    cartridgeShadow: '#A7F3D0',
+    badgeBg: '#D1FAE5',
+    badgeBorder: '#34D399',
+    badgeText: '#059669',
+    badgeShadow: '#A7F3D0',
+  },
+  F02: {
+    id: 'F02',
+    name: 'Cookies & Sessions',
+    slug: 'cookies-sessions',
+    owaspTag: 'FOUNDATION F02',
+    accent: '#2563EB',
+    border: '#60A5FA',
+    shadow: '#2563EB',
+    glowRgba: 'rgba(96,165,250,0.22)',
+    bgLight: '#EFF6FF',
+    cartridgeBg: '#DBEAFE',
+    cartridgeBorder: '#60A5FA',
+    cartridgeText: '#2563EB',
+    cartridgeShadow: '#BFDBFE',
+    badgeBg: '#DBEAFE',
+    badgeBorder: '#60A5FA',
+    badgeText: '#2563EB',
+    badgeShadow: '#BFDBFE',
+  },
+  F03: {
+    id: 'F03',
+    name: 'AuthN vs AuthZ',
+    slug: 'authn-authz',
+    owaspTag: 'FOUNDATION F03',
+    accent: '#7C3AED',
+    border: '#A78BFA',
+    shadow: '#7C3AED',
+    glowRgba: 'rgba(167,139,250,0.22)',
+    bgLight: '#F5F3FF',
+    cartridgeBg: '#EDE9FE',
+    cartridgeBorder: '#A78BFA',
+    cartridgeText: '#7C3AED',
+    cartridgeShadow: '#DDD6FE',
+    badgeBg: '#EDE9FE',
+    badgeBorder: '#A78BFA',
+    badgeText: '#7C3AED',
+    badgeShadow: '#DDD6FE',
+  },
+  F04: {
+    id: 'F04',
+    name: 'Crypto & Hash Basics',
+    slug: 'crypto-basics',
+    owaspTag: 'FOUNDATION F04',
+    accent: '#9333EA',
+    border: '#C084FC',
+    shadow: '#9333EA',
+    glowRgba: 'rgba(192,132,252,0.22)',
+    bgLight: '#FAF5FF',
+    cartridgeBg: '#F3E8FF',
+    cartridgeBorder: '#C084FC',
+    cartridgeText: '#9333EA',
+    cartridgeShadow: '#E9D5FF',
+    badgeBg: '#F3E8FF',
+    badgeBorder: '#C084FC',
+    badgeText: '#9333EA',
+    badgeShadow: '#E9D5FF',
+  },
+  F05: {
+    id: 'F05',
+    name: 'SQL Query Grammar',
+    slug: 'sql-grammar',
+    owaspTag: 'FOUNDATION F05',
+    accent: '#B45309',
+    border: '#FBBF24',
+    shadow: '#B45309',
+    glowRgba: 'rgba(251,191,36,0.22)',
+    bgLight: '#FFFBEB',
+    cartridgeBg: '#FEF3C7',
+    cartridgeBorder: '#FBBF24',
+    cartridgeText: '#B45309',
+    cartridgeShadow: '#FDE68A',
+    badgeBg: '#FEF3C7',
+    badgeBorder: '#FBBF24',
+    badgeText: '#B45309',
+    badgeShadow: '#FDE68A',
+  },
+  F06: {
+    id: 'F06',
+    name: 'Zitera Lab Mechanics',
+    slug: 'lab-mechanics',
+    owaspTag: 'FOUNDATION F06',
+    accent: '#0F766E',
+    border: '#2DD4BF',
+    shadow: '#0F766E',
+    glowRgba: 'rgba(45,212,191,0.22)',
+    bgLight: '#F0FDFA',
+    cartridgeBg: '#CCFBF1',
+    cartridgeBorder: '#2DD4BF',
+    cartridgeText: '#0F766E',
+    cartridgeShadow: '#99F6E4',
+    badgeBg: '#CCFBF1',
+    badgeBorder: '#2DD4BF',
+    badgeText: '#0F766E',
+    badgeShadow: '#99F6E4',
+  },
+  D01: {
+    id: 'D01',
+    name: 'Web Server Log SIEM',
+    slug: 'log-siem',
+    owaspTag: 'DEFENSIVE D01',
+    accent: '#047857',
+    border: '#34D399',
+    shadow: '#047857',
+    glowRgba: 'rgba(52,211,153,0.22)',
+    bgLight: '#ECFDF5',
+    cartridgeBg: '#D1FAE5',
+    cartridgeBorder: '#34D399',
+    cartridgeText: '#047857',
+    cartridgeShadow: '#A7F3D0',
+    badgeBg: '#D1FAE5',
+    badgeBorder: '#34D399',
+    badgeText: '#047857',
+    badgeShadow: '#A7F3D0',
+  },
+  D02: {
+    id: 'D02',
+    name: 'Package Integrity & Sig',
+    slug: 'sig-check',
+    owaspTag: 'DEFENSIVE D02',
+    accent: '#6366F1',
+    border: '#818CF8',
+    shadow: '#6366F1',
+    glowRgba: 'rgba(129,140,248,0.22)',
+    bgLight: '#EEF2FF',
+    cartridgeBg: '#E0E7FF',
+    cartridgeBorder: '#818CF8',
+    cartridgeText: '#6366F1',
+    cartridgeShadow: '#C7D2FE',
+    badgeBg: '#E0E7FF',
+    badgeBorder: '#818CF8',
+    badgeText: '#6366F1',
+    badgeShadow: '#C7D2FE',
+  },
+  A11: {
+    id: 'A11',
+    name: 'API Mass Assignment',
+    slug: 'mass-assignment',
+    owaspTag: 'ADVANCED A11',
+    accent: '#C2410C',
+    border: '#FB923C',
+    shadow: '#C2410C',
+    glowRgba: 'rgba(251,146,60,0.22)',
+    bgLight: '#FFF7ED',
+    cartridgeBg: '#FFEDD5',
+    cartridgeBorder: '#FB923C',
+    cartridgeText: '#C2410C',
+    cartridgeShadow: '#FED7AA',
+    badgeBg: '#FFEDD5',
+    badgeBorder: '#FB923C',
+    badgeText: '#C2410C',
+    badgeShadow: '#FED7AA',
+  },
+  A12: {
+    id: 'A12',
+    name: 'OAuth 2.0 Takeover',
+    slug: 'oauth-takeover',
+    owaspTag: 'ADVANCED A12',
+    accent: '#BE123C',
+    border: '#FB7185',
+    shadow: '#BE123C',
+    glowRgba: 'rgba(251,113,133,0.22)',
+    bgLight: '#FFF1F2',
+    cartridgeBg: '#FFE4E6',
+    cartridgeBorder: '#FB7185',
+    cartridgeText: '#BE123C',
+    cartridgeShadow: '#FECDD3',
+    badgeBg: '#FFE4E6',
+    badgeBorder: '#FB7185',
+    badgeText: '#BE123C',
+    badgeShadow: '#FECDD3',
+  },
 }
 
-const CATEGORY_LIST = Object.values(CATEGORY_STYLES)
+const TRACK_CHIPS = [
+  { id: 'ALL', name: 'ALL CATEGORIES' },
+  { id: 'OWASP', name: 'OWASP Top 10' },
+  { id: 'WEB', name: 'Web Security' },
+  { id: 'API', name: 'API Security' },
+  { id: 'FOUNDATIONS', name: 'Foundations' },
+  { id: 'DEFENSIVE', name: 'Defensive & Forensics' },
+  { id: 'ADVANCED', name: 'Advanced Attacks' },
+]
+
 
 export function LabsView({ onSelectLab }: LabsViewProps) {
   const [labs, setLabs] = useState<LabItem[]>([])
@@ -357,13 +771,22 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
   const [solvedLabsMap, setSolvedLabsMap] = useState<Record<string, boolean>>({})
   const isMountedRef = useRef(true)
 
-  const syncSolvedStatus = () => {
+    const syncSolvedStatus = () => {
     try {
       const map: Record<string, boolean> = {}
-      for (let i = 1; i <= 10; i++) {
-        const id = `A${String(i).padStart(2, '0')}`
-        map[id] = localStorage.getItem(`zitera_solved_${id}`) === 'true'
-      }
+      labs.forEach((l) => {
+        map[l.id] = localStorage.getItem(`zitera_solved_${l.id}`) === 'true'
+      })
+      const allKnown = [
+        'A01','A02','A03','A04','A05','A06','A07','A08','A09','A10',
+        'W01','W02','W03','W04','W05','F01','F02','F03','F04','F05','F06',
+        'D01','D02','A11','A12'
+      ]
+      allKnown.forEach((id) => {
+        if (localStorage.getItem(`zitera_solved_${id}`) === 'true') {
+          map[id] = true
+        }
+      })
       setSolvedLabsMap(map)
     } catch {
       // Ignore localStorage errors
@@ -468,6 +891,12 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
 
       const matchesCategory =
         selectedCategory === 'ALL' ||
+        (selectedCategory === 'OWASP' && lab.id.startsWith('A') && parseInt(lab.id.slice(1) || '99') <= 10) ||
+        (selectedCategory === 'WEB' && (lab.id.startsWith('W') && lab.id !== 'W03')) ||
+        (selectedCategory === 'API' && (lab.id === 'W03' || lab.id === 'A11')) ||
+        (selectedCategory === 'FOUNDATIONS' && lab.id.startsWith('F')) ||
+        (selectedCategory === 'DEFENSIVE' && lab.id.startsWith('D')) ||
+        (selectedCategory === 'ADVANCED' && (lab.id === 'A11' || lab.id === 'A12')) ||
         (style && style.slug === selectedCategory)
 
       return matchesSearch && matchesStatus && matchesDifficulty && matchesCategory
@@ -717,43 +1146,26 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
             </div>
           </div>
 
-          {/* Bottom Row: Dynamic OWASP Category Chips with 3D Bevel & Category Colors */}
+          {/* Bottom Row: Domain / Track Filter Chips with 3D Bevel */}
           <div className="pt-2 border-t-2 border-[#E6E2D8]/60 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             <span className="text-[11px] font-['JetBrains_Mono'] font-bold text-[#786F62] uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
               <Filter size={12} />
-              <span>Category:</span>
+              <span>Domain:</span>
             </span>
 
-            <button
-              onClick={() => setSelectedCategory('ALL')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-['Space_Grotesk'] font-bold border-2 transition-all cursor-pointer shrink-0 ${
-                selectedCategory === 'ALL'
-                  ? 'bg-[#1E1A14] text-white border-[#1E1A14] shadow-[0_2px_0_0_#000000] translate-y-0.5'
-                  : 'bg-white border-[#CEC8BF] text-[#5C5347] shadow-[0_2px_0_0_#E4DFD7] hover:border-[#2DD4BF] hover:-translate-y-0.5'
-              }`}
-            >
-              ALL CATEGORIES
-            </button>
-
-            {CATEGORY_LIST.map((cat) => {
-              const isSelected = selectedCategory === cat.slug
+            {TRACK_CHIPS.map((track) => {
+              const isSelected = selectedCategory === track.id
               return (
                 <button
-                  key={cat.slug}
-                  onClick={() => setSelectedCategory(isSelected ? 'ALL' : cat.slug)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-['Space_Grotesk'] font-bold border-2 transition-all cursor-pointer shrink-0 ${
-                    isSelected ? 'translate-y-0.5' : 'hover:-translate-y-0.5'
+                  key={track.id}
+                  onClick={() => setSelectedCategory(track.id)}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-['Space_Grotesk'] font-bold border-2 transition-all cursor-pointer shrink-0 ${
+                    isSelected
+                      ? 'bg-[#1E1A14] text-white border-[#1E1A14] shadow-[0_2px_0_0_#000000] translate-y-0.5'
+                      : 'bg-white border-[#CEC8BF] text-[#5C5347] shadow-[0_2px_0_0_#E4DFD7] hover:border-[#2DD4BF] hover:-translate-y-0.5'
                   }`}
-                  style={{
-                    backgroundColor: isSelected ? cat.badgeBg : '#FFFFFF',
-                    borderColor: isSelected ? cat.border : '#CEC8BF',
-                    color: isSelected ? cat.badgeText : '#5C5347',
-                    boxShadow: isSelected
-                      ? `0 2px 0 0 ${cat.shadow}`
-                      : '0 2px 0 0 #E4DFD7',
-                  }}
                 >
-                  {cat.name}
+                  {track.name}
                 </button>
               )
             })}
