@@ -4,7 +4,7 @@ Identification and Authentication Failures menempati peringkat ke-7 (**#7**) dal
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Autentikasi adalah gerbang utama pembuktian identitas (*identity assertion*). Jika gerbang ini tidak memiliki pembatasan:
 
 - **Pengambilalihan Akun Eksekutif Massal (*Account Takeover / ATO*)**:
@@ -15,7 +15,7 @@ Autentikasi adalah gerbang utama pembuktian identitas (*identity assertion*). Ji
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi pengujian ketahanan autentikasi:
 
 1. **Apa yang Dicari (What to Search)**:
@@ -30,7 +30,7 @@ Metodologi pengujian ketahanan autentikasi:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Pertahanan autentikasi standar industri:
 - **Terapkan Rate Limiting & Slow Down**: Batasi jumlah percobaan login maksimal 5 kali per menit per IP atau per akun (misal menggunakan token bucket algoritma Redis).
 - **Terapkan Kunci Akun Progresif (*Progressive Account Lockout*)**: Kunci sementara akun selama 15 menit jika terjadi 5 kali kegagalan berurutan.

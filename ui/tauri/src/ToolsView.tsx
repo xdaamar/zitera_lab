@@ -79,7 +79,7 @@ export function ToolsView() {
         <div className="py-16 flex items-center justify-center">
           <CuteAnimeLoading
             message="QUERYING SECURITY TOOLS..."
-            subMessage="( 🛠️ •̀_•́) SCANNING SYSTEM PATH"
+            subMessage="SCANNING SYSTEM PATH & BINARIES"
           />
         </div>
       ) : (

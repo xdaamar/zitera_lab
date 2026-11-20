@@ -25,7 +25,7 @@ Memahami perbedaan antara Fail-Closed dan Fail-Open adalah esensi dari kategori 
 [ Model FAIL-CLOSED ]                               [ Model FAIL-OPEN ]
    authorized = False                                  authorized = True
    HTTP 503 / 504 Gateway Error                        HTTP 200 OK (Bypass Terjadi!)
-   🛡️ SISTEM TETAP AMAN                                ❌ SISTEM DIBOBOBOBO PENYERANG!
+   [SECURITY] SISTEM TETAP AMAN                                [RENTAN] SISTEM DIBOBOBOBO PENYERANG!
 ```
 
 ---

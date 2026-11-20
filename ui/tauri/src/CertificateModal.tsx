@@ -5,6 +5,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   Printer,
+  Coins,
 } from 'lucide-react'
 
 interface CertificateModalProps {
@@ -136,8 +137,9 @@ export function CertificateModal({
               <p className="text-xs leading-relaxed text-[#5C5347] max-w-xl mx-auto font-['Plus_Jakarta_Sans'] pt-1">
                 Telah berhasil menyelesaikan seluruh rangkaian materi kurikulum <strong>OWASP Top 10:2025/2026</strong>, membuktikan eksploitasi pada 10 target entitas komersial nyata, menguasai audit manual parameter HTTP, dan menyusun laporan standar <strong>HackerOne & Bugcrowd</strong> dengan simulasi total bounty:
               </p>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#DCFCE7] border border-[#86EFAC] text-xs font-mono font-bold text-[#15803D]">
-                <span>💰 Total Bounty Portfolio Terakumulasi: {totalBountyEarned}</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#DCFCE7] border border-[#86EFAC] text-xs font-mono font-bold text-[#15803D]">
+                <Coins className="w-3.5 h-3.5 text-[#15803D]" />
+                <span>Total Bounty Portfolio Terakumulasi: {totalBountyEarned}</span>
               </div>
             </div>
 
@@ -154,8 +156,9 @@ export function CertificateModal({
                 <div className="font-bold font-['Space_Grotesk'] text-[#1E1A14]">
                   Zitera Core Security Team
                 </div>
-                <div className="text-[10px] text-[#0F766E] font-bold">
-                  ✓ VERIFIED CRYPTOGRAPHIC PASS
+                <div className="text-[10px] text-[#0F766E] font-bold flex items-center justify-end gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#0F766E]" />
+                  <span>VERIFIED CRYPTOGRAPHIC PASS</span>
                 </div>
               </div>
             </div>

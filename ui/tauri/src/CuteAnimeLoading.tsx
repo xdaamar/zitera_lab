@@ -19,7 +19,7 @@ function getSharedCatImg(): HTMLImageElement {
 
 export function CuteAnimeLoading({
   message = 'INITIALIZING CYBER MATRIX...',
-  subMessage = '( •̀ ω •́ )✧ NEKO CORE ONLINE',
+  subMessage = 'NEKO ENGINE ACTIVE // RUNTIME ONLINE',
   compact = false,
 }: CuteAnimeLoadingProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -160,12 +160,11 @@ export function CuteAnimeLoading({
         ctx.drawImage(catImg, -14, -14, 28, 28)
         ctx.restore()
       } else {
-        // Fallback paw text if image loading
+        // Fallback target dot if image loading
         ctx.fillStyle = '#0F766E'
-        ctx.font = 'bold 12px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText('🐾', 0, 0)
+        ctx.beginPath()
+        ctx.arc(0, 0, 5, 0, 2 * Math.PI)
+        ctx.fill()
       }
 
       ctx.restore()

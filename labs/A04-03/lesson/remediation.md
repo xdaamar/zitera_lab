@@ -6,7 +6,7 @@ Untuk memitigasi kerentanan **JWT Algorithm None & HMAC Weak Key Cracking** seca
 
 ### Komparasi Kode: Rentan vs Aman
 
-#### ❌ Kode Rentan (Vulnerable Pattern):
+#### [RENTAN] Kode Rentan (Vulnerable Pattern):
 ```javascript
 // Server mempercayai input klien secara naif
 app.get('/api/admin/dashboard', (req, res) => {
@@ -18,7 +18,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 });
 ```
 
-#### ✅ Kode Kebal & Terlindungi (Secure Patched Pattern):
+#### [AMAN] Kode Kebal & Terlindungi (Secure Patched Pattern):
 ```javascript
 // Wajibkan algoritma yang ketat dan tolak algoritma 'none':
 const decoded = jwt.verify(token, process.env.JWT_STRONG_SECRET, {

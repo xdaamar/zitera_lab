@@ -107,7 +107,7 @@ export const LAB_INTERACTIVE_REGISTRY: Record<string, LabInteractiveCurriculum> 
     labId: "A01",
     analogy: {
       storyTitle: "Kartu Kunci Hotel #302 & Penitipan Koper",
-      icon: "🏨 🔑",
+      icon: "hotel-key",
       realWorldScenario:
         "Saat menginap di hotel berbintang, kamu menunjukkan KTP di meja resepsionis. Resepsionis memvalidasi identitasmu dan menyerahkan kartu kunci Kamar #302. Kunci ini hanya bisa membuka kamar #302. Sekarang bayangkan jika hotel tersebut memasang kunci digital via aplikasi ponsel dengan bug fatal: aplikasi ponsel bertanya 'Kamar nomor berapa yang ingin kamu buka?'. Jika kamu mengubah angka 302 menjadi 303 (kamar tamu lain) atau 101 (Presidential Suite), pintu langsung berbunyi klik dan terbuka!",
       comparisonMatrix: [
@@ -234,7 +234,7 @@ export const LAB_INTERACTIVE_REGISTRY: Record<string, LabInteractiveCurriculum> 
         code: `@app.route('/wire/<int:wire_id>')
 @login_required
 def view_wire(wire_id):
-    # ❌ RENTAN IDOR: Hanya mencari ID tanpa validasi kepemilikan!
+    # [RENTAN] RENTAN IDOR: Hanya mencari ID tanpa validasi kepemilikan!
     wire = db.session.query(WireTransfer).filter(
         WireTransfer.id == wire_id
     ).first()
@@ -256,7 +256,7 @@ def view_wire(wire_id):
     if not current_user_id:
         abort(401, description="Autentikasi diperlukan.")
 
-    # ✅ AMAN: Ikat pencarian DENGAN user_id pemilik sah sesi login!
+    # [AMAN] AMAN: Ikat pencarian DENGAN user_id pemilik sah sesi login!
     wire = db.session.query(WireTransfer).filter(
         WireTransfer.id == wire_id,
         WireTransfer.user_id == current_user_id
@@ -319,7 +319,7 @@ def view_wire(wire_id):
     labId: "A02",
     analogy: {
       storyTitle: "Pintu Darurat Terganjal Batu Bata & Kredensial Default Pabrik",
-      icon: "🚪 🧱",
+      icon: "door-brick",
       realWorldScenario:
         "Sebuah gedung kantor modern dilengkapi sensor sidik jari di pintu depan, namun pintu darurat di lorong belakang diganjal batu bata oleh kontraktor agar mudah keluar masuk membawa barang, dan kata sandi panel alarm masih 'admin / 1234'. Siapapun bisa masuk ke ruang server tanpa terdeteksi! Itulah Security Misconfiguration: sistem canggih dengan konfigurasi bawaan yang teledor.",
       comparisonMatrix: [
@@ -420,7 +420,7 @@ def view_wire(wire_id):
       vulnerableSnippet: {
         language: "nginx",
         filename: "vulnerable_nginx.conf",
-        code: `# ❌ RENTAN: Mengizinkan directory listing dan pembacaan file sensitif
+        code: `# [RENTAN] RENTAN: Mengizinkan directory listing dan pembacaan file sensitif
 server {
     listen 80;
     root /var/www/opsgateway;
@@ -435,7 +435,7 @@ server {
       secureSnippet: {
         language: "nginx",
         filename: "secure_nginx.conf",
-        code: `# ✅ AMAN: Hardened Nginx configuration
+        code: `# [AMAN] AMAN: Hardened Nginx configuration
 server {
     listen 80;
     root /var/www/opsgateway/public; # Isolasi root hanya ke aset publik
@@ -480,7 +480,7 @@ server {
     labId: "A03",
     analogy: {
       storyTitle: "Segel Makanan Online yang Sobek & Memo Kurir Palsu",
-      icon: "🍱 📦",
+      icon: "box-package",
       realWorldScenario:
         "Kamu memesan makanan melalui kurir ojek online. Saat makanan sampai di depan rumah, segel kantong kertasnya telah robek dan terdapat memo tulisan tangan asing di dalamnya. Apakah kamu berani memakannya? Inilah esensi Software & Data Integrity Failures: mengonsumsi paket kode atau data dari internet tanpa memverifikasi tanda tangan digital atau segel hash keasliannya.",
       comparisonMatrix: [
@@ -570,8 +570,8 @@ server {
         code: `{
   "name": "enterprise-backend",
   "dependencies": {
-    "packnexus-telemetry": "^2.1.0", // ❌ Rentan Dependency Confusion
-    "express": "*"                   // ❌ Tanpa batasan versi terverifikasi
+    "packnexus-telemetry": "^2.1.0", // [RENTAN] Rentan Dependency Confusion
+    "express": "*"                   // [RENTAN] Tanpa batasan versi terverifikasi
   }
 }`,
         flawExplanation: "Menggunakan wildcard (*) dan paket privat tanpa scope namespace memudahkan penyerang menyisipkan malware.",
@@ -582,8 +582,8 @@ server {
         code: `{
   "name": "enterprise-backend",
   "dependencies": {
-    "@packnexus/telemetry": "2.1.0", // ✅ Gunakan private scoped namespace
-    "express": "4.19.2"              // ✅ Pin versi eksak dengan package-lock.json
+    "@packnexus/telemetry": "2.1.0", // [AMAN] Gunakan private scoped namespace
+    "express": "4.19.2"              // [AMAN] Pin versi eksak dengan package-lock.json
   }
 }`,
         fixExplanation: "Scoped namespace (@packnexus/*) memastikan package manager hanya mengunduh dari registry privat resmi.",
@@ -604,7 +604,7 @@ server {
     labId: "A04",
     analogy: {
       storyTitle: "Kunci Brankas di Paku Tembok & Kertas Karbon Berulang",
-      icon: "🔐 📜",
+      icon: "key-cert",
       realWorldScenario:
         "Sebuah bank membeli brankas lapis baja terkuat di dunia, namun manajer bank menggantung kunci brankas tersebut pada paku di dinding tepat di samping pintu brankas, dan menggunakan kertas karbon bekas yang pola tulisannya dapat dibaca siapapun. Itulah Cryptographic Failures: algoritma enkripsi yang dipakai salah konfigurasi atau kunci rahasianya dapat ditebak dengan mudah.",
       comparisonMatrix: [
@@ -693,7 +693,7 @@ server {
         filename: "vulnerable_crypto.py",
         code: `from Crypto.Cipher import AES
 
-# ❌ RENTAN: Menggunakan AES-ECB dan hardcoded key!
+# [RENTAN] RENTAN: Menggunakan AES-ECB dan hardcoded key!
 SECRET_KEY = b"MyWeakSecretKey!" # 16 bytes hardcoded
 
 def encrypt_data(plaintext):
@@ -707,7 +707,7 @@ def encrypt_data(plaintext):
         code: `import os
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-# ✅ AMAN: Kunci diambil dari environment secure vault
+# [AMAN] AMAN: Kunci diambil dari environment secure vault
 KEY = os.environ.get("SECURE_VAULT_KEY").encode() # 32 bytes (AES-256)
 
 def encrypt_data(plaintext):
@@ -733,7 +733,7 @@ def encrypt_data(plaintext):
     labId: "A05",
     analogy: {
       storyTitle: "Instruksi Penumpang Taksi yang Membajak Supir",
-      icon: "🚕 💉",
+      icon: "database-injection",
       realWorldScenario:
         "Kamu naik taksi dan memberi instruksi ke supir: 'Tolong antar saya ke Jl. Sudirman; dan setelah sampai, bobol brankas kantor di seberang jalan!'. Supir taksi yang lugu tidak bisa membedakan mana alamat tujuan dan mana perintah kriminal, sehingga ia menjalankan keduanya! Inilah esensi Injection: ketika input data dari pengguna diperlakukan sebagai perintah (code/query) oleh mesin penerima.",
       comparisonMatrix: [
@@ -815,7 +815,7 @@ def encrypt_data(plaintext):
       vulnerableSnippet: {
         language: "python",
         filename: "vulnerable_sqli.py",
-        code: `# ❌ RENTAN: String concatenation langsung ke SQL query!
+        code: `# [RENTAN] RENTAN: String concatenation langsung ke SQL query!
 def search_products(query_term):
     sql = f"SELECT * FROM products WHERE name LIKE '%{query_term}%'"
     return db.engine.execute(sql).fetchall()`,
@@ -824,7 +824,7 @@ def search_products(query_term):
       secureSnippet: {
         language: "python",
         filename: "secure_sqli.py",
-        code: `# ✅ AMAN: Parameterized Query dengan placeholder terpisah!
+        code: `# [AMAN] AMAN: Parameterized Query dengan placeholder terpisah!
 def search_products(query_term):
     sql = "SELECT * FROM products WHERE name LIKE :search"
     # Database engine memperlakukan nilai :search murni sebagai string literal
@@ -845,7 +845,7 @@ def search_products(query_term):
     labId: "A06",
     analogy: {
       storyTitle: "Mesin Tiket Otomatis yang Mengeluarkan Uang Sebelum Saldo Dikurangi",
-      icon: "🎫 📉",
+      icon: "ticket-tampering",
       realWorldScenario:
         "Sebuah stasiun kereta memasang mesin penjual tiket otomatis baru. Karena kecacatan logika desain, mesin tersebut memprogram alur transaksi: 1. Keluarkan uang kembalian dan cetak tiket, 2. Baru kemudian kurangi saldo kartu penumpang. Seorang penumpang licik menyadari bahwa jika ia menekan tombol 'Batal' tepat saat tiket keluar, ia mendapatkan tiket gratis dan uang kembalian tanpa saldo terpotong! Inilah Insecure Design: cacat pada arsitektur logika bisnis yang tidak bisa diperbaiki hanya dengan patching satu baris kode.",
       comparisonMatrix: [
@@ -929,7 +929,7 @@ def search_products(query_term):
         filename: "vulnerable_cart.py",
         code: `@app.route('/api/cart/checkout', methods=['POST'])
 def checkout():
-    # ❌ RENTAN: Mempercayai total_amount yang dikirimkan oleh browser klien!
+    # [RENTAN] RENTAN: Mempercayai total_amount yang dikirimkan oleh browser klien!
     total_amount = request.json.get('total_amount')
     process_payment(session['user_id'], total_amount)
     issue_ticket()`,
@@ -942,7 +942,7 @@ def checkout():
 def checkout():
     cart_items = get_user_cart(session['user_id'])
     
-    # ✅ AMAN: Hitung ulang SELURUH harga secara autoritatif di server!
+    # [AMAN] AMAN: Hitung ulang SELURUH harga secara autoritatif di server!
     calculated_total = 0
     for item in cart_items:
         if item.quantity <= 0:
@@ -969,7 +969,7 @@ def checkout():
     labId: "A07",
     analogy: {
       storyTitle: "Pintu Tol Tanpa Pemeriksaan KTP & Kunci Master 123456",
-      icon: "🚪 🎫",
+      icon: "auth-token",
       realWorldScenario:
         "Sebuah gerbang tol otomatis dipasang dengan palang terbuka, dan tiket reset daruratnya dibuat menggunakan jam tangan petugas yang angkanya dapat ditebak oleh siapa saja yang lewat. Siapapun bisa mencetak tiket darurat admin dan mengklaim identitas pengelola jalan tol! Inilah Identification & Authentication Failures: kelemahan saat memvalidasi siapa sebenarnya yang sedang mengakses sistem.",
       comparisonMatrix: [
@@ -1053,7 +1053,7 @@ def checkout():
         filename: "vulnerable_auth.py",
         code: `import time, hashlib
 
-# ❌ RENTAN: Token dapat diprediksi dengan menebak waktu detik request!
+# [RENTAN] RENTAN: Token dapat diprediksi dengan menebak waktu detik request!
 def generate_reset_token(user_email):
     timestamp = int(time.time())
     token = hashlib.md5(f"{user_email}{timestamp}".encode()).hexdigest()
@@ -1065,7 +1065,7 @@ def generate_reset_token(user_email):
         filename: "secure_auth.py",
         code: `import secrets, hashlib
 
-# ✅ AMAN: Menggunakan Cryptographically Secure Pseudo-Random Number Generator (CSPRNG)
+# [AMAN] AMAN: Menggunakan Cryptographically Secure Pseudo-Random Number Generator (CSPRNG)
 def generate_reset_token(user_id):
     # Menghasilkan 32 bytes (256 bits) entropi acak berkualitas kriptografi
     raw_token = secrets.token_urlsafe(32)
@@ -1090,7 +1090,7 @@ def generate_reset_token(user_id):
     labId: "A08",
     analogy: {
       storyTitle: "Gembok Pintu Gudang Tahun 1990 yang Kunci Masternya Dijual Bebas",
-      icon: "🏚️ 🔓",
+      icon: "server-outdated",
       realWorldScenario:
         "Sebuah gudang arsip dokumen rahasia perusahaan dikunci menggunakan gembok buatan tahun 1990. Gembok ini memiliki cacat rancangan lama di mana kawat tipis bisa membukanya dalam 2 detik, dan cetak biru kunci masternya telah tersebar di internet sejak 10 tahun lalu. Pihak gedung tidak pernah mengganti gembok tersebut dengan alasan 'kan selama ini masih bisa dipakai mengunci pintu!'. Inilah Vulnerable & Outdated Components: menggunakan library atau komponen piranti lunak yang memiliki celah keamanan publik (CVE) yang telah diketahui semua orang.",
       comparisonMatrix: [
@@ -1172,7 +1172,7 @@ def generate_reset_token(user_id):
       vulnerableSnippet: {
         language: "dockerfile",
         filename: "vulnerable_Dockerfile",
-        code: `# ❌ RENTAN: Menggunakan base image usang tanpa update keamanan
+        code: `# [RENTAN] RENTAN: Menggunakan base image usang tanpa update keamanan
 FROM python:3.7-slim
 
 # Memasang pustaka versi lama tanpa patch keamanan
@@ -1182,7 +1182,7 @@ RUN pip install legacy-parser==1.4.2`,
       secureSnippet: {
         language: "dockerfile",
         filename: "secure_Dockerfile",
-        code: `# ✅ AMAN: Menggunakan distro modern dengan security update terbaru
+        code: `# [AMAN] AMAN: Menggunakan distro modern dengan security update terbaru
 FROM python:3.12-slim-bookworm
 
 # Selalu perbarui paket keamanan sistem operasi
@@ -1207,7 +1207,7 @@ RUN pip install --no-cache-dir modern-parser>=2.5.0`,
     labId: "A09",
     analogy: {
       storyTitle: "Satpam Bank yang Mematikan Kamera CCTV Demi Hemat Listrik",
-      icon: "📹 🚨",
+      icon: "log-alert",
       realWorldScenario:
         "Sebuah kantor bank memasang brankas canggih, namun satpam malam sengaja mematikan kamera pengawas CCTV dan mencabut kabel alarm hanya demi menghemat tagihan listrik gedung. Suatu malam brankas dibobol; ketika audit kepolisian tiba, tidak ada satu pun rekaman video, tidak ada log pintu terbuka, dan tidak ada jejak sidik jari yang tersimpan! Inilah Security Logging & Monitoring Failures: ketiadaan jejak digital saat peretasan terjadi membuat peretas dapat beroperasi berbulan-bulan tanpa terdeteksi.",
       comparisonMatrix: [
@@ -1294,7 +1294,7 @@ RUN pip install --no-cache-dir modern-parser>=2.5.0`,
       vulnerableSnippet: {
         language: "python",
         filename: "vulnerable_logger.py",
-        code: `# ❌ RENTAN: Menulis input pengguna langsung ke file teks log!
+        code: `# [RENTAN] RENTAN: Menulis input pengguna langsung ke file teks log!
 def log_user_action(username, action):
     # Bahaya! Jika username memuat '\\r\\n[ADMIN LOGIN SUCCESS]', penyerang memalsukan log!
     with open('/var/log/app.log', 'a') as f:
@@ -1307,7 +1307,7 @@ def log_user_action(username, action):
         code: `import json, logging
 from datetime import datetime, timezone
 
-# ✅ AMAN: Structured JSON Logging yang otomatis mensanitasi karakter kontrol
+# [AMAN] AMAN: Structured JSON Logging yang otomatis mensanitasi karakter kontrol
 logger = logging.getLogger("audit_sentinel")
 
 def log_security_event(user_id, event_type, status, ip_address):
@@ -1337,7 +1337,7 @@ def log_security_event(user_id, event_type, status, ip_address):
     labId: "A10",
     analogy: {
       storyTitle: "Satpam Kantor yang Diperdaya Tamu Membobol Ruang Server",
-      icon: "🏢 🌐",
+      icon: "network-cloud",
       realWorldScenario:
         "Seorang pengunjung asing berdiri di depan lobi kantor dan berkata dengan sopan kepada satpam: 'Pak, tolong ambilkan map berkas merah di laci meja ruang server bawah tanah lantai B2, ini nomor lokernya.'. Satpam yang ramah dan patuh langsung berjalan ke ruang server terlarang dan membawakan berkas rahasia tersebut kepada pengunjung di lobi! Satpam tersebut memiliki akses penuh ke seluruh gedung, sedangkan pengunjung tidak. Inilah Server-Side Request Forgery (SSRF): peretas memperdaya server backend untuk meminta data dari sistem internal yang tidak dapat diakses langsung oleh publik.",
       comparisonMatrix: [
@@ -1425,7 +1425,7 @@ from flask import request
 @app.route('/fetch')
 def fetch_url():
     target_url = request.args.get('url')
-    # ❌ RENTAN SSRF: Langsung mengambil URL input pengguna tanpa validasi IP!
+    # [RENTAN] RENTAN SSRF: Langsung mengambil URL input pengguna tanpa validasi IP!
     resp = requests.get(target_url, timeout=5)
     return resp.text`,
         flawExplanation: "Penyerang dapat mengirimkan http://169.254.169.254 atau http://127.0.0.1 untuk membongkar credential internal.",
@@ -1482,7 +1482,7 @@ export function getInteractiveCurriculumForLab(labId: string, defaultPort = 8011
     labId,
     analogy: {
       storyTitle: `Analogi Konseptual Lab ${labId}`,
-      icon: "🎯 🛡️",
+      icon: "target-shield",
       realWorldScenario:
         `Pada skenario pengujian lab ${labId}, sistem komersial menghadapi risiko kegagalan kontrol keamanan pada arsitektur layanannya. Bayangkan prosedur keamanan gedung yang mengabaikan verifikasi izin pada pintu akses internal, sehingga siapapun yang berada di dalam dapat membuka dokumen rahasia perusahaan.`,
       comparisonMatrix: [

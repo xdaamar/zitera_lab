@@ -1,12 +1,12 @@
 # Tantangan CTF Mandiri: Dependency Confusion & Internal Namespace Hijacking
 
-### 🎯 MISI BRIEFING
+### MISI BRIEFING
 Kamu ditugaskan untuk melakukan penetration testing terotorisasi terhadap sistem **Enterprise Artifactory** yang beroperasi pada port `8045`.
 Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi memiliki kelemahan arsitektur pada modul **Dependency Confusion & Internal Namespace Hijacking**.
 
 ---
 
-### 🏢 RUANG LINGKUP & TARGET
+### RUANG LINGKUP & TARGET
 - **Target URL:** `http://127.0.0.1:8045`
 - **Kategori OWASP:** A03 — Software Supply Chain Failures
 - **Tingkat Kesulitan:** Intermediate
@@ -14,7 +14,7 @@ Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi m
 
 ---
 
-### 🚩 OBJEKTIF PENELUSURAN
+### OBJEKTIF PENELUSURAN
 1. Lakukan pemetaan endpoint pada target `Enterprise Artifactory`.
 2. Identifikasi parameter atau header yang dapat dimanipulasi: `Content-Type: application/json`.
 3. Buktikan dampak eksploitasi dan ambil token bendera validasi autoritatif.
@@ -22,5 +22,5 @@ Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi m
 
 ---
 
-### 🔑 FORMAT FLAG
+### [KEY] FORMAT FLAG
 `ZITERA{d3p_c0nfus10n_n4m3sp4c3_h1j4ck_2026}`

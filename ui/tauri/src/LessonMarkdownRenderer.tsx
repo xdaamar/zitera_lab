@@ -12,6 +12,15 @@ import {
   ShieldAlert,
   ExternalLink,
   Sparkles,
+  Target,
+  Building,
+  Flag,
+  Key,
+  BookOpen,
+  ShieldCheck,
+  Layers,
+  Compass,
+  X,
 } from 'lucide-react'
 
 interface LessonMarkdownRendererProps {
@@ -261,10 +270,51 @@ function AlertBlockquote({ children }: { children: ReactNode }) {
   }
 }
 
+function getHeadingIcon(title: string) {
+  const upper = title.toUpperCase()
+  if (upper.includes('BRIEFING') || upper.includes('TARGET') || upper.includes('MISI')) {
+    return <Target size={16} className="text-[#0F766E] shrink-0" />
+  }
+  if (upper.includes('RUANG LINGKUP') || upper.includes('SCOPE')) {
+    return <Building size={16} className="text-[#0F766E] shrink-0" />
+  }
+  if (upper.includes('OBJEKTIF') || upper.includes('PENELUSURAN') || upper.includes('FLAG')) {
+    return <Flag size={16} className="text-[#0F766E] shrink-0" />
+  }
+  if (upper.includes('ATURAN') || upper.includes('RULES') || upper.includes('PERINGATAN')) {
+    return <AlertTriangle size={16} className="text-[#D97706] shrink-0" />
+  }
+  if (upper.includes('FORMAT SUBMISSION') || upper.includes('SUBMISSION') || upper.includes('TOKEN')) {
+    return <Key size={16} className="text-[#0F766E] shrink-0" />
+  }
+  if (upper.includes('PETUNJUK') || upper.includes('PANDUAN') || upper.includes('LANGKAH')) {
+    return <BookOpen size={16} className="text-[#0F766E] shrink-0" />
+  }
+  if (upper.includes('REMEDIASI') || upper.includes('PERBAIKAN') || upper.includes('MEMPERBAIKI')) {
+    return <ShieldCheck size={16} className="text-[#10B981] shrink-0" />
+  }
+  if (upper.includes('ARSITEKTUR') || upper.includes('SISTEM') || upper.includes('TOPOLOGI')) {
+    return <Layers size={16} className="text-[#0F766E] shrink-0" />
+  }
+  if (upper.includes('MENCARI') || upper.includes('MENGUJI') || upper.includes('INVESTIGASI')) {
+    return <Compass size={16} className="text-[#0F766E] shrink-0" />
+  }
+  if (upper.includes('BERBAHAYA') || upper.includes('DAMPAK') || upper.includes('RISIKO')) {
+    return <AlertOctagon size={16} className="text-[#DC2626] shrink-0" />
+  }
+  return <span className="w-2 h-2 rounded-full bg-[#2DD4BF] shrink-0" />
+}
+
 export function LessonMarkdownRenderer({
   markdown,
   onSendToTerminal,
 }: LessonMarkdownRendererProps) {
+  // Strip any lingering legacy emoji so all UI presentations are clean and professional
+  const sanitizedMarkdown = markdown.replace(
+    /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+    ''
+  )
+
   return (
     <div className="lesson-markdown-enhanced text-[#1E1A14]">
       <ReactMarkdown
@@ -334,6 +384,27 @@ export function LessonMarkdownRenderer({
             )
           },
           td({ children }) {
+            const raw = extractText(children).trim()
+            if (raw === '\u274C' || raw === '[RENTAN]' || raw === '[TIDAK]') {
+              return (
+                <td className="py-2.5 px-4 text-[#DC2626]">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#FEF2F2] border border-[#FCA5A5] text-[11px] font-bold font-['JetBrains_Mono']">
+                    <X size={12} className="text-[#DC2626]" />
+                    <span>TIDAK</span>
+                  </span>
+                </td>
+              )
+            }
+            if (raw === '\u2705' || raw === '[AMAN]' || raw === '[DIIZINKAN]') {
+              return (
+                <td className="py-2.5 px-4 text-[#16A34A]">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#F0FDF4] border border-[#86EFAC] text-[11px] font-bold font-['JetBrains_Mono']">
+                    <Check size={12} className="text-[#16A34A]" />
+                    <span>DIIZINKAN</span>
+                  </span>
+                </td>
+              )
+            }
             return <td className="py-2.5 px-4 text-[#5C5347]">{children}</td>
           },
 
@@ -379,8 +450,10 @@ export function LessonMarkdownRenderer({
             )
           },
           h3({ children }) {
+            const headingText = extractText(children)
             return (
-              <h3 className="text-base font-bold font-['Space_Grotesk'] text-[#0F766E] mt-5 mb-2 flex items-center gap-2">
+              <h3 className="text-base font-bold font-['Space_Grotesk'] text-[#0F766E] mt-5 mb-2.5 flex items-center gap-2">
+                {getHeadingIcon(headingText)}
                 <span>{children}</span>
               </h3>
             )
@@ -431,7 +504,7 @@ export function LessonMarkdownRenderer({
           },
         }}
       >
-        {markdown}
+        {sanitizedMarkdown}
       </ReactMarkdown>
     </div>
   )

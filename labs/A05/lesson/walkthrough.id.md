@@ -36,7 +36,8 @@ Dalam latihan terarah ini, kamu akan mempraktikkan proses penemuan celah, penguj
    Pesan ini mengonfirmasi secara pasti bahwa karakter kutip tunggal yang kamu kirimkan berhasil merusak sintaks query SQL backend!
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa pesan error muncul?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa pesan error muncul?**  
 > Di sisi server, kode Python mengeksekusi query dengan menyambungkan string mentah:  
 > `SELECT name, category, price FROM products WHERE name LIKE '%{q}%'`  
 > Saat kamu memasukkan `'`, query berubah menjadi:  

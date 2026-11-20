@@ -100,7 +100,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         <div className="relative z-10">
           <CuteAnimeLoading
             message="INITIALIZING CYBER DASHBOARD..."
-            subMessage="( •̀ ω •́ )✧ NEKO CORE ONLINE"
+            subMessage="NEKO ENGINE ACTIVE // RUNTIME ONLINE"
           />
         </div>
       </div>

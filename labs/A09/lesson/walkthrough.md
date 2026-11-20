@@ -40,7 +40,8 @@ Dalam latihan terarah ini, kamu akan mempraktikkan proses pembuktian kebutaan lo
    Tidak ada satu pun entri kegagalan login yang dicatat ke dalam database log! Server menolak login tetapi membuang informasinya ke udara (*silent authentication failure*). Serangan brute-force berjalan mulus tanpa meninggalkan jejak sama sekali.
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa log audit ini kosong?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa log audit ini kosong?**  
 > Pada fungsi `login()` di backend, developer hanya menulis logika `if password != correct: return 401`. Developer lupa menambahkan pemanggilan logger (seperti `logger.warning("Failed login attempt for user: ...")`). Akibatnya, tim pengawas SOC sama sekali tidak tahu bahwa ada penyerang yang sedang menebak password administrator!
 
 ---

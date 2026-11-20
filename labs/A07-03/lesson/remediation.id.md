@@ -6,7 +6,7 @@ Untuk memitigasi kerentanan **MFA Bypass via Direct Endpoint Traversal** secara 
 
 ### Komparasi Kode: Rentan vs Aman
 
-#### ❌ Kode Rentan (Vulnerable Pattern):
+#### [RENTAN] Kode Rentan (Vulnerable Pattern):
 ```javascript
 // Server mempercayai input klien secara naif
 app.get('/api/admin/dashboard', (req, res) => {
@@ -18,7 +18,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 });
 ```
 
-#### ✅ Kode Kebal & Terlindungi (Secure Patched Pattern):
+#### [AMAN] Kode Kebal & Terlindungi (Secure Patched Pattern):
 ```javascript
 // Middleware otorisasi wajib memverifikasi autentikasi 2FA:
 function requireMFA(req, res, next) {

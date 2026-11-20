@@ -111,11 +111,14 @@ export function KawaiiCursor({ enabled = true }: { enabled?: boolean }) {
             left: s.x,
             top: s.y,
             color: s.color,
-            fontSize: `${s.size}px`,
+            width: `${s.size}px`,
+            height: `${s.size}px`,
             animation: 'sparkle-pop 0.45s ease-out forwards',
           }}
         >
-          ✦
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+            <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
+          </svg>
         </span>
       ))}
 

@@ -290,7 +290,7 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
 
     // Header
     html.push_str("<div class=\"card\"><div class=\"header\">");
-    html.push_str("<div class=\"header-title\"><h1>🚚 FleetTrack Logistics</h1>");
+    html.push_str("<div class=\"header-title\"><h1>[LOGISTICS] FleetTrack Logistics</h1>");
     html.push_str("<p>Commercial Telematics & Fleet Operations Console (OWASP A09:2025)</p></div>");
     html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
     html.push_str("<span class=\"badge badge-blue\">PORT 8019</span>");

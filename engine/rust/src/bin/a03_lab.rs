@@ -361,7 +361,7 @@ fn render_navbar(active_tab: &str) -> String {
     format!(
         r#"<header class="navbar">
     <div class="brand">
-        <div class="brand-icon">📦</div>
+        <div class="brand-icon"></div>
         <div>
             <div class="brand-title">PackNexus // Artifact Registry</div>
             <div class="brand-sub">Software Supply Chain Governance Hub • Port 8013</div>
@@ -410,9 +410,9 @@ fn handle_request(
         let mut rows = String::new();
         for p in &state.packages {
             let status_badge = if p.verified {
-                "<span class=\"badge badge-verified\">✓ Verified Source</span>".to_string()
+                "<span class=\"badge badge-verified\"> Verified Source</span>".to_string()
             } else {
-                "<span class=\"badge badge-untrusted\">⚠ Unpinned / External</span>".to_string()
+                "<span class=\"badge badge-untrusted\">[PERINGATAN] Unpinned / External</span>".to_string()
             };
 
             let script_badge = if p.has_install_script {
@@ -508,7 +508,7 @@ fn handle_request(
     </div>
 
     <div class="notice-box">
-        <strong>💡 Pentester Reconnaissance Note:</strong><br/>
+        <strong>[TIPS] Pentester Reconnaissance Note:</strong><br/>
         Audit the automated build runner's lockfile manifest at <a href="/packages/audit/package_lock_audit.json" style="color: #4338ca; font-weight: 700;">/packages/audit/package_lock_audit.json</a>. Look for unpinned internal dependencies with custom lifecycle hooks (e.g. <code>preinstall</code> or <code>postinstall</code>) executing build-time exfiltration.
     </div>
 </div>
@@ -545,7 +545,7 @@ fn handle_request(
             let hook_details = if let Some(ref cmd) = p.install_script_cmd {
                 format!(
                     r#"<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px 18px; margin-top: 14px;">
-                        <div style="font-size: 12px; font-weight: 700; color: #991b1b; margin-bottom: 4px;">⚠ DANGEROUS LIFECYCLE HOOK DETECTED:</div>
+                        <div style="font-size: 12px; font-weight: 700; color: #991b1b; margin-bottom: 4px;">[PERINGATAN] DANGEROUS LIFECYCLE HOOK DETECTED:</div>
                         <code style="background: white; color: #b91c1c; border-color: #fca5a5;">"preinstall": "{cmd}"</code>
                         <div style="font-size: 11px; color: #7f1d1d; margin-top: 6px;">
                             This package executes shell instructions automatically upon <code>npm install</code> prior to build compilation.
@@ -554,7 +554,7 @@ fn handle_request(
                     cmd = cmd
                 )
             } else {
-                "<div style=\"font-size: 12px; color: #16a34a; margin-top: 10px;\">✓ Clean manifest: No lifecycle hooks configured.</div>".to_string()
+                "<div style=\"font-size: 12px; color: #16a34a; margin-top: 10px;\"> Clean manifest: No lifecycle hooks configured.</div>".to_string()
             };
 
             let html = format!(
@@ -860,7 +860,7 @@ fn handle_request(
         let result_banner = match verification_result {
             Some(true) => format!(
                 r#"<div class="flag-banner">
-                    <div style="font-size: 28px;">🎉</div>
+                    <div style="font-size: 28px;"></div>
                     <div>
                         <div style="font-size: 14px; font-weight: 800; color: #065f46;">SUPPLY CHAIN TOKEN CONFIRMED!</div>
                         <div style="font-size: 12px; color: #047857; margin-top: 2px;">

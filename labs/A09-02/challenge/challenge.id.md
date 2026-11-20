@@ -1,12 +1,12 @@
 # Tantangan CTF Mandiri: CRLF Log Injection & Log Forgery
 
-### 🎯 MISI BRIEFING
+### MISI BRIEFING
 Kamu ditugaskan untuk melakukan penetration testing terotorisasi terhadap sistem **AuditSys Central** yang beroperasi pada port `8057`.
 Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi memiliki kelemahan arsitektur pada modul **CRLF Log Injection & Log Forgery**.
 
 ---
 
-### 🏢 RUANG LINGKUP & TARGET
+### RUANG LINGKUP & TARGET
 - **Target URL:** `http://127.0.0.1:8057`
 - **Kategori OWASP:** A09 — Security Logging & Alerting Failures
 - **Tingkat Kesulitan:** Intermediate
@@ -14,7 +14,7 @@ Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi m
 
 ---
 
-### 🚩 OBJEKTIF PENELUSURAN
+### OBJEKTIF PENELUSURAN
 1. Lakukan pemetaan endpoint pada target `AuditSys Central`.
 2. Identifikasi parameter atau header yang dapat dimanipulasi: `Content-Type: application/json`.
 3. Buktikan dampak eksploitasi dan ambil token bendera validasi autoritatif.
@@ -22,5 +22,5 @@ Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi m
 
 ---
 
-### 🔑 FORMAT FLAG
+### [KEY] FORMAT FLAG
 `ZITERA{cr1f_l0g_1nj3ct10n_f0rg3ry_2026}`

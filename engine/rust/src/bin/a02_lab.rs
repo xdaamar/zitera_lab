@@ -644,7 +644,7 @@ fn handle_request(
         </div>
 
         <div class="alert-banner critical">
-            <div style="font-size: 20px;">⚠️</div>
+            <div style="font-size: 20px;">️</div>
             <div class="alert-content">
                 <h4>Security Baseline Non-Compliance Detected (OWASP A02 Alert)</h4>
                 <p>Automated security scanning detected exposed runtime diagnostics at <code>/debug/vars</code> and directory autoindexing on the archive partition at <code>/backups/</code>. Furthermore, default system supervisor credentials remain active.</p>
@@ -681,7 +681,7 @@ fn handle_request(
             <div class="action-card">
                 <div>
                     <div class="action-card-header">
-                        <span class="action-icon">📁</span>
+                        <span class="action-icon"></span>
                         <h3>Storage Partition (/backups/)</h3>
                     </div>
                     <p>Review active snapshot archives and filesystem dumps stored on the public archival partition. Directory browsing is currently accessible without credentials.</p>
@@ -693,7 +693,7 @@ fn handle_request(
             <div class="action-card">
                 <div>
                     <div class="action-card-header">
-                        <span class="action-icon">🔍</span>
+                        <span class="action-icon"></span>
                         <h3>Runtime Telemetry (/debug/vars)</h3>
                     </div>
                     <p>Inspect internal application runtime metrics, memory allocation stats, system environment paths, and database configuration metadata.</p>
@@ -705,7 +705,7 @@ fn handle_request(
             <div class="action-card">
                 <div>
                     <div class="action-card-header">
-                        <span class="action-icon">🔐</span>
+                        <span class="action-icon"></span>
                         <h3>Supervisor Console (/login)</h3>
                     </div>
                     <p>Authenticate as an infrastructure operator to manage system keys and cluster parameters. Default administrative credentials apply for factory provisioning.</p>
@@ -856,7 +856,7 @@ fn handle_request(
         let content = format!(
             r#"
             <div class="flag-banner">
-                <h2>🎉 ADMINISTRATIVE ACCESS ESTABLISHED!</h2>
+                <h2>[VERIFIED] ADMINISTRATIVE ACCESS ESTABLISHED!</h2>
                 <p style="font-size: 13px; color: #a7f3d0; margin-bottom: 8px;">You logged in using default administrator credentials (<code>admin:admin</code>). Vulnerability OWASP A02:2025 verified!</p>
                 <div class="flag-box">{}</div>
                 <p style="font-size: 11px; color: #6ee7b7; margin-top: 4px;">Submit this token in ZITERA_LAB to complete the mission challenge.</p>
@@ -878,7 +878,7 @@ fn handle_request(
             <div class="action-grid">
                 <div class="action-card">
                     <div class="action-card-header">
-                        <span class="action-icon">⚙️</span>
+                        <span class="action-icon">️</span>
                         <h3>System Configuration</h3>
                     </div>
                     <p>Database: <code>internal-db.ops.local:5432</code><br>Storage root: <code>/app/backups/</code><br>Session secret: <code>default-ops-session-secret-2024</code></p>
@@ -886,7 +886,7 @@ fn handle_request(
                 </div>
                 <div class="action-card">
                     <div class="action-card-header">
-                        <span class="action-icon">📦</span>
+                        <span class="action-icon"></span>
                         <h3>Archive Manager</h3>
                     </div>
                     <p>Directory listing is active on <code>/backups/</code>. Sensitive backups containing database credentials can be directly retrieved by any unauthenticated client.</p>
@@ -940,7 +940,7 @@ fn handle_request(
         <div style="background-color: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px;">
             <div class="dir-header">Index of /backups/</div>
             <div class="alert-banner critical" style="margin: 16px 0;">
-                <div style="font-size: 18px;">⚠️</div>
+                <div style="font-size: 18px;">️</div>
                 <div class="alert-content">
                     <h4>Security Misconfiguration: Directory Browsing Enabled</h4>
                     <p>The web server configuration permits unrestricted directory indexing (<code>autoindex on;</code>). Anyone can list and download sensitive infrastructure configuration backups.</p>
@@ -958,25 +958,25 @@ fn handle_request(
                 </thead>
                 <tbody>
                     <tr>
-                        <td>📁 <a href="/">Parent Directory (../)</a></td>
+                        <td>[DIR] <a href="/">Parent Directory (../)</a></td>
                         <td>-</td>
                         <td>-</td>
                         <td>Root Directory</td>
                     </tr>
                     <tr>
-                        <td>📄 <a href="/backups/backup_config.json.bak" download style="font-weight: bold; color: #38bdf8;">backup_config.json.bak</a></td>
+                        <td>[DOC] <a href="/backups/backup_config.json.bak" download style="font-weight: bold; color: #38bdf8;">backup_config.json.bak</a></td>
                         <td>2025-03-01 02:00:14</td>
                         <td>2.1 KB</td>
                         <td><span class="tag danger">Sensitive Config Backup</span></td>
                     </tr>
                     <tr>
-                        <td>📄 <a href="/backups/ops_keys_old.txt" style="color: #94a3b8;">ops_keys_old.txt</a></td>
+                        <td>[DOC] <a href="/backups/ops_keys_old.txt" style="color: #94a3b8;">ops_keys_old.txt</a></td>
                         <td>2024-11-15 14:22:10</td>
                         <td>0.8 KB</td>
                         <td><span class="tag warning">Deprecated API Keys</span></td>
                     </tr>
                     <tr>
-                        <td>📄 <a href="/backups/database_schema.sql.bak" style="color: #94a3b8;">database_schema.sql.bak</a></td>
+                        <td>[DOC] <a href="/backups/database_schema.sql.bak" style="color: #94a3b8;">database_schema.sql.bak</a></td>
                         <td>2025-01-20 09:15:00</td>
                         <td>18.4 KB</td>
                         <td><span class="tag info">Database DDL Dump</span></td>

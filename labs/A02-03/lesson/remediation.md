@@ -6,7 +6,7 @@ Untuk memitigasi kerentanan **Exposed Git Directory & Object Carving Extraction*
 
 ### Komparasi Kode: Rentan vs Aman
 
-#### ❌ Kode Rentan (Vulnerable Pattern):
+#### [RENTAN] Kode Rentan (Vulnerable Pattern):
 ```javascript
 // Server mempercayai input klien secara naif
 app.get('/api/admin/dashboard', (req, res) => {
@@ -18,7 +18,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 });
 ```
 
-#### ✅ Kode Kebal & Terlindungi (Secure Patched Pattern):
+#### [AMAN] Kode Kebal & Terlindungi (Secure Patched Pattern):
 ```javascript
 # Konfigurasi Nginx / Web Server untuk memblokir direktori tersembunyi:
 location ~ /\.(?!well-known).* {

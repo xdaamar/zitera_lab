@@ -6,7 +6,7 @@ Untuk memitigasi kerentanan **SIEM Threshold Evasion via Slow-and-Low Scanning**
 
 ### Komparasi Kode: Rentan vs Aman
 
-#### ❌ Kode Rentan (Vulnerable Pattern):
+#### [RENTAN] Kode Rentan (Vulnerable Pattern):
 ```javascript
 // Server mempercayai input klien secara naif
 app.get('/api/admin/dashboard', (req, res) => {
@@ -18,7 +18,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 });
 ```
 
-#### ✅ Kode Kebal & Terlindungi (Secure Patched Pattern):
+#### [AMAN] Kode Kebal & Terlindungi (Secure Patched Pattern):
 ```javascript
 // Terapkan analisis perilaku berbasis anomali (UEBA) dan jendela waktu kumulatif:
 // Deteksi tidak hanya frekuensi per menit, melainkan pola kumulatif 24-72 jam.

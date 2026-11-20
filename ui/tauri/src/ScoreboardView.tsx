@@ -4,6 +4,7 @@ import {
   RefreshCw,
   Clock,
   Award,
+  CheckCircle2,
 } from 'lucide-react'
 import {
   getLeaderboard,
@@ -146,7 +147,7 @@ export function ScoreboardView() {
         <div className="py-16 flex items-center justify-center">
           <CuteAnimeLoading
             message="SYNCING TURSO LEADERBOARD..."
-            subMessage="( 🏆 ✧ω✧) FETCHING LIVE RANKS"
+            subMessage="SYNCHRONIZING LIVE GLOBAL RANKS"
           />
         </div>
       ) : (
@@ -203,8 +204,15 @@ export function ScoreboardView() {
                 <span className="text-[#5C5347]">
                   Progres Kelulusan: {solvedCount} / 10 Modul Selesai ({progressPercent}%)
                 </span>
-                <span className="text-[#0F766E]">
-                  {isFullyCertified ? '✓ MEMENUHI SYARAT SERTIFIKASI' : 'TARGET: 10/10 LABS'}
+                <span className="text-[#0F766E] flex items-center gap-1">
+                  {isFullyCertified ? (
+                    <>
+                      <CheckCircle2 size={13} className="text-[#0F766E]" />
+                      <span>MEMENUHI SYARAT SERTIFIKASI</span>
+                    </>
+                  ) : (
+                    <span>TARGET: 10/10 LABS</span>
+                  )}
                 </span>
               </div>
               <div className="w-full h-3 bg-[#E6E2D8] rounded-full overflow-hidden p-0.5">

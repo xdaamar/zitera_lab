@@ -269,7 +269,7 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
 
     // Header
     html.push_str("<div class=\"card\"><div class=\"header\">");
-    html.push_str("<div class=\"header-title\"><h1>📄 TemplateCloud Studio</h1>");
+    html.push_str("<div class=\"header-title\"><h1>[DOC] TemplateCloud Studio</h1>");
     html.push_str("<p>Commercial SaaS Billing & Payment Settlement Gate (OWASP A10:2025)</p></div>");
     html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
     html.push_str("<span class=\"badge badge-rose\">PORT 8020</span>");
@@ -293,7 +293,7 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
 
     if state.fail_open_triggered {
         html.push_str("<div class=\"state-box state-open\">");
-        html.push_str("<div>⚠ GATE STATE: FAIL-OPEN ACTIVE // UNAUTHORIZED TRANSACTION SETTLED</div>");
+        html.push_str("<div>[PERINGATAN] GATE STATE: FAIL-OPEN ACTIVE // UNAUTHORIZED TRANSACTION SETTLED</div>");
         html.push_str("<span class=\"badge badge-rose\">BYPASS SUCCESS</span>");
         html.push_str("</div>");
 
@@ -303,7 +303,7 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
         html.push_str("</div>");
     } else {
         html.push_str("<div class=\"state-box state-closed\">");
-        html.push_str("<div>✓ GATE STATE: NORMAL OPERATION // UNAUTHORIZED REQUESTS REJECTED</div>");
+        html.push_str("<div> GATE STATE: NORMAL OPERATION // UNAUTHORIZED REQUESTS REJECTED</div>");
         html.push_str("<span class=\"badge badge-emerald\">SECURE</span>");
         html.push_str("</div>");
     }

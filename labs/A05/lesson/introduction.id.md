@@ -4,7 +4,7 @@ Injection menempati peringkat ke-5 (**#5**) dalam daftar risiko **OWASP Top 10:2
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 SQL Injection (SQLi) adalah salah satu kerentanan web paling legendaris dan berbahaya dalam sejarah internet:
 
 - **Pengambilalihan Seluruh Basis Data Perusahaan**:
@@ -15,7 +15,7 @@ SQL Injection (SQLi) adalah salah satu kerentanan web paling legendaris dan berb
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi investigasi SQL Injection profesional:
 
 1. **Apa yang Dicari (What to Search)**:
@@ -31,7 +31,7 @@ Metodologi investigasi SQL Injection profesional:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Pertahanan mutlak terhadap SQL Injection:
 - **Wajib Gunakan Parameterized Queries (Prepared Statements)**: Pisahkan jalur instruksi SQL dengan data input. Mesin database tidak akan pernah mengeksekusi data masukan sebagai sintaks perintah.
 - **Gunakan ORM Terpercaya**: Gunakan Object-Relational Mapper (seperti SQLAlchemy, Prisma, Hibernate) dengan aman, dan hindari menyusun query mentah (*raw string concatenation*).

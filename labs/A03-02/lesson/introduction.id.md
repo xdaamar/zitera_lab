@@ -4,7 +4,7 @@ Laboratorium eksplorasi ini memperdalam pemahaman teknik tingkat lanjut dari kat
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Celah keamanan ini memiliki dampak destruktif langsung terhadap operasional bisnis:
 - **Pelanggaran Batas Kepercayaan Organisasi**: Penyerang mampu melewati gerbang keamanan formal tanpa izin sah, melanggar prinsip integritas dan kerahasiaan data sesuai **UU Perlindungan Data Pribadi No. 27/2022** dan regulasi global **GDPR**.
 - **Kerugian Finansial & Hukum**: Kegagalan kontrol pada lingkungan produksi perbankan atau e-commerce berisiko sanksi denda regulasi hingga miliaran rupiah, tuntutan ganti rugi perdata konsumen, dan kerugian reputasi brand jangka panjang.
@@ -12,7 +12,7 @@ Celah keamanan ini memiliki dampak destruktif langsung terhadap operasional bisn
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi investigasi sistematis yang harus Anda terapkan:
 1. **Analisis Permintaan Jaringan (Traffic Inspection)**:
    - Pantau alur HTTP request dan response header menggunakan DevTools Network Tab atau terminal.
@@ -24,7 +24,7 @@ Metodologi investigasi sistematis yang harus Anda terapkan:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Langkah perbaikan fundamental:
 - **Validasi Mutlak di Sisi Server**: Jangan pernah mempercayai header HTTP atau state dari klien yang dapat dimanipulasi peramban.
 - **Terapkan Prinsip Least Privilege & Defense-in-Depth**: Batasi akses hanya pada resource yang benar-benar diizinkan oleh sesi terotentikasi.

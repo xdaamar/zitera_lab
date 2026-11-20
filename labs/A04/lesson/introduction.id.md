@@ -4,7 +4,7 @@ Cryptographic Failures menempati peringkat ke-4 (**#4**) dalam daftar risiko **O
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Kriptografi adalah benteng pertahanan terakhir data sensitif saat database berhasil dibobol penyerang. Jika algoritma kriptografinya lemah:
 
 - **Kebocoran Kredensial Pengguna Massal**:
@@ -15,7 +15,7 @@ Kriptografi adalah benteng pertahanan terakhir data sensitif saat database berha
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi audit kriptografi profesional:
 
 1. **Apa yang Dicari (What to Search)**:
@@ -32,7 +32,7 @@ Metodologi audit kriptografi profesional:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Panduan pengerasan kriptografi standar:
 - **Tinggalkan MD5 dan SHA-1**: Gunakan fungsi hash adaptif yang sengaja dibuat lambat dan tahan serangan GPU: **Argon2id** (standar emas saat ini), **bcrypt** (work factor $\ge 12$), atau **PBKDF2** (iterasi $\ge 600.000$).
 - **Gunakan Salt Unik Kriptografis Secara Otomatis**: Setiap password wajib diberi salt acak unik sebelum di-hash agar nilai hash dari kata sandi yang sama menjadi berbeda bagi tiap pengguna.

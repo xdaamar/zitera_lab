@@ -66,7 +66,8 @@ Dalam panduan terarah ini, kamu akan mempraktikkan proses pembuktian kegagalan p
    Terjadinya eksepsi menyebabkan sistem jatuh ke penanganan darurat yang secara fatal mengesahkan akses (*fail-open bypass*)!
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa fail-open terjadi di kode?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa fail-open terjadi di kode?**  
 > Pada fungsi verifikasi backend, developer menulis:  
 > ```python
 > try:

@@ -62,7 +62,8 @@ Dalam latihan terarah ini, kamu akan mempraktikkan proses pembuktian cacat desai
    Alur persetujuan manajer dan kliring keuangan berhasil dilompati 100%!
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa State Machine ini cacat?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa State Machine ini cacat?**  
 > Backend menyimpan status pesanan dalam memori atau database, namun fungsi handler mengeksekusi:  
 > `order.status = payload["target_state"]`  
 > Server tidak memiliki tabel validasi transisi sah (misal: `DRAFT` hanya boleh pindah ke `PENDING_REVIEW`). Akibatnya, klien bebas melompat ke status akhir apapun!

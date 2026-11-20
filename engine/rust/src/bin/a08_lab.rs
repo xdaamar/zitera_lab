@@ -305,7 +305,7 @@ fn render_index_page(state: &AppState, message: Option<(&str, bool)>) -> String 
 
     // Header
     html.push_str("<div class=\"card\"><div class=\"header\">");
-    html.push_str("<div class=\"header-title\"><h1>📊 DataFlow Analytics</h1>");
+    html.push_str("<div class=\"header-title\"><h1>[METRICS] DataFlow Analytics</h1>");
     html.push_str("<p>Enterprise BI Engine & Pipeline Configuration Ingestion (OWASP A08:2025)</p></div>");
     html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
     html.push_str("<span class=\"badge badge-indigo\">PORT 8018</span>");
@@ -325,9 +325,9 @@ fn render_index_page(state: &AppState, message: Option<(&str, bool)>) -> String 
 
     if let Some((msg, is_err)) = message {
         if is_err {
-            html.push_str(&format!("<div class=\"banner-warning\">⚠ {}</div>", html_escape(msg)));
+            html.push_str(&format!("<div class=\"banner-warning\">[PERINGATAN] {}</div>", html_escape(msg)));
         } else {
-            html.push_str(&format!("<div class=\"banner-success\">✓ {}</div>", html_escape(msg)));
+            html.push_str(&format!("<div class=\"banner-success\"> {}</div>", html_escape(msg)));
         }
     }
 

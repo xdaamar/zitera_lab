@@ -6,7 +6,7 @@ Untuk memitigasi kerentanan **Blind Boolean & Time-Based SQL Injection** secara 
 
 ### Komparasi Kode: Rentan vs Aman
 
-#### ❌ Kode Rentan (Vulnerable Pattern):
+#### [RENTAN] Kode Rentan (Vulnerable Pattern):
 ```javascript
 // Server mempercayai input klien secara naif
 app.get('/api/admin/dashboard', (req, res) => {
@@ -18,7 +18,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 });
 ```
 
-#### ✅ Kode Kebal & Terlindungi (Secure Patched Pattern):
+#### [AMAN] Kode Kebal & Terlindungi (Secure Patched Pattern):
 ```javascript
 // Selalu gunakan parameterized queries / prepared statement:
 const [rows] = await db.execute('SELECT * FROM users WHERE id = ?', [userId]);

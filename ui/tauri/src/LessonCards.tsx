@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Terminal as TerminalIcon,
   CheckCircle2,
-  TrendingUp,
   Layers,
   Sparkles,
   Lock,
@@ -20,12 +19,56 @@ import {
   SquareCode,
   DollarSign,
   ShieldAlert,
+  Building,
+  Shield,
+  Scale,
+  TrendingDown,
+  Target,
+  AlertTriangle,
+  AlertCircle,
+  Award,
+  Key,
+  Brain,
+  Briefcase,
 } from 'lucide-react'
 import type {
   LabInteractiveCurriculum,
   WalkthroughStep,
   BugBountyReportData,
 } from './lessonInteractiveData'
+
+function renderAnalogyIcon(iconStr?: string) {
+  if (!iconStr) return <Shield className="w-6 h-6 text-[#0F766E]" />
+  const s = iconStr.toLowerCase()
+  if (s.includes('hotel') || s.includes('key') || s.includes('\u{1F3E8}') || s.includes('\u{1F511}')) {
+    return <Key className="w-6 h-6 text-[#0F766E]" />
+  }
+  if (s.includes('door') || s.includes('brick') || s.includes('\u{1F6AA}') || s.includes('\u{1F9F1}')) {
+    return <Lock className="w-6 h-6 text-[#0F766E]" />
+  }
+  if (s.includes('box') || s.includes('package') || s.includes('\u{1F371}') || s.includes('\u{1F4E6}')) {
+    return <Layers className="w-6 h-6 text-[#0F766E]" />
+  }
+  if (s.includes('cert') || s.includes('\u{1F510}') || s.includes('\u{1F4DC}')) {
+    return <ShieldCheck className="w-6 h-6 text-[#0F766E]" />
+  }
+  if (s.includes('database') || s.includes('injection') || s.includes('\u{1F695}') || s.includes('\u{1F489}')) {
+    return <TerminalIcon className="w-6 h-6 text-[#0F766E]" />
+  }
+  if (s.includes('ticket') || s.includes('tampering') || s.includes('\u{1F3AB}') || s.includes('\u{1F4C9}')) {
+    return <TrendingDown className="w-6 h-6 text-[#0F766E]" />
+  }
+  if (s.includes('server') || s.includes('outdated') || s.includes('\u{1F3DA}') || s.includes('\u{1F513}')) {
+    return <ShieldAlert className="w-6 h-6 text-[#0F766E]" />
+  }
+  if (s.includes('log') || s.includes('alert') || s.includes('\u{1F4F9}') || s.includes('\u{1F6A8}')) {
+    return <AlertTriangle className="w-6 h-6 text-[#0F766E]" />
+  }
+  if (s.includes('network') || s.includes('cloud') || s.includes('\u{1F3E2}') || s.includes('\u{1F310}')) {
+    return <Building className="w-6 h-6 text-[#0F766E]" />
+  }
+  return <Shield className="w-6 h-6 text-[#0F766E]" />
+}
 
 // ── 1. ANALOGY CARD COMPONENT ──
 export function AnalogyCard({
@@ -38,8 +81,8 @@ export function AnalogyCard({
       {/* Top Banner with Real-World Icon */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#E6E2D8]">
         <div className="flex items-center gap-3.5">
-          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-[#CCFBF1] to-[#99F6E4] border-2 border-[#2DD4BF] flex items-center justify-center text-2xl shadow-xs shrink-0">
-            <span>{data.icon || '🏨 🔑'}</span>
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-[#CCFBF1] to-[#99F6E4] border-2 border-[#2DD4BF] flex items-center justify-center shadow-xs shrink-0 text-[#0F766E]">
+            {renderAnalogyIcon(data.icon)}
           </div>
           <div>
             <span className="text-[10px] font-bold font-['JetBrains_Mono'] px-2.5 py-0.5 rounded-full bg-[#CCFBF1] text-[#0F766E] border border-[#2DD4BF]/60 uppercase tracking-wider">
@@ -89,15 +132,15 @@ export function AnalogyCard({
                   className="hover:bg-[#F0FDF4]/50 transition-colors even:bg-[#FCFBF8]"
                 >
                   <td className="py-3 px-4 text-[#5C5347] font-medium align-top">
-                    <span className="inline-block mr-1.5 text-base">🏢</span>
+                    <Building className="w-4 h-4 inline mr-1.5 text-slate-500 shrink-0" />
                     {row.physical}
                   </td>
                   <td className="py-3 px-4 text-[#0F766E] font-medium font-['JetBrains_Mono'] text-xs align-top">
-                    <span className="inline-block mr-1.5 text-base">💻</span>
+                    <TerminalIcon className="w-4 h-4 inline mr-1.5 text-[#0F766E] shrink-0" />
                     {row.digital}
                   </td>
                   <td className="py-3 px-4 text-[#1E1A14] font-semibold align-top">
-                    <span className="inline-block mr-1.5 text-base">🛡️</span>
+                    <ShieldCheck className="w-4 h-4 inline mr-1.5 text-emerald-600 shrink-0" />
                     {row.takeaway}
                   </td>
                 </tr>
@@ -157,9 +200,9 @@ export function CoreConceptCard({
         {/* Pillar 1: Mengapa Celah Ini Ada? (Root Causes) */}
         <div className="rounded-xl border-2 border-[#FCA5A5] bg-gradient-to-b from-[#FEF2F2]/60 to-white p-5 shadow-[0_3px_0_0_#EF4444] space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-[#FECACA]">
-            <span className="w-3 h-3 rounded-full bg-[#EF4444] inline-block animate-pulse" />
+            <AlertCircle size={16} className="text-[#DC2626] shrink-0" />
             <h4 className="text-xs md:text-sm font-bold font-['Space_Grotesk'] text-[#991B1B] uppercase tracking-wider">
-              🔴 Mengapa Celah Ini Ada? (Jebakan Developer)
+              Mengapa Celah Ini Ada? (Jebakan Developer)
             </h4>
           </div>
 
@@ -170,7 +213,7 @@ export function CoreConceptCard({
                 className="p-3.5 rounded-lg bg-white border border-[#FECACA] shadow-2xs space-y-1.5"
               >
                 <div className="text-xs font-bold font-['Space_Grotesk'] text-[#B91C1C] flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-[#FEE2E2] text-[#DC2626] font-mono text-[10px] flex items-center justify-center shrink-0">
+                  <span className="w-4 h-4 rounded-full bg-[#FEE2E2] text-[#DC2626] font-mono text-[10px] flex items-center justify-center shrink-0 font-bold">
                     {idx + 1}
                   </span>
                   <span>{item.title}</span>
@@ -178,8 +221,11 @@ export function CoreConceptCard({
                 <p className="text-xs text-[#5C5347] font-['Plus_Jakarta_Sans'] leading-relaxed">
                   {item.explanation}
                 </p>
-                <div className="p-2 rounded bg-[#FFF1F2] border border-[#FDE2E4] text-[11px] font-['JetBrains_Mono'] text-[#BE123C]">
-                  ⚠️ Kesalahan: {item.mistake}
+                <div className="p-2 rounded bg-[#FFF1F2] border border-[#FDE2E4] text-[11px] font-['JetBrains_Mono'] text-[#BE123C] flex items-start gap-1.5">
+                  <AlertTriangle size={13} className="text-[#BE123C] shrink-0 mt-0.5" />
+                  <span>
+                    <strong className="font-bold">Kesalahan:</strong> {item.mistake}
+                  </span>
                 </div>
               </div>
             ))}
@@ -189,17 +235,18 @@ export function CoreConceptCard({
         {/* Pillar 2: Dampak Nyata pada Bisnis (Commercial & Legal Impact) */}
         <div className="rounded-xl border-2 border-[#93C5FD] bg-gradient-to-b from-[#EFF6FF]/60 to-white p-5 shadow-[0_3px_0_0_#3B82F6] space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-[#BFDBFE]">
-            <TrendingUp size={16} className="text-[#1D4ED8]" />
+            <Briefcase size={16} className="text-[#1D4ED8]" />
             <h4 className="text-xs md:text-sm font-bold font-['Space_Grotesk'] text-[#1E40AF] uppercase tracking-wider">
-              💼 Dampak Nyata pada Bisnis & Regulasi
+              Dampak Nyata pada Bisnis & Regulasi
             </h4>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Regulatory Fine Card */}
             <div className="p-3.5 rounded-lg bg-white border border-[#BFDBFE] shadow-2xs space-y-1">
-              <span className="text-[10px] font-bold font-['JetBrains_Mono'] text-[#1D4ED8] uppercase">
-                ⚖️ Kepatuhan Regulasi
+              <span className="text-[10px] font-bold font-['JetBrains_Mono'] text-[#1D4ED8] uppercase flex items-center gap-1.5">
+                <Scale size={13} className="text-[#1D4ED8]" />
+                <span>Kepatuhan Regulasi</span>
               </span>
               <p className="text-xs text-[#1E3A8A] font-['Plus_Jakarta_Sans'] leading-relaxed">
                 {data.businessImpact.regulatory}
@@ -208,8 +255,9 @@ export function CoreConceptCard({
 
             {/* Financial Losses Card */}
             <div className="p-3.5 rounded-lg bg-white border border-[#BFDBFE] shadow-2xs space-y-1">
-              <span className="text-[10px] font-bold font-['JetBrains_Mono'] text-[#1D4ED8] uppercase">
-                💰 Kerugian Finansial
+              <span className="text-[10px] font-bold font-['JetBrains_Mono'] text-[#1D4ED8] uppercase flex items-center gap-1.5">
+                <DollarSign size={13} className="text-[#1D4ED8]" />
+                <span>Kerugian Finansial</span>
               </span>
               <p className="text-xs text-[#1E3A8A] font-['Plus_Jakarta_Sans'] leading-relaxed">
                 {data.businessImpact.financial}
@@ -218,8 +266,9 @@ export function CoreConceptCard({
 
             {/* Reputational Loss Card */}
             <div className="p-3.5 rounded-lg bg-white border border-[#BFDBFE] shadow-2xs space-y-1">
-              <span className="text-[10px] font-bold font-['JetBrains_Mono'] text-[#1D4ED8] uppercase">
-                📉 Reputasi & Kepercayaan
+              <span className="text-[10px] font-bold font-['JetBrains_Mono'] text-[#1D4ED8] uppercase flex items-center gap-1.5">
+                <TrendingDown size={13} className="text-[#1D4ED8]" />
+                <span>Reputasi & Kepercayaan</span>
               </span>
               <p className="text-xs text-[#1E3A8A] font-['Plus_Jakarta_Sans'] leading-relaxed">
                 {data.businessImpact.reputational}
@@ -228,8 +277,9 @@ export function CoreConceptCard({
 
             {/* Bounty Reward Card */}
             <div className="p-3.5 rounded-lg bg-gradient-to-br from-[#FEF3C7] to-white border border-[#FCD34D] shadow-2xs space-y-1">
-              <span className="text-[10px] font-bold font-['JetBrains_Mono'] text-[#B45309] uppercase">
-                🎯 Nilai Bug Bounty
+              <span className="text-[10px] font-bold font-['JetBrains_Mono'] text-[#B45309] uppercase flex items-center gap-1.5">
+                <Target size={13} className="text-[#B45309]" />
+                <span>Nilai Bug Bounty</span>
               </span>
               <p className="text-xs text-[#78350F] font-['Plus_Jakarta_Sans'] font-bold leading-relaxed">
                 {data.businessImpact.bountyReward}
@@ -242,8 +292,9 @@ export function CoreConceptCard({
       {/* Attacker vs Defender Mindset Interactive Box */}
       <div className="rounded-xl border-2 border-[#E6E2D8] bg-[#F7F5F0] p-4 md:p-5 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14] uppercase tracking-wider">
-            🧠 SIMULASI POLA PIKIR: ATTACKER VS DEFENDER
+          <span className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14] uppercase tracking-wider flex items-center gap-1.5">
+            <Brain size={15} className="text-[#0F766E]" />
+            <span>SIMULASI POLA PIKIR: ATTACKER VS DEFENDER</span>
           </span>
 
           <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-[#E6E2D8]">
@@ -498,7 +549,7 @@ export function InteractiveWalkthroughCard({
               className="w-full px-4 py-3 flex items-center justify-between text-left text-xs font-['Space_Grotesk'] font-bold text-[#0F766E] hover:bg-[#CCFBF1]/50 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <span className="text-base">💡</span>
+                <Lightbulb size={16} className="text-[#0F766E] shrink-0" />
                 <span>Di Balik Layar: Apa yang terjadi di sisi server?</span>
               </div>
               {expandedAccordions[selectedStepIdx] ? (
@@ -603,7 +654,7 @@ export function RemediationCard({
             }`}
           >
             <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
-            <span>🔴 Kode Rentan (Vulnerable)</span>
+            <span>Kode Rentan (Vulnerable)</span>
           </button>
           <button
             onClick={() => setActiveTab('secure')}
@@ -614,7 +665,7 @@ export function RemediationCard({
             }`}
           >
             <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
-            <span>🟢 Kode Aman (Secure Implementation)</span>
+            <span>Kode Aman (Secure Implementation)</span>
           </button>
         </div>
       )}
@@ -634,7 +685,7 @@ export function RemediationCard({
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
                 <span className="font-['Space_Grotesk'] font-bold text-[#FCA5A5]">
-                  🔴 KODE RENTAN ({data.vulnerableSnippet.filename})
+                  KODE RENTAN ({data.vulnerableSnippet.filename})
                 </span>
               </div>
               <button
@@ -650,9 +701,12 @@ export function RemediationCard({
               <pre className="whitespace-pre">{data.vulnerableSnippet.code}</pre>
             </div>
 
-            <div className="p-3 bg-[#1F1212] border-t border-[#7F1D1D] text-xs font-['Plus_Jakarta_Sans'] text-[#FCA5A5]">
-              ⚠️ <span className="font-bold">Celah:</span>{' '}
-              {data.vulnerableSnippet.flawExplanation}
+            <div className="p-3 bg-[#1F1212] border-t border-[#7F1D1D] text-xs font-['Plus_Jakarta_Sans'] text-[#FCA5A5] flex items-start gap-1.5">
+              <AlertTriangle size={14} className="text-[#FCA5A5] shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Celah:</span>{' '}
+                {data.vulnerableSnippet.flawExplanation}
+              </div>
             </div>
           </div>
         )}
@@ -664,7 +718,7 @@ export function RemediationCard({
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
                 <span className="font-['Space_Grotesk'] font-bold text-[#6EE7B7]">
-                  🟢 KODE AMAN TERMEDIASI ({data.secureSnippet.filename})
+                  KODE AMAN TERMEDIASI ({data.secureSnippet.filename})
                 </span>
               </div>
               <button
@@ -680,9 +734,12 @@ export function RemediationCard({
               <pre className="whitespace-pre">{data.secureSnippet.code}</pre>
             </div>
 
-            <div className="p-3 bg-[#0D241E] border-t border-[#065F46] text-xs font-['Plus_Jakarta_Sans'] text-[#6EE7B7]">
-              🛡️ <span className="font-bold">Perbaikan:</span>{' '}
-              {data.secureSnippet.fixExplanation}
+            <div className="p-3 bg-[#0D241E] border-t border-[#065F46] text-xs font-['Plus_Jakarta_Sans'] text-[#6EE7B7] flex items-start gap-1.5">
+              <ShieldCheck size={14} className="text-[#6EE7B7] shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Perbaikan:</span>{' '}
+                {data.secureSnippet.fixExplanation}
+              </div>
             </div>
           </div>
         )}
@@ -730,9 +787,10 @@ export function RemediationCard({
 
       {/* 4 Defense-in-Depth Principles */}
       <div className="space-y-3">
-        <span className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14] uppercase tracking-wider">
-          🛡️ PRINSIP PERTAHANAN BERLAPIS (DEFENSE IN DEPTH)
-        </span>
+        <div className="flex items-center gap-2 text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14] uppercase tracking-wider">
+          <Shield size={16} className="text-[#0F766E]" />
+          <span>PRINSIP PERTAHANAN BERLAPIS (DEFENSE IN DEPTH)</span>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {data.defensePrinciples.map((dp, idx) => (
@@ -950,8 +1008,8 @@ ${report.remediationRecommendation}
       {/* Top Banner with HackerOne / Bounty Branding */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#E6E2D8]">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FEF3C7] to-[#FDE68A] border-2 border-[#F59E0B] flex items-center justify-center text-2xl shadow-xs shrink-0">
-            <span>🏆 💰</span>
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FEF3C7] to-[#FDE68A] border-2 border-[#F59E0B] flex items-center justify-center text-2xl shadow-xs shrink-0 text-[#B45309]">
+            <Award size={24} className="text-[#B45309]" />
           </div>
           <div>
             <span className="text-[10px] font-bold font-['JetBrains_Mono'] px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309] border border-[#FDE68A] uppercase tracking-wider">

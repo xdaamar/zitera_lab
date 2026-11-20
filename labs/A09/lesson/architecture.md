@@ -36,13 +36,13 @@ sequenceDiagram
         Note over Attacker,SIEMEngine: Skenario Rentan (Telemetri Cacat)
         Attacker->>SOCApp: POST /api/auth/login (Password Salah x5)
         Note over SOCApp: failed_login_count += 1
-        Note over SOCApp: ❌ Tidak ada penulisan ke audit_logs!
-        Note over SOCApp: ❌ 0 Alerts Fired ke SIEM!
+        Note over SOCApp: [RENTAN] Tidak ada penulisan ke audit_logs!
+        Note over SOCApp: [RENTAN] 0 Alerts Fired ke SIEM!
         SOCApp-->>Attacker: HTTP 401 Unauthorized
 
         Attacker->>SOCApp: POST /api/admin/role_escalate (learner -> super_admin)
         Note over SOCApp: unlogged_escalation_occurred = True
-        Note over SOCApp: ❌ Tidak dicatat di audit_logs!
+        Note over SOCApp: [RENTAN] Tidak dicatat di audit_logs!
         SOCApp-->>Attacker: HTTP 200 OK (Hak Akses Diberikan Secara Senyap)
     end
 

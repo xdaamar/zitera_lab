@@ -36,7 +36,7 @@ sequenceDiagram
 
     alt Arsitektur Rentan (Skenario Saat Ini)
         EdgeGateway->>RuntimeMemory: Terapkan active_config langsung!
-        Note over RuntimeMemory: ❌ debug_backdoor=True, mtls=False diterapkan!
+        Note over RuntimeMemory: [RENTAN] debug_backdoor=True, mtls=False diterapkan!
         EdgeGateway-->>Attacker: HTTP 200 OK (Konfigurasi Aktif Termutasi)
     else Arsitektur Aman (Remediasi yang Benar)
         EdgeGateway->>VerificationGate: Periksa Ed25519 Signature + Public Key

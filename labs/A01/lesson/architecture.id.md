@@ -60,7 +60,7 @@ Untuk mencegah kerentanan Broken Access Control secara menyeluruh pada skala ent
 
 | Peran (Role) | Baca Faktur Sendiri | Baca Faktur Orang Lain | Unduh Master Invoice | Ubah Tarif Penagihan |
 | :--- | :---: | :---: | :---: | :---: |
-| **Anonymous (Tamu)** | ❌ | ❌ | ❌ | ❌ |
-| **Standard User (Alice/Bob)** | ✅ | ❌ | ❌ | ❌ |
-| **Auditor / Finance Staff** | ✅ | ✅ (Read-Only) | ❌ | ❌ |
-| **System Administrator** | ✅ | ✅ | ✅ | ✅ |
+| **Anonymous (Tamu)** | [TIDAK] | [TIDAK] | [TIDAK] | [TIDAK] |
+| **Standard User (Alice/Bob)** | [DIIZINKAN] | [TIDAK] | [TIDAK] | [TIDAK] |
+| **Auditor / Finance Staff** | [DIIZINKAN] | [DIIZINKAN] (Read-Only) | [TIDAK] | [TIDAK] |
+| **System Administrator** | [DIIZINKAN] | [DIIZINKAN] | [DIIZINKAN] | [DIIZINKAN] |

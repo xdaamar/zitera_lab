@@ -38,7 +38,8 @@ Dalam panduan terarah ini, kamu akan mempraktikkan proses audit ketahanan autent
    - Akun tidak terkunci (*no lockout*), dan tidak ada verifikasi bot sama sekali. Sistem membuka pintu bagi serangan brute-force otomatis tanpa batas!
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa brute force ini bisa berhasil?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa brute force ini bisa berhasil?**  
 > PIN 4-digit hanya memiliki $10.000$ kemungkinan (0000-9999). Tanpa rate-limiting, sebuah skrip sederhana dapat menguji seluruh $10.000$ kombinasi dalam waktu kurang dari 3 menit pada koneksi lokal!
 
 ---

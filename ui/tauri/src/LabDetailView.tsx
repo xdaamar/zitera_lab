@@ -27,6 +27,8 @@ import {
   PanelRightClose,
   Loader2,
   BookOpen,
+  Unlock,
+  Award,
 } from 'lucide-react'
 import {
   getLabContent,
@@ -407,7 +409,7 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
         <div className="relative z-10">
           <CuteAnimeLoading
             message="MEMPERSIAPKAN MATERI KURIKULUM & TARGET..."
-            subMessage="( ⚡ •̀ᴗ•́) DEPLOYING SANDBOX ENVIRONMENT"
+            subMessage="DEPLOYING SANDBOX ENVIRONMENT"
           />
         </div>
       </div>
@@ -476,13 +478,13 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
 
                 {/* Requirement 1: Prerequisite & Progression Breadcrumbs */}
                 {progression.isCore ? (
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] text-[10px] font-bold font-['JetBrains_Mono'] flex items-center gap-1 shadow-2xs">
-                    <span>🛡️</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] text-[10px] font-bold font-['JetBrains_Mono'] flex items-center gap-1.5 shadow-2xs">
+                    <Shield size={12} className="text-[#15803D] shrink-0" />
                     <span>LAB WAJIB (Pondasi Dasar & Konsep Inti)</span>
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#6D28D9] border border-[#D8B4FE] text-[10px] font-bold font-['JetBrains_Mono'] flex items-center gap-1 shadow-2xs">
-                    <span>🚀</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#6D28D9] border border-[#D8B4FE] text-[10px] font-bold font-['JetBrains_Mono'] flex items-center gap-1.5 shadow-2xs">
+                    <Compass size={12} className="text-[#6D28D9] shrink-0" />
                     <span>
                       LAB EKSPLORASI (Teknik Lanjutan) • Prasyarat:{' '}
                       <span className="underline decoration-[#A78BFA]">{progression.prerequisiteTitle}</span>{' '}
@@ -962,28 +964,31 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
                     <div className="p-5 md:p-6 rounded-2xl border-2 border-[#10B981] bg-gradient-to-r from-[#ECFDF5] via-[#F0FDF4] to-[#CCFBF1] shadow-[0_4px_0_0_#059669,0_16px_32px_rgba(16,185,129,0.14)] space-y-3.5 animate-in zoom-in-95 duration-200">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
-                          <div className="w-13 h-13 rounded-2xl bg-[#10B981] text-white flex items-center justify-center text-3xl shadow-xs shrink-0">
-                            🎉
+                          <div className="w-13 h-13 rounded-2xl bg-[#10B981] text-white flex items-center justify-center shadow-xs shrink-0">
+                            <Award size={26} className="text-white" />
                           </div>
                           <div>
                             <span className="text-[10px] font-bold font-['JetBrains_Mono'] px-2.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] uppercase tracking-wider">
                               STATUS: TERCAPAI & TERVERIFIKASI (+100 PTS)
                             </span>
-                            <h3 className="text-base md:text-lg font-bold font-['Space_Grotesk'] text-[#065F46] mt-1">
-                              🎉 Tantangan Terverifikasi! {progression.nextLabId ? 'Lab Eksplorasi Berikutnya Berhasil Dibuka!' : 'Seluruh Rangkaian Lab Kategori Ini Tuntas!'}
+                            <h3 className="text-base md:text-lg font-bold font-['Space_Grotesk'] text-[#065F46] mt-1 flex items-center gap-1.5">
+                              <Sparkles size={18} className="text-[#059669]" />
+                              <span>Tantangan Terverifikasi! {progression.nextLabId ? 'Lab Eksplorasi Berikutnya Berhasil Dibuka!' : 'Seluruh Rangkaian Lab Kategori Ini Tuntas!'}</span>
                             </h3>
                           </div>
                         </div>
 
                         {progression.nextLabId ? (
                           <div className="flex items-center gap-2">
-                            <div className="px-3.5 py-1.5 rounded-xl bg-white border-2 border-[#86EFAC] text-xs font-['JetBrains_Mono'] font-bold text-[#047857] shadow-2xs">
-                              🔓 Terbuka: {progression.nextLabId}
+                            <div className="px-3.5 py-1.5 rounded-xl bg-white border-2 border-[#86EFAC] text-xs font-['JetBrains_Mono'] font-bold text-[#047857] shadow-2xs flex items-center gap-1.5">
+                              <Unlock size={14} className="text-[#047857]" />
+                              <span>Terbuka: {progression.nextLabId}</span>
                             </div>
                           </div>
                         ) : (
-                          <div className="px-3.5 py-1.5 rounded-xl bg-white border-2 border-[#86EFAC] text-xs font-['JetBrains_Mono'] font-bold text-[#047857] shadow-2xs">
-                            🏆 Modul Kategori {progression.categoryCode} 100% Selesai!
+                          <div className="px-3.5 py-1.5 rounded-xl bg-white border-2 border-[#86EFAC] text-xs font-['JetBrains_Mono'] font-bold text-[#047857] shadow-2xs flex items-center gap-1.5">
+                            <Trophy size={14} className="text-[#047857]" />
+                            <span>Modul Kategori {progression.categoryCode} 100% Selesai!</span>
                           </div>
                         )}
                       </div>
@@ -1318,8 +1323,8 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
                     }
                     subMessage={
                       targetOp.type === 'launch'
-                        ? '( ⚡ •̀ᴗ•́) BINDING LOCALHOST & ISOLATING ENVIRONMENT'
-                        : '( •̀ ω •́ )✧ RELEASING CHILD PROCESSES & PORTS'
+                        ? 'BINDING LOCALHOST & ISOLATING ENVIRONMENT'
+                        : 'RELEASING CHILD PROCESSES & PORTS'
                     }
                   />
 
@@ -1371,7 +1376,7 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
 
                   {/* Anti-spam Reassurance Notice */}
                   <div className="px-3 py-2 rounded-lg bg-[#F5F5F4] border border-[#E7E5E4] text-[11px] text-[#78716C] leading-relaxed flex items-center gap-2 text-left">
-                    <span className="shrink-0 text-base">🛡️</span>
+                    <Shield size={14} className="shrink-0 text-[#0F766E]" />
                     <span>
                       Engine sedang memproses sandbox di latar belakang. Tombol dinonaktifkan untuk mencegah spam click!
                     </span>

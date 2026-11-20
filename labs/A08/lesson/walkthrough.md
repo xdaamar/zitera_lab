@@ -59,7 +59,8 @@ Dalam latihan terarah ini, kamu akan mempraktikkan proses pembuktian kegagalan v
    Server secara naif menerima dan menerapkan konfigurasi palsu tersebut tanpa melakukan penolakan tanda tangan sama sekali!
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa ini berbahaya?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa ini berbahaya?**  
 > Backend menyimpan objek konfigurasi dan hanya memeriksa nilai yang dikirim klien tanpa menjalankan fungsi kriptografis seperti `verify_signature(payload, public_key)`. Karena penyerang bisa mengirimkan field JSON apa saja, parameter `debug_backdoor: true` langsung aktif di memori produksi kluster!
 
 ---

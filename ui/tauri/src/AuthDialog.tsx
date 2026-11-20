@@ -1,4 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
+import { X, CheckCircle2, AlertTriangle, Check } from 'lucide-react'
 import {
   AVATAR_REGISTRY,
   getAvatarById,
@@ -148,9 +149,10 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-[#E6E2D8] bg-[#FCFBF8] hover:bg-[#F0EDE8] text-[#5C5347] flex items-center justify-center text-sm font-bold"
+            className="w-8 h-8 rounded-lg border border-[#E6E2D8] bg-[#FCFBF8] hover:bg-[#F0EDE8] text-[#5C5347] flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
+            title="Tutup Dialog"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -221,7 +223,11 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
                 : 'bg-[#ECFDF5] border-[#6EE7B7] text-[#0F766E]'
             }`}
           >
-            <span>{message.error ? '⚠' : '✓'}</span>
+            {message.error ? (
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-[#DC2626]" />
+            ) : (
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-[#0F766E]" />
+            )}
             <span>{message.text}</span>
           </div>
         )}
@@ -400,8 +406,8 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
                           }}
                         />
                         {isSelected && (
-                          <div className="absolute top-0 right-0 w-4 h-4 bg-[#0F766E] text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-                            ✓
+                          <div className="absolute top-0 right-0 w-4 h-4 bg-[#0F766E] text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-xs">
+                            <Check className="w-2.5 h-2.5" />
                           </div>
                         )}
                       </div>

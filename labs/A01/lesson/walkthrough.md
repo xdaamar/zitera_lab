@@ -33,7 +33,8 @@ Ujilah hipotesis keamanan: *Apakah backend memvalidasi bahwa voucher nomor 2 ben
    - **Analisis Kritis:** Cookie sesi otentikasi Alice tetap aktif, namun server mengizinkan akses ke catatan finansial Bob tanpa verifikasi hak kepemilikan objek (*Horizontal Privilege Escalation*).
 
 > [!NOTE]
-> **💡 Di Balik Layar: Apa yang terjadi di server?**  
+> [!NOTE]
+> **Di Balik Layar: Apa yang terjadi di server?**  
 > Saat kamu mengirim request `GET /wire/2`, server Flask mengeksekusi:  
 > `SELECT * FROM wires WHERE id = 2;`  
 > Server tidak mengecek apakah `wire.user_id == session['user_id']`. Akibatnya, siapapun yang mengetahui nomor transaksi Bob bisa langsung membacanya!

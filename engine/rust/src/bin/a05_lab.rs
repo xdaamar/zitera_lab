@@ -372,7 +372,7 @@ fn render_navbar(active_tab: &str) -> String {
     format!(
         r#"<header class="navbar">
     <div class="brand">
-        <div class="brand-icon">📊</div>
+        <div class="brand-icon"></div>
         <div>
             <div class="brand-title">DataFlow // Revenue Operations CRM</div>
             <div class="brand-sub">Enterprise Deal Flow & Customer Ledger &bull; Port 8015</div>
@@ -475,9 +475,9 @@ fn handle_request(
         let mut rows = String::new();
         for d in &rendered_deals {
             let stage_badge = if d.is_confidential {
-                "<span class=\"badge badge-vault\">🚨 CONFIDENTIAL VAULT</span>"
+                "<span class=\"badge badge-vault\">[ALERT] CONFIDENTIAL VAULT</span>"
             } else if d.stage == "Contract Signed" {
-                "<span class=\"badge badge-active\">✓ Contract Signed</span>"
+                "<span class=\"badge badge-active\"> Contract Signed</span>"
             } else {
                 "<span class=\"badge badge-indigo\">In Negotiation</span>"
             };
@@ -509,7 +509,7 @@ fn handle_request(
         let flag_banner = if flag_discovered {
             format!(
                 r#"<div class="flag-banner">
-                    <div style="font-size: 32px;">🔓</div>
+                    <div style="font-size: 32px;"></div>
                     <div>
                         <div style="font-size: 16px; font-weight: 800; color: #065f46;">UNION-BASED SQL INJECTION SUCCESSFUL!</div>
                         <p style="font-size: 13px; color: #047857; margin-top: 4px;">
@@ -596,7 +596,7 @@ fn handle_request(
     </div>
 
     <div class="notice-box">
-        <strong>💡 Pentester Reconnaissance Note:</strong><br/>
+        <strong>[TIPS] Pentester Reconnaissance Note:</strong><br/>
         Audit the search parameter <code>/deals/search?q=...</code>. What happens if you submit a single quote <code>'</code>? Does the application disclose the internal database query structure? Try constructing a <code>' UNION SELECT ...</code> payload to extract the hidden <code>vault_secrets</code> table!
     </div>
 </div>

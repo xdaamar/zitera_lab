@@ -125,7 +125,7 @@ export function EnvironmentView() {
         <div className="py-16 flex items-center justify-center">
           <CuteAnimeLoading
             message="RUNNING SYSTEM DOCTOR..."
-            subMessage="( ˘ ³˘)♥ ISOLATION & BINARY CHECK"
+            subMessage="SYSTEM ISOLATION & BINARY CHECK"
           />
         </div>
       ) : (

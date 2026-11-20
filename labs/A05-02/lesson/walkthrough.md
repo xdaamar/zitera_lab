@@ -27,7 +27,8 @@ Dalam panduan terarah ini, Anda akan mempraktikkan proses penemuan celah dan eks
 2. Perhatikan respon yang dikembalikan oleh server.
 
 > [!NOTE]
-> **💡 Di Balik Layar: Apa yang terjadi di server?**  
+> [!NOTE]
+> **Di Balik Layar: Apa yang terjadi di server?**  
 > Sistem target menerima input `Accept: application/json` dan memprosesnya tanpa melakukan validasi silang ke sesi otentikasi server. Akibatnya, server mengasumsikan hak akses yang diminta adalah sah.
 
 ---

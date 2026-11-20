@@ -20,6 +20,10 @@ import {
   Filter,
   Lock,
   ShieldAlert,
+  Shield,
+  Compass,
+  Target,
+  Award,
 } from 'lucide-react'
 import {
   getLabs,
@@ -770,8 +774,15 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                   / {totalCount} Targets
                 </span>
               </div>
-              <div className="text-[10px] font-semibold text-[#C2410C]/90 font-['JetBrains_Mono']">
-                {solvedPercent === 100 ? '🎉 All 30 Labs Mastered!' : `${solvedPercent}% Complete (${solvedCount}/${totalCount})`}
+              <div className="text-[10px] font-semibold text-[#C2410C]/90 font-['JetBrains_Mono'] flex items-center gap-1">
+                {solvedPercent === 100 ? (
+                  <>
+                    <Award size={12} className="text-[#9A3412]" />
+                    <span>All 30 Labs Mastered!</span>
+                  </>
+                ) : (
+                  <span>{solvedPercent}% Complete ({solvedCount}/{totalCount})</span>
+                )}
               </div>
             </div>
 
@@ -1016,7 +1027,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
           <div className="py-16 flex items-center justify-center">
             <CuteAnimeLoading
               message="ENUMERATING MULTI-TIER LABS CATALOG..."
-              subMessage="( ≧ᗜ≦) 30 CYBER LABORATORIES LOADED"
+              subMessage="30 CYBER LABORATORIES LOADED"
             />
           </div>
         ) : filteredLabs.length === 0 ? (
@@ -1253,17 +1264,20 @@ function TactileLabCard({
               {/* 1. Progression Tier Badge (Required by Coordinator) */}
               {progression.isCore && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#DCFCE7] border-2 border-[#22C55E] text-[10px] font-['JetBrains_Mono'] font-extrabold text-[#15803D] shadow-[0_2px_0_0_#16A34A]">
-                  <span>🛡️ LAB WAJIB (PONDASI UTAMA)</span>
+                  <Shield size={11} className="text-[#15803D] shrink-0" />
+                  <span>LAB WAJIB (PONDASI UTAMA)</span>
                 </span>
               )}
               {progression.tier === 'explore-1' && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EFF6FF] border-2 border-[#60A5FA] text-[10px] font-['JetBrains_Mono'] font-extrabold text-[#1D4ED8] shadow-[0_2px_0_0_#2563EB]">
-                  <span>🚀 LAB EKSPLORASI: TEKNIK A</span>
+                  <Compass size={11} className="text-[#1D4ED8] shrink-0" />
+                  <span>LAB EKSPLORASI: TEKNIK A</span>
                 </span>
               )}
               {progression.tier === 'explore-2' && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFF7ED] border-2 border-[#FB923C] text-[10px] font-['JetBrains_Mono'] font-extrabold text-[#C2410C] shadow-[0_2px_0_0_#EA580C]">
-                  <span>🚀 LAB EKSPLORASI: TEKNIK B</span>
+                  <Target size={11} className="text-[#C2410C] shrink-0" />
+                  <span>LAB EKSPLORASI: TEKNIK B</span>
                 </span>
               )}
 

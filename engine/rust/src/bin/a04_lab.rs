@@ -344,7 +344,7 @@ fn render_navbar(active_tab: &str, current_role: Option<&str>) -> String {
     format!(
         r#"<header class="navbar">
     <div class="brand">
-        <div class="brand-icon">🔐</div>
+        <div class="brand-icon"></div>
         <div>
             <div class="brand-title">SafeKey // Digital Asset Custody</div>
             <div class="brand-sub">Enterprise Cryptographic Vault &bull; Port 8014</div>
@@ -447,9 +447,9 @@ fn handle_request(
         let mut rows = String::new();
         for k in &state.keys {
             let status_badge = if k.status.starts_with("ACTIVE") {
-                "<span class=\"badge badge-active\">✓ ACTIVE</span>"
+                "<span class=\"badge badge-active\"> ACTIVE</span>"
             } else {
-                "<span class=\"badge badge-warn\">⚠ DEPRECATED</span>"
+                "<span class=\"badge badge-warn\">[PERINGATAN] DEPRECATED</span>"
             };
 
             rows.push_str(&format!(
@@ -536,7 +536,7 @@ fn handle_request(
     </div>
 
     <div class="notice-box">
-        <strong>💡 Pentester Reconnaissance Note:</strong><br/>
+        <strong>[TIPS] Pentester Reconnaissance Note:</strong><br/>
         Audit the cryptographic implementation specifications and telemetry at <a href="/specs" style="color: #047857; font-weight: 700;">/specs</a>. Can you discover hardcoded HMAC secret keys or legacy cryptographic fallbacks? Forging an authorized token with <code>role: SecurityOfficer</code> grants access to Marcus Reid's <a href="/vault" style="color: #047857; font-weight: 700;">/vault</a>.
     </div>
 </div>
@@ -757,7 +757,7 @@ fn handle_request(
 
     <div class="card">
         <div class="flag-banner">
-            <div style="font-size: 32px;">🔓</div>
+            <div style="font-size: 32px;"></div>
             <div>
                 <div style="font-size: 16px; font-weight: 800; color: #065f46;">COLD STORAGE MASTER VAULT UNLOCKED!</div>
                 <p style="font-size: 13px; color: #047857; margin-top: 4px;">
@@ -822,7 +822,7 @@ fn handle_request(
     {navbar}
 
     <div class="card" style="text-align: center; padding: 48px 24px; max-width: 680px; margin: 0 auto;">
-        <div style="font-size: 38px; margin-bottom: 12px;">🛡️</div>
+        <div style="font-size: 38px; margin-bottom: 12px;">️</div>
         <h2 style="font-size: 18px; font-weight: 800; color: #09090b; margin-bottom: 8px;">Master Vault Restricted</h2>
         <p style="font-size: 13px; color: #71717a; margin-bottom: 20px;">
             Access to Marcus Reid's cold storage key seed requires authenticated <code>SecurityOfficer</code> credentials signed with the authorized cryptographic secret.

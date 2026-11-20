@@ -4,7 +4,7 @@ Insecure Design menempati peringkat ke-6 (**#6**) dalam daftar risiko **OWASP To
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Cacat desain adalah kerentanan paling mahal dan paling sulit diperbaiki dalam siklus pengembangan perangkat lunak:
 
 - **Kebocoran Finansial Langsung Lewat Manipulasi Alur Bisnis**:
@@ -15,7 +15,7 @@ Cacat desain adalah kerentanan paling mahal dan paling sulit diperbaiki dalam si
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi pengujian logika alur bisnis profesional:
 
 1. **Apa yang Dicari (What to Search)**:
@@ -31,7 +31,7 @@ Metodologi pengujian logika alur bisnis profesional:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Prinsip rekayasa perangkat lunak defensif:
 - **Terapkan State Machine yang Ketat di Sisi Server (Strict Invariants)**: Status hanya boleh berpindah ke tahap berikutnya jika dan hanya jika seluruh kondisi prasyarat terpenuhi (misal: `DRAFT` hanya boleh pindah ke `PENDING_REVIEW`, bukan langsung ke `DISPATCHED`).
 - **Larang Klien Mengirimkan Nama Status**: Klien hanya boleh mengirimkan *aksi* (misal: "ajukan_tinjauan", "setujui"), sedangkan server yang menentukan status berikutnya berdasarkan peran pengguna di sesi.

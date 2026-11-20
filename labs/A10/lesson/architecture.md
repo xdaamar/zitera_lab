@@ -44,7 +44,7 @@ sequenceDiagram
         Gate->>UpstreamEngine: Inisiasi Pemrosesan
         UpstreamEngine--xGate: RuntimeError: "Upstream Gateway Timeout!"
         Note over Gate: Tangkap Exception generik di blok `except:`!
-        Note over Gate: ❌ KESALAHAN ARSITEKTUR: authorized = True!
+        Note over Gate: [RENTAN] KESALAHAN ARSITEKTUR: authorized = True!
         Gate-->>Client: HTTP 200 OK {"authorized": true, "fail_open_state": true, "flag": "ZITERA{...}"}
     end
 ```

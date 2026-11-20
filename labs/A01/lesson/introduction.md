@@ -4,7 +4,7 @@ Broken Access Control menempati peringkat teratas (**#1**) dalam daftar risiko k
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Di dunia nyata, Broken Access Control bukan sekadar kesalahan kode sepele, melainkan pintu gerbang kerugian finansial masif dan kehancuran reputasi bisnis:
 
 - **Kerugian Finansial & Denda Regulasi Masif**:
@@ -16,7 +16,7 @@ Di dunia nyata, Broken Access Control bukan sekadar kesalahan kode sepele, melai
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Sebelum menyentuh sasaran pengujian, kamu harus memahami metodologi pengujian terstruktur:
 
 1. **Apa yang Dicari (The Target)**:
@@ -31,7 +31,7 @@ Sebelum menyentuh sasaran pengujian, kamu harus memahami metodologi pengujian te
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Kunci pertahanan mutlak terhadap Broken Access Control:
 - **Verifikasi Hak Kepemilikan di Sisi Server**: Jangan pernah percaya ID dari user. Ikat setiap query database dengan `session['user_id']`.
 - **Gunakan UUID v4 / Indirect Reference**: Ganti ID angka berurutan dengan string acak kriptografis (misal `UUIDv4`) sehingga penyerang tidak bisa menebak data pengguna lain.

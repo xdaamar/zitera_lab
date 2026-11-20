@@ -4,7 +4,7 @@ Software and Data Integrity Failures menempati peringkat ke-8 (**#8**) dalam daf
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Ketika aplikasi mengeksekusi atau menerapkan data tanpa memvalidasi integritasnya, sistem menyerahkan kendali sepenuhnya kepada penyerang:
 
 - **Penyusupan Pintu Belakang (*Backdoor Injection*) pada Sistem Kritis**:
@@ -15,7 +15,7 @@ Ketika aplikasi mengeksekusi atau menerapkan data tanpa memvalidasi integritasny
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi audit integritas data dan perangkat lunak:
 
 1. **Apa yang Dicari (What to Search)**:
@@ -30,7 +30,7 @@ Metodologi audit integritas data dan perangkat lunak:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Pertahanan integritas software mutlak:
 - **Wajibkan Verifikasi Kriptografis Asimetris (Cryptographic Code Signing)**: Server hanya boleh menerima pembaruan yang memiliki tanda tangan digital valid dari otoritas kunci privat resmi (menggunakan algoritma RSA-4096 atau ECDSA Ed25519).
 - **Tolak Keras Paket yang Gagal Verifikasi (*Fail-Closed Signature Validation*)**: Jika `signature_verified == false` atau hash tidak cocok, batalkan proses dan isolasi paket seketika.

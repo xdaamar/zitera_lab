@@ -4,7 +4,7 @@ Mishandling of Exceptional Conditions menempati peringkat ke-10 (**#10**) dalam 
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Prinsip dasar keamanan komputer adalah: **Jika terjadi keraguan atau kerusakan sistem, tolak semua akses (*Deny by Default / Fail-Secure*)**. Namun banyak sistem komersial melanggarnya demi kenyamanan operasional:
 
 - **Bypass Pembayaran & Kliring Finansial Jutaan Transaksi**:
@@ -15,7 +15,7 @@ Prinsip dasar keamanan komputer adalah: **Jika terjadi keraguan atau kerusakan s
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi pengujian penanganan kondisi luar biasa:
 
 1. **Apa yang Dicari (What to Search)**:
@@ -31,7 +31,7 @@ Metodologi pengujian penanganan kondisi luar biasa:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Arsitektur pertahanan *Fail-Closed* standar industri:
 - **Terapkan Prinsip Fail-Safe Defaults**: Variabel status otorisasi wajib diinisialisasi dengan nilai `false` (`authorized = False`). Hanya ubah menjadi `true` jika dan hanya jika seluruh proses verifikasi berhasil tuntas 100%.
 - **Tangani Exception dengan Blok Catch yang Menolak Akses**:

@@ -43,7 +43,8 @@ Dalam panduan terarah ini, kamu akan mempraktikkan proses audit forensik terhada
    ```
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa skrip `postinstall` berbahaya?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa skrip `postinstall` berbahaya?**  
 > Manajer paket seperti `npm` secara default menjalankan skrip `postinstall` segera setelah paket selesai diunduh. Jika dependensi disusupi, skrip ini berjalan dengan hak akses penuh mesin pengembang atau server CI/CD, mampu membaca variabel lingkungan (`process.env`) dan mengirimkan token rahasia ke server penyerang!
 
 ---

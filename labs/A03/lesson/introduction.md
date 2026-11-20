@@ -4,7 +4,7 @@ Software Supply Chain Failures menempati peringkat ke-3 (**#3**) dalam daftar ri
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Dalam rekayasa perangkat lunak modern, lebih dari 85% basis kode aplikasi terdiri dari pustaka pihak ketiga (npm, PyPI, Cargo, NuGet). Ketika satu dependensi dipercaya disusupi, ribuan korporasi yang mengimpor pustaka tersebut otomatis terinfeksi:
 
 - **Dampak Berantai Skala Global (*Massive Blast Radius*)**:
@@ -16,7 +16,7 @@ Dalam rekayasa perangkat lunak modern, lebih dari 85% basis kode aplikasi terdir
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi audit rantai pasok profesional:
 
 1. **Apa yang Dicari (What to Search)**:
@@ -32,7 +32,7 @@ Metodologi audit rantai pasok profesional:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Strategi pertahanan rantai pasok mutlak:
 - **Kunci Versi dan Hash Eksplisit (Lockfile & Subresource Integrity)**: Selalu gunakan lockfile dan pastikan integrity hash (`sha512-...`) diverifikasi pada setiap proses build.
 - **Matikan Eksekusi Skrip Siklus Hidup Otomatis**: Gunakan flag `--ignore-scripts` saat menjalankan instalasi dependensi (`npm install --ignore-scripts`).

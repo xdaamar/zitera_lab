@@ -36,7 +36,8 @@ Dalam latihan ini, kamu akan mempraktikkan proses penemuan dan pemanfaatan kesal
    - Terlihat file artefak cadangan sensitif: `backup_config.json.bak`.
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa file ini bisa terbuka?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa file ini bisa terbuka?**  
 > Pada web server Nginx atau Apache, opsi `autoindex on;` atau `Options +Indexes` secara otomatis membuat daftar file HTML jika tidak ada file `index.html` di direktori tersebut. Di lingkungan produksi, opsi ini wajib dimatikan (`autoindex off;`)!
 
 ---

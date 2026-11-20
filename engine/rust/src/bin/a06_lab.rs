@@ -61,7 +61,7 @@ impl AppState {
                 category: "Hardware Computing".to_string(),
                 price: 1850.0,
                 description: "Dedicated edge TPU matrix accelerator for low-latency neural inference.".to_string(),
-                image_emoji: "🧠".to_string(),
+                image_emoji: "".to_string(),
                 is_target_flag: false,
             },
             Product {
@@ -70,7 +70,7 @@ impl AppState {
                 category: "Workstations".to_string(),
                 price: 3499.0,
                 description: "CNC-milled aerospace grade titanium field engineering terminal.".to_string(),
-                image_emoji: "💻".to_string(),
+                image_emoji: "".to_string(),
                 is_target_flag: false,
             },
             Product {
@@ -79,7 +79,7 @@ impl AppState {
                 category: "Executive Hardware Tokens".to_string(),
                 price: 5000.0,
                 description: "Air-gapped physical cryptographic keycard containing Marcus Reid's SOX-404 compliance seed.".to_string(),
-                image_emoji: "🗝️".to_string(),
+                image_emoji: "️".to_string(),
                 is_target_flag: true,
             },
             Product {
@@ -88,7 +88,7 @@ impl AppState {
                 category: "Authentication".to_string(),
                 price: 50.0,
                 description: "FIPS 140-3 Level 3 hardware security key with USB-C and NFC.".to_string(),
-                image_emoji: "🛡️".to_string(),
+                image_emoji: "️".to_string(),
                 is_target_flag: false,
             },
         ];
@@ -380,7 +380,7 @@ fn render_navbar(active_tab: &str, wallet_balance: f64, cart_count: usize) -> St
     format!(
         r#"<header class="navbar">
     <div class="brand">
-        <div class="brand-icon">💎</div>
+        <div class="brand-icon"></div>
         <div>
             <div class="brand-title">NexaStore // Luxury Hardware Marketplace</div>
             <div class="brand-sub">Enterprise Procurement & Escrow Store &bull; Port 8016</div>
@@ -393,7 +393,7 @@ fn render_navbar(active_tab: &str, wallet_balance: f64, cart_count: usize) -> St
             <a href="/orders" class="nav-link {ord_active}">Receipts & Orders</a>
         </nav>
         <div class="wallet-badge">
-            <span>💳 Wallet:</span>
+            <span>[PAYMENT] Wallet:</span>
             <span style="color: #059669;">${wallet:.2}</span>
         </div>
     </div>
@@ -435,7 +435,7 @@ fn handle_request(
         let mut product_cards = String::new();
         for p in &state.products {
             let target_badge = if p.is_target_flag {
-                "<div style=\"font-size: 10px; font-weight: 800; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px; padding: 2px 8px; display: inline-block; margin-bottom: 8px;\">🎯 HIGH-VALUE ASSET</div>"
+                "<div style=\"font-size: 10px; font-weight: 800; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px; padding: 2px 8px; display: inline-block; margin-bottom: 8px;\">[TARGET] HIGH-VALUE ASSET</div>"
             } else {
                 ""
             };
@@ -499,7 +499,7 @@ fn handle_request(
     </div>
 
     <div class="notice-box">
-        <strong>💡 Pentester Reconnaissance Note:</strong><br/>
+        <strong>[TIPS] Pentester Reconnaissance Note:</strong><br/>
         Notice your starting wallet balance is only <strong>$50.00</strong>, while the high-value <em>Master Sovereign Escrow Keycard</em> costs <strong>$5,000.00</strong>. Can you audit the <code>/cart/checkout</code> endpoint or HTTP POST body parameters? Does the backend trust client-submitted parameters like <code>unit_price</code>, <code>price_override</code>, or negative <code>quantity</code> values?
     </div>
 </div>
@@ -738,7 +738,7 @@ fn handle_request(
     {navbar}
 
     <div class="card" style="max-width: 680px; margin: 0 auto; text-align: center; padding: 48px 24px;">
-        <div style="font-size: 38px; margin-bottom: 12px;">💳❌</div>
+        <div style="font-size: 38px; margin-bottom: 12px;">[RENTAN]</div>
         <h2 style="font-size: 18px; font-weight: 800; color: #1c1917; margin-bottom: 8px;">Insufficient Wallet Funds</h2>
         <p style="font-size: 13px; color: #78716c; margin-bottom: 20px;">
             The order total (<strong>${total:.2}</strong>) exceeds your current available enterprise wallet credit (<strong>${wallet:.2}</strong>).
@@ -819,7 +819,7 @@ fn handle_request(
             let flag_box = if let Some(ref secret) = o.voucher_secret {
                 format!(
                     r#"<div class="flag-banner">
-                        <div style="font-size: 32px;">🏆</div>
+                        <div style="font-size: 32px;"></div>
                         <div>
                             <div style="font-size: 16px; font-weight: 800; color: #065f46;">BUSINESS LOGIC FLAW EXPLOITED!</div>
                             <p style="font-size: 13px; color: #047857; margin-top: 4px;">

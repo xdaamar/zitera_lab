@@ -68,7 +68,7 @@ fn generate_html(ctx: &LabContext, query_msg: Option<&str>, revealed: bool) -> S
     let alert_box = if revealed {
         format!(
             r#"<div style="background:#ECFDF5; border:2px solid #10B981; border-radius:12px; padding:18px; margin:20px 0; box-shadow:0 4px 0 #059669;">
-                <div style="font-weight:900; color:#065F46; font-size:15px; margin-bottom:6px;">🎉 TARGET SYSTEM EXPLOITED // CTF FLAG CAPTURED:</div>
+                <div style="font-weight:900; color:#065F46; font-size:15px; margin-bottom:6px;">[VERIFIED] TARGET SYSTEM EXPLOITED // CTF FLAG CAPTURED:</div>
                 <div style="font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:bold; background:#FFFFFF; padding:12px; border:2px dashed #059669; border-radius:8px; color:#047857; user-select:all; word-break:break-all;">
                     {}
                 </div>
@@ -81,7 +81,7 @@ fn generate_html(ctx: &LabContext, query_msg: Option<&str>, revealed: bool) -> S
     } else if let Some(msg) = query_msg {
         format!(
             r#"<div style="background:#FFFBEB; border:2px solid #F59E0B; border-radius:12px; padding:14px; margin:20px 0; color:#92400E; font-size:13px; font-weight:bold;">
-                ⚠️ Status Response: {}
+                [STATUS] Response: {}
             </div>"#,
             msg
         )
@@ -242,14 +242,14 @@ fn generate_html(ctx: &LabContext, query_msg: Option<&str>, revealed: bool) -> S
         </div>
         <div class="content">
             <div class="card">
-                <div class="card-title">🎯 Ringkasan Skenario Praktik</div>
+                <div class="card-title">[SKENARIO] Ringkasan Skenario Praktik</div>
                 <p class="desc">{}</p>
             </div>
 
             {}
 
             <div class="card">
-                <div class="card-title">⚡ Antarmuka Interaktif Pengujian Target</div>
+                <div class="card-title">[CONSOLE] Antarmuka Interaktif Pengujian Target</div>
                 <p class="desc">
                     Lakukan eksplorasi target di bawah ini. Anda dapat menguji endpoint atau mengirimkan simulasi payload eksploitasi untuk mengekstrak respons dari sistem.
                 </p>
@@ -259,9 +259,9 @@ fn generate_html(ctx: &LabContext, query_msg: Option<&str>, revealed: bool) -> S
                         <label for="payload">Parameter / Payload Uji (Input atau biarkan default untuk trigger simulasi):</label>
                         <input type="text" id="payload" name="payload" class="input-field" value="test_user_query" placeholder="Contoh: id=1, or payload khusus...">
                     </div>
-                    <button type="submit" class="btn">🚀 Eksekusi Pengujian & Verifikasi Target</button>
+                    <button type="submit" class="btn">Eksekusi Pengujian & Verifikasi Target</button>
                     <a href="/?solve=1" class="btn" style="background:#C2410C; border-color:#F97316; box-shadow:0 4px 0 #EA580C; margin-left:10px;">
-                        🔑 Trigger Exploit Langsung (Dapatkan Flag)
+                        Trigger Exploit Langsung (Dapatkan Flag)
                     </a>
                 </form>
 

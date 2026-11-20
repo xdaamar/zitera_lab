@@ -6,7 +6,7 @@ Untuk memitigasi kerentanan **OAuth 2.0 Account Linking Hijacking via Missing St
 
 ### Komparasi Kode: Rentan vs Aman
 
-#### ❌ Kode Rentan (Vulnerable Pattern):
+#### [RENTAN] Kode Rentan (Vulnerable Pattern):
 ```javascript
 // Server mempercayai input klien secara naif
 app.get('/api/admin/dashboard', (req, res) => {
@@ -18,7 +18,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 });
 ```
 
-#### ✅ Kode Kebal & Terlindungi (Secure Patched Pattern):
+#### [AMAN] Kode Kebal & Terlindungi (Secure Patched Pattern):
 ```javascript
 // Selalu buat dan validasi parameter state unik kriptografis berbasis sesi:
 const state = crypto.randomBytes(16).toString('hex');

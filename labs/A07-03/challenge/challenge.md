@@ -1,12 +1,12 @@
 # Tantangan CTF Mandiri: MFA Bypass via Direct Endpoint Traversal
 
-### 🎯 MISI BRIEFING
+### MISI BRIEFING
 Kamu ditugaskan untuk melakukan penetration testing terotorisasi terhadap sistem **TwoFactor SecureNet** yang beroperasi pada port `8054`.
 Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi memiliki kelemahan arsitektur pada modul **MFA Bypass via Direct Endpoint Traversal**.
 
 ---
 
-### 🏢 RUANG LINGKUP & TARGET
+### RUANG LINGKUP & TARGET
 - **Target URL:** `http://127.0.0.1:8054`
 - **Kategori OWASP:** A07 — Authentication Failures
 - **Tingkat Kesulitan:** Advanced
@@ -14,7 +14,7 @@ Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi m
 
 ---
 
-### 🚩 OBJEKTIF PENELUSURAN
+### OBJEKTIF PENELUSURAN
 1. Lakukan pemetaan endpoint pada target `TwoFactor SecureNet`.
 2. Identifikasi parameter atau header yang dapat dimanipulasi: `Cookie: session_user=operator`.
 3. Buktikan dampak eksploitasi dan ambil token bendera validasi autoritatif.
@@ -22,5 +22,5 @@ Sistem ini mengimplementasikan fungsionalitas tingkat lanjut namun terindikasi m
 
 ---
 
-### 🔑 FORMAT FLAG
+### [KEY] FORMAT FLAG
 `ZITERA{mf4_byp4ss_d1r3ct_r0ut3_2026}`

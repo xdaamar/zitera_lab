@@ -4,7 +4,7 @@ Security Logging & Monitoring Failures menempati peringkat ke-9 (**#9**) dalam d
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Rata-rata waktu yang dibutuhkan perusahaan di seluruh dunia untuk mendeteksi bahwa sistem mereka telah dibobol (*Mean Time to Detect / MTTD*) adalah **lebih dari 200 hari**:
 
 - **Penyerang Berdiam di Dalam Jaringan Berbulan-bulan (*Attacker Dwell Time*)**:
@@ -14,7 +14,7 @@ Rata-rata waktu yang dibutuhkan perusahaan di seluruh dunia untuk mendeteksi bah
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi pengujian integritas telemetri keamanan:
 
 1. **Apa yang Dicari (What to Search)**:
@@ -30,7 +30,7 @@ Metodologi pengujian integritas telemetri keamanan:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Strategi pembangunan telemetri pertahanan mutlak:
 - **Catat Seluruh Peristiwa Keamanan Kritis (Audit Event Logging)**: Setiap kegagalan login, percobaan bypass otorisasi, dan perubahan peran wewenang wajib dicatat dengan format terstruktur (JSON / CEF) mencakup timestamp UTC, IP sumber, username, dan jenis event.
 - **Hubungkan ke Sistem SIEM & Real-Time Alerting**: Sambungkan aliran log ke platform monitoring (Splunk, Elastic SIEM, Wazuh) dan buat aturan alarm otomatis (misal: $> 5$ kegagalan login dalam 1 menit langsung memicu notifikasi darurat ke tim SOC).

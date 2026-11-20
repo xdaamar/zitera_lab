@@ -286,17 +286,17 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
 
     // Header
     html.push_str("<div class=\"card\"><div class=\"header\">");
-    html.push_str("<div class=\"header-title\"><h1>🏥 NexHealth Medical EHR</h1>");
+    html.push_str("<div class=\"header-title\"><h1>[CLINICAL] NexHealth Medical EHR</h1>");
     html.push_str("<p>Hospital Clinical Records & Medical Staff Authorization Gateway (OWASP A07:2025)</p></div>");
     html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
     if let Some(u) = user {
-        html.push_str(&format!("<span class=\"badge badge-emerald\">👤 Signed in: {}</span>", html_escape(u)));
+        html.push_str(&format!("<span class=\"badge badge-emerald\">[USER] Signed in: {}</span>", html_escape(u)));
         if u == ADMIN_USER || u == DOCTOR_USER {
             html.push_str("<a href=\"/records/vault\" class=\"btn btn-primary\" style=\"font-size: 12px; padding: 6px 12px;\">Chief Officer's Vault</a>");
         }
         html.push_str("<a href=\"/logout\" class=\"btn btn-secondary\" style=\"font-size: 12px; padding: 6px 12px;\">Log Out</a>");
     } else {
-        html.push_str("<span class=\"badge badge-amber\">🔒 Staff Authentication Required</span>");
+        html.push_str("<span class=\"badge badge-amber\"> Staff Authentication Required</span>");
         html.push_str("<a href=\"/login\" class=\"btn btn-primary\" style=\"font-size: 12px; padding: 6px 12px;\">Staff Sign In</a>");
     }
     html.push_str("</div></div>");
@@ -309,7 +309,7 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
     html.push_str("Test the portal's rate-limiting policy to identify brute-force vulnerabilities.</div>");
 
     if let Some(err) = error {
-        html.push_str(&format!("<div class=\"banner-danger\">⚠ {}</div>", html_escape(err)));
+        html.push_str(&format!("<div class=\"banner-danger\">[PERINGATAN] {}</div>", html_escape(err)));
     }
 
     // Grid layout
@@ -386,7 +386,7 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
     html.push_str("</div>");
 
     html.push_str("<div class=\"card\" style=\"padding: 16px; margin-bottom: 16px;\">");
-    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;\">📋 Clinical Staff Directory</h3>");
+    html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;\">[CHECKLIST] Clinical Staff Directory</h3>");
     html.push_str("<ul style=\"list-style: none; font-size: 12px; color: var(--text-secondary); line-height: 1.8;\">");
     html.push_str("<li>• <strong>Dr. Marcus Reid</strong> (<code>admin</code> / <code>mreid</code>)<br/><span style=\"color: var(--text-muted); font-size: 11px;\">Chief Medical Officer & Clinical Director</span></li>");
     html.push_str("<li>• <strong>Dr. Sarah Chen</strong> (<code>schen</code>)<br/><span style=\"color: var(--text-muted); font-size: 11px;\">Cardiovascular Surgery Lead</span></li>");
@@ -395,7 +395,7 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
     html.push_str("</div>");
 
     html.push_str("<div class=\"card\" style=\"padding: 16px; background: #fffbeb; border-color: #fde68a;\">");
-    html.push_str("<h3 style=\"font-size: 12px; font-weight: 700; color: #b45309; margin-bottom: 6px;\">📌 Staff Memo #2026-IT</h3>");
+    html.push_str("<h3 style=\"font-size: 12px; font-weight: 700; color: #b45309; margin-bottom: 6px;\">[NOTE] Staff Memo #2026-IT</h3>");
     html.push_str("<p style=\"font-size: 11px; color: #92400e; line-height: 1.5;\">\"All physicians must use their 4-digit setup PIN on the first login. New system rollout credentials match the deployment year (<strong>2026</strong>). No lockouts are configured to avoid blocking emergency doctors during shifts.\"</p>");
     html.push_str("</div>");
 
@@ -415,13 +415,13 @@ fn render_login_page(state: &AppState, error: Option<&str>) -> String {
     html.push_str("</style></head><body><div class=\"container\">");
     html.push_str("<div class=\"card login-card\">");
     html.push_str("<div style=\"text-align: center; margin-bottom: 24px;\">");
-    html.push_str("<div style=\"font-size: 32px;\">🏥</div>");
+    html.push_str("<div style=\"font-size: 32px;\"></div>");
     html.push_str("<h1 style=\"font-size: 20px; font-weight: 700; color: var(--text-primary); margin-top: 8px;\">NexHealth Staff Gateway</h1>");
     html.push_str("<p style=\"font-size: 13px; color: var(--text-secondary); margin-top: 4px;\">Clinical Staff Electronic Health Portal (Port 8017)</p>");
     html.push_str("</div>");
 
     if let Some(err) = error {
-        html.push_str(&format!("<div class=\"banner-danger\" style=\"padding: 10px 14px; font-size: 12px;\">⚠ {}</div>", html_escape(err)));
+        html.push_str(&format!("<div class=\"banner-danger\" style=\"padding: 10px 14px; font-size: 12px;\">[PERINGATAN] {}</div>", html_escape(err)));
     }
 
     html.push_str("<form method=\"POST\" action=\"/login\">");
@@ -449,7 +449,7 @@ fn render_vault_page(username: &str) -> String {
     html.push_str(css());
     html.push_str("</style></head><body><div class=\"container\"><div class=\"card\">");
     html.push_str("<div class=\"header\"><div class=\"header-title\">");
-    html.push_str("<h1>🔒 Chief Medical Officer // Confidential Clinical Research</h1>");
+    html.push_str("<h1> Chief Medical Officer // Confidential Clinical Research</h1>");
     html.push_str(&format!("<p>Dr. Marcus Reid's Classified Research Repository (Authenticated as: {})</p></div>", html_escape(username)));
     html.push_str("<a href=\"/\" class=\"btn btn-secondary\" style=\"font-size: 12px;\">← Return to Clinical Portal</a>");
     html.push_str("</div>");

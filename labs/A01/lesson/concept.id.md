@@ -7,12 +7,12 @@ Insecure Direct Object Reference (IDOR) terjadi ketika sebuah aplikasi web menge
 1. **UI-Centric Assumption (Asumsi Keliru Frontend)**: Developer sering mengira bahwa karena tombol di layar Alice hanya bertuliskan *"Lihat Transaksi Kawat #1"*, Alice tidak akan pernah tahu atau mencoba mengakses transaksi nomor 42. Padahal penyerang tidak peduli tampilan UI; mereka memodifikasi URL atau request HTTP langsung via address bar atau Burp Suite!
 2. **Rasa Aman Palsu dari `@login_required`**: Framework modern menyediakan decorator autentikasi. Ketika fungsi API sudah dipasangi pengecekan sesi login, developer merasa pekerjaannya sudah selesai, padahal otorisasi level objek (*Object-Level Authorization*) belum pernah ditulis.
 3. **Pola Query Database yang Cacat**:
-   - ❌ **Query Rentan IDOR:**
+   - [RENTAN] **Query Rentan IDOR:**
      ```sql
      SELECT * FROM wire_transfers WHERE id = :target_id;
      ```
      *(Server hanya memeriksa apakah transaksi itu ada, siapa pun yang meminta akan diberikan datanya!)*
-   - ✅ **Query Aman Kebal IDOR:**
+   - [AMAN] **Query Aman Kebal IDOR:**
      ```sql
      SELECT * FROM wire_transfers WHERE id = :target_id AND user_id = :session_user_id;
      ```

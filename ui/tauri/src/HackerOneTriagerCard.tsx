@@ -6,6 +6,8 @@ import {
   DollarSign,
   FileCheck,
   RefreshCw,
+  CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import type { BugBountyReportData } from './lessonInteractiveData'
@@ -81,9 +83,9 @@ export function HackerOneTriagerCard({
           titleLower.includes('flaw'))
       ) {
         score += 25
-        feedback.push('✓ Judul laporan profesional & mengidentifikasi kelas kerentanan secara presisi (+25).')
+        feedback.push('[PASS] Judul laporan profesional & mengidentifikasi kelas kerentanan secara presisi (+25).')
       } else {
-        feedback.push('⚠ Judul laporan kurang spesifik. Sebutkan nama aset, kelas bug, dan dampak ringkas.')
+        feedback.push('[REVISION] Judul laporan kurang spesifik. Sebutkan nama aset, kelas bug, dan dampak ringkas.')
       }
 
       // 2. Evaluate In-Scope Asset / Endpoint (25 pts)
@@ -104,9 +106,9 @@ export function HackerOneTriagerCard({
           assetLower.includes('127.0.0.1'))
       ) {
         score += 25
-        feedback.push('✓ Target aset berada di dalam cakupan resmi (In-Scope Verification Pass) (+25).')
+        feedback.push('[PASS] Target aset berada di dalam cakupan resmi (In-Scope Verification Pass) (+25).')
       } else {
-        feedback.push('⚠ Format target asset tidak valid atau di luar cakupan program bug bounty.')
+        feedback.push('[REVISION] Format target asset tidak valid atau di luar cakupan program bug bounty.')
       }
 
       // 3. Evaluate Reproducible PoC / cURL (25 pts)
@@ -118,9 +120,9 @@ export function HackerOneTriagerCard({
         pocLower.includes('get')
       ) {
         score += 25
-        feedback.push('✓ Proof of Concept (PoC) memenuhi standar triage: langkah reproduksi deterministik (+25).')
+        feedback.push('[PASS] Proof of Concept (PoC) memenuhi standar triage: langkah reproduksi deterministik (+25).')
       } else {
-        feedback.push('⚠ PoC lemah atau tidak menyertakan perintah cURL/HTTP request yang dapat diverifikasi.')
+        feedback.push('[REVISION] PoC lemah atau tidak menyertakan perintah cURL/HTTP request yang dapat diverifikasi.')
       }
 
       // 4. Evaluate Business & Regulatory Impact (25 pts)
@@ -141,9 +143,9 @@ export function HackerOneTriagerCard({
           impactLower.includes('drain'))
       ) {
         score += 25
-        feedback.push('✓ Analisis dampak bisnis & risiko regulasi meyakinkan bagi tim CISO/Security (+25).')
+        feedback.push('[PASS] Analisis dampak bisnis & risiko regulasi meyakinkan bagi tim CISO/Security (+25).')
       } else {
-        feedback.push('⚠ Uraian dampak terlalu umum. Jelaskan dampak finansial, data breach, atau kepatuhan regulasi.')
+        feedback.push('[REVISION] Uraian dampak terlalu umum. Jelaskan dampak finansial, data breach, atau kepatuhan regulasi.')
       }
 
       const isTriaged = score >= 75
@@ -192,8 +194,8 @@ export function HackerOneTriagerCard({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#E6E2D8]">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FEF3C7] to-[#FDE68A] border-2 border-[#F59E0B] flex items-center justify-center text-xl shadow-xs shrink-0">
-            <span>🛡️ 📝</span>
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FEF3C7] to-[#FDE68A] border-2 border-[#F59E0B] flex items-center justify-center shadow-xs shrink-0 text-[#B45309]">
+            <ShieldCheck size={22} className="text-[#B45309]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -333,13 +335,21 @@ export function HackerOneTriagerCard({
                   STATUS TRIAGE // {result.triagedAt}
                 </span>
                 <div
-                  className={`text-sm font-bold font-['Space_Grotesk'] ${
+                  className={`text-sm font-bold font-['Space_Grotesk'] flex items-center gap-1.5 ${
                     result.status === 'TRIAGED' ? 'text-[#15803D]' : 'text-[#B45309]'
                   }`}
                 >
-                  {result.status === 'TRIAGED'
-                    ? '🎉 TRIAGED: LAPORAN DITERIMA TIM KEAMANAN'
-                    : '⚠ PERLU PERBAIKAN: INFORMASI BELUM LENGKAP'}
+                  {result.status === 'TRIAGED' ? (
+                    <>
+                      <CheckCircle2 size={16} className="text-[#16A34A]" />
+                      <span>TRIAGED: LAPORAN DITERIMA TIM KEAMANAN</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle size={16} className="text-[#D97706]" />
+                      <span>PERLU PERBAIKAN: INFORMASI BELUM LENGKAP</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -361,15 +371,28 @@ export function HackerOneTriagerCard({
             <span className="text-[11px] font-bold font-['Space_Grotesk'] text-[#1E1A14] uppercase tracking-wider">
               Feedback Evaluasi Triager:
             </span>
-            <ul className="text-xs space-y-1 font-['Plus_Jakarta_Sans']">
-              {result.feedback.map((fb, idx) => (
-                <li
-                  key={idx}
-                  className={fb.startsWith('✓') ? 'text-[#166534]' : 'text-[#9A3412]'}
-                >
-                  {fb}
-                </li>
-              ))}
+            <ul className="text-xs space-y-1.5 font-['Plus_Jakarta_Sans']">
+              {result.feedback.map((fb, idx) => {
+                const isPass = fb.startsWith('[PASS]')
+                const cleanText = fb.replace(/^\[(PASS|REVISION)\]\s*/, '')
+                return (
+                  <li
+                    key={idx}
+                    className={`flex items-start gap-2 p-2 rounded-lg border ${
+                      isPass
+                        ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]'
+                        : 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]'
+                    }`}
+                  >
+                    {isPass ? (
+                      <CheckCircle2 size={14} className="text-[#16A34A] shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertTriangle size={14} className="text-[#D97706] shrink-0 mt-0.5" />
+                    )}
+                    <span>{cleanText}</span>
+                  </li>
+                )
+              })}
             </ul>
           </div>
         </div>

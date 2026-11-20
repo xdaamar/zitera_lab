@@ -6,7 +6,7 @@ Untuk memitigasi kerentanan **Multi-Tenant Boundary Escape & Insecure Direct Obj
 
 ### Komparasi Kode: Rentan vs Aman
 
-#### ❌ Kode Rentan (Vulnerable Pattern):
+#### [RENTAN] Kode Rentan (Vulnerable Pattern):
 ```javascript
 // Server mempercayai input klien secara naif
 app.get('/api/admin/dashboard', (req, res) => {
@@ -18,7 +18,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 });
 ```
 
-#### ✅ Kode Kebal & Terlindungi (Secure Patched Pattern):
+#### [AMAN] Kode Kebal & Terlindungi (Secure Patched Pattern):
 ```javascript
 // Pastikan query selalu membatasi tenant saat menghapus:
 await db.query('DELETE FROM workspaces WHERE id = ? AND tenant_id = ?', [workspaceId, req.user.tenantId]);

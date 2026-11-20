@@ -2,7 +2,7 @@
 
 Laboratorium ini berjalan secara lokal dan deterministik di dalam sandbox sistem operasi Windows:
 
-### 🛡️ Spesifikasi Komponen:
+### [SECURITY] Spesifikasi Komponen:
 - **Target Application**: `NexusPay Wire Portal`
 - **Active Listening Port**: `127.0.0.1:8021`
 - **Runtime Environment**: `native_sandboxed` (Windows Job Objects & AppContainer Isolation)

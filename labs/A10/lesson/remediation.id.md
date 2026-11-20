@@ -28,7 +28,7 @@ Dalam rekayasa perangkat lunak defensif, status otorisasi tidak boleh berupa var
                  ▼                               ▼
          authorized = True               authorized = False (TETAP TERKUNCI)
          HTTP 200 OK                     HTTP 504 Gateway Timeout
-                                         🛡️ AKSES DITOLAK!
+                                         [SECURITY] AKSES DITOLAK!
 ```
 
 ---

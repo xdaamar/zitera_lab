@@ -4,7 +4,7 @@ Security Misconfiguration menempati peringkat ke-2 (**#2**) dalam daftar risiko 
 
 ---
 
-### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+### 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
 Banyak korporasi menghabiskan miliaran rupiah membeli firewall tercanggih, namun jebol seketika hanya karena satu opsi konfigurasi dibiarkan terbuka:
 
 - **Insiden Nyata Berdampak Finansial Raksasa**:
@@ -15,7 +15,7 @@ Banyak korporasi menghabiskan miliaran rupiah membeli firewall tercanggih, namun
 
 ---
 
-### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+### 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
 Metodologi investigasi terstruktur pada target:
 
 1. **Apa yang Dicari (The Target)**:
@@ -32,7 +32,7 @@ Metodologi investigasi terstruktur pada target:
 
 ---
 
-### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+### 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
 Langkah pengerasan (*system hardening*) standar industri:
 - **Matikan Directory Browsing**: Nonaktifkan opsi `autoindex` pada server web (Nginx/Apache).
 - **Nonaktifkan Endpoint Debug di Produksi**: Pastikan `DEBUG = False` dan blokir seluruh rute diagnostik `/debug/*` dari akses luar.

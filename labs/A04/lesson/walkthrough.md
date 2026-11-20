@@ -48,7 +48,8 @@ Dalam latihan terarah ini, kamu akan mempraktikkan proses penemuan kelemahan alg
      `21232f297a57a5a743894a0e4a801fc3`
 
 > [!NOTE]
-> **💡 Di Balik Layar: Mengapa MD5 tanpa Salt sangat mudah dibongkar?**  
+> [!NOTE]
+> **Di Balik Layar: Mengapa MD5 tanpa Salt sangat mudah dibongkar?**  
 > Salt adalah deretan karakter acak unik yang digabungkan ke kata sandi sebelum di-hash (misal: `password` + `x89#A!` &rarr; hash). Tanpa salt, kata sandi yang sama akan selalu menghasilkan hash yang identik di seluruh dunia:  
 > `MD5("admin")` = `21232f297a57a5a743894a0e4a801fc3`  
 > Karena deterministik, peretas telah menghitung miliaran nilai hash ini ke dalam basis data daring (*Rainbow Tables*).

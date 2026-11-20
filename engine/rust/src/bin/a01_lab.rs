@@ -164,13 +164,13 @@ fn render_app_shell(
     let flag_box = match unlocked_flag {
         Some(f) => format!(
             r#"<div class="flag-callout">
-                <div class="flag-callout-icon">🎯</div>
+                <div class="flag-callout-icon"></div>
                 <div class="flag-callout-body">
                     <div class="flag-callout-title">IDOR Vulnerability Verified</div>
                     <div class="flag-callout-desc">You successfully accessed Marcus Reid's restricted executive audit record (#42). Your bounty flag is ready for submission:</div>
                     <div class="flag-key-box">
                         <code id="flagVal">FLAG: {}</code>
-                        <button class="btn-copy" onclick="navigator.clipboard.writeText('{}'); this.innerText='✓ Copied!'; setTimeout(() => this.innerText='Copy', 2000);">Copy</button>
+                        <button class="btn-copy" onclick="navigator.clipboard.writeText('{}'); this.innerText=' Copied!'; setTimeout(() => this.innerText='Copy', 2000);">Copy</button>
                     </div>
                 </div>
             </div>"#,
@@ -974,7 +974,7 @@ fn handle_request(
         } else {
             r#"
             <div class="card" style="text-align: center; padding: 48px 24px;">
-                <div style="font-size: 36px; margin-bottom: 12px;">🛡️</div>
+                <div style="font-size: 36px; margin-bottom: 12px;">️</div>
                 <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Access Restricted &bull; Executive Privileges Required</h2>
                 <p style="font-size: 13px; color: #64748b; max-width: 520px; margin: 0 auto 20px;">
                     The Executive SOX-404 Compliance Console is restricted to Marcus Reid (VP Controller) or Board Audit Committee members. Junior analysts cannot access this view directly through navigation.
