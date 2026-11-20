@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{jwt_n0n3_4lg0r1thm_f0rg3ry_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur TokenShield SSO memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8048."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -H \"Authorization: Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VyIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4ifQ.\" http://127.0.0.1:8048/api/vault untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{jwt_n0n3_4lg0r1thm_f0rg3ry_2026}."
+    }
+  ]
+}

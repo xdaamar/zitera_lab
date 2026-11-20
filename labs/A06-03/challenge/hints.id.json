@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{w0rkfl0w_st3p_sk1pp1ng_kyc_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur KYC Onboarding Portal memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8052."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -X POST http://127.0.0.1:8052/api/onboarding/step4/finalize -d '{\"payout_requested\":true}' untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{w0rkfl0w_st3p_sk1pp1ng_kyc_2026}."
+    }
+  ]
+}

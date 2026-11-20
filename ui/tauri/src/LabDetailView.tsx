@@ -54,10 +54,15 @@ import {
 import { VideoDrawerModal, YouTubeIcon } from './VideoDrawerModal'
 import { HackerOneTriagerCard } from './HackerOneTriagerCard'
 import { LessonMarkdownRenderer } from './LessonMarkdownRenderer'
+import {
+  getLabProgression,
+  recordLabSolveProgression,
+} from './progressionHelper'
 
 interface LabDetailViewProps {
   labId: string
   onBack: () => void
+  onSelectLab?: (labId: string) => void
 }
 
 type SectionKey =
@@ -132,7 +137,7 @@ function resolveLessonMarkdown(lessons: Record<string, string>, sectionKey: stri
   return ''
 }
 
-export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
+export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps) {
   const [content, setContent] = useState<LabContent | null>(null)
   const [status, setStatus] = useState<LabItem | null>(null)
   const [activeSection, setActiveSection] = useState<SectionKey>('introduction')
@@ -329,16 +334,14 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
       if (res.status === 'passed') {
         setFlagResult({ passed: true, message: res.message || 'CTF FLAG CAPTURED! +100 PTS' })
         setChallengeSolved(true)
-        try {
-          localStorage.setItem(`zitera_solved_${labId}`, 'true')
-        } catch {}
+        recordLabSolveProgression(labId)
 
         // Trigger confetti celebration!
         confetti({
-          particleCount: 140,
+          particleCount: 160,
           spread: 85,
           origin: { y: 0.6 },
-          colors: ['#2DD4BF', '#0F766E', '#F59E0B', '#3B82F6'],
+          colors: ['#2DD4BF', '#0F766E', '#F59E0B', '#3B82F6', '#10B981'],
         })
         await recordSolve(labId, 100)
       } else {
@@ -414,6 +417,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
   const targetPort = status?.port ?? content.manifest.defaultPort ?? 8011
   const activeTargetUrl = status?.url || `http://127.0.0.1:${targetPort}/`
   const briefing = getMissionBriefing(labId)
+  const progression = getLabProgression(labId)
   const interactiveCurriculum = getInteractiveCurriculumForLab(labId, targetPort)
   const bugBountyReport = getBugBountyReportForLab(labId, targetPort)
 
@@ -462,13 +466,30 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
               {content.manifest.id}
             </span>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-sm font-bold font-['Space_Grotesk'] text-[#1E1A14]">
                   {content.manifest.title}
                 </h1>
                 <span className="text-[11px] text-[#78716C] font-['JetBrains_Mono'] hidden md:inline">
                   • {briefing.targetAppName}
                 </span>
+
+                {/* Requirement 1: Prerequisite & Progression Breadcrumbs */}
+                {progression.isCore ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] text-[10px] font-bold font-['JetBrains_Mono'] flex items-center gap-1 shadow-2xs">
+                    <span>🛡️</span>
+                    <span>LAB WAJIB (Pondasi Dasar & Konsep Inti)</span>
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#6D28D9] border border-[#D8B4FE] text-[10px] font-bold font-['JetBrains_Mono'] flex items-center gap-1 shadow-2xs">
+                    <span>🚀</span>
+                    <span>
+                      LAB EKSPLORASI (Teknik Lanjutan) • Prasyarat:{' '}
+                      <span className="underline decoration-[#A78BFA]">{progression.prerequisiteTitle}</span>{' '}
+                      (Lulus/Terselesaikan)
+                    </span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -936,6 +957,58 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
               ) : (
                 /* View Section: CTF Challenge Mode */
                 <div className="space-y-6">
+                  {/* Requirement 2: Celebratory Progression Unlock Banner on CTF Solve */}
+                  {challengeSolved && (
+                    <div className="p-5 md:p-6 rounded-2xl border-2 border-[#10B981] bg-gradient-to-r from-[#ECFDF5] via-[#F0FDF4] to-[#CCFBF1] shadow-[0_4px_0_0_#059669,0_16px_32px_rgba(16,185,129,0.14)] space-y-3.5 animate-in zoom-in-95 duration-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-13 h-13 rounded-2xl bg-[#10B981] text-white flex items-center justify-center text-3xl shadow-xs shrink-0">
+                            🎉
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold font-['JetBrains_Mono'] px-2.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] uppercase tracking-wider">
+                              STATUS: TERCAPAI & TERVERIFIKASI (+100 PTS)
+                            </span>
+                            <h3 className="text-base md:text-lg font-bold font-['Space_Grotesk'] text-[#065F46] mt-1">
+                              🎉 Tantangan Terverifikasi! {progression.nextLabId ? 'Lab Eksplorasi Berikutnya Berhasil Dibuka!' : 'Seluruh Rangkaian Lab Kategori Ini Tuntas!'}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {progression.nextLabId ? (
+                          <div className="flex items-center gap-2">
+                            <div className="px-3.5 py-1.5 rounded-xl bg-white border-2 border-[#86EFAC] text-xs font-['JetBrains_Mono'] font-bold text-[#047857] shadow-2xs">
+                              🔓 Terbuka: {progression.nextLabId}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="px-3.5 py-1.5 rounded-xl bg-white border-2 border-[#86EFAC] text-xs font-['JetBrains_Mono'] font-bold text-[#047857] shadow-2xs">
+                            🏆 Modul Kategori {progression.categoryCode} 100% Selesai!
+                          </div>
+                        )}
+                      </div>
+
+                      {progression.nextLabId && (
+                        <div className="p-3.5 rounded-xl bg-white/90 border border-[#A7F3D0] flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                          <div className="text-xs text-[#065F46] font-['Plus_Jakarta_Sans']">
+                            <span className="font-bold">Lab Eksplorasi Siap Diakses:</span>{' '}
+                            <span className="font-['JetBrains_Mono'] font-bold text-[#0F766E]">{progression.nextLabId}</span>{' '}
+                            — {progression.nextLabTitle}
+                          </div>
+                          {onSelectLab && (
+                            <button
+                              onClick={() => onSelectLab(progression.nextLabId!)}
+                              className="px-4 py-2 rounded-lg bg-[#0F766E] hover:bg-[#115E59] active:bg-[#094D47] text-white text-xs font-['Space_Grotesk'] font-bold flex items-center gap-1.5 shadow-[0_2px_0_0_#063934] transition-all cursor-pointer"
+                            >
+                              <span>Buka {progression.nextLabId} Sekarang</span>
+                              <ChevronRight size={15} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Challenge Mission Objective Banner */}
                   <div className="p-5 rounded-xl border border-[#FDBA74] bg-[#FFEDD5]/80 text-[#9A3412] shadow-xs space-y-2">
                     <div className="flex items-center gap-2 font-['Space_Grotesk'] font-bold text-sm text-[#C2410C]">
@@ -1100,6 +1173,16 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                       >
                         Kembali ke Katalog Lab
                       </button>
+
+                      {challengeSolved && progression.nextLabId && onSelectLab && (
+                        <button
+                          onClick={() => onSelectLab(progression.nextLabId!)}
+                          className="px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] rounded-lg bg-[#0F766E] hover:bg-[#115E59] text-white flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:translate-y-0.5"
+                        >
+                          <span>Lanjut ke {progression.nextLabId}</span>
+                          <ChevronRight size={15} />
+                        </button>
+                      )}
                       {status?.running ? (
                         <button
                           onClick={() => openBrowser(activeTargetUrl)}

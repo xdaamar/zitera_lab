@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A06-02",
+  "package_id": "zitera-lab-a06-02",
+  "slug": "concurrency-race-condition-double-spending",
+  "title": "Concurrency Race Condition & Double Spending",
+  "owasp": "A06:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A06",
+  "category_name": "Insecure Design",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a06-02-lab.exe",
+  "default_port": 8051,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: Concurrency Race Condition & Double Spending pada lingkungan target FlashSale Pay.",
+  "skills": [
+    "Insecure Design",
+    "Concurrency Race Condition",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan Concurrency Race Condition & Double Spending",
+    "Mengidentifikasi indikator celah pada antarmuka dan API FlashSale Pay",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A06"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

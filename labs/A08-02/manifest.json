@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A08-02",
+  "package_id": "zitera-lab-a08-02",
+  "slug": "client-side-state-tampering-localstorage",
+  "title": "Unsigned Client-Side State Tampering in LocalStorage",
+  "owasp": "A08:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A08",
+  "category_name": "Software or Data Integrity Failures",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a08-02-lab.exe",
+  "default_port": 8055,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: Unsigned Client-Side State Tampering in LocalStorage pada lingkungan target CartSync Session.",
+  "skills": [
+    "Software or Data Integrity Failures",
+    "Unsigned Client-Side State Tampering in LocalStorage",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan Unsigned Client-Side State Tampering in LocalStorage",
+    "Mengidentifikasi indikator celah pada antarmuka dan API CartSync Session",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A08"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

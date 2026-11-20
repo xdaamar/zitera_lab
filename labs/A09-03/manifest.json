@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A09-03",
+  "package_id": "zitera-lab-a09-03",
+  "slug": "siem-threshold-evasion-slow-and-low",
+  "title": "SIEM Threshold Evasion via Slow-and-Low Scanning",
+  "owasp": "A09:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A09",
+  "category_name": "Security Logging & Alerting Failures",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Advanced",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a09-03-lab.exe",
+  "default_port": 8058,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: SIEM Threshold Evasion via Slow-and-Low Scanning pada lingkungan target StealthDetect Gateway.",
+  "skills": [
+    "Security Logging & Alerting Failures",
+    "SIEM Threshold Evasion via Slow-and-Low Scanning",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan SIEM Threshold Evasion via Slow-and-Low Scanning",
+    "Mengidentifikasi indikator celah pada antarmuka dan API StealthDetect Gateway",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A09"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

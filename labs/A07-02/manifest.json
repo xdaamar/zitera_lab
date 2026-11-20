@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A07-02",
+  "package_id": "zitera-lab-a07-02",
+  "slug": "oauth-account-linking-missing-state",
+  "title": "OAuth 2.0 Account Linking Hijacking via Missing State",
+  "owasp": "A07:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A07",
+  "category_name": "Authentication Failures",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a07-02-lab.exe",
+  "default_port": 8053,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: OAuth 2.0 Account Linking Hijacking via Missing State pada lingkungan target SocialConnect Auth.",
+  "skills": [
+    "Authentication Failures",
+    "OAuth 2.0 Account Linking Hijacking via Missing State",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan OAuth 2.0 Account Linking Hijacking via Missing State",
+    "Mengidentifikasi indikator celah pada antarmuka dan API SocialConnect Auth",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A07"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

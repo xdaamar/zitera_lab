@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{04uth_m1ss1ng_st4t3_4cc0unt_l1nk_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur SocialConnect Auth memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8053."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s \"http://127.0.0.1:8053/oauth/callback?code=AUTH_CODE_VICTIM\" untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{04uth_m1ss1ng_st4t3_4cc0unt_l1nk_2026}."
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A03-03",
+  "package_id": "zitera-lab-a03-03",
+  "slug": "malicious-preinstall-secret-exfiltration",
+  "title": "Malicious Preinstall Script & CI/CD Secret Exfiltration",
+  "owasp": "A03:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A03",
+  "category_name": "Software Supply Chain Failures",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Advanced",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a03-03-lab.exe",
+  "default_port": 8046,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: Malicious Preinstall Script & CI/CD Secret Exfiltration pada lingkungan target NodeBuild Engine.",
+  "skills": [
+    "Software Supply Chain Failures",
+    "Malicious Preinstall Script",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan Malicious Preinstall Script & CI/CD Secret Exfiltration",
+    "Mengidentifikasi indikator celah pada antarmuka dan API NodeBuild Engine",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A03"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

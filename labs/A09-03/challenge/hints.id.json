@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{s13m_thr3sh0ld_3v4s10n_st34lth_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur StealthDetect Gateway memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8058."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s http://127.0.0.1:8058/api/probe?delay=15 untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{s13m_thr3sh0ld_3v4s10n_st34lth_2026}."
+    }
+  ]
+}

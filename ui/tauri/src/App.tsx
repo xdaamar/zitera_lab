@@ -74,7 +74,11 @@ export function App() {
           </div>
 
           {activeLabId ? (
-            <LabDetailView labId={activeLabId} onBack={handleBackFromLab} />
+            <LabDetailView
+              labId={activeLabId}
+              onBack={handleBackFromLab}
+              onSelectLab={handleOpenLab}
+            />
           ) : (
             <>
               {navIndex === 0 && (

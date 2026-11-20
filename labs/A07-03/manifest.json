@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A07-03",
+  "package_id": "zitera-lab-a07-03",
+  "slug": "mfa-bypass-direct-endpoint-traversal",
+  "title": "MFA Bypass via Direct Endpoint Traversal",
+  "owasp": "A07:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A07",
+  "category_name": "Authentication Failures",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Advanced",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a07-03-lab.exe",
+  "default_port": 8054,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: MFA Bypass via Direct Endpoint Traversal pada lingkungan target TwoFactor SecureNet.",
+  "skills": [
+    "Authentication Failures",
+    "MFA Bypass via Direct Endpoint Traversal",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan MFA Bypass via Direct Endpoint Traversal",
+    "Mengidentifikasi indikator celah pada antarmuka dan API TwoFactor SecureNet",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A07"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

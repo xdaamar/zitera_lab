@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A04-02",
+  "package_id": "zitera-lab-a04-02",
+  "slug": "predictable-reset-token-prng",
+  "title": "Predictable Password Reset Token via Insecure PRNG",
+  "owasp": "A04:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A04",
+  "category_name": "Cryptographic Failures",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a04-02-lab.exe",
+  "default_port": 8047,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: Predictable Password Reset Token via Insecure PRNG pada lingkungan target AuthKey Recovery.",
+  "skills": [
+    "Cryptographic Failures",
+    "Predictable Password Reset Token via Insecure PRNG",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan Predictable Password Reset Token via Insecure PRNG",
+    "Mengidentifikasi indikator celah pada antarmuka dan API AuthKey Recovery",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A04"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

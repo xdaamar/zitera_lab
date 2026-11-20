@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{c0r5_0r1g1n_r3fl3ct10n_cr3d3nt14l_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur APINexus Gateway memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8043."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -H \"Origin: https://evil.com\" -i http://127.0.0.1:8043/api/user/credentials untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{c0r5_0r1g1n_r3fl3ct10n_cr3d3nt14l_2026}."
+    }
+  ]
+}

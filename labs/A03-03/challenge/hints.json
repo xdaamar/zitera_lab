@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{pr31nst4ll_h00k_c1cd_s3cr3t_l34k_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur NodeBuild Engine memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8046."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s http://127.0.0.1:8046/api/pipeline/audit-hooks untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{pr31nst4ll_h00k_c1cd_s3cr3t_l34k_2026}."
+    }
+  ]
+}

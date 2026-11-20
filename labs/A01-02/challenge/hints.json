@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{v3rt1c4l_pr1v_3sc4l4t10n_h34d3r_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur OpsAdmin Portal memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8041."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -H \"X-User-Role: admin\" http://127.0.0.1:8041/api/admin/dashboard untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{v3rt1c4l_pr1v_3sc4l4t10n_h34d3r_2026}."
+    }
+  ]
+}

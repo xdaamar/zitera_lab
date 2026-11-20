@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{bl1nd_b00l34n_t1m3_sq1_1nj3ct_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur CustPortal Database memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8049."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s \"http://127.0.0.1:8049/api/users/profile?id=1'+AND+(SELECT+1+FROM+sqlite_master)+--\" untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{bl1nd_b00l34n_t1m3_sq1_1nj3ct_2026}."
+    }
+  ]
+}

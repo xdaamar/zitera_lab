@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A04-03",
+  "package_id": "zitera-lab-a04-03",
+  "slug": "jwt-none-algorithm-weak-hmac",
+  "title": "JWT Algorithm None & HMAC Weak Key Cracking",
+  "owasp": "A04:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A04",
+  "category_name": "Cryptographic Failures",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Advanced",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a04-03-lab.exe",
+  "default_port": 8048,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: JWT Algorithm None & HMAC Weak Key Cracking pada lingkungan target TokenShield SSO.",
+  "skills": [
+    "Cryptographic Failures",
+    "JWT Algorithm None",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan JWT Algorithm None & HMAC Weak Key Cracking",
+    "Mengidentifikasi indikator celah pada antarmuka dan API TokenShield SSO",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A04"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

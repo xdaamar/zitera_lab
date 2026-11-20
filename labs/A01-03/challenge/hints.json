@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{mult1_t3n4nt_3sc4p3_d3l3t3_b0l4_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur TenantCloud Workspaces memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8042."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -X DELETE http://127.0.0.1:8042/api/workspaces/999 -H \"Authorization: Bearer tenant_token\" untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{mult1_t3n4nt_3sc4p3_d3l3t3_b0l4_2026}."
+    }
+  ]
+}

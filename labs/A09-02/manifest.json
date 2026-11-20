@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A09-02",
+  "package_id": "zitera-lab-a09-02",
+  "slug": "crlf-log-injection-log-forgery",
+  "title": "CRLF Log Injection & Log Forgery",
+  "owasp": "A09:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A09",
+  "category_name": "Security Logging & Alerting Failures",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Intermediate",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a09-02-lab.exe",
+  "default_port": 8057,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: CRLF Log Injection & Log Forgery pada lingkungan target AuditSys Central.",
+  "skills": [
+    "Security Logging & Alerting Failures",
+    "CRLF Log Injection",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan CRLF Log Injection & Log Forgery",
+    "Mengidentifikasi indikator celah pada antarmuka dan API AuditSys Central",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A09"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

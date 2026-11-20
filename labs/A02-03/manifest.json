@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "A02-03",
+  "package_id": "zitera-lab-a02-03",
+  "slug": "exposed-git-directory-extraction",
+  "title": "Exposed Git Directory & Object Carving Extraction",
+  "owasp": "A02:2025",
+  "standard": "owasp-top10",
+  "standard_version": "2025",
+  "category_id": "A02",
+  "category_name": "Security Misconfiguration",
+  "version": "1.0.0",
+  "security_version": 1,
+  "minimum_core_version": "2.0.0",
+  "difficulty": "Advanced",
+  "runtime": "native_sandboxed",
+  "entrypoint": "bin/a02-03-lab.exe",
+  "default_port": 8044,
+  "estimated_minutes": 40,
+  "modes": [
+    "learn",
+    "practice",
+    "challenge"
+  ],
+  "short_description": "Praktik teknik eksplorasi mendalam: Exposed Git Directory & Object Carving Extraction pada lingkungan target DevBucket Storage.",
+  "skills": [
+    "Security Misconfiguration",
+    "Exposed Git Directory",
+    "Vulnerability Assessment"
+  ],
+  "learning_objectives": [
+    "Memahami mekanisme dan vektor serangan Exposed Git Directory & Object Carving Extraction",
+    "Mengidentifikasi indikator celah pada antarmuka dan API DevBucket Storage",
+    "Menerapkan langkah remediasi kode defensif dan mitigasi sistem"
+  ],
+  "prerequisites": [
+    "Konsep HTTP Dasar",
+    "Pengetahuan Siklus Web API",
+    "Lab Wajib A02"
+  ],
+  "default_locale": "id",
+  "locales": [
+    "id",
+    "en"
+  ]
+}

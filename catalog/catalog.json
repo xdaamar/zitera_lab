@@ -403,562 +403,34 @@
       "default_port": 8020
     },
     {
-      "id": "W01",
-      "package_id": "zitera-lab-w01",
-      "title": "Cross-Site Request Forgery (CSRF)",
-      "repository": "xdaamar/zitera_lab_w01",
+      "id": "A01-02",
+      "package_id": "zitera-lab-a01-02",
+      "title": "Vertical Privilege Escalation & Header Role Manipulation",
+      "repository": "xdaamar/zitera_lab_a01_02",
       "version": "1.0.0",
       "difficulty": "Intermediate",
-      "owasp": "W01:2026",
-      "description": "Pelajari bagaimana browser secara otomatis menyertakan cookie sesi pada request lintas origin dan cara mengamankannya dengan Anti-CSRF Token serta SameSite cookies.",
-      "short_description": "Cross-Site Request Forgery & anti-CSRF token bypass.",
-      "standard": "web-security",
-      "standard_version": "2026",
-      "category_id": "W01",
-      "category_name": "Web Security",
+      "owasp": "A01:2025",
+      "description": "Audit vertical privilege escalation vulnerabilities and manipulate custom HTTP role headers to access restricted admin operations.",
+      "short_description": "Vertical privilege escalation and header manipulation in OpsAdmin Portal.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A01",
+      "category_name": "Broken Access Control",
       "security_version": 1,
       "minimum_core_version": "2.0.0",
       "estimated_time": 45,
       "skills": [
-        "CSRF",
-        "SameSite Cookie",
-        "Anti-CSRF Token"
-      ],
-      "learning_objectives": [
-        "Memahami alur request lintas origin browser",
-        "Mengeksploitasi endpoint tanpa token validasi",
-        "Menerapkan pertahanan SameSite dan token sinkron"
-      ],
-      "prerequisites": [
-        "HTTP basics",
-        "Cookies"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8021
-    },
-    {
-      "id": "W02",
-      "package_id": "zitera-lab-w02",
-      "title": "Server-Side Request Forgery (SSRF)",
-      "repository": "xdaamar/zitera_lab_w02",
-      "version": "1.0.0",
-      "difficulty": "Advanced",
-      "owasp": "W02:2026",
-      "description": "Eksploitasi fitur fetch URL internal untuk memindai port privat lokal dan mengakses metadata service yang tersembunyi dari publik.",
-      "short_description": "Server-Side Request Forgery on internal cloud metadata.",
-      "standard": "web-security",
-      "standard_version": "2026",
-      "category_id": "W02",
-      "category_name": "Web Security",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 50,
-      "skills": [
-        "SSRF",
-        "Cloud Metadata",
-        "Loopback Bypass"
-      ],
-      "learning_objectives": [
-        "Memahami risiko endpoint fetching URL eksternal",
-        "Memindai port loopback internal dari celah server",
-        "Menerapkan IP allowlisting dan subnet restriction"
-      ],
-      "prerequisites": [
-        "HTTP basics",
-        "IP Addressing"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8022
-    },
-    {
-      "id": "W03",
-      "package_id": "zitera-lab-w03",
-      "title": "Broken Object Level Authorization (API BOLA)",
-      "repository": "xdaamar/zitera_lab_w03",
-      "version": "1.0.0",
-      "difficulty": "Intermediate",
-      "owasp": "W03:2026",
-      "description": "Identifikasi celah otorisasi level objek pada REST API modern di mana manipulasi ID pesanan membocorkan transaksi pelanggan lain.",
-      "short_description": "API Object Level Authorization bypass in modern JSON endpoints.",
-      "standard": "api-security",
-      "standard_version": "2026",
-      "category_id": "W03",
-      "category_name": "API Security",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 40,
-      "skills": [
-        "API BOLA",
-        "Object Ownership",
-        "REST Security"
-      ],
-      "learning_objectives": [
-        "Mengaudit otorisasi objek pada RESTful endpoints",
-        "Membedakan validasi token bearer vs kepemilikan record",
-        "Menerapkan record-level security middleware"
-      ],
-      "prerequisites": [
-        "REST API",
-        "JSON"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8023
-    },
-    {
-      "id": "W04",
-      "package_id": "zitera-lab-w04",
-      "title": "Arbitrary File Upload & MIME Sniffing",
-      "repository": "xdaamar/zitera_lab_w04",
-      "version": "1.0.0",
-      "difficulty": "Advanced",
-      "owasp": "W04:2026",
-      "description": "Uji kelemahan validasi berkas unggahan, manipulasi MIME type, bypass ekstensi ganda, dan eksekusi payload webshell terisolasi.",
-      "short_description": "Unrestricted file upload and MIME validation bypass.",
-      "standard": "web-security",
-      "standard_version": "2026",
-      "category_id": "W04",
-      "category_name": "Web Security",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 45,
-      "skills": [
-        "File Upload",
-        "MIME Validation",
-        "Webshell Analysis"
-      ],
-      "learning_objectives": [
-        "Menganalisis proses penanganan berkas unggahan",
-        "Memanipulasi header Content-Type dan ekstensi",
-        "Menerapkan isolasi penyimpanan berkas di luar webroot"
-      ],
-      "prerequisites": [
-        "HTTP POST",
-        "Multipart Form"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8024
-    },
-    {
-      "id": "W05",
-      "package_id": "zitera-lab-w05",
-      "title": "Path Traversal & Local File Inclusion",
-      "repository": "xdaamar/zitera_lab_w05",
-      "version": "1.0.0",
-      "difficulty": "Intermediate",
-      "owasp": "W05:2026",
-      "description": "Pahami bagaimana karakter dot-dot-slash memanipulasi path sistem berkas server untuk membaca file konfigurasi rahasia.",
-      "short_description": "Path Traversal and Local File Inclusion directory escape.",
-      "standard": "web-security",
-      "standard_version": "2026",
-      "category_id": "W05",
-      "category_name": "Web Security",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 40,
-      "skills": [
-        "Path Traversal",
-        "LFI",
-        "Filesystem Boundaries"
-      ],
-      "learning_objectives": [
-        "Mengidentifikasi parameter path yang tidak divalidasi",
-        "Menggunakan urutan traversal dot-dot-slash terarah",
-        "Menerapkan canonical path verification"
-      ],
-      "prerequisites": [
-        "File System Basics"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8025
-    },
-    {
-      "id": "F01",
-      "package_id": "zitera-lab-f01",
-      "title": "Dasar Protokol HTTP & Web Architecture",
-      "repository": "xdaamar/zitera_lab_f01",
-      "version": "1.0.0",
-      "difficulty": "Beginner",
-      "owasp": "F01:2026",
-      "description": "Kuasai dasar protokol HTTP: analisis method GET/POST/PUT, status code 200/403/500, dan struktur header permintaan web.",
-      "short_description": "HTTP Protocol fundamentals, status codes, and header anatomy.",
-      "standard": "foundations",
-      "standard_version": "2026",
-      "category_id": "F01",
-      "category_name": "Foundations",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 25,
-      "skills": [
-        "HTTP Protocol",
-        "Headers",
-        "Status Codes"
-      ],
-      "learning_objectives": [
-        "Membaca dan menyusun HTTP request terstruktur",
-        "Menganalisis kode status respons server",
-        "Mengidentifikasi header keamanan penting"
-      ],
-      "prerequisites": [
-        "Dasar Komputer"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8026
-    },
-    {
-      "id": "F02",
-      "package_id": "zitera-lab-f02",
-      "title": "Cookies, Tokens & Session Security",
-      "repository": "xdaamar/zitera_lab_f02",
-      "version": "1.0.0",
-      "difficulty": "Beginner",
-      "owasp": "F02:2026",
-      "description": "Pahami sifat stateless HTTP, pemeriksaan atribut keamanan cookie (HttpOnly, Secure, SameSite), dan siklus hidup token JWT.",
-      "short_description": "Stateless HTTP, secure cookies, and session lifecycle.",
-      "standard": "foundations",
-      "standard_version": "2026",
-      "category_id": "F02",
-      "category_name": "Foundations",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 30,
-      "skills": [
-        "Cookies",
-        "HttpOnly",
-        "SameSite",
-        "Session Security"
-      ],
-      "learning_objectives": [
-        "Menganalisis atribut keamanan cookie",
-        "Memahami alur pertukaran sesi stateless",
-        "Mencegah kebocoran token sesi pada klien"
-      ],
-      "prerequisites": [
-        "HTTP Basics"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8027
-    },
-    {
-      "id": "F03",
-      "package_id": "zitera-lab-f03",
-      "title": "Authentication vs Authorization & Trust Boundaries",
-      "repository": "xdaamar/zitera_lab_f03",
-      "version": "1.0.0",
-      "difficulty": "Beginner",
-      "owasp": "F03:2026",
-      "description": "Pahami perbedaan fundamental 'siapa Anda' (AuthN) dan 'apa izin Anda' (AuthZ), serta batas kepercayaan antara browser dan backend.",
-      "short_description": "AuthN vs AuthZ differences and client-server trust boundaries.",
-      "standard": "foundations",
-      "standard_version": "2026",
-      "category_id": "F03",
-      "category_name": "Foundations",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 25,
-      "skills": [
-        "AuthN vs AuthZ",
-        "Trust Boundary",
-        "Server Validation"
-      ],
-      "learning_objectives": [
-        "Menegaskan batas antara identitas dan wewenang",
-        "Mengidentifikasi trust boundary aplikasi web",
-        "Mencegah bypass kontrol berbasis browser"
-      ],
-      "prerequisites": [
-        "Dasar Web"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8028
-    },
-    {
-      "id": "F04",
-      "package_id": "zitera-lab-f04",
-      "title": "Kriptografi: Encoding vs Hashing vs Enkripsi",
-      "repository": "xdaamar/zitera_lab_f04",
-      "version": "1.0.0",
-      "difficulty": "Beginner",
-      "owasp": "F04:2026",
-      "description": "Hilangkan kerancuan antara Base64, SHA-256, dan AES. Pelajari sifat satu arah cryptographic hash dan peran salt.",
-      "short_description": "Encoding vs Hashing vs Encryption mathematical foundations.",
-      "standard": "foundations",
-      "standard_version": "2026",
-      "category_id": "F04",
-      "category_name": "Foundations",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 30,
-      "skills": [
-        "Base64",
-        "SHA-256",
-        "AES",
-        "Salting"
-      ],
-      "learning_objectives": [
-        "Membedakan encoding, hash satu arah, dan cipher simetris",
-        "Menganalisis ketahanan hash terhadap serangan brute force",
-        "Menerapkan fungsi hash ber-salt pada penyimpanan password"
-      ],
-      "prerequisites": [
-        "Dasar Kriptografi"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8029
-    },
-    {
-      "id": "F05",
-      "package_id": "zitera-lab-f05",
-      "title": "Dasar Query Database & Pemisahan Data/Perintah",
-      "repository": "xdaamar/zitera_lab_f05",
-      "version": "1.0.0",
-      "difficulty": "Beginner",
-      "owasp": "F05:2026",
-      "description": "Pelajari bagaimana parser SQL mengompilasi string query dan amati titik bahaya di mana data input mengubah pohon eksekusi perintah.",
-      "short_description": "Database query parsing and code-data separation principles.",
-      "standard": "foundations",
-      "standard_version": "2026",
-      "category_id": "F05",
-      "category_name": "Foundations",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 30,
-      "skills": [
-        "SQL Parser",
-        "AST",
-        "Parameterized Query"
-      ],
-      "learning_objectives": [
-        "Memahami alur kompilasi query database",
-        "Mendeteksi perubahan sintaks oleh masukan data",
-        "Menerapkan parameter binding secara konsisten"
-      ],
-      "prerequisites": [
-        "Dasar SQL"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8030
-    },
-    {
-      "id": "F06",
-      "package_id": "zitera-lab-f06",
-      "title": "Mekanisme Lab ZITERA & Pengiriman Flag CTF",
-      "repository": "xdaamar/zitera_lab_f06",
-      "version": "1.0.0",
-      "difficulty": "Beginner",
-      "owasp": "F06:2026",
-      "description": "Orientasi lengkap alur kerja ZITERA LAB: kontrol sandbox, status readiness, terminal interaktif, dan format verifikasi flag ZITERA{...}.",
-      "short_description": "Zitera Lab mechanics, interactive terminal, and CTF verification.",
-      "standard": "foundations",
-      "standard_version": "2026",
-      "category_id": "F06",
-      "category_name": "Foundations",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 20,
-      "skills": [
-        "CTF Workflow",
-        "Flag Verification",
-        "Sandbox Controls"
-      ],
-      "learning_objectives": [
-        "Mengoperasikan antarmuka laboratorium offline",
-        "Memahami format flag ZITERA{...}",
-        "Memverifikasi flag ke engine grader lokal"
-      ],
-      "prerequisites": [
-        "Pengenalan ZITERA LAB"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8031
-    },
-    {
-      "id": "D01",
-      "package_id": "zitera-lab-d01",
-      "title": "Web Server Log Analysis & Threat Detection",
-      "repository": "xdaamar/zitera_lab_d01",
-      "version": "1.0.0",
-      "difficulty": "Intermediate",
-      "owasp": "D01:2026",
-      "description": "Analisis berkas log web server, identifikasi jejak scanning botnet, injeksi SQL, dan rekonstruksi timeline insiden keamanan.",
-      "short_description": "Web server log forensics and incident timeline reconstruction.",
-      "standard": "defensive-security",
-      "standard_version": "2026",
-      "category_id": "D01",
-      "category_name": "Defensive Security",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 45,
-      "skills": [
-        "Log Forensics",
-        "Threat Detection",
-        "Incident Response"
-      ],
-      "learning_objectives": [
-        "Membaca anatomi catatan log Combined Nginx/Apache",
-        "Membedakan lalu lintas normal vs scanning otomatis",
-        "Mengidentifikasi indikator keberhasilan serangan"
-      ],
-      "prerequisites": [
-        "HTTP Basics",
-        "Log Format"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8032
-    },
-    {
-      "id": "D02",
-      "package_id": "zitera-lab-d02",
-      "title": "Binary & Package Cryptographic Integrity",
-      "repository": "xdaamar/zitera_lab_d02",
-      "version": "1.0.0",
-      "difficulty": "Intermediate",
-      "owasp": "D02:2026",
-      "description": "Verifikasi ringkasan hash SHA-256 dan tanda tangan digital asimetris Ed25519 untuk mendeteksi manipulasi biner pihak ketiga.",
-      "short_description": "Cryptographic integrity verification and Ed25519 signature checks.",
-      "standard": "defensive-security",
-      "standard_version": "2026",
-      "category_id": "D02",
-      "category_name": "Defensive Security",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 45,
-      "skills": [
-        "Ed25519",
-        "SHA-256 Checksum",
-        "Binary Authenticity"
-      ],
-      "learning_objectives": [
-        "Menghitung dan membandingkan hash SHA-256 biner",
-        "Mendeteksi modifikasi 1-bit via avalanche effect",
-        "Memverifikasi tanda tangan digital kunci asimetris"
-      ],
-      "prerequisites": [
-        "Dasar Kriptografi"
-      ],
-      "runtime": "native_sandboxed",
-      "architecture": "x86_64",
-      "package_url": null,
-      "package_sha256": null,
-      "installed": false,
-      "installed_version": null,
-      "has_update": false,
-      "latest_version": "",
-      "default_port": 8033
-    },
-    {
-      "id": "A11",
-      "package_id": "zitera-lab-a11",
-      "title": "API Mass Assignment & Privilege Escalation",
-      "repository": "xdaamar/zitera_lab_a11",
-      "version": "1.0.0",
-      "difficulty": "Intermediate",
-      "owasp": "A11:2026",
-      "description": "Eksploitasi fitur binding otomatis payload JSON ke model database yang memungkinkan pengguna biasa mengangkat diri menjadi administrator.",
-      "short_description": "API Mass Assignment and automated model binding privilege escalation.",
-      "standard": "advanced-attacks",
-      "standard_version": "2026",
-      "category_id": "A11",
-      "category_name": "Advanced Attacks",
-      "security_version": 1,
-      "minimum_core_version": "2.0.0",
-      "estimated_time": 45,
-      "skills": [
-        "Mass Assignment",
         "Privilege Escalation",
-        "DTO Validation"
+        "Header Manipulation",
+        "Role Verification"
       ],
       "learning_objectives": [
-        "Mengaudit endpoint pendaftaran dan profil pengguna",
-        "Menyisipkan atribut tersembunyi seperti is_admin",
-        "Menerapkan Data Transfer Object (DTO) allowlist"
+        "Identify missing role enforcement on privileged routes",
+        "Manipulate authorization headers to escalate access",
+        "Implement robust server-side RBAC validation"
       ],
       "prerequisites": [
-        "JSON API",
-        "Database Models"
+        "A01 Broken Access Control"
       ],
       "runtime": "native_sandboxed",
       "architecture": "x86_64",
@@ -968,38 +440,37 @@
       "installed_version": null,
       "has_update": false,
       "latest_version": "",
-      "default_port": 8034
+      "default_port": 8041
     },
     {
-      "id": "A12",
-      "package_id": "zitera-lab-a12",
-      "title": "OAuth 2.0 & Account Linking Takeover",
-      "repository": "xdaamar/zitera_lab_a12",
+      "id": "A01-03",
+      "package_id": "zitera-lab-a01-03",
+      "title": "Multi-Tenant Boundary Escape & Insecure Direct Object Deletion",
+      "repository": "xdaamar/zitera_lab_a01_03",
       "version": "1.0.0",
       "difficulty": "Advanced",
-      "owasp": "A12:2026",
-      "description": "Audit kelemahan implementasi parameter state pada alur OAuth 2.0 Authorization Code yang memungkinkan pembajakan akun pengguna.",
-      "short_description": "OAuth 2.0 State parameter absence and account linking hijacking.",
-      "standard": "advanced-attacks",
-      "standard_version": "2026",
-      "category_id": "A12",
-      "category_name": "Advanced Attacks",
+      "owasp": "A01:2025",
+      "description": "Exploit cross-tenant isolation gaps to delete resources and manipulate workspace scopes across isolated corporate tenants.",
+      "short_description": "Multi-tenant boundary escape and destructive IDOR in TenantCloud.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A01",
+      "category_name": "Broken Access Control",
       "security_version": 1,
       "minimum_core_version": "2.0.0",
-      "estimated_time": 50,
+      "estimated_time": 45,
       "skills": [
-        "OAuth 2.0",
-        "State Parameter",
-        "Account Takeover"
+        "Multi-Tenancy",
+        "Boundary Escape",
+        "IDOR Deletion"
       ],
       "learning_objectives": [
-        "Menganalisis alur Authorization Code Grant OAuth 2.0",
-        "Mengeksploitasi ketiadaan validasi parameter state",
-        "Mengimplementasikan PKCE dan cryptographically random state"
+        "Audit multi-tenant workspace isolation boundaries",
+        "Identify authorization bypasses in destructive HTTP methods",
+        "Enforce strict tenant scoping across all CRUD operations"
       ],
       "prerequisites": [
-        "OAuth Basics",
-        "HTTP Redirects"
+        "A01-02 Vertical Privilege Escalation"
       ],
       "runtime": "native_sandboxed",
       "architecture": "x86_64",
@@ -1009,8 +480,728 @@
       "installed_version": null,
       "has_update": false,
       "latest_version": "",
-      "default_port": 8035
+      "default_port": 8042
+    },
+    {
+      "id": "A02-02",
+      "package_id": "zitera-lab-a02-02",
+      "title": "Insecure CORS Misconfiguration & Origin Reflection",
+      "repository": "xdaamar/zitera_lab_a02_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A02:2025",
+      "description": "Exploit wildcard origin reflections and null origin trusts in CORS headers to exfiltrate private API keys.",
+      "short_description": "Insecure CORS origin reflection and credential exfiltration in APINexus Gateway.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A02",
+      "category_name": "Security Misconfiguration",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "CORS Misconfiguration",
+        "Origin Reflection",
+        "Cross-Origin Exfiltration"
+      ],
+      "learning_objectives": [
+        "Analyze permissive Cross-Origin Resource Sharing headers",
+        "Craft malicious origin payloads to bypass regex filters",
+        "Configure safe explicit allowlists for cross-origin exchanges"
+      ],
+      "prerequisites": [
+        "A02 Security Misconfiguration"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8043
+    },
+    {
+      "id": "A02-03",
+      "package_id": "zitera-lab-a02-03",
+      "title": "Exposed Git Directory & Object Carving Extraction",
+      "repository": "xdaamar/zitera_lab_a02_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A02:2025",
+      "description": "Reconstruct commit history, tree blobs, and hardcoded production secrets from an exposed .git directory.",
+      "short_description": "Exposed version control repository and secret carving in DevBucket Storage.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A02",
+      "category_name": "Security Misconfiguration",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Git Object Carving",
+        "Information Disclosure",
+        "Source Code Recovery"
+      ],
+      "learning_objectives": [
+        "Detect publicly accessible version control directories",
+        "Extract staged commits and packfile blobs",
+        "Implement web server access control rules denying dotfile requests"
+      ],
+      "prerequisites": [
+        "A02-02 Insecure CORS Misconfiguration"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8044
+    },
+    {
+      "id": "A03-02",
+      "package_id": "zitera-lab-a03-02",
+      "title": "Dependency Confusion & Internal Namespace Hijacking",
+      "repository": "xdaamar/zitera_lab_a03_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A03:2025",
+      "description": "Hijack unreserved internal organization package namespaces in public registries to trigger automated pipeline execution.",
+      "short_description": "Dependency confusion and namespace substitution in Enterprise Artifactory.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A03",
+      "category_name": "Software Supply Chain Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Dependency Confusion",
+        "Namespace Hijacking",
+        "Package Registry Audit"
+      ],
+      "learning_objectives": [
+        "Identify exposed internal package identifiers in manifests",
+        "Simulate public package version precedence attacks",
+        "Configure registry scoping and verification rules in package managers"
+      ],
+      "prerequisites": [
+        "A03 Software Supply Chain Failures"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8045
+    },
+    {
+      "id": "A03-03",
+      "package_id": "zitera-lab-a03-03",
+      "title": "Malicious Preinstall Script & CI/CD Secret Exfiltration",
+      "repository": "xdaamar/zitera_lab_a03_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A03:2025",
+      "description": "Analyze rogue preinstall lifecycle hooks exfiltrating environment variables and credentials during automated builds.",
+      "short_description": "Malicious lifecycle hooks and CI/CD secret harvesting in NodeBuild Engine.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A03",
+      "category_name": "Software Supply Chain Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Lifecycle Hook Exploitation",
+        "Build Pipeline Security",
+        "Secret Exfiltration"
+      ],
+      "learning_objectives": [
+        "Audit package manifest lifecycle hook declarations",
+        "Detect outbound network exfiltration during package resolution",
+        "Enforce --ignore-scripts and isolated containerized build environments"
+      ],
+      "prerequisites": [
+        "A03-02 Dependency Confusion"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8046
+    },
+    {
+      "id": "A04-02",
+      "package_id": "zitera-lab-a04-02",
+      "title": "Predictable Password Reset Token via Insecure PRNG",
+      "repository": "xdaamar/zitera_lab_a04_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A04:2025",
+      "description": "Reverse predictable pseudo-random number generator seeds to forge valid password reset tokens for high-privileged users.",
+      "short_description": "Predictable PRNG reset token generation in AuthKey Recovery Portal.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A04",
+      "category_name": "Cryptographic Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Insecure PRNG",
+        "Token Prediction",
+        "Seed Reconstruction"
+      ],
+      "learning_objectives": [
+        "Analyze non-cryptographic PRNG seed generation mechanisms",
+        "Predict sequential token outputs using timestamp offsets",
+        "Implement CSPRNG libraries for all security-sensitive tokens"
+      ],
+      "prerequisites": [
+        "A04 Cryptographic Failures"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8047
+    },
+    {
+      "id": "A04-03",
+      "package_id": "zitera-lab-a04-03",
+      "title": "JWT Algorithm None & HMAC Weak Key Cracking",
+      "repository": "xdaamar/zitera_lab_a04_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A04:2025",
+      "description": "Bypass signature validation using algorithm none injection and crack weak HMAC secrets offline to forge admin tokens.",
+      "short_description": "JWT algorithm none bypass and weak secret cracking in TokenShield SSO.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A04",
+      "category_name": "Cryptographic Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "JWT Algorithm Confusion",
+        "None Alg Attack",
+        "HMAC Key Cracking"
+      ],
+      "learning_objectives": [
+        "Inspect JWT header parameters for algorithm confusion flaws",
+        "Crack low-entropy HMAC secret keys using dictionary techniques",
+        "Enforce strict asymmetric signature verification on backend brokers"
+      ],
+      "prerequisites": [
+        "A04-02 Predictable Password Reset Token"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8048
+    },
+    {
+      "id": "A05-02",
+      "package_id": "zitera-lab-a05-02",
+      "title": "Blind Boolean & Time-Based SQL Injection",
+      "repository": "xdaamar/zitera_lab_a05_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A05:2025",
+      "description": "Extract database schemas and records character-by-character using boolean inference and database sleep functions.",
+      "short_description": "Blind inference and time-based SQL injection in CustPortal Database.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A05",
+      "category_name": "Injection",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Blind SQLi",
+        "Time-Based Inference",
+        "Query Timing Analysis"
+      ],
+      "learning_objectives": [
+        "Identify blind SQL injection vectors without error output",
+        "Automate binary character extraction using conditional time delays",
+        "Apply parameterized queries and ORM abstractions defensively"
+      ],
+      "prerequisites": [
+        "A05 Injection Flaws"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8049
+    },
+    {
+      "id": "A05-03",
+      "package_id": "zitera-lab-a05-03",
+      "title": "OS Command Injection via Unsanitized File Utilities",
+      "repository": "xdaamar/zitera_lab_a05_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A05:2025",
+      "description": "Break out of shell command arguments using command separators and bypass basic character blacklists.",
+      "short_description": "Operating system command execution in CloudPing Diagnostic Console.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A05",
+      "category_name": "Injection",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Command Injection",
+        "Shell Metacharacters",
+        "Filter Bypass"
+      ],
+      "learning_objectives": [
+        "Pinpoint shell invocation points in backend diagnostic scripts",
+        "Bypass whitespace and character filters to achieve command execution",
+        "Refactor shell executions to use safe parameterized process APIs"
+      ],
+      "prerequisites": [
+        "A05-02 Blind Boolean & Time-Based SQLi"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8050
+    },
+    {
+      "id": "A06-02",
+      "package_id": "zitera-lab-a06-02",
+      "title": "Concurrency Race Condition & Double Spending",
+      "repository": "xdaamar/zitera_lab_a06_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A06:2025",
+      "description": "Exploit Time-of-Check to Time-of-Use (TOCTOU) windows to redeem balances and promotional coupons multiple times.",
+      "short_description": "High-throughput coupon redemption race condition in FlashSale Pay.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A06",
+      "category_name": "Insecure Design",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Race Conditions",
+        "Concurrency Flaws",
+        "TOCTOU Exploitation"
+      ],
+      "learning_objectives": [
+        "Identify transactional non-atomic check-then-act code patterns",
+        "Synchronize concurrent HTTP requests to trigger state collisions",
+        "Implement database row-level locking and distributed mutexes"
+      ],
+      "prerequisites": [
+        "A06 Insecure Design & Architecture"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8051
+    },
+    {
+      "id": "A06-03",
+      "package_id": "zitera-lab-a06-03",
+      "title": "Multi-Step Workflow Step Skipping",
+      "repository": "xdaamar/zitera_lab_a06_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A06:2025",
+      "description": "Bypass mandatory identity verification checkpoints by manipulating client navigation states and direct endpoint calls.",
+      "short_description": "KYC onboarding workflow bypass in Digital Banking Portal.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A06",
+      "category_name": "Insecure Design",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Business Logic Flaws",
+        "Step Skipping",
+        "State Machine Validation"
+      ],
+      "learning_objectives": [
+        "Map multi-stage onboarding and transaction state transitions",
+        "Bypass verification steps by directly invoking completion routes",
+        "Enforce strict server-side finite state machines (FSM) for workflows"
+      ],
+      "prerequisites": [
+        "A06-02 Concurrency Race Condition"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8052
+    },
+    {
+      "id": "A07-02",
+      "package_id": "zitera-lab-a07-02",
+      "title": "OAuth 2.0 Account Linking Hijacking via Missing State",
+      "repository": "xdaamar/zitera_lab_a07_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A07:2025",
+      "description": "Perform CSRF on OAuth callback flows lacking cryptographically secure state parameters to hijack target user profiles.",
+      "short_description": "OAuth 2.0 state validation omission and account takeover in SocialConnect Auth.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A07",
+      "category_name": "Identification and Authentication Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "OAuth 2.0 Security",
+        "Missing State Parameter",
+        "Account Linking CSRF"
+      ],
+      "learning_objectives": [
+        "Trace OAuth 2.0 Authorization Code exchange sequences",
+        "Exploit missing state parameters to attach attacker credentials",
+        "Enforce unguessable state tokens tied to pre-auth sessions"
+      ],
+      "prerequisites": [
+        "A07 Identification and Authentication Failures"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8053
+    },
+    {
+      "id": "A07-03",
+      "package_id": "zitera-lab-a07-03",
+      "title": "MFA Bypass via Direct Endpoint Traversal",
+      "repository": "xdaamar/zitera_lab_a07_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A07:2025",
+      "description": "Circumvent second-factor challenges through direct session state manipulation and incomplete backend step enforcement.",
+      "short_description": "Two-factor authentication step circumvention in TwoFactor SecureNet.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A07",
+      "category_name": "Identification and Authentication Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "MFA Bypass",
+        "Session State Flaws",
+        "Enforcement Traversal"
+      ],
+      "learning_objectives": [
+        "Audit session transition states between primary and secondary auth",
+        "Bypass OTP challenges by directly accessing post-auth application endpoints",
+        "Implement multi-stage authentication tokens requiring full validation"
+      ],
+      "prerequisites": [
+        "A07-02 OAuth 2.0 Account Linking Hijacking"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8054
+    },
+    {
+      "id": "A08-02",
+      "package_id": "zitera-lab-a08-02",
+      "title": "Unsigned Client-Side State Tampering in LocalStorage",
+      "repository": "xdaamar/zitera_lab_a08_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A08:2025",
+      "description": "Tamper with unverified client-side session states, pricing parameters, and role claims stored insecurely in the browser.",
+      "short_description": "Client-side state manipulation and privilege forging in CartSync Session.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A08",
+      "category_name": "Software and Data Integrity Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Client State Tampering",
+        "HMAC Integrity",
+        "LocalStorage Security"
+      ],
+      "learning_objectives": [
+        "Inspect insecure trust placed in client-controlled storage items",
+        "Manipulate user roles and checkout prices via browser storage",
+        "Sign client states cryptographically or migrate state strictly to server"
+      ],
+      "prerequisites": [
+        "A08 Software and Data Integrity Failures"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8055
+    },
+    {
+      "id": "A08-03",
+      "package_id": "zitera-lab-a08-03",
+      "title": "Python Pickle & YAML Unsafe Object Deserialization",
+      "repository": "xdaamar/zitera_lab_a08_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A08:2025",
+      "description": "Construct malicious deserialization gadgets using Python __reduce__ and unsafe YAML loaders to gain remote code execution.",
+      "short_description": "Unsafe object deserialization leading to code execution in PipelineSerializer.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A08",
+      "category_name": "Software and Data Integrity Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Insecure Deserialization",
+        "Pickle RCE",
+        "YAML Safe Loader"
+      ],
+      "learning_objectives": [
+        "Identify unsafe serialization libraries in data ingestion pipelines",
+        "Construct Python pickle payload gadgets for remote command execution",
+        "Replace executable serialization formats with pure JSON/Protocol Buffers"
+      ],
+      "prerequisites": [
+        "A08-02 Unsigned Client-Side State Tampering"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8056
+    },
+    {
+      "id": "A09-02",
+      "package_id": "zitera-lab-a09-02",
+      "title": "CRLF Log Injection & Audit Trail Forgery",
+      "repository": "xdaamar/zitera_lab_a09_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A09:2025",
+      "description": "Inject carriage return and line feed (CRLF) characters into log inputs to fake successful authentication and blind SIEM parsers.",
+      "short_description": "CRLF log injection and false audit trail injection in AuditSys Central.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A09",
+      "category_name": "Security Logging and Monitoring Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Log Injection",
+        "CRLF Forgery",
+        "Audit Trail Defense"
+      ],
+      "learning_objectives": [
+        "Trace unencoded user inputs into application event logging streams",
+        "Inject CRLF control sequences to forge authentic administrator log entries",
+        "Implement structured JSON logging and strict newline sanitization"
+      ],
+      "prerequisites": [
+        "A09 Security Logging and Monitoring Failures"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8057
+    },
+    {
+      "id": "A09-03",
+      "package_id": "zitera-lab-a09-03",
+      "title": "SIEM Threshold Evasion via Slow-and-Low Scanning",
+      "repository": "xdaamar/zitera_lab_a09_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A09:2025",
+      "description": "Evade rate-based alerting rules and anomaly thresholds by modulating reconnaissance velocity and distributed origin headers.",
+      "short_description": "Detection rule evasion and stealth reconnaissance in StealthDetect Gateway.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A09",
+      "category_name": "Security Logging and Monitoring Failures",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "SIEM Evasion",
+        "Threshold Bypass",
+        "Behavioral Detection"
+      ],
+      "learning_objectives": [
+        "Analyze fixed-window velocity thresholds in security monitoring systems",
+        "Modulate attack cadence and distributed headers to avoid triggering alerts",
+        "Design composite and behavioral correlation rules beyond simple count thresholds"
+      ],
+      "prerequisites": [
+        "A09-02 CRLF Log Injection"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8058
+    },
+    {
+      "id": "A10-02",
+      "package_id": "zitera-lab-a10-02",
+      "title": "Fail-Open Exception Handling in Auth Microservice",
+      "repository": "xdaamar/zitera_lab_a10_02",
+      "version": "1.0.0",
+      "difficulty": "Intermediate",
+      "owasp": "A10:2025",
+      "description": "Trigger null reference and timeout exceptions in boundary services to force authorization routines into permissive fail-open mode.",
+      "short_description": "Fail-open exception handling in GatewayGuard Perimeter.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A10",
+      "category_name": "Mishandling of Exceptional Conditions",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Fail-Open Defaults",
+        "Exception Auditing",
+        "Boundary Resilience"
+      ],
+      "learning_objectives": [
+        "Audit catch-all exception blocks that default to permissive access states",
+        "Trigger upstream dependency faults to bypass authorization logic",
+        "Enforce strict fail-closed defaults and circuit breakers on error"
+      ],
+      "prerequisites": [
+        "A10 Mishandling of Exceptional Conditions"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8059
+    },
+    {
+      "id": "A10-03",
+      "package_id": "zitera-lab-a10-03",
+      "title": "Full-Chain Blind SSRF to Cloud Metadata Services",
+      "repository": "xdaamar/zitera_lab_a10_03",
+      "version": "1.0.0",
+      "difficulty": "Advanced",
+      "owasp": "A10:2025",
+      "description": "Bypass URL parsing sanitizers and DNS rebinding protections to pivot into cloud instance metadata endpoints (169.254.169.254).",
+      "short_description": "Full-chain blind SSRF to cloud metadata in WebFetch Microservice.",
+      "standard": "owasp-top10",
+      "standard_version": "2025",
+      "category_id": "A10",
+      "category_name": "Mishandling of Exceptional Conditions",
+      "security_version": 1,
+      "minimum_core_version": "2.0.0",
+      "estimated_time": 45,
+      "skills": [
+        "Blind SSRF",
+        "Cloud Metadata Pivot",
+        "DNS Rebinding Defense"
+      ],
+      "learning_objectives": [
+        "Identify server-side URL fetching routines susceptible to SSRF",
+        "Bypass IP parsers using hexadecimal and decimal IP encodings",
+        "Deploy network-level egress filtering and IMDSv2 token enforcement"
+      ],
+      "prerequisites": [
+        "A10-02 Fail-Open Exception Handling"
+      ],
+      "runtime": "native_sandboxed",
+      "architecture": "x86_64",
+      "package_url": null,
+      "package_sha256": null,
+      "installed": false,
+      "installed_version": null,
+      "has_update": false,
+      "latest_version": "",
+      "default_port": 8060
     }
   ],
-  "signature": "a0959f215766760c4229c051048724a88f9274575f3ef6b8d626eab62ed64800e30a1965e8b83afe1dd6ef7b11fef05a7e7bba872c4d134eb303e144e063d209"
+  "signature": "178e9fb72b526a0c1e81288b1b98a6281c9bafe72c6cdbf042f651b98dca85845ce40a72f995c6f5e272acd01988026580e6bbc53d3155ebe89eb6298cef6103"
 }

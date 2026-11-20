@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{mf4_byp4ss_d1r3ct_r0ut3_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur TwoFactor SecureNet memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8054."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -b \"session_user=operator\" http://127.0.0.1:8054/admin/dashboard untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{mf4_byp4ss_d1r3ct_r0ut3_2026}."
+    }
+  ]
+}

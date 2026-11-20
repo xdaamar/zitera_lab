@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{d3p_c0nfus10n_n4m3sp4c3_h1j4ck_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur Enterprise Artifactory memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8045."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s http://127.0.0.1:8045/api/packages/resolve?package=internal-analytics-core untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{d3p_c0nfus10n_n4m3sp4c3_h1j4ck_2026}."
+    }
+  ]
+}

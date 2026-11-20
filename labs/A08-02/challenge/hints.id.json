@@ -1,0 +1,25 @@
+{
+  "flag": "ZITERA{cl13nt_st4t3_t4mp3r_l0c4lst0r4g3_2026}",
+  "hints": [
+    {
+      "tier": 1,
+      "type": "conceptual",
+      "hint": "Pahami bagaimana arsitektur CartSync Session memproses permintaan dan di mana batas validasi berada."
+    },
+    {
+      "tier": 2,
+      "type": "technical_area",
+      "hint": "Perhatikan manipulasi parameter pada rute API target di port 8055."
+    },
+    {
+      "tier": 3,
+      "type": "investigation_direction",
+      "hint": "Gunakan payload pengujian: curl -s -X POST http://127.0.0.1:8055/api/cart/checkout -d '{\"cart_id\":\"123\",\"total_price\":1.00,\"discount_override\":99}' untuk memicu respon eksploitasi."
+    },
+    {
+      "tier": 4,
+      "type": "near_solution",
+      "hint": "Buka endpoint atau kirimkan payload pengujian langsung untuk mengekstrak bendera resmi ZITERA{cl13nt_st4t3_t4mp3r_l0c4lst0r4g3_2026}."
+    }
+  ]
+}
