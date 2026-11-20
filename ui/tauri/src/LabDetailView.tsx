@@ -546,8 +546,9 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
       </div>
 
       {/* Requirement 2: Curriculum 6-Section Navigator Bar + CTF Challenge Tab */}
-      <div className="border-b border-[#E6E2D8] bg-[#FCFBF8] px-4 md:px-6 pt-2 shrink-0 overflow-x-auto scrollbar-none flex items-center justify-between gap-4">
-        <div className="flex items-center gap-1 min-w-max">
+      <div className="border-b border-[#E6E2D8] bg-[#FCFBF8] px-4 md:px-6 pt-2 shrink-0 flex items-center justify-between gap-3 overflow-hidden">
+        {/* Scrollable Tabs Row */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none min-w-0">
           {CURRICULUM_SECTIONS.map((sec, idx) => {
             const Icon = sec.icon
             const isActive = activeSection === sec.key
@@ -556,7 +557,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
               <button
                 key={sec.key}
                 onClick={() => goToSection(sec.key)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-all border-t border-x cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-all border-t border-x cursor-pointer shrink-0 ${
                   isActive
                     ? 'bg-[#FCFBF8] border-[#2DD4BF] text-[#0F766E] shadow-[0_-2px_4px_rgba(45,212,191,0.08)]'
                     : 'border-transparent text-[#78716C] hover:text-[#1E1A14] hover:bg-[#F7F5F0]'
@@ -576,7 +577,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
           {/* 7th Tab: CTF Challenge */}
           <button
             onClick={() => goToSection('challenge')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-all border-t border-x cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-all border-t border-x cursor-pointer shrink-0 ${
               activeSection === 'challenge'
                 ? 'bg-[#FCFBF8] border-[#F59E0B] text-[#B45309] shadow-[0_-2px_4px_rgba(245,158,11,0.08)]'
                 : 'border-transparent text-[#78716C] hover:text-[#1E1A14] hover:bg-[#F7F5F0]'
@@ -593,13 +594,12 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
               </span>
             )}
           </button>
+        </div>
 
-          {/* Section Completion Progress Counter (Inline with Tab Row to Prevent Truncation) */}
-          <div className="h-4 w-px bg-[#E6E2D8] mx-2 self-center hidden sm:block" />
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 mb-1 rounded-md bg-[#CCFBF1] border border-[#2DD4BF]/40 text-[11px] font-['JetBrains_Mono'] font-bold text-[#0F766E] self-center shrink-0">
-            <Sparkles size={12} />
-            <span>Materi: {completedSections.size}/6 Selesai</span>
-          </div>
+        {/* Section Completion Progress Counter — Always Pinned on Right, Never Truncated */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 mb-1 rounded-md bg-[#CCFBF1] border border-[#2DD4BF]/40 text-[11px] font-['JetBrains_Mono'] font-bold text-[#0F766E] shrink-0 whitespace-nowrap shadow-2xs">
+          <Sparkles size={12} />
+          <span>Materi: {completedSections.size}/6 Selesai</span>
         </div>
       </div>
 

@@ -601,12 +601,15 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
             })
             .unwrap_or(false);
 
+        let candidate_run = workspace_root.join("ui/tauri/run/zitera-engine.exe");
         let candidate_root = workspace_root.join("engine/zitera-engine.exe");
         let candidate_direct = workspace_root.join("zitera-engine.exe");
         let candidate_release = workspace_root.join("engine/rust/target/release/zitera-engine.exe");
         let candidate_debug = workspace_root.join("engine/rust/target/debug/zitera-engine.exe");
         let engine_exe = if is_engine_binary && current_exe.exists() {
             current_exe
+        } else if candidate_run.exists() {
+            candidate_run
         } else if candidate_root.exists() {
             candidate_root
         } else if candidate_direct.exists() {
@@ -621,32 +624,60 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
 
         #[cfg(windows)]
         {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            use std::ffi::OsStr;
+            use std::os::windows::ffi::OsStrExt;
+            use windows_sys::Win32::Foundation::CloseHandle;
+            use windows_sys::Win32::System::Threading::{
+                CreateProcessW, CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, DETACHED_PROCESS,
+                PROCESS_INFORMATION, STARTUPINFOW,
+            };
 
-            // Spawn detached lab broker daemon via PowerShell Start-Process to guarantee complete detachment from calling process
-            let ps_script = format!(
-                "Start-Process -FilePath '{}' -ArgumentList 'lab','serve','{}' -WorkingDirectory '{}' -WindowStyle Hidden",
-                engine_exe.to_string_lossy(),
-                lab_id,
-                workspace_root.to_string_lossy()
-            );
-            let mut ps_cmd = std::process::Command::new("powershell");
-            ps_cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &ps_script]);
-            ps_cmd.creation_flags(CREATE_NO_WINDOW);
+            let cmd_line_str = format!("\"{}\" lab serve {}", engine_exe.display(), lab_id);
+            let mut wide_cmd_line: Vec<u16> = OsStr::new(&cmd_line_str)
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect();
 
-            if ps_cmd.status().is_err() {
-                // Fall back to direct Command spawn if PowerShell execution failed
-                const DETACHED_PROCESS: u32 = 0x00000008;
-                const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
-                let mut cmd = std::process::Command::new(&engine_exe);
-                cmd.args(["lab", "serve", lab_id]);
-                cmd.current_dir(workspace_root);
-                cmd.stdin(std::process::Stdio::null());
-                cmd.stdout(std::process::Stdio::null());
-                cmd.stderr(std::process::Stdio::null());
-                cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
-                let _ = cmd.spawn();
+            let wide_working_dir: Vec<u16> = workspace_root
+                .as_os_str()
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect();
+
+            let mut si: STARTUPINFOW = unsafe { std::mem::zeroed() };
+            si.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
+
+            let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
+
+            let creation_flags = CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
+
+            // CRITICAL: bInheritHandles = 0 (FALSE).
+            // Do NOT inherit any handles/pipes from the parent process.
+            // This prevents Tauri IPC and PowerShell from hanging on stdout/stderr pipes,
+            // while running completely silently without any console popup.
+            let success = unsafe {
+                CreateProcessW(
+                    std::ptr::null(),
+                    wide_cmd_line.as_mut_ptr(),
+                    std::ptr::null(),
+                    std::ptr::null(),
+                    0,
+                    creation_flags,
+                    std::ptr::null(),
+                    wide_working_dir.as_ptr(),
+                    &si,
+                    &mut pi,
+                )
+            };
+
+            if success == 0 {
+                let err = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+                return Err(format!("Failed to spawn lab broker daemon: Win32 error {}", err));
+            }
+
+            unsafe {
+                CloseHandle(pi.hProcess);
+                CloseHandle(pi.hThread);
             }
         }
 
