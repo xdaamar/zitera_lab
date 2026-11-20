@@ -1,14 +1,14 @@
-# Technical Breakdown: Anatomy of Security Misconfigurations
+# Pembahasan Teknis: Anatomi Celah Kesalahan Konfigurasi
 
-Security Misconfiguration is rarely caused by syntax errors or algorithmic flaws in program logic; it is the direct result of failing to enforce security policies and safe operational defaults when deploying and maintaining software stacks.
+Security Misconfiguration bukanlah akibat dari bug penulisan fungsi matematika atau kesalahan sintaks kode, melainkan kegagalan dalam menegakkan kebijakan keamanan saat mengoperasikan perangkat lunak.
 
 ---
 
-### Vector 1: Directory Indexing & Open Autoindex
-When a web server receives an HTTP request targeting a directory path (e.g. `GET /backups/`):
-1. The web server searches for standard index files such as `index.html`, `index.htm`, or `index.php`.
-2. If no index file is present, the server evaluates its directory configuration rules.
-3. If the **`autoindex on`** directive (Nginx) or **`Options +Indexes`** (Apache) is active, the server dynamically generates an HTML listing displaying all files contained in that folder along with their byte sizes and timestamps.
+### Vektor 1: Directory Indexing & Autoindex Terbuka
+Ketika web server menerima request ke path direktori (misalnya `GET /backups/`):
+1. Web server mencari file indeks standar seperti `index.html`, `index.htm`, atau `index.php`.
+2. Jika file indeks tersebut tidak ditemukan, server memeriksa opsi konfigurasi direktori.
+3. Bila fitur **`autoindex on`** (pada Nginx) atau **`Options +Indexes`** (pada Apache) aktif, server secara otomatis menghasilkan dokumen HTML yang memuat daftar tautan seluruh file di dalam folder tersebut beserta ukuran dan tanggal perubahannya.
 
 ```http
 HTTP/1.1 200 OK
@@ -29,60 +29,60 @@ Content-Type: text/html
 
 ---
 
-### Vector 2: Dangling Backup & Temporary Artifact Leaks
-A dangerous habit among system administrators during emergency troubleshooting is generating ad-hoc copies directly inside web-accessible paths:
-- Transforming dynamic executable scripts into raw static downloads:
-  - `config.php` is executed by the PHP interpreter, hiding database credentials from client responses.
-  - When copied to `config.php.bak` or `config.php~`, the web server fails to recognize the script extension and serves the raw source code as plain text directly to the requester!
+### Vektor 2: Artefak Cadangan Terlantar (*Dangling Backup Files*)
+Kebiasaan buruk administrator saat melakukan pemeliharaan darurat adalah membuat salinan langsung di folder publik:
+- Mengganti ekstensi file dinamis menjadi file teks statis:
+  - `config.php` dieksekusi oleh interpreter PHP (aman dari pembacaan source code).
+  - Namun ketika disalin menjadi `config.php.bak` atau `config.php~`, web server tidak lagi mengeksekusinya sebagai skrip, melainkan mengirimkannya sebagai teks murni (*plain text*) kepada siapa pun yang meminta URL tersebut!
 
 ---
 
-### Vector 3: Default Credentials & Unprotected Administrative Portals
-Industrial software suites, IoT controllers, network appliances, and rapid-prototyping web frameworks frequently bundle factory defaults:
-- Default pairs: `admin` / `admin`, `root` / `root`, or `admin` / `password`.
-- Administrative services bound to public interfaces on ports `8012`, `8080`, or `9090` without IP restriction filters (*IP allowlisting*).
+### Vektor 3: Kredensial Bawaan & Portal Administratif Tanpa Proteksi
+Banyak sistem industri, panel kontrol IoT, router jaringan, dan framework web menyertakan akun pabrikan default:
+- Username: `admin`, Password: `admin` atau `password`
+- Port administratif seperti `8012`, `8080`, `9090` yang diekspos tanpa pembatasan IP (*IP allowlisting*).
 
 ---
 
-### Configuration Comparison: Vulnerable vs Hardened Nginx
+### Perbandingan Konfigurasi: Nginx & Web Server
 
-#### Vulnerable Nginx Configuration:
+#### Konfigurasi Nginx yang Rentan (Vulnerable):
 ```nginx
 server {
     listen 8012;
     server_name portal.local;
     root /var/www/html;
 
-    # FLAW 1: Directory browsing enabled!
+    # KESALAHAN 1: Autoindex aktif!
     location /backups/ {
         autoindex on;
     }
 
-    # FLAW 2: Server reveals exact Nginx version in HTTP response headers
+    # KESALAHAN 2: Menampilkan versi Nginx pada header server
     server_tokens on;
 
-    # FLAW 3: Missing essential browser security headers
+    # KESALAHAN 3: Tidak ada header keamanan dasar
 }
 ```
 
-#### Hardened & Secure Nginx Configuration:
+#### Konfigurasi Nginx yang Diperkuat (Hardened & Secure):
 ```nginx
 server {
     listen 8012;
     server_name portal.local;
     root /var/www/html;
 
-    # REMEDIATION 1: Disable directory indexing and block public backup access
+    # PERBAIKAN 1: Matikan autoindex secara global dan spesifik
     location /backups/ {
         autoindex off;
-        deny all; # Completely forbid web access to sensitive backup archives!
+        deny all; # Blokir total akses publik ke direktori backup!
         return 404;
     }
 
-    # REMEDIATION 2: Suppress server banner and version disclosures
+    # PERBAIKAN 2: Sembunyikan informasi versi server
     server_tokens off;
 
-    # REMEDIATION 3: Inject mandatory HTTP security headers
+    # PERBAIKAN 3: Pasang HTTP Security Headers wajib
     add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Content-Security-Policy "default-src 'self';" always;

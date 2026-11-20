@@ -1,59 +1,59 @@
-﻿# System Architecture & Fail-Open Vulnerability Analysis (A10)
+﻿# Arsitektur Sistem & Titik Kelemahan Fail-Open (A10)
 
-The **A10: Mishandling of Exceptional Conditions** module models a financial transaction and identity clearance checkpoint hosted on the **Zitera Payment & Security Gate (Port 8020)**. This architecture illustrates vulnerable authorization services that depend upon external upstream third-party verifiers (e.g., fraud scoring engines, KYC identity lookups, or payment processors).
+Modul **A10: Mishandling of Exceptional Conditions** mensimulasikan gerbang otorisasi transaksi pada **Zitera Payment & Security Gate (Port 8020)**. Arsitektur ini merefleksikan gerbang pembayaran atau gateway keamanan microservice yang bergantung pada server verifikasi pihak ketiga (seperti layanan KYC, evaluasi fraud, atau upstream authorization service).
 
 ---
 
-## 1. Service Topology & Endpoint Inventory
+## 1. Topologi Layanan & Pemetaan Endpoint
 
-The Zitera Security Gate microservice exposes the following HTTP endpoints on port 8020:
+Perangkat Zitera Security Gate mengekspos endpoint HTTP berikut pada port 8020:
 
-| Method | Endpoint | Authorization | Functional Role | Security Characteristics |
+| Metode | Endpoint | Hak Akses | Deskripsi Fungsionalitas | Karakteristik Keamanan |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/` | Public | Web Policy Dashboard. | Outlines authorization policies and exception triggers. |
-| `GET` | `/health` | Public | Service health probe. | Returns JSON liveness status for port 8020. |
-| `POST` | `/api/gate/verify` | Public | Transaction gate clearance endpoint. | **VULNERABLE**: Fails open upon catching upstream exceptions. |
-| `POST` | `/api/reset` | Public | Gate state reset endpoint. | Restores `fail_open_triggered` state to `False`. |
-| `GET` | `/practice/verify` | Internal/Tester | Automated mission verification gate. | Validates whether fail-open condition was triggered. |
+| `GET` | `/` | Publik | Dashboard Web Penjelasan Kebijakan Gate. | Menampilkan dokumentasi parameter dan status evaluasi. |
+| `GET` | `/health` | Publik | Healthcheck status layanan lab. | Mengembalikan JSON liveness status untuk port 8020. |
+| `POST` | `/api/gate/verify` | Publik | Endpoint verifikasi otorisasi transaksi. | **VULNERABLE**: Memicu fail-open saat terjadi eksepsi hulu. |
+| `POST` | `/api/reset` | Publik | Reset status transaksi ke kondisi default. | Mengembalikan `fail_open_triggered` ke nilai `False`. |
+| `GET` | `/practice/verify` | Internal/Tester | Verifikasi otomatis kelulusan target lab. | Memvalidasi apakah status fail-open berhasil dipicu. |
 
 ---
 
-## 2. Data Flow & Exception Branching Logic
+## 2. Diagram Aliran Data & Percabangan Eksepsi
 
-The sequence diagram below illustrates the divergent control flows between normal valid/invalid inputs versus exception-inducing payloads:
+Diagram urutan berikut mengilustrasikan perbedaan eksekusi antara payload token valid, token invalid, dan payload pemicu eksepsi:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Caller / Adversary
+    actor Client as Klien / Penyerang
     participant Gate as Zitera Security Gate (:8020)
-    participant UpstreamEngine as Upstream Parsing & Verification Engine
+    participant UpstreamEngine as Mesin Parsing & Verifikasi Hulu
 
-    alt Path 1: Normal Input (Invalid Token)
+    alt Alur 1: Token Normal (Invalid)
         Client->>Gate: POST /api/gate/verify {"token": "random_token"}
-        Gate->>UpstreamEngine: Evaluate Token
-        UpstreamEngine-->>Gate: Token Mismatch
+        Gate->>UpstreamEngine: Evaluasi Token
+        UpstreamEngine-->>Gate: Token Tidak Cocok
         Gate-->>Client: HTTP 200 OK {"authorized": false, "message": "Access denied"}
-    else Path 2: Normal Input (Valid Token)
+    else Alur 2: Token Normal (Valid)
         Client->>Gate: POST /api/gate/verify {"token": "super_authorized_token"}
-        Gate->>UpstreamEngine: Evaluate Token
-        UpstreamEngine-->>Gate: Token Validated
+        Gate->>UpstreamEngine: Evaluasi Token
+        UpstreamEngine-->>Gate: Token Cocok
         Gate-->>Client: HTTP 200 OK {"authorized": true, "message": "Access granted"}
-    else Path 3: Fault Injection (Fail-Open Exploitation)
+    else Alur 3: Injeksi Eksepsi (Eksploitasi Fail-Open)
         Client->>Gate: POST /api/gate/verify {"simulate_exception": "UPSTREAM_TIMEOUT"}
-        Gate->>UpstreamEngine: Initiate Processing
+        Gate->>UpstreamEngine: Inisiasi Pemrosesan
         UpstreamEngine--xGate: RuntimeError: "Upstream Gateway Timeout!"
-        Note over Gate: Generic catch block triggered!
-        Note over Gate: ❌ FATAL ARCHITECTURAL DEFECT: authorized = True!
+        Note over Gate: Tangkap Exception generik di blok `except:`!
+        Note over Gate: ❌ KESALAHAN ARSITEKTUR: authorized = True!
         Gate-->>Client: HTTP 200 OK {"authorized": true, "fail_open_state": true, "flag": "ZITERA{...}"}
     end
 ```
 
 ---
 
-## 3. Vulnerable Code Anatomy (`docker/app.py`)
+## 3. Analisis Anatomi Kode Rentan (`docker/app.py`)
 
-The critical vulnerability resides within the POST dispatch logic of `docker/app.py`:
+Kelemahan kritis terletak pada blok pengendali `POST /api/gate/verify` di dalam `docker/app.py`:
 
 ```python
 if parsed.path == "/api/gate/verify":
@@ -84,7 +84,7 @@ if parsed.path == "/api/gate/verify":
     self._send_json(200, resp)
 ```
 
-### Critical Flaws in this Logic:
-1. **Affirmative Fallback in Exception Handler**: Assigning `authorized = True` inside the exception handler grants complete clearance whenever an error happens, giving attackers a guaranteed bypass mechanism.
-2. **Overly Broad Catch-All (`except Exception as e`)**: Intercepting every possible runtime exception prevents discriminating between transient infrastructure timeouts and syntax/schema validation failures.
-3. **Improper HTTP Status Semantics**: Rather than failing with `HTTP 502/504` error statuses with denied access, the gateway emits `HTTP 200 OK` with unearned authorized clearance.
+### Kesalahan Desain yang Fatal:
+1. **Fallback Otorisasi Positif pada Blok Except**: Menetapkan `authorized = True` ketika terjadi kesalahan runtime memberikan jalan pintas otomatis bagi penyerang tanpa perlu mengetahui rahasia token apapun.
+2. **Penangkapan Eksepsi Terlalu Luas (`except Exception as e`)**: Menangkap semua error Python tanpa membedakan error validasi input dari error infrastruktur.
+3. **Mengabaikan Status HTTP Error**: Alih-alih mengembalikan `HTTP 502 Bad Gateway` atau `HTTP 504 Gateway Timeout` dengan penolakan akses, server justru mengembalikan `HTTP 200 OK` dengan status `authorized: true`.

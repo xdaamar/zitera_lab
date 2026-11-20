@@ -1,30 +1,43 @@
-# Real-World Analogy: Cheap Luggage Padlocks vs Bank Vaults
+# Analogi Dunia Nyata: Koper Berisi Emas Digembok Mainan Plastik
 
-To intuitively understand the gap between broken legacy cryptography and modern defensive standards, consider how one might protect a billion-dollar proprietary manufacturing formula:
-
----
-
-### 1. Plaintext Storage (Sticky Note on the Lobby Desk)
-Persisting credentials or secrets in cleartext is equivalent to scribbling the formula on a notepad and leaving it on an unattended reception counter. Every visitor walking through the building can effortlessly read, photograph, or copy the data without triggering a single alarm.
+Untuk memahami bahaya **Cryptographic Failures** secara intuitif, mari kita gunakan analogi pengamanan koper berharga:
 
 ---
 
-### 2. Unsalted MD5 Hashing (Cheap 3-Dial Plastic Luggage Padlock)
-To protect the secret, you place the document in a lightweight suitcase locked with a 3-wheel plastic rotary lock:
-- **Trivial Search Space**: With only 1,000 possible combinations (000 through 999), an observer sitting in the terminal can test every single sequence within three minutes.
-- **Missing Salt (Identical Factory Master Keys)**: The manufacturer ships every unit with identical internal tumblers. Adversaries do not even need to manipulate the dials; they simply consult the public factory manual to open the latch immediately.
+### Cerita: Koper Berisi Emas Batangan
+Bayangkan seorang pengusaha tambang hendak membawa emas batangan senilai puluhan miliar rupiah melintasi bandara:
 
-This mirrors fast legacy hashing: because MD5 without salt is deterministic and computationally lightweight, modern processors can search billions of candidate passwords per second or instantly match hashes using public rainbow lookup databases.
-
----
-
-### 3. Modern Salted, Memory-Hard Storage (Reinforced Bank Vault)
-Now consider securing the blueprint inside a state-of-the-art bank vault:
-- **Cryptographic Salt (Unique Tumbler Castings)**: Each vault chamber is cast with a completely distinct, unrepeatable mechanical keyway. Master key catalogs provide zero utility.
-- **Argon2 / Work Factor (Weighted Hydraulic Delay)**: When an authorized operator enters a combination, internal hydraulic pistons deliberately require 300 milliseconds of deliberate mechanical rotation to engage.
-- **Economic Impracticability**: Even if an automated robotic arm attempts to brute-force millions of candidate combinations, the deliberate mechanical delay renders exhaustive search computationally and economically unfeasible across human lifetimes.
+1. **Koper Logam yang Kuat**:
+   Koper tersebut terbuat dari titanium tebal dan tahan banting. Tidak ada orang yang bisa merusak bodi koper tersebut tanpa alat las industri.
+2. **Gembok Mainan Anak-Anak (Kriptografi Lemah)**:
+   Sayangnya, saat hendak mengunci resleting koper, pengusaha itu lupa membawa gembok baja bersandi kombinasi. Karena buru-buru, ia menggunakan **gembok mainan plastik kecil warna-warni** milik anaknya yang dibeli seharga lima ribu rupiah.
+3. **Kunci Universal yang Ada di Mana-Mana**:
+   Gembok mainan plastik tersebut memiliki anak kunci yang sama persis untuk semua cetakan pabrik mainan tersebut. Bahkan anak kecil bisa membukanya hanya dengan menjepitkan klip kertas atau peniti!
+4. **Pencurian Tanpa Jejak Kerusakan Fisik**:
+   Di ruang bagasi, petugas nakal tidak perlu merusak koper titanium. Cukup gunakan klip kertas selama 2 detik untuk membuka gembok plastik, mengambil seluruh emas, lalu mengunci kembali gembok plastik tersebut.
 
 ---
 
-### Core Security Takeaway
-Never assume that transformed data is secure simply because it appears as an obscure alphanumeric string. If that string was produced by a high-speed, unsalted legacy hash, the protection is merely an illusion waiting to collapse.
+### Analogi Kedua: Memo Rahasia yang Cuma Ditulis Terbalik
+Pernahkah kamu melihat anak sekolah menuliskan pesan rahasia dengan cara membalik hurufnya? Misal kata `"RAHASIA"` ditulis `"AISAHAR"`.
+Bagi anak TK, pesan itu terlihat seperti bahasa asing yang misterius. Namun bagi orang dewasa, pesan itu bisa langsung dibaca dalam 1 detik tanpa perlu alat apapun.
+Itulah gambaran algoritma hashing usang seperti **MD5**:
+Di era tahun 1992, MD5 dianggap ajaib. Namun dengan kekuatan komputer dan kartu grafis (GPU) modern saat ini, miliaran kombinasi hash MD5 sudah dihitung terlebih dahulu dan disimpan di internet dalam bentuk "buku kamus" raksasa (*Rainbow Tables*). Siapapun bisa mencocokkan nilai hash ke teks aslinya dalam sekejap mata!
+
+---
+
+### Tabel Perbandingan: Dunia Fisik vs Dunia Web (CryptoVault)
+
+| Komponen | Dunia Fisik (Koper Emas) | Dunia Web (SafeKey Vault) |
+| :--- | :--- | :--- |
+| **Aset Berharga** | Emas batangan puluhan miliar rupiah | Kunci master enkripsi perbankan dan flag `ZITERA{...}` |
+| **Algoritma Perlindungan** | Gembok mainan plastik / tulisan dibalik | Algoritma hashing usang `MD5` tanpa garam (*salt*) |
+| **Kamus Pembobol** | Klip kertas atau kunci duplikat pabrik | Tabel pelangi (*Rainbow Table*) dan kamus kata sandi |
+| **Standar Ideal** | Gembok kombinasi baja brankas anti-maling | Algoritma hashing modern lambat: **Argon2id** / **bcrypt** |
+| **Dampak Kegagalan** | Emas hilang tanpa koper rusak | Akun admin dijebol, seluruh brankas kunci terkompromi |
+
+---
+
+### Inti Pelajaran (Key Takeaway)
+> [!TIP]
+> Menggunakan algoritma enkripsi atau hashing yang usang sama berbahayanya dengan tidak menggunakan enkripsi sama sekali. Selalu gunakan algoritma hash adaptif berkekuatan tinggi (seperti Argon2id atau bcrypt) dengan salt acak unik untuk melindungi kata sandi pengguna!

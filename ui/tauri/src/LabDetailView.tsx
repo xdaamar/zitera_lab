@@ -990,7 +990,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                     className="p-5 rounded-xl border border-[#E6E2D8] bg-white shadow-xs space-y-3"
                   >
                     <label className="block text-xs font-['Space_Grotesk'] font-bold text-[#1E1A14]">
-                      SUBMIT CAPTURED CTF FLAG
+                      Kirim Flag CTF yang Ditemukan (*Submit Flag*)
                     </label>
                     <div className="flex items-center gap-2">
                       <input
@@ -1005,7 +1005,7 @@ export function LabDetailView({ labId, onBack }: LabDetailViewProps) {
                         disabled={submittingFlag || !flagInput.trim()}
                         className="px-5 py-2.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-['Space_Grotesk'] font-bold rounded-lg shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
                       >
-                        <span>{submittingFlag ? 'Verifikasi...' : 'SUBMIT FLAG'}</span>
+                        <span>{submittingFlag ? 'Verifikasi...' : 'Kirim Flag'}</span>
                         <Send size={13} />
                       </button>
                     </div>

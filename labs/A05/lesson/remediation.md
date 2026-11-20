@@ -1,19 +1,19 @@
-# Remediation Guide: Comprehensive SQL Injection Defenses
+# Panduan Remediasi: Rekayasa Pertahanan Mutlak Terhadap SQL Injection
 
-To definitively eliminate SQL Injection vulnerabilities across software architectures, implement this layered defense-in-depth framework:
+Untuk mengeliminasi risiko serangan SQL Injection secara tuntas, terapkan arsitektur pertahanan berlapis (*defense-in-depth*) berikut:
 
 ---
 
-## 1. Deploy Parameterized Queries (Prepared Statements)
-The only primary defense mathematically guaranteed to neutralize SQL injection is separating executable query syntax from dynamic user data at the database parser level:
+## 1. Gunakan Parameterized Queries (Prepared Statements)
+Satu-satunya pertahanan primer yang terbukti 100% efektif adalah memisahkan kode perintah SQL dengan data pengguna pada tingkat parser database:
 
-### Python Implementation (sqlite3)
+### Implementasi Python (sqlite3)
 ```python
-# SECURE IMPLEMENTATION: Bound parameter placeholders
+# KODE AMAN: Menggunakan placeholder '?'
 search_query = request.args.get('q', '')
 formatted_param = f"%{search_query}%"
 
-# The AST query template is compiled first; parameters travel over inert channels
+# Query dikompilasi terlebih dahulu; parameter dikirim secara terpisah
 cursor.execute(
     "SELECT name, category, price FROM products WHERE name LIKE ?",
     (formatted_param,)
@@ -21,27 +21,27 @@ cursor.execute(
 results = cursor.fetchall()
 ```
 
-### Python Implementation (SQLAlchemy ORM)
+### Implementasi Python (SQLAlchemy ORM)
 ```python
 from sqlalchemy import select
 from models import Product
 
-# Modern ORMs assemble parameterized queries automatically
+# ORM modern secara otomatis menyusun parameterized queries
 stmt = select(Product).where(Product.name.ilike(f"%{search_query}%"))
 products = session.scalars(stmt).all()
 ```
 
-### Node.js Implementation (pg / PostgreSQL)
+### Implementasi Node.js (pg / PostgreSQL)
 ```javascript
-// Parameterized query using numeric placeholders ($1, $2)
+// Parameterized query dengan placeholder numerik ($1, $2)
 const queryText = 'SELECT name, category, price FROM products WHERE name ILIKE $1';
 const values = [`%${searchTerm}%`];
 const res = await pool.query(queryText, values);
 ```
 
-### Go Implementation (database/sql)
+### Implementasi Go (database/sql)
 ```go
-// Parameterized query using '?' placeholder
+// Parameterized query dengan placeholder '?'
 rows, err := db.QueryContext(ctx, "SELECT name, category, price FROM products WHERE name LIKE ?", "%"+searchTerm+"%")
 if err != nil {
     return err
@@ -51,10 +51,10 @@ defer rows.Close()
 
 ---
 
-## 2. Dynamic Structural Elements: Strict Allow-List Validation
-Prepared statements **CANNOT** bind structural identifiers such as table names, column names, or `ORDER BY` sorting directions. When applications support dynamic column sorting:
-- **NEVER** concatenate user strings into the `ORDER BY` clause.
-- **ENFORCE A RIGID ALLOW-LIST MAP**:
+## 2. Validasi Khusus untuk Elemen Dinamis (Allow-List Validation)
+Prepared statements **TIDAK BISA** memvalidasi nama tabel atau nama kolom sorting (`ORDER BY`). Jika aplikasi Anda mengizinkan pengguna memilih kolom sorting secara dinamis:
+- **JANGAN PERNAH** menggabungkan input langsung ke klausul `ORDER BY`.
+- **GUNAKAN PETA WHITELIST KETAT**:
 ```python
 ALLOWED_SORT_COLUMNS = {
     'name': 'name',
@@ -64,7 +64,7 @@ ALLOWED_SORT_COLUMNS = {
 }
 
 sort_key = request.args.get('sort', 'name')
-# Strict allow-list resolution
+# Validasi allow-list ketat
 safe_order = ALLOWED_SORT_COLUMNS.get(sort_key, 'name')
 
 query = f"SELECT name, category, price FROM products ORDER BY {safe_order}"
@@ -73,26 +73,26 @@ cursor.execute(query)
 
 ---
 
-## 3. Database Principle of Least Privilege
-- **Dedicated Application Roles**: The public web service must connect using a database account provisioned with minimal operational privileges (`SELECT` strictly on public catalog tables).
-- **Partition Administrative Schemas**: Isolate sensitive credential tables (`vault_secrets`, `users`) into restricted schemas denied to the public application user.
-- **Disable Dangerous Database Extensions**: Deactivate high-risk database procedural capabilities (such as `xp_cmdshell` in SQL Server or `LOAD_FILE()` / `INTO OUTFILE` in MySQL).
+## 3. Terapkan Prinsip Hak Akses Terkecil (Least Privilege)
+- **Akun Database Khusus Aplikasi**: Portal publik harus terhubung ke database menggunakan pengguna (*user role*) dengan izin minimal (`SELECT` hanya pada tabel yang relevan).
+- **Blokir Akses ke Tabel Sensitif**: Akun aplikasi web tidak boleh memiliki izin baca/tulis ke tabel kredensial administratif (`vault_secrets`, `users_auth`).
+- **Nonaktifkan Fitur Eksekusi Berbahaya**: Nonaktifkan stored procedure berbahaya seperti `xp_cmdshell` (SQL Server) atau pembacaan file lokal seperti `LOAD_FILE()` / `INTO OUTFILE` (MySQL).
 
 ---
 
-## 4. Beware of Raw SQL Escapes in ORMs
-Adopting an ORM does not provide blanket immunity if developers invoke raw SQL escape hatches:
+## 4. Waspadai Celah Raw SQL di Dalam ORM
+Menggunakan ORM tidak otomatis menjamin 100% keamanan jika developer menggunakan fungsi mentah (*raw escape hatches*):
 ```python
-# VULNERABLE PATTERN IN DJANGO / SQLALCHEMY:
-# Product.objects.extra(where=[f"name = '{user_input}'"])  # STILL VULNERABLE!
+# CONTOH SALAH DALAM DJANGO / SQLALCHEMY:
+# Product.objects.extra(where=[f"name = '{user_input}'"])  # MASIH RENTAN SQLi!
 
-# ALWAYS USE NATIVE ORM ABSTRACTIONS:
+# SELALU GUNAKAN API FILTER RESMI ORM:
 Product.objects.filter(name__icontains=user_input)
 ```
 
 ---
 
-## 5. Diagnostic Error Suppression
-- Never transmit database exception traces (`sqlite3.OperationalError` or syntax stack traces) to user interfaces.
-- Return generic, user-friendly responses: `"Search services are temporarily unavailable. Please retry shortly."`
-- Direct verbose diagnostic exceptions exclusively to encrypted internal telemetry and logging aggregators.
+## 5. Tangani Error dengan Aman & Sembunyikan Detail Internal
+- Jangan pernah meneruskan string pengecualian database (`sqlite3.OperationalError` atau syntax traceback) ke antarmuka pengguna.
+- Tampilkan pesan umum yang ramah: `"Layanan pencarian sedang mengalami gangguan sementara. Silakan coba kembali nanti."`
+- Catat detail stack trace hanya ke log server internal yang aman dan terenkripsi.

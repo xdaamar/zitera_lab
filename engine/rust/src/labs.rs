@@ -1210,16 +1210,28 @@ pub fn get_lab_content(
         }
     }
 
-    // Read challenge objective
-    let challenge_path = effective_dir.join("challenge").join("challenge.md");
+    // Read challenge objective (prioritize Indonesian challenge.id.md, fallback to challenge.md)
+    let challenge_path_id = effective_dir.join("challenge").join("challenge.id.md");
+    let challenge_path_default = effective_dir.join("challenge").join("challenge.md");
+    let challenge_path = if challenge_path_id.exists() {
+        challenge_path_id
+    } else {
+        challenge_path_default
+    };
     let challenge_objective = if challenge_path.exists() {
         safe_read_file(&challenge_path).unwrap_or_default()
     } else {
-        "Complete the mission objective in the target application.".to_string()
+        "Selesaikan misi objektif pada aplikasi target.".to_string()
     };
 
-    // Read progressive hints (stripping secret flag)
-    let hints_path = effective_dir.join("challenge").join("hints.json");
+    // Read progressive hints (stripping secret flag) - prioritize hints.id.json, fallback hints.json
+    let hints_path_id = effective_dir.join("challenge").join("hints.id.json");
+    let hints_path_default = effective_dir.join("challenge").join("hints.json");
+    let hints_path = if hints_path_id.exists() {
+        hints_path_id
+    } else {
+        hints_path_default
+    };
     let mut progressive_hints = Vec::new();
     if hints_path.exists() {
         if let Ok(raw_json) = safe_read_file(&hints_path) {
@@ -1442,7 +1454,13 @@ pub fn validate_challenge(
         return Err(format!("Lab {} is not installed.", lab_id));
     }
 
-    let hints_path = lab_dir.join("challenge").join("hints.json");
+    let hints_path_id = lab_dir.join("challenge").join("hints.id.json");
+    let hints_path_default = lab_dir.join("challenge").join("hints.json");
+    let hints_path = if hints_path_id.exists() {
+        hints_path_id
+    } else {
+        hints_path_default
+    };
     if !hints_path.exists() {
         return Err(format!(
             "Challenge definition not found for lab {}.",

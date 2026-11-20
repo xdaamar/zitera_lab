@@ -1,60 +1,60 @@
-# Remediation & Defense Guide: Hardening the Software Supply Chain
+# Panduan Remediasi: Mengamankan Rantai Pasok Perangkat Lunak
 
-To comprehensively defend software systems against Supply Chain Failures, implement this layered defense-in-depth framework:
+Untuk memitigasi risiko kegagalan rantai pasok (*Software Supply Chain Failures*) secara komprehensif, terapkan strategi pertahanan berlapis (*defense-in-depth*) berikut:
 
 ---
 
-## 1. Enforce Strict Dependency Pinning with Lockfiles
-- **Always Commit Lockfiles to Version Control**: Keep `package-lock.json`, `poetry.lock`, `Cargo.lock`, and `go.sum` under version control alongside source code.
-- **Avoid Ambiguous Version Ranges**: Do not use loose caret (`^`) or tilde (`~`) prefixes in root dependency manifests (`package.json`). Pin exact, audited releases.
-- **Use Hermetic Installation Commands in CI/CD**:
+## 1. Kunci Dependensi dengan Lockfile Ketat (Dependency Pinning)
+- **Komit Selalu File Kunci ke Git**: Wajib simpan file kunci (`package-lock.json`, `poetry.lock`, `Cargo.lock`, `go.sum`) ke dalam repositori kode sumber.
+- **Hindari Rentang Versi Longgar**: Jangan gunakan operator pembaruan otomatis (*wildcards* seperti `^1.0.0` atau `*`) dalam file manifest utama (`package.json`). Gunakan versi absolut terverifikasi.
+- **Gunakan Perintah Instalasi Bersih di CI/CD**:
   ```bash
-  # Node.js: Use clean install without arbitrary script execution
+  # Node.js: Gunakan npm ci alih-alih npm install
   npm ci --ignore-scripts
 
-  # Python: Enforce cryptographic hash pinning
+  # Python: Gunakan pip dengan hash verification
   pip install --require-hashes -r requirements.txt
   ```
 
 ---
 
-## 2. Suppress Automated Installation Lifecycle Scripts
-Threat actors rely on automated lifecycle scripts (`preinstall`, `postinstall`) to harvest build secrets:
-- Disable execution by default in project-level configuration:
+## 2. Nonaktifkan Eksekusi Skrip Siklus Hidup Otomatis
+Banyak serangan supply chain memanfaatkan hook instalasi (`preinstall`, `postinstall`) untuk mencuri kredensial.
+- Nonaktifkan skrip otomatis secara global di file `.npmrc` proyek:
   ```ini
   # .npmrc
   ignore-scripts=true
   ```
-- If legitimate native bindings require compilation (e.g. `node-gyp`), isolate and trigger that specific compilation step inside a strictly partitioned build sandbox.
+- Jika ada dependensi sah yang membutuhkan kompilasi binary (misal `node-gyp`), jalankan kompilasi tersebut secara eksplisit di langkah build terisolasi.
 
 ---
 
-## 3. Generate and Maintain a Software Bill of Materials (SBOM)
-- Generate machine-readable SBOM manifests for each release candidate using **CycloneDX** or **SPDX**:
+## 3. Terapkan Software Bill of Materials (SBOM)
+- Hasilkan manifest SBOM standar industri pada setiap proses kompilasi rilis menggunakan format **CycloneDX** atau **SPDX**:
   ```bash
-  # Generate CycloneDX SBOM for Node.js projects
+  # Menghasilkan SBOM CycloneDX untuk proyek Node.js
   npx @cyclonedx/cyclonedx-npm --output-file bom.json
   ```
-- Ingest SBOM records into an enterprise vulnerability management platform to rapidly query your attack surface when zero-day vulnerabilities emerge in third-party libraries.
+- Simpan dan indeks SBOM setiap rilis untuk memudahkan pelacakan jika suatu hari ditemukan kerentanan *Zero-Day* pada komponen pihak ketiga.
 
 ---
 
-## 4. Eliminate Dependency Confusion Vulnerabilities
-- **Enforce Scoped Namespaces**: Prefix all proprietary internal packages with your enterprise scope, e.g. `@apexcorp/telemetry`.
-- **Configure Explicit Registry Scoping**: Route scoped packages strictly to authenticated internal artifact registries:
+## 4. Cegah Serangan Dependency Confusion
+- **Gunakan Scoped Namespaces**: Beri awalan khusus korporat untuk seluruh paket internal, misalnya `@apexcorp/telemetry`.
+- **Konfigurasi Registry Scoping**: Pada file konfigurasi package manager, tetapkan rute eksklusif untuk namespace korporat ke registry privat:
   ```ini
   # .npmrc
   @apexcorp:registry=https://npm.corp.internal/
   always-auth=true
   ```
-- **Public Domain Squatting Defense**: Preemptively claim your enterprise scope on public registries (like npmjs.org) with empty private placeholder packages.
+- **Reservasi Nama di Registry Publik**: Jika memungkinkan, daftarkan nama namespace internal Anda di registry publik (seperti npmjs.org) sebagai paket kosong (*placeholder*) agar penyerang tidak dapat merebutnya.
 
 ---
 
-## 5. Implement Automated SCA & Attestation Verification in CI/CD
-Incorporate automated security gates that fail builds on detected anomalies or vulnerable components:
+## 5. Integrasi Pemindaian SCA & Verifikasi Integritas di CI/CD
+Tambahkan langkah pemeriksaan otomatis pada pipeline CI/CD yang secara otomatis menggagalkan build jika terdeteksi dependensi berbahaya:
 ```yaml
-# Sample CI/CD Gate
+# Contoh GitHub Actions CI/CD Step
 - name: Audit Dependencies
   run: |
     npm audit --audit-level=high

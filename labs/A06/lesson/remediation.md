@@ -1,24 +1,24 @@
-﻿# Remediation Guide: Secure-by-Design Architecture & Authoritative State Machines
+﻿# Panduan Remediasi: Rekayasa Arsitektur Aman & Mesin Status Otoritatif
 
-To eliminate Insecure Design vulnerabilities at the architectural level, implement this comprehensive **Secure-by-Design** and defense-in-depth framework:
-
----
-
-## 1. Execute Early-Stage Threat Modeling
-Before committing to codebase architecture, perform structured threat modeling using the **STRIDE** methodology:
-- **Spoofing**: Is the calling entity authenticated with cryptographic certainty?
-- **Tampering**: Can transaction values, amounts, or states be manipulated across boundary payloads?
-- **Repudiation**: Are critical state mutations permanently logged in tamper-evident audit streams?
-- **Information Disclosure**: Do error responses expose internal workflow topologies or secrets?
-- **Denial of Service**: Are rate-limiting and transaction concurrency caps enforced?
-- **Elevation of Privilege**: Can unprivileged actors trigger executive workflow actions?
+Untuk mengeliminasi risiko Insecure Design secara mendasar, terapkan prinsip arsitektur **Secure-by-Design** dan pertahanan berlapis (*defense-in-depth*) berikut:
 
 ---
 
-## 2. Deploy an Authoritative Finite State Machine (FSM)
-Never permit clients to submit raw `target_state` strings. Enforce domain models where state transitions occur strictly through semantic action methods:
+## 1. Terapkan Threat Modeling Sejak Fase Desain Awal
+Sebelum menulis satu baris kode pun, lakukan pemodelan ancaman (*threat modeling*) menggunakan metodologi **STRIDE**:
+- **Spoofing**: Apakah identitas pemanggil request divalidasi secara kriptografis?
+- **Tampering**: Apakah parameter penting (seperti harga, diskon, atau status) dapat diubah oleh klien?
+- **Repudiation**: Apakah setiap transisi status penting dicatat ke dalam audit trail yang tidak dapat disangkal?
+- **Information Disclosure**: Apakah data rahasia bocor melalui respons status?
+- **Denial of Service**: Apakah ada batasan pemanggilan API untuk mencegah kehabisan sumber daya?
+- **Elevation of Privilege**: Apakah pengguna biasa dapat memicu aksi persetujuan manajerial?
 
-### Secure Python Implementation:
+---
+
+## 2. Implementasikan Authoritative Finite State Machine (FSM)
+Jangan pernah mengizinkan klien frontend mengirimkan string `target_state` secara langsung. Buat mesin status terstruktur di mana transisi status hanya dapat dipicu melalui tindakan semantik yang sah:
+
+### Contoh Implementasi Python Aman:
 ```python
 class ProcurementOrder:
     ALLOWED_TRANSITIONS = {
@@ -38,48 +38,48 @@ class ProcurementOrder:
 
     def submit_order(self, user_session):
         if self.status != "DRAFT":
-            raise ValueError("Only DRAFT orders may be submitted.")
+            raise ValueError("Hanya pesanan DRAFT yang dapat disubmit.")
 
-        # Enforce Business Invariant:
+        # Penegakan Invarian Bisnis:
         if self.amount < 500:
-            self.status = "APPROVED"  # Auto-approve small orders
+            self.status = "APPROVED"  # Auto-approve pesanan kecil
         else:
-            self.status = "PENDING_APPROVAL"  # Mandatory manager approval
+            self.status = "PENDING_APPROVAL"  # Wajib persetujuan manajer
 
     def approve_order(self, user_session):
         if self.status != "PENDING_APPROVAL":
-            raise ValueError("Order is not pending approval.")
+            raise ValueError("Pesanan tidak dalam status menunggu persetujuan.")
 
-        # Separation of Duties & Role Enforcement:
+        # Validasi Peran Otoritatif (Pemisahan Tugas):
         if user_session.get("role") != "ExecutiveManager":
-            raise PermissionError("Only ExecutiveManager accounts can approve high-value orders.")
+            raise PermissionError("Hanya ExecutiveManager yang berhak menyetujui pesanan ini.")
 
         self.status = "APPROVED"
 
     def dispatch_order(self, user_session):
         if self.status != "APPROVED":
-            raise ValueError("Cannot dispatch an unapproved order.")
+            raise ValueError("Pesanan belum disetujui, tidak dapat dikirim.")
 
         self.status = "DISPATCHED"
 ```
 
 ---
 
-## 3. Enforce Strict Separation of Duties (SoD)
-- The creator of an order (*requester*) must never possess permission to approve their own order, regardless of ambient administrative privileges.
-- High-value operations must require dual-authorization (*Two-Person Rule / Dual-Control*).
+## 3. Terapkan Prinsip Pemisahan Tugas (Separation of Duties / SoD)
+- Pembuat pesanan (*requester*) dilarang keras menyetujui pesanannya sendiri, terlepas dari peran yang ia miliki di sistem.
+- Tindakan bernilai tinggi wajib menerapkan mekanisme otorisasi ganda (*Dual-Control / Two-Man Rule*).
 
 ---
 
-## 4. Invariant Enforcement at the Domain Entity Boundary
-- Never rely on client-side frontend validation (HTML5 forms, Flutter UI controllers, or JavaScript).
-- All boundary limits (e.g., non-negative financial values, discount caps, quantity ceilings) must be enforced rigidly within server-side domain entities.
+## 4. Validasi Invarian di Lapisan Domain Entity
+- Jangan mengandalkan validasi di lapisan antarmuka pengguna (HTML/React/Flutter).
+- Seluruh aturan batas nilai (misal: saldo tidak boleh negatif, diskon tidak boleh melebihi nilai total barang) wajib ditegakkan secara mutlak di dalam model domain server.
 
 ---
 
-## 5. Tamper-Evident Security Audit Telemetry
-Every transaction transition must generate an immutable audit record:
-- Authenticated operator identity and calling IP address.
-- High-precision UTC timestamp.
-- Originating state and resulting target state.
-- Associated authorization tokens or business rationale.
+## 5. Audit Logging yang Tidak Dapat Dimanipulasi
+Setiap perubahan status transaksi wajib mencatat:
+- Identitas pengguna yang melakukan transisi.
+- Waktu presisi (timestamp UTC).
+- Status awal dan status akhir.
+- Alasan atau referensi dokumen pendukung.

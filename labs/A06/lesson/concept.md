@@ -1,30 +1,30 @@
-﻿# Technical Analysis: Insecure Design & Finite State Machine Invariants
+﻿# Pembahasan Teknis: Anatomi Cacat Desain & Mesin Status (Finite State Machine)
 
-Insecure Design flaws originate from an architectural failure to articulate, enforce, and defend **security invariants** across the lifecycle of business data and application states.
+Kerentanan Insecure Design berakar pada kegagalan mendefinisikan dan menegakkan **invarian keamanan (*security invariants*)** di seluruh siklus hidup data dan status aplikasi.
 
 ---
 
-## 1. Business Workflow Modeling (Finite State Machine / FSM)
-In enterprise transaction and procurement systems, order states should strictly follow a deterministic directed graph:
+## 1. Pemodelan Mesin Status Bisnis (Finite State Machine / FSM)
+Dalam sistem transaksi dan alur kerja (*procurement workflows*), status pesanan idealnya bergerak mengikuti graf berarah yang deterministik:
 
 ```text
-[ DRAFT ] ──▶ (Submit Order) ──▶ [ PENDING_APPROVAL ] ──▶ (Executive Signature) ──▶ [ APPROVED ] ──▶ [ DISPATCHED ]
-   │                                    ▲
-   │ (Order < $500)                     │ (Order >= $500: Mandatory Review)
-   └────────────────────────────────────┘
+[ DRAFT ] ──▶ (Submit Pesanan) ──▶ [ PENDING_APPROVAL ] ──▶ (Tanda Tangan Manajer) ──▶ [ APPROVED ] ──▶ [ DISPATCHED ]
+   │                                      ▲
+   │ (Pesanan < $500)                     │ (Pesanan >= $500: Wajib Persetujuan)
+   └──────────────────────────────────────┘
 ```
 
-### Intended Architectural Invariants:
-1. Low-value orders (< $500) may automatically transition into `APPROVED`.
-2. High-value orders ($\ge$ $500) **MUST** enter `PENDING_APPROVAL` and require cryptographically authenticated approval by an authorized `ExecutiveManager`.
-3. An order may never transition directly from `DRAFT` or `PENDING_APPROVAL` to `DISPATCHED` without entering `APPROVED`.
+### Invarian Bisnis yang Diinginkan:
+1. Pesanan bernilai rendah (< $500) dapat langsung beralih ke status `APPROVED` secara otomatis.
+2. Pesanan bernilai tinggi ($\ge$ $500) **WAJIB** masuk ke status `PENDING_APPROVAL` dan hanya dapat diubah ke `APPROVED` oleh akun yang memiliki peran `ExecutiveManager`.
+3. Pesanan tidak boleh langsung melompat dari `DRAFT` atau `PENDING_APPROVAL` ke `DISPATCHED` tanpa melalui status `APPROVED`.
 
 ---
 
-## 2. The Architectural Flaw at the API Boundary
-Examine the vulnerable backend dispatch logic:
+## 2. Titik Lemah Cacat Desain pada Endpoint API
+Perhatikan cuplikan logika backend yang rentan di bawah ini:
 ```python
-# FLAWED ARCHITECTURAL DESIGN
+# KODE DENGAN CACAT DESAIN ARSITEKTUR
 @app.route("/api/orders/<order_id>/transition", methods=["POST"])
 def transition_order(order_id):
     payload = request.get_json()
@@ -35,7 +35,7 @@ def transition_order(order_id):
     if not order:
         return jsonify({"error": "Order not found"}), 404
 
-    # DESIGN DEFECT: Trusts client to dictate target state directly!
+    # CACAT DESAIN: Mengizinkan klien mendikte status tujuan secara bebas!
     if target_state:
         order["status"] = target_state
     elif action == "force_dispatch":
@@ -44,14 +44,14 @@ def transition_order(order_id):
     return jsonify({"status": "updated", "order": order})
 ```
 
-### Why This Represents a Critical Design Flaw:
-1. **Unconstrained State Mutation**: The endpoint blindly ingests `target_state` from untrusted client requests without checking the valid transition matrix.
-2. **Missing Invariant Validation**: The backend performs zero checks on order thresholds. A $50,000 procurement order (e.g. Order #9999) can bypass the entire managerial approval lifecycle.
-3. **Absence of Role Authority Controls**: Any client with network access to the API can issue `{"action": "force_dispatch"}`, collapsing enterprise segregation of duties.
+### Mengapa Ini Merupakan Cacat Desain Fatal?
+1. **Penerimaan Parameter Status Arbitrer**: Endpoint mempercayai nilai `target_state` yang dikirimkan oleh klien tanpa memeriksa graf transisi yang diizinkan (*allowed transition matrix*).
+2. **Ketiadaan Validasi Prasyarat Nilai**: Tidak ada logika di server yang memeriksa apakah pesanan dengan nilai besar (misal: order #9999 senilai $50.000) sudah memiliki tanda tangan persetujuan manajer sebelum dikirimkan (*DISPATCHED*).
+3. **Ketiadaan Verifikasi Peran Otoritatif**: Siapa pun yang dapat mengirimkan request HTTP POST dapat memicu aksi `force_dispatch`, mengabaikan pemisahan tugas (*separation of duties*).
 
 ---
 
-## 3. Common Design Anti-Patterns
-- **Client-Driven State Pattern**: Delegating state transition enforcement to frontend JavaScript rather than server-side domain models.
-- **Happy Path Bias**: Engineering workflows exclusively around cooperative user behaviors, failing to model malicious, out-of-order API invocations.
-- **Lack of Abuse Cases in Specifications**: Writing functional specifications without documenting adversary capabilities, abuse cases, and negative testing scenarios.
+## 3. Anti-Pattern Desain Perangkat Lunak Populer
+- **Client-Driven State Pattern**: Memberikan wewenang kepada aplikasi frontend untuk menentukan urutan langkah transaksi.
+- **Happy Path Syndrome**: Tim perekayasa hanya merancang sistem untuk skenario normal di mana pengguna selalu mengikuti instruksi antarmuka, tanpa memikirkan apa yang terjadi jika pengguna mengirim request API di luar urutan (*out-of-order execution*).
+- **Missing Negative Test Cases**: Pengujian perangkat lunak hanya memverifikasi *"apakah pesanan sah bisa diproses?"*, bukan *"apakah pesanan $50.000 bisa diselesaikan tanpa persetujuan manajer?"*.

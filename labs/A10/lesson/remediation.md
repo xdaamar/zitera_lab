@@ -1,41 +1,41 @@
-﻿# Remediation & Defensive Fail-Closed Engineering Architecture
+﻿# Remediasi & Rekayasa Pertahanan Fail-Closed
 
-To eliminate the critical vulnerability outlined in **OWASP A10:2025 – Mishandling of Exceptional Conditions**, system architectures must embrace the **Fail-Closed Principle unconditionally: whenever an authorization gate encounters a runtime error, network timeout, or unexpected payload, the access decision must remain strictly DENIED**.
+Untuk mengatasi kerentanan fatal pada **OWASP A10:2025 – Mishandling of Exceptional Conditions**, arsitektur sistem harus mengadopsi prinsip desain **Fail-Closed secara non-negotiable**: **jika sebuah sistem keamanan menghadapi kesalahan runtime, timeout jaringan hulu, atau payload tak terduga, status otorisasi harus tetap DITOLAK (*DENY*)**.
 
 ---
 
-## 1. Enforcing Fail-Closed Security Invariants
+## 1. Menegakkan Invarian Keamanan Fail-Closed
 
-In defensive software development, authorization outcomes must never rely on mutable variables that can be coerced to an affirmative value inside error branches.
+Dalam rekayasa perangkat lunak defensif, status otorisasi tidak boleh berupa variabel mengambang yang dapat dibelokkan menjadi `True` di dalam blok penanganan kesalahan.
 
-### Foundational Fail-Closed Rules:
-1. **Initialize to the Safest State**: The authorization state variable must be initialized to `authorized = False` at function entry.
-2. **Transition to `True` Exclusively Upon Complete Validation**: No exception block may ever mutate `authorized` to `True`.
-3. **Employ Semantic HTTP Status Codes**:
-   - Client-side validation failures return `HTTP 400 Bad Request`.
-   - Authorization failures return `HTTP 401 Unauthorized` or `HTTP 403 Forbidden`.
-   - Upstream service timeouts return `HTTP 504 Gateway Timeout` with denied status, never `HTTP 200 OK`.
+### Aturan Arsitektur Fail-Closed:
+1. **Inisialisasi ke State Teraman**: Variabel penentu izin harus diinisialisasi sebagai `authorized = False` sejak awal fungsi.
+2. **Hanya Ubah ke `True` Jika Seluruh Validasi Lulus**: Tidak boleh ada cabang eksepsi (*except block*) yang menetapkan `authorized = True`.
+3. **Gunakan Kode Status HTTP Semantik**:
+   - Jika data input rusak atau bertipe salah: kembalikan `HTTP 400 Bad Request`.
+   - Jika verifikasi otentikasi gagal: kembalikan `HTTP 401 Unauthorized` atau `HTTP 403 Forbidden`.
+   - Jika upstream verifier timeout: kembalikan `HTTP 504 Gateway Timeout` dengan status akses tertolak, bukan `HTTP 200 OK`.
 
 ```
                     ┌─────────────────────────┐
-                    │     authorized = False  │ ──> Non-negotiable initial state
+                    │     authorized = False  │ ──> Nilai Awal Non-Negotiable
                     └────────────┬────────────┘
                                  │
                  ┌───────────────┴───────────────┐
                  ▼                               ▼
-       [ Validation Passes ]             [ Exception / Timeout Occurs ]
+       [ Validasi Sukses ]               [ Terjadi Exception / Timeout ]
                  │                               │
                  ▼                               ▼
-         authorized = True               authorized = False (REMAINS LOCKED)
+         authorized = True               authorized = False (TETAP TERKUNCI)
          HTTP 200 OK                     HTTP 504 Gateway Timeout
-                                         🛡️ ACCESS DENIED!
+                                         🛡️ AKSES DITOLAK!
 ```
 
 ---
 
-## 2. Backend Code Refactoring: Typed Exceptions & Fail-Closed Logic
+## 2. Refactor Backend: Penanganan Eksepsi Spesifik & Fail-Closed
 
-Below is the production-grade Python/Flask refactor for the `Zitera Payment & Security Gate`:
+Berikut adalah implementasi Python/Flask yang telah direfaktor untuk mengamankan `Zitera Payment & Security Gate`:
 
 ```python
 import logging
@@ -45,19 +45,19 @@ app = Flask(__name__)
 logger = logging.getLogger("security_gate")
 
 class UpstreamServiceTimeout(Exception):
-    """Raised when upstream verification exceeds latency budget."""
+    """Exception khusus saat upstream gateway mengalami latensi berlebih."""
     pass
 
 class MalformedPayloadException(Exception):
-    """Raised when caller violates request contract."""
+    """Exception saat format payload melanggar skema kontrak."""
     pass
 
 def query_upstream_verifier(token: str) -> bool:
     """
-    Simulates calling upstream fraud/KYC scoring provider.
+    Simulasi pemanggilan upstream service verifikasi KYC/fraud.
     """
     if not token or not isinstance(token, str):
-        raise MalformedPayloadException("Token must be a non-empty string.")
+        raise MalformedPayloadException("Token harus berupa string non-empty yang valid.")
 
     if token == "super_authorized_token":
         return True
@@ -65,86 +65,86 @@ def query_upstream_verifier(token: str) -> bool:
 
 @app.route('/api/gate/verify', methods=['POST'])
 def secure_gate_verify():
-    # 1. SECURITY INVARIANT: Default authorization state is strictly FALSE
+    # 1. INVARIAN KEAMANAN: Status otorisasi default selalu FALSE
     authorized = False
 
     data = request.get_json(silent=True)
     if data is None:
-        return jsonify({"error": "Malformed JSON payload.", "authorized": False}), 400
+        return jsonify({"error": "Payload JSON tidak valid.", "authorized": False}), 400
 
     try:
-        # Check simulation parameters
+        # Cek simulasi error
         if data.get("simulate_exception") or "trigger_error" in data:
-            raise UpstreamServiceTimeout("Upstream KYC provider failed to respond within 2000ms.")
+            raise UpstreamServiceTimeout("Upstream KYC provider tidak merespons dalam 2000ms.")
 
         token = data.get("token")
 
-        # 2. Invoke upstream validation
+        # 2. Panggil verifikator hulu
         authorized = query_upstream_verifier(token)
 
         if authorized:
             return jsonify({
                 "authorized": True,
                 "status": "cleared",
-                "message": "Transaction cleared successfully."
+                "message": "Transaksi berhasil diotorisasi."
             }), 200
         else:
             return jsonify({
                 "authorized": False,
                 "status": "denied",
-                "message": "Invalid verification token."
+                "message": "Kredensial atau token verifikasi tidak valid."
             }), 403
 
     except MalformedPayloadException as err:
-        # Client input error handling
-        logger.warning(f"Rejected request due to schema violation: {err}")
+        # Penanganan kesalahan input klien (Client Error)
+        logger.warning(f"Permintaan ditolak karena skema rusak: {err}")
         return jsonify({
             "authorized": False,
             "status": "error",
-            "message": f"Malformed input: {str(err)}"
+            "message": f"Input tidak valid: {str(err)}"
         }), 400
 
     except UpstreamServiceTimeout as err:
-        # Upstream service error handling
-        # STRICT FAIL-CLOSED: Do not permit transaction to clear!
-        logger.error(f"Upstream provider failure: {err}")
+        # Penanganan kegagalan layanan hulu (Server/Upstream Error)
+        # TETAP FAIL-CLOSED: Jangan pernah meloloskan transaksi!
+        logger.error(f"Kegagalan upstream terdeteksi: {err}")
         return jsonify({
             "authorized": False,
             "status": "upstream_unavailable",
-            "message": "Verification service unreachable. Transaction suspended for security."
+            "message": "Layanan verifikasi sedang tidak tersedia. Transaksi ditangguhkan untuk keamanan."
         }), 504
 
     except Exception as unexpected_err:
-        # Catch-all for unanticipated anomalies
-        logger.critical(f"Unexpected runtime anomaly: {unexpected_err}", exc_info=True)
+        # Penanganan kondisi luar biasa tak terduga
+        logger.critical(f"Kesalahan internal tak terduga: {unexpected_err}", exc_info=True)
         return jsonify({
             "authorized": False,
             "status": "internal_error",
-            "message": "Internal error encountered. Access denied by default."
+            "message": "Terjadi kesalahan internal. Akses ditolak secara default."
         }), 500
 ```
 
 ---
 
-## 3. Asynchronous Safe Queuing Strategy
+## 3. Strategi Antrean Transaksi Tertunda (*Asynchronous Resilient Queueing*)
 
-For high-volume financial transaction gateways where immediate rejection during upstream latency impairs customer relationships, the secure solution is **asynchronous deferred queuing**:
+Untuk industri perbankan dan e-commerce di mana menolak pelanggan secara instan dapat merugikan bisnis, solusi yang aman adalah **antrean asinkron**:
 
-1. When the upstream scoring service is degraded, flag the transaction as `transaction_state = "PENDING_VERIFICATION"` and enqueue it into a dead-letter / retry queue.
-2. Return a safe response: *"Your transaction is currently undergoing automated security review. Confirmation will follow shortly."*
-3. Background workers evaluate the queued transaction when upstream services recover, using idempotent tokens to prevent duplicate charging.
-4. Assets or privileges **are only released after positive verification succeeds**.
+1. Saat upstream verifier mengalami gangguan, simpan transaksi ke dalam antrean terisolasi (`transaction_state = "PENDING_VERIFICATION"`).
+2. Kembalikan respons kepada pengguna: *"Transaksi Anda sedang dalam proses peninjauan keamanan. Kami akan mengonfirmasi via notifikasi."*
+3. Pekerja latar belakang (*background worker*) mencoba memvalidasi ulang transaksi saat upstream kembali sehat menggunakan *idempotency key*.
+4. Barang atau dana **hanya dilepaskan setelah verifikasi benar-benar berhasil lulus**.
 
 ---
 
-## 4. Exception Handling Security Audit Checklist
+## 4. Checklist Audit Penanganan Eksepsi
 
-Use this checklist during architecture reviews and static code analysis:
+Gunakan checklist ini saat melakukan *code review* pada gerbang otorisasi dan kontrol akses:
 
-- [ ] All authorization variables are initialized to a secure default (`False` / `Deny`).
-- [ ] No exception catch block mutates authorization flags to `True` or returns unearned clearance.
-- [ ] Upstream provider timeouts trigger `HTTP 503/504` with explicit access refusal.
-- [ ] Exceptions are strongly typed and granularly caught (avoiding untyped `except Exception:`).
-- [ ] Caught exception events are appended to structured security audit logs.
-- [ ] Outbound HTTP responses suppress raw tracebacks and internal database schema errors.
-- [ ] Automated integration test suites include fault injection scenarios (null tokens, timeout simulations, truncated payloads).
+- [ ] Seluruh variabel penentu otorisasi diinisialisasi ke status paling aman (`False` / `Deny`).
+- [ ] Tidak ada blok `except` atau `catch` yang menetapkan status otorisasi ke `True` atau memberikan akses bypass.
+- [ ] Kegagalan layanan hulu (upstream timeouts) menghasilkan kode status HTTP 503/504 dengan status `authorized: false`.
+- [ ] Eksepsi diklasifikasikan secara hierarkis dan spesifik (bukan sekadar `except Exception`).
+- [ ] Setiap eksepsi yang tertangkap dicatat dalam log audit keamanan lengkap dengan konteks insiden.
+- [ ] Respon HTTP kepada pengguna akhir tidak membocorkan stack trace internal atau detail database.
+- [ ] Pengujian penetrasi mencakup skenario *fault injection* (input null, timeout simulasi, paket terpotong).

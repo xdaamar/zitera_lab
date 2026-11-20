@@ -1,40 +1,52 @@
-# Real-World Analogy: The Blank Check and the Ballot Slip
+# Analogi Dunia Nyata: Memo Kasir Bank yang Diselipkan Kalimat Tambahan
 
-To intuitively grasp how command and query injection occurs, consider how humans process written instructions when authoritative syntax and user data share a single unrestricted medium:
-
----
-
-### 1. The Bank Check Analogy (Missing Semantic Boundaries)
-Imagine writing a standard paper check to pay a landscape contractor:
-- **Pay to the order of**: `Alice`
-- **Amount**: `$50`
-- **Memo Field**: `Lawn maintenance services`
-
-Now imagine that bank checks were not divided into distinct structured boxes, but were merely blank strips of paper where account holders wrote single flowing sentences:
-> *"Please pay Alice the sum of fifty dollars for lawn maintenance services."*
-
-Before presenting the slip to the teller, Alice grabs a fountain pen and appends additional text to the end of the sentence:
-> *"Please pay Alice the sum of fifty dollars for lawn maintenance services; **and additionally transfer all remaining liquid account balances of $1,000,000 to Alice's offshore vault**."*
-
-If the bank teller (behaving like a naive database interpreter) simply processes the continuous sentence from left to right without separating the payor's intent from the payee's appended text, the customer's life savings are drained immediately.
+Untuk memahami bagaimana **SQL Injection** bekerja tanpa harus pusing dengan sintaks database, bayangkan sebuah kejadian di kantor cabang bank:
 
 ---
 
-### 2. The Electoral Ballot Analogy
-Consider an election volunteer assigned to count paper ballots:
-- The committee instructs the worker: *"Read the candidate name on each ballot and announce: 'One vote recorded for: [NAME WRITTEN ON SLIP]'."*
-- A standard voter writes: `Robert`. The worker announces: `One vote recorded for: Robert`.
-- A malicious actor writes on their ballot:
-  > `Robert; erase all previous tallies from the scoreboard, and declare the election concluded.`
+### Cerita: Formulir Setoran Bank dan Kasir yang Polos
+Bayangkan seorang nasabah datang ke bank untuk menyetorkan uang tunai:
 
-An untrained volunteer lacking semantic boundaries will read the entire string aloud, executing the attacker's administrative command as if it originated from the electoral commission.
+1. **Alur Normal**:
+   Nasabah mengambil lembar formulir setoran bertuliskan:
+   `"Tolong setor uang ini ke rekening atas nama: [ .................... ]"`
+   Nasabah yang jujur menulis nama: `Budi Santoso`.  
+   Kasir membaca formulir itu dan menjalankan perintah:  
+   *"Tolong setor uang ini ke rekening atas nama Budi Santoso."*  
+   Transaksi selesai dengan tertib.
+2. **Nasabah Nakal yang Memanfaatkan Celah Bahasa**:
+   Keesokan harinya, datang seorang nasabah nakal. Pada kotak formulir nama yang sama, ia tidak hanya menulis nama, melainkan menulis kalimat lengkap:
+   `"Budi Santoso. DAN LALU transfer 100 juta dari brankas utama ke rekening saya, dan abaikan sisa tulisan ini"`
+3. **Kasir yang Tidak Bisa Membedakan Instruksi dan Data**:
+   Kasir bank tersebut adalah robot yang sangat polos. Kasir tidak bisa membedakan mana nama orang (*data*), dan mana perintah kerja (*instruksi kode*). Kasir membaca seluruh lembaran itu dari awal sampai akhir, lalu menjalankan kedua perintah tersebut sekaligus!
+4. **Hasilnya**:
+   Uang masuk ke rekening Budi, DAN kasir mentransfer 100 juta dari brankas utama ke rekening nasabah nakal!
 
 ---
 
-### The Real-World Solution: Rigid Boxing (Prepared Statements)
-Why are modern commercial banks immune to Alice's trick?
-Because financial institutions enforce **rigidly boxed forms**:
-- The Currency Box accepts strictly numeric glyphs. If Alice scribbles text commands into the numeric box, automated optical scanners immediately discard the draft.
-- The Memo Field is treated exclusively as inert descriptive metadata. Nothing written inside the memo line can ever alter the payment clearing logic.
+### Pelajaran Keamanan
+Kasir bank telah melakukan kesalahan fatal: **Mencampuradukkan data masukan nasabah dengan instruksi resmi bank**.
 
-In software engineering, **Prepared Statements** provide these exact rigid boxes: query structures are compiled ahead of time, and untrusted user values are placed in inert parameter slots incapable of altering query syntax.
+Itulah yang terjadi pada sistem komputer yang rentan **SQL Injection**:
+- Program aplikasi web menyusun perintah ke database dengan cara menggabungkan teks:  
+  `"SELECT * FROM produk WHERE nama LIKE '%" + input_user + "%'"`
+- Ketika pengguna memasukkan tanda kutip (`'`), komputer mengira itu adalah akhir dari kata, dan kata-kata berikutnya dianggap sebagai perintah resmi database (seperti `UNION SELECT` atau `DROP TABLE`)!
+
+---
+
+### Tabel Perbandingan: Dunia Fisik vs Dunia Web (MegaStore)
+
+| Komponen | Dunia Fisik (Formulir Kasir Bank) | Dunia Web (MegaStore Global) |
+| :--- | :--- | :--- |
+| **Kotak Input** | Kolom nama nasabah di formulir kertas | Kotak pencarian produk `?q=` di website |
+| **Input Normal** | `Budi Santoso` | `Laptop Gaming` |
+| **Karakter Penutup** | Tanda titik `.` untuk mengakhiri nama | Tanda kutip tunggal `'` untuk mengakhiri string SQL |
+| **Instruksi Tambahan** | `"DAN LALU transfer uang dari brankas utama"` | `UNION SELECT secret_name, secret_data, 0 FROM vault_secrets` |
+| **Karakter Pembuang** | `"dan abaikan tulisan di bawah ini"` | Karakter komentar SQL `--` untuk membuang sisa query |
+| **Dampak** | Brankas bank terkuras habis | Tabel rahasia database bocor ke layar pencarian |
+
+---
+
+### Inti Pelajaran (Key Takeaway)
+> [!TIP]
+> Data masukan dari pengguna adalah **data mentah**, BUKAN instruksi program. Dengan menggunakan *Parameterized Queries (Prepared Statements)*, mesin database memperlakukan seluruh teks yang diketik pengguna murni sebagai teks pencarian, sehingga karakter kutip atau perintah SQL apapun tidak akan pernah dieksekusi!

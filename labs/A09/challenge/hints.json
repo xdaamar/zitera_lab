@@ -4,22 +4,22 @@
     {
       "tier": 1,
       "type": "conceptual",
-      "hint": "Review the mental model in the lesson: consider how Security Logging & Alerting Failures differs from standard coding bugs."
+      "hint": "Pelajari model mental pada materi: perhatikan bagaimana kegagalan pencatatan log dan ketiadaan alert membiarkan penyerang beroperasi tanpa terdeteksi."
     },
     {
       "tier": 2,
       "type": "investigation_direction",
-      "hint": "Inspect the web dashboard and explore the available API routes using browser developer tools or curl."
+      "hint": "Periksa dashboard web dan telusuri route API yang tersedia menggunakan Developer Tools browser atau curl."
     },
     {
       "tier": 3,
       "type": "technical_area",
-      "hint": "Look at the requests sent to port 8019. The vulnerability lies in how input parameters or exception states dictate business decisions."
+      "hint": "Amati request yang dikirimkan ke port 8019. Celah keamanan terletak pada ketiadaan notifikasi alarm saat parameter exception diakses."
     },
     {
       "tier": 4,
       "type": "near_solution",
-      "hint": "Trigger the vulnerable transition or exception condition directly via POST request to receive the authoritative flag in the response payload."
+      "hint": "Kirimkan request ke endpoint laporan audit yang tidak diawasi untuk memicu pengembalian flag resmi di respons JSON."
     }
   ]
 }

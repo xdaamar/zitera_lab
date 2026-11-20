@@ -1,56 +1,56 @@
-﻿# Core Concepts: Software and Data Integrity Failures
+﻿# Konsep Mendalam: Kegagalan Integritas Perangkat Lunak dan Data
 
-Integrity is a foundational pillar of the CIA triad (Confidentiality, Integrity, Availability). In software engineering, integrity guarantees that source code, executable binaries, third-party libraries, dynamic plugins, and operational configurations remain **authentic, uncorrupted, and verifiably unmodified** since their creation by authorized signers.
+Integritas (*Integrity*) adalah pilar fundamental dari triad keamanan informasi CIA (Confidentiality, Integrity, Availability). Dalam rekayasa perangkat lunak, integritas menjamin bahwa kode sumber, biner yang dapat dieksekusi, pustaka pihak ketiga, dan dokumen konfigurasi sistem tetap berada dalam kondisi **asli, tidak termodifikasi, dan dapat dibuktikan asalnya (*authentic*)** sejak ditandatangani oleh pembuat resmi.
 
-When integrity verification mechanisms are absent, misconfigured, or bypassed, adversaries can inject malicious logic into runtime environments without needing to crack credentials or exploit low-level memory corruption bugs.
+Ketika mekanisme verifikasi integritas tidak diimplementasikan atau dirancang secara cacat, musuh dapat menyisipkan muatan berbahaya ke dalam sistem tanpa perlu membobol kata sandi atau menemukan bug memori tingkat rendah.
 
 ---
 
-## 1. Cryptographic Primitives: Encryption vs Hashes vs Digital Signatures
+## 1. Perbedaan Mendasar: Enkripsi vs Hash vs Tanda Tangan Digital
 
-A widespread engineering misconception is that encrypting communications over HTTPS/TLS inherently protects data integrity end-to-end. In reality, each cryptographic primitive serves distinct operational functions:
+Banyak pengembang keliru mengasumsikan bahwa mengenkripsi data melalui HTTPS/TLS otomatis menyelesaikan masalah integritas data. Faktanya, masing-masing primitif kriptografi memiliki tujuan berbeda:
 
-| Cryptographic Primitive | Primary Objective | What Is Guaranteed? | What Is NOT Guaranteed? |
+| Primitif Kriptografi | Tujuan Utama | Apa yang Dijamin? | Apa yang TIDAK Dijamin? |
 | :--- | :--- | :--- | :--- |
-| **Symmetric Encryption / TLS** | Confidentiality in transit | Data cannot be eavesdropped on wire by intermediary observers. | Does not guarantee that client-submitted data is trustworthy or non-malicious. |
-| **Cryptographic Hash (SHA-256)** | Accidental Tamper Detection | Generates a fixed-size deterministic digest. | Does not prove *who* generated the hash (an adversary can recompute valid hashes for malicious payloads). |
-| **Digital Signatures (Ed25519/RSA)** | Authenticity, Integrity, Non-Repudiation | Cryptographically proves data was signed by private key holder and unaltered. | Private signing keys must be securely guarded outside the application perimeter. |
+| **Enkripsi Simetris / TLS** | Kerahasiaan (*Confidentiality*) | Data tidak dapat dibaca oleh pihak ketiga saat transit di jaringan. | Tidak menjamin bahwa data yang dikirim oleh klien tepercaya atau bebas dari malware. |
+| **Kriptografis Hash (SHA-256)** | Deteksi Perubahan Tidak Sengaja | Menghasilkan sidik jari unik dari data. | Tidak membuktikan *siapa* pembuat hash (penyerang dapat membuat hash baru untuk file palsu). |
+| **Tanda Tangan Digital (Ed25519/RSA)** | Integritas, Otentisitas & Non-Repudiasi | Membuktikan bahwa payload ditandatangani oleh pemegang kunci privat tepercaya dan tidak pernah diubah. | Kunci privat harus dijaga kerahasiaannya di luar jangkauan penyerang. |
 
 ```
-Plaintext Data ───> [ SHA-256 Hash ] ───> [ Encrypt with Private Key ] ───> Digital Signature
-                                                                                  │
-                                                                                  ▼
-Receiver: Verify Signature with Public Key ─────────────────────> [ VALID / REJECT ]
+Plaintext Data ───> [ SHA-256 Hash ] ───> [ Enkripsi Kunci Privat ] ───> Tanda Tangan Digital
+                                                                                │
+                                                                                ▼
+Penerima: Verifikasi Tanda Tangan dengan Kunci Publik ───────────> [ VALID / PALSU ]
 ```
 
 ---
 
-## 2. Taxonomy of Integrity Failures (CWE Mapping)
+## 2. Taksonomi Kegagalan Integritas (CWE Mapping)
 
-OWASP A08:2025 consolidates several primary Common Weakness Enumerations (CWEs) centered around integrity:
+OWASP A08:2025 mengonsolidasikan sejumlah Common Weakness Enumerations (CWE) utama yang berkaitan dengan integritas:
 
 ### A. CWE-494: Download of Code Without Integrity Check
-An application downloads executable binaries, configuration bundles, or dynamic extensions across a network without validating asymmetric digital signatures or cryptographic hashes against a trusted root of trust. Example: Fetching auto-update installers over plaintext HTTP or unpinned HTTPS.
+Aplikasi mengunduh pembaruan executable, skrip ekstensi, atau modul dinamis melalui jaringan tanpa memverifikasi tanda tangan digital asimetris atau checksum yang ditandatangani. Contoh: Pembaruan aplikasi via HTTP polos atau HTTPS tanpa *certificate pinning* dan tanda tangan biner.
 
 ### B. CWE-502: Deserialization of Untrusted Data
-The system reconstructs serialized objects (such as Python `pickle`, Java serialized streams, PHP `unserialize()`, or Ruby unsafe YAML tags) supplied by untrusted clients. During deserialization, execution gadgets trigger arbitrary code execution inside the runtime process.
+Menerima struktur objek yang diserialisasi (seperti Python `pickle`, Java serialized objects, PHP `unserialize()`, atau tag objek Ruby YAML) dari entitas yang tidak tepercaya. Selama proses rekonstruksi objek, method berbahaya (seperti `__reduce__` di Python atau gadget chains di Java) dieksekusi otomatis oleh runtime.
 
-### C. Client-Side Integrity Assertion (Target Lab Vulnerability)
-A fatal architectural flaw where backend ingestion logic delegates integrity validation to the caller. The endpoint ingests payloads declaring attributes like:
+### C. Client-Side Integrity Assertion (Kerentanan Skenario Lab)
+Kesalahan arsitektural fatal di mana backend mendelegasikan pemeriksaan integritas kepada klien. Server menerima atribut seperti:
 ```json
 {
   "signature_verified": false,
   "signer": "external"
 }
 ```
-and directly merges them into active operational memory. This directly violates the core security principle: **Integrity assertions must always be evaluated server-side using trusted public keys or certificates**.
+dan langsung memproses muatan tersebut. Ini merupakan pelanggaran prinsip bahwa **setiap asersi integritas harus diverifikasi secara kriptografis oleh server itu sendiri menggunakan kunci publik atau sertifikat terpercaya**.
 
 ---
 
-## 3. Modern Industry Integrity Frameworks
+## 3. Framework Integritas Industri Modern
 
-To defend software ecosystems at enterprise scale, industry security consortia mandate the following frameworks:
+Untuk memerangi serangan integritas pada skala global, industri keamanan mengadopsi standar pertahanan berikut:
 
-1. **The Update Framework (TUF)**: A resilient security specification for software update systems designed to survive key compromises, rollback attacks, and freeze attacks. TUF underpins Docker Content Trust and modern automotive OTA systems.
-2. **SLSA (Supply-chain Levels for Software Artifacts)**: A multi-tier framework (Levels 1 through 4) that guarantees software provenance from isolated build environments to cryptographically attested distribution artifacts.
-3. **Sigstore & Cosign**: A modern keyless signing ecosystem leveraging short-lived OIDC certificates, transparency logs (Rekor), and public key infrastructure to sign and verify container images and release blobs.
+1. **The Update Framework (TUF)**: Spesifikasi standar keamanan pembaruan software yang tahan terhadap kompromi kunci privat parsial, serangan replay, dan pembekuan pembaruan (*freeze attacks*). TUF digunakan secara luas di Docker Content Trust dan ekosistem Python pip.
+2. **SLSA (Supply-chain Levels for Software Artifacts)**: Kerangka kerja bertingkat (Level 1 hingga 4) yang menjamin integritas kode dari commit Git, runner build yang terisolasi, hingga artefak biner yang ditandatangani dengan *provenance* yang tidak dapat disangkal.
+3. **Sigstore & Cosign**: Infrastruktur tanda tangan digital modern tanpa kunci statis (*keyless signing*) yang memanfaatkan sertifikat OIDC berumur pendek dan transparansi log (*transparency log - Rekor*) untuk biner dan kontainer container.

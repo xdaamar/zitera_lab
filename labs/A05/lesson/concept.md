@@ -1,73 +1,73 @@
-# Technical Analysis: Anatomy & Taxonomy of SQL Injection
+# Pembahasan Teknis: Anatomi dan Taksonomi Serangan SQL Injection
 
-SQL Injection vulnerabilities arise from a singular foundational flaw: **the conflation of the command control plane and the untrusted user data plane**.
+Kerentanan SQL Injection berakar pada satu kegagalan fundamental: **pencampuran jalur instruksi kode dan jalur data masukan (*conflation of control and data planes*)**.
 
 ---
 
-## 1. Root Cause: Dynamic String Concatenation
-Examine this vulnerable Python database access pattern:
+## 1. Akar Masalah: Konkatenasi String Dinamis
+Perhatikan kode Python yang rentan di bawah ini:
 ```python
 search_term = request.args.get('q', '')
-# CRITICAL DEFECT: Interpolating user input directly into SQL syntax
+# KESALAHAN FATAL: Menempelkan input pengguna langsung ke sintaks SQL
 query = f"SELECT name, category, price FROM products WHERE name LIKE '%{search_term}%'"
 cursor.execute(query)
 ```
 
-When an end-user searches for `Server`, the database executes as intended:
+Jika pengguna memasukkan kata kunci normal `Server`, mesin database mengeksekusi:
 ```sql
 SELECT name, category, price FROM products WHERE name LIKE '%Server%'
 ```
 
-However, when an adversary inputs a quotation mark (`'`), the string delimiter terminates prematurely. The remaining characters are parsed not as literal text data, but as authoritative SQL language instructions!
+Namun, jika pengguna memasukkan karakter petik tunggal (`'`), batas string SQL terputus. Input pengguna kini dianggap sebagai bagian dari struktur bahasa SQL itu sendiri!
 
 ---
 
-## 2. The Three Primary SQL Injection Taxonomies
+## 2. Tiga Kategori Utama SQL Injection
 
 ### A. In-Band SQLi (Classic SQLi)
-The adversary utilizes the identical network channel to inject payloads and view exfiltrated data within the rendered web response:
-1. **Error-Based SQLi**: Forcing the database to produce verbose internal diagnostic or conversion errors leaking table contents.
-2. **UNION-Based SQLi**: Leveraging the `UNION` operator to attach secondary custom queries to the application's legitimate `SELECT` results.
+Penyerang menggunakan saluran komunikasi yang sama untuk menyuntikkan payload dan membaca hasil eksfiltrasi data secara langsung pada halaman web:
+1. **Error-Based SQLi**: Memanipulasi query agar sengaja memicu pesan kesalahan internal database yang mencantumkan potongan data sensitif (misal: pesan error konversi tipe data).
+2. **UNION-Based SQLi**: Memanfaatkan operator `UNION` untuk menggabungkan hasil query sah aplikasi dengan hasil query kustom penyerang.
 
 ### B. Inferential SQLi (Blind SQLi)
-The web application suppresses error messages and raw database records. Attackers reconstruct records character-by-character through iterative binary (True/False) queries:
-1. **Boolean-Based Blind**: Deducing data based on subtle differences in HTML responses between true conditions (`AND 1=1`) versus false conditions (`AND 1=2`).
-2. **Time-Based Blind**: Inducing deliberate time delays (such as `pg_sleep(5)` in PostgreSQL or `WAITFOR DELAY '0:0:5'` in Microsoft SQL Server) when candidate characters evaluate to true.
+Aplikasi tidak menampilkan data database atau pesan error pada layar. Penyerang harus merekonstruksi data karakter demi karakter dengan mengajukan pertanyaan bernilai True/False:
+1. **Boolean-Based Blind**: Mengamati perbedaan konten halaman web ketika kondisi boolean benar (`AND 1=1`) dibandingkan saat salah (`AND 1=2`).
+2. **Time-Based Blind**: Memaksa database menunda respons jaringan selama durasi tertentu (misal via fungsi `pg_sleep(5)` atau `WAITFOR DELAY '0:0:5'`) jika tebakan karakter benar.
 
 ### C. Out-of-Band SQLi (OOB)
-Deployed when in-band responses and network timing channels are unstable. The adversary forces the database server to issue outbound DNS resolutions or HTTP callbacks to an external attacker-controlled infrastructure (e.g. `xp_dirtree` in MSSQL, `UTL_HTTP` in Oracle).
+Digunakan ketika penyerang tidak bisa melihat respons langsung maupun mengandalkan latensi waktu. Penyerang memicu server database untuk mengirimkan paket DNS lookup atau HTTP request ke server Command & Control milik penyerang (misal melalui fitur `xp_dirtree` di MS SQL Server atau `UTL_HTTP` di Oracle).
 
 ---
 
-## 3. Mechanics of UNION-Based Exploitation
-The `UNION` operator merges records from two discrete queries into a unified result set. For an injection payload to succeed, the database engine enforces two strict mathematical constraints:
+## 3. Anatomi Serangan UNION-Based SQL Injection
+Operator `UNION` menggabungkan baris hasil dari dua query `SELECT` yang terpisah. Agar mesin database bersedia mengeksekusi perintah `UNION`, dua syarat mutlak harus terpenuhi:
 
-### Constraint 1: Column Count Parity
-The injected query must project the exact identical number of columns as the original query. Attackers determine column count via incremental ordering:
+### Syarat 1: Jumlah Kolom Wajib Sama Persis
+Query yang diinjeksikan harus mengembalikan jumlah kolom yang identik dengan query asli aplikasi. Penyerang menentukan jumlah kolom menggunakan teknik inkremental:
 ```sql
-' ORDER BY 1 --  (Success)
-' ORDER BY 2 --  (Success)
-' ORDER BY 3 --  (Success)
-' ORDER BY 4 --  (Error: Column 4 does not exist -> Proven Column Count: 3!)
+' ORDER BY 1 --  (Sukses)
+' ORDER BY 2 --  (Sukses)
+' ORDER BY 3 --  (Sukses)
+' ORDER BY 4 --  (Error: database melaporkan kolom 4 tidak ada -> Jumlah kolom adalah 3!)
 ```
-Alternatively using NULL projection probes:
+Atau menggunakan teknik NULL injection:
 ```sql
 ' UNION SELECT NULL, NULL, NULL --
 ```
 
-### Constraint 2: Data Type Compatibility
-Each projected column in the injected query must share a compatible or coercible data type with the corresponding column in the original query (e.g., projecting string text into a string-compatible result slot).
+### Syarat 2: Tipe Data Kolom Harus Kompatibel
+Tipe data setiap kolom pada query kedua harus dapat dikonversikan ke tipe data kolom yang bersesuaian pada query pertama (misalnya teks string ke kolom bertipe string).
 
 ---
 
-## 4. SQLite Schema Enumeration & Exfiltration
-In SQLite environments (such as Lab A05), schema definitions, table names, and column declarations are indexed within the master catalog table `sqlite_master`:
+## 4. Ekstraksi Skema pada Database SQLite
+Pada mesin database SQLite (seperti yang digunakan di Lab A05), seluruh metadata skema, nama tabel, dan definisi kolom disimpan dalam tabel internal bernama `sqlite_master`:
 ```sql
--- Enumerate all user-defined tables in the database
+-- Membaca seluruh nama tabel yang ada di dalam database
 ' UNION SELECT tbl_name, sql, 0 FROM sqlite_master WHERE type='table' --
 ```
-Once hidden tables (such as `vault_secrets`) are revealed, attackers formulate the targeted extraction query:
+Begitu tabel target tersembunyi teridentifikasi (misal `vault_secrets`), penyerang menyusun query akhir untuk mengekstrak data rahasia:
 ```sql
 ' UNION SELECT secret_name, secret_data, 0 FROM vault_secrets --
 ```
-The terminal double-dash `--` comments out remaining trailing syntax generated by the backend template.
+Karakter komentar ganda `--` di akhir payload berfungsi memerintahkan parser database untuk mengabaikan seluruh sisa string query bawaan aplikasi.

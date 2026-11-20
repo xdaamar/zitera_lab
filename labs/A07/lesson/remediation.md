@@ -1,25 +1,25 @@
-﻿# Remediation and Modern Authentication Defense Strategies
+﻿# Strategi Remediasi dan Pertahanan Autentikasi Modern
 
-Brute-force attacks and authentication failures (OWASP A07:2025) remain among the most exploited attack vectors because authentication gateways are inherently exposed to the public internet. Hardening an authentication interface requires a defense-in-depth architecture combining multi-layer rate limiting, progressive delays, modern Multi-Factor Authentication (MFA), hijack-resistant session management, and comprehensive audit monitoring aligned with **NIST SP 800-63B Digital Identity Guidelines**.
+Serangan *brute-force* dan kegagalan autentikasi (OWASP A07:2025) merupakan salah satu vektor serangan paling sering dieksploitasi karena antarmuka autentikasi secara inheren terekspos ke publik. Mengamankan gateway autentikasi membutuhkan pendekatan berlapis (*defense-in-depth*) yang menggabungkan pembatasan laju (*rate limiting*), verifikasi multi-faktor (*MFA*), manajemen sesi yang kebal terhadap pembajakan, serta audit keamanan real-time sesuai panduan **NIST SP 800-63B Digital Identity Guidelines**.
 
 ---
 
-## 1. Rate Limiting Architecture & Anti-Automation Defense
+## 1. Arsitektur Rate Limiting & Perlindungan Anti-Automasi
 
-To mitigate high-speed dictionary attacks and PIN cracking, the gateway must throttle incoming attempts across multiple dimensions: per client IP address, per targeted username/identity, and across broader network subnets or autonomous system numbers (ASNs).
+Untuk menghentikan serangan tebakan kata sandi atau PIN berkecepatan tinggi, gateway harus membatasi frekuensi percobaan pada berbagai lapisan: per alamat IP, per identitas pengguna (*username*), dan per kluster jaringan (*subnet* / AS number).
 
-### Comparison of Rate Limiting Algorithms
+### Perbandingan Algoritma Rate Limiting
 
-| Algorithm | Operating Mechanism | Key Advantages | Key Drawbacks | Ideal Use Case |
+| Algoritma | Mekanisme Kerja | Kelebihan | Kelemahan | Kasus Penggunaan Ideal |
 | :--- | :--- | :--- | :--- | :--- |
-| **Fixed Window Counter** | Tracks request count within discrete fixed time slots (e.g., 60 seconds). | Extremely low memory overhead. | Vulnerable to boundary spikes (bursts across interval edges). | Low-cost public APIs. |
-| **Sliding Window Log** | Records every request timestamp in an ordered data structure (e.g., Redis ZSET). | Highly accurate; zero boundary burst anomalies. | High memory footprint under heavy traffic volumes. | Sensitive authentication endpoints / Admin login. |
-| **Sliding Window Counter** | Proporionally merges counter counts from previous and current windows. | High accuracy with constant $O(1)$ memory. | Approximated smoothing rather than exact timestamps. | High-throughput API gateways and microservices. |
-| **Token Bucket** | Adds tokens to a bucket at a fixed rate; requests consume tokens. | Supports controlled bursts without immediate rejection. | Requires strict clock synchronization. | Data upload pipelines and transactional APIs. |
+| **Fixed Window Counter** | Menghitung hitungan request dalam slot waktu tetap (misal: 60 detik). | Implementasi memori sangat ringan. | Rentan terhadap *burst traffic* di batas jendela (*boundary spikes*). | API publik berbiaya rendah. |
+| **Sliding Window Log** | Mencatat stempel waktu setiap request dalam struktur data terurut. | Sangat akurat; tidak ada lonjakan batas jendela. | Konsumsi memori tinggi jika volume request masif. | Endpoint autentikasi sensitif / login admin. |
+| **Sliding Window Counter** | Menggabungkan counter jendela sebelumnya dan jendela saat ini secara proporsional. | Akurasi tinggi dengan memori konstan $O(1)$. | Pendekatan perkiraan (*smooth approximation*). | Gateway API skala besar dan microservices. |
+| **Token Bucket** | Token ditambahkan ke keranjang dengan laju konstan; request mengonsumsi token. | Mendukung *burst traffic* terkendali tanpa penolakan instan. | Memerlukan koordinasi waktu akurat. | Upload data dan pipeline transaksi. |
 
-### Distributed Sliding Window Implementation with Redis
+### Implementasi Sliding Window Rate Limiter dengan Redis
 
-In production distributed environments, rate-limiting state must reside in a centralized, low-latency datastore such as Redis so that an attacker cannot bypass limits by round-robining requests across multiple application server nodes.
+Dalam arsitektur terdistribusi, status rate limiting harus disimpan pada shared cache seperti Redis agar penyerang tidak dapat mendistribusikan request ke beberapa instance web server.
 
 ```python
 import time
@@ -30,22 +30,22 @@ r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
 def check_rate_limit(key: str, max_requests: int = 5, window_seconds: int = 300) -> bool:
     """
-    Implements Sliding Window Rate Limiting using Redis Sorted Sets.
-    Permits up to `max_requests` within the given `window_seconds`.
+    Mengimplementasikan Sliding Window Rate Limiting menggunakan Redis Sorted Sets.
+    Mengizinkan maksimal `max_requests` dalam jendela waktu `window_seconds`.
     """
     now = time.time()
     pipeline = r.pipeline()
 
-    # 1. Remove expired timestamps outside the active sliding window
+    # 1. Hapus entri di luar jendela waktu aktif
     pipeline.zremrangebyscore(key, 0, now - window_seconds)
 
-    # 2. Count requests remaining in the active window
+    # 2. Hitung jumlah request tersisa di jendela aktif
     pipeline.zcard(key)
 
-    # 3. Add current request timestamp
+    # 3. Tambahkan stempel waktu request saat ini
     pipeline.zadd(key, {str(now): now})
 
-    # 4. Refresh TTL for Redis cleanup
+    # 4. Set waktu kadaluarsa kunci Redis
     pipeline.expire(key, window_seconds)
 
     _, current_count, _, _ = pipeline.execute()
@@ -55,25 +55,25 @@ def check_rate_limit(key: str, max_requests: int = 5, window_seconds: int = 300)
 
 ---
 
-## 2. Exponential Backoff and Progressive Delay
+## 2. Exponential Backoff dan Progressive Delay
 
-Rather than relying purely on binary blocking (allow vs reject), introducing progressive response delays (*exponential backoff*) dramatically decelerates automated brute-force attempts without causing an immediate total denial of service to legitimate users experiencing occasional typos.
+Selain membatasi jumlah request secara biner (izinkan / blokir), penerapan penundaan respons secara bertahap (*progressive delay* atau *exponential backoff*) secara dramatis mereduksi kecepatan skrip otomatis tanpa menimbulkan efek *Denial of Service* total pada pengguna yang sah.
 
-### Mathematical Formulation of Exponential Backoff
+### Rumus Matematis Exponential Backoff
 
-The response delay $T_{delay}$ after $n$ consecutive failed attempts is defined as:
+Penundaan response $T_{delay}$ setelah $n$ kegagalan beruntun diformulasikan sebagai:
 
 $$T_{delay}(n) = \min(T_{max}, T_{base} \times 2^{n - 1})$$
 
-Where:
-- $T_{base}$ is the baseline delay (e.g., $0.5$ seconds).
-- $n$ is the count of consecutive failed attempts ($n \ge 1$).
-- $T_{max}$ is an upper ceiling cap (e.g., $15$ seconds) preventing server thread exhaustion under load.
+Di mana:
+- $T_{base}$ adalah penundaan awal (misalnya $0.5$ detik).
+- $n$ adalah jumlah percobaan gagal beruntun ($n \ge 1$).
+- $T_{max}$ adalah batas atas penundaan maksimal (misalnya $15$ detik) untuk mencegah penumpukan worker server.
 
 ```python
 def calculate_backoff_delay(failed_attempts: int) -> float:
     base_delay = 0.5   # 500 ms
-    max_delay = 15.0   # 15 seconds ceiling
+    max_delay = 15.0   # Maksimal 15 detik
     if failed_attempts <= 0:
         return 0.0
     delay = base_delay * (2 ** (failed_attempts - 1))
@@ -82,60 +82,60 @@ def calculate_backoff_delay(failed_attempts: int) -> float:
 
 ---
 
-## 3. Account Lockout Policies & DoS Mitigation
+## 3. Kebijakan Penguncian Akun (*Account Lockout*) & Mitigasi DoS
 
-Traditional account lockout rules (e.g., locking an account after 5 consecutive failed attempts) introduce a critical vulnerability: **Account Lockout Denial of Service (DoS)**, where an adversary deliberately triggers locks on legitimate executive or administrative accounts.
+Penguncian akun (*Account Lockout*) tradisional (misal: kunci akun setelah 5 kegagalan login) memiliki risiko tinggi disalahgunakan penyerang untuk melakukan **Denial of Service terarah** terhadap akun target (*Account Lockout DoS*).
 
-### NIST SP 800-63B Recommendations for Account Lockout:
-1. **Avoid Permanent Lockouts**: Never require manual administrative intervention to unlock regular accounts unless malicious activity is confirmed. Implement automated temporary timeouts (e.g., 15–30 minutes).
-2. **Contextual Risk-Adaptive Challenges**: Introduce interactive CAPTCHA challenges (e.g., Cloudflare Turnstile) after 3 consecutive failures rather than immediately locking the account.
-3. **Decouple IP Throttling from Account Identity**:
-   - Throttle aggressive IP addresses independently without disrupting global user access.
-   - For distributed credential stuffing attacks targeting a single account from multiple origins, escalate to a step-up Multi-Factor Authentication challenge rather than disabling the account entirely.
+### Best Practice NIST SP 800-63B untuk Penguncian Akun:
+1. **Jangan Kunci Akun Secara Permanen**: Jangan mewajibkan kontak admin manual untuk membuka akun kecuali terindikasi pelanggaran berat. Gunakan *temporary suspension* otomatis (misal: 15–30 menit).
+2. **Kombinasikan dengan Verifikasi CAPTCHA Beradaptasi**: Picu CAPTCHA (seperti Cloudflare Turnstile atau reCAPTCHA v3) hanya setelah 3 kegagalan berurutan, bukan pada setiap percobaan awal pengguna sah.
+3. **Pemisahan Penguncian Berdasarkan Konteks**:
+   - Batasi IP agresif secara independen tanpa memblokir akun secara global.
+   - Jika satu akun diserang dari puluhan IP berbeda (*distributed credential stuffing*), aktifkan tantangan langkah kedua (*step-up MFA*) alih-alih mengunci akses total.
 
 ---
 
-## 4. Multi-Factor Authentication (MFA) Standards
+## 4. Multi-Factor Authentication (MFA) yang Kuat
 
-Single-factor authentication (passwords or PINs alone) is insufficient for administrative consoles or sensitive enterprise workloads.
+Otentikasi faktor tunggal (kata sandi atau PIN saja) tidak lagi memadai untuk melindungi data sensitif maupun konsol administratif.
 
-### Authentication Security Hierarchy:
+### Hierarki Keamanan Metode MFA:
 
 ```
-[Highest]   Hardware Security Keys (FIDO2 / WebAuthn, YubiKey)
-     │      - Phishing-resistant origin-bound cryptographic credentials
-     │      - No shared secrets stored on backend servers
+[Tertinggi] Hardware Security Key (FIDO2 / WebAuthn, YubiKey)
+     │      - Tahan terhadap Phishing (Origin-bound Cryptographic Credentials)
+     │      - Tidak menggunakan shared secret yang dapat dibocorkan server
      ▼
-[High]      Software Authenticator Applications (TOTP - RFC 6238)
-     │      - 6-digit rolling codes refreshed every 30 seconds
-     │      - Relies on symmetric shared secret seeds
+[Tinggi]    Software Authenticator App (TOTP - RFC 6238, Google Authenticator)
+     │      - Kode 6-digit berubah setiap 30 detik
+     │      - Memerlukan shared secret simetris
      ▼
-[Low]       SMS / Voice OTP (NOT RECOMMENDED for Administrative Access)
-            - Vulnerable to SIM swapping, SS7 interception, and real-time reverse proxies
+[Rendah]    SMS / Voice OTP (TIDAK DIREKOMENDASIKAN untuk Administrasi)
+            - Rentan terhadap SIM Swapping, SS7 Interception, dan Phishing Real-time
 ```
 
-### TOTP Verification Implementation (RFC 6238) in Python
+### Implementasi Verifikasi TOTP (RFC 6238) dalam Python
 
 ```python
 import pyotp
 
 def verify_user_totp(user_secret: str, user_provided_otp: str) -> bool:
     """
-    Verifies TOTP tokens with a +/- 30 second drift window to account
-    for minor client-server clock desynchronization.
+    Memverifikasi token TOTP dengan jendela toleransi 30 detik sebelum dan sesudah
+    untuk mengantisipasi desinkronisasi jam perangkat klien.
     """
     totp = pyotp.TOTP(user_secret)
-    # valid_window=1 allows 1 interval (30s) prior and 1 interval after current slot
+    # valid_window=1 mengizinkan 1 interval (30s) sebelum dan 1 interval sesudah
     return totp.verify(user_provided_otp, valid_window=1)
 ```
 
 ---
 
-## 5. Hijack-Resistant Session Management
+## 5. Manajemen Sesi yang Kebal Terhadap Pembajakan
 
-Once a user successfully authenticates, session state integrity must be protected against session hijacking, fixation, and eavesdropping.
+Setelah pengguna berhasil melewati proses autentikasi, integritas sesi harus dijaga agar token tidak dapat dicuri atau dipalsukan.
 
-### Hardened HTTP Session Cookie Attributes:
+### Rangkaian Pengamanan Cookie Sesi HTTP:
 
 ```http
 Set-Cookie: zitera_session_id=d8f4a179e8c3b40182f7c0a9...;
@@ -147,17 +147,17 @@ Set-Cookie: zitera_session_id=d8f4a179e8c3b40182f7c0a9...;
     Max-Age=3600
 ```
 
-1. **HttpOnly**: Prohibits client-side scripts (`document.cookie`) from accessing session tokens, mitigating cookie exfiltration via Cross-Site Scripting (XSS).
-2. **Secure**: Mandates transmission exclusively over encrypted HTTPS/TLS connections.
-3. **SameSite=Strict**: Restricts cookie inclusion on cross-site navigation, completely eliminating Cross-Site Request Forgery (CSRF) vectors.
-4. **Session Fixation Defense**: Always invalidate pre-existing session identifiers and issue newly generated tokens upon authentication transition.
-5. **High Entropy Token Generation**: Session identifiers must be derived from cryptographically secure pseudo-random number generators (CSPRNG, such as `secrets.token_hex(32)` or Go's `crypto/rand`), providing at least 128 bits of true entropy.
+1. **HttpOnly**: Mencegah script klien (`document.cookie`) membaca token sesi, memitigasi pencurian sesi melalui Cross-Site Scripting (XSS).
+2. **Secure**: Menginstruksikan browser hanya mengirimkan cookie melalui koneksi terenkripsi HTTPS / TLS.
+3. **SameSite=Strict**: Memblokir cookie agar tidak disertakan dalam permintaan lintas-situs (*cross-site requests*), mengeliminasi vektor serangan Cross-Site Request Forgery (CSRF).
+4. **Session Fixation Defense**: Selalu hapus sesi lama dan buat ID sesi baru (*session regeneration*) segera setelah pengguna berhasil login.
+5. **Entropy Token**: ID sesi harus dihasilkan menggunakan generator bilangan acak kriptografis (*CSPRNG* seperti `secrets.token_hex(32)` atau `crypto/rand` di Go) dengan entropi minimal 128 bit.
 
 ---
 
-## 6. Secure Backend Architecture (Refactored Flask Endpoint)
+## 6. Contoh Arsitektur Backend Aman (Refactor Flask Endpoint)
 
-Below is the production-hardened refactoring of the previously vulnerable `OmniAuth Admin Gateway`:
+Berikut adalah perbaikan komprehensif untuk gateway autentikasi `OmniAuth Admin Gateway` yang sebelumnya rentan:
 
 ```python
 import secrets
@@ -168,7 +168,7 @@ from werkzeug.security import check_password_hash
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 
-# Hardened cookie configuration
+# Konfigurasi keamanan cookie
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
@@ -183,12 +183,12 @@ def secure_admin_pin_login():
     client_ip = request.remote_addr
     now = time.time()
 
-    # 1. Enforce active lockout status
+    # 1. Periksa status lockout
     if client_ip in LOCKOUT_TIME:
         if now < LOCKOUT_TIME[client_ip]:
             remaining = int(LOCKOUT_TIME[client_ip] - now)
             return jsonify({
-                "error": f"Access suspended due to excessive attempts. Retry in {remaining} seconds."
+                "error": f"Akses ditangguhkan karena terlalu banyak kegagalan. Coba lagi dalam {remaining} detik."
             }), 429
         else:
             del LOCKOUT_TIME[client_ip]
@@ -197,8 +197,8 @@ def secure_admin_pin_login():
     data = request.get_json(silent=True) or {}
     pin = data.get("pin", "")
 
-    # Pre-computed cryptographic hash (using Argon2id or PBKDF2)
-    # Direct plaintext comparisons are prohibited
+    # Hash tersimpan dari PIN yang aman (menggunakan Argon2id atau PBKDF2)
+    # Bukan komparasi plaintext langsung
     CORRECT_PIN_HASH = "pbkdf2:sha256:600000$..."
 
     is_valid = check_password_hash(CORRECT_PIN_HASH, str(pin))
@@ -207,21 +207,21 @@ def secure_admin_pin_login():
         current_fails = FAILED_ATTEMPTS.get(client_ip, 0) + 1
         FAILED_ATTEMPTS[client_ip] = current_fails
 
-        # Apply exponential backoff delay
+        # Terapkan progressive backoff delay
         time.sleep(min(0.2 * (2 ** (current_fails - 1)), 2.0))
 
         if current_fails >= 5:
-            LOCKOUT_TIME[client_ip] = now + 900  # Lock for 15 minutes (900s)
+            LOCKOUT_TIME[client_ip] = now + 900  # Kunci selama 15 menit (900s)
             return jsonify({
-                "error": "Threshold exceeded. IP address temporarily suspended for 15 minutes."
+                "error": "Batas percobaan terlampaui. Alamat IP ditangguhkan selama 15 menit."
             }), 429
 
         return jsonify({
-            "error": "Invalid credentials",
+            "error": "Kredensial tidak valid",
             "attempts_remaining": 5 - current_fails
         }), 401
 
-    # Authentication Success: Reset failures and regenerate session
+    # Login Berhasil: Reset kegagalan dan regenerasi sesi
     FAILED_ATTEMPTS.pop(client_ip, None)
     session.clear()
     session['admin_authenticated'] = True
@@ -230,21 +230,21 @@ def secure_admin_pin_login():
 
     return jsonify({
         "status": "success",
-        "message": "Authentication successful. Welcome, Administrator."
+        "message": "Autentikasi berhasil. Selamat datang, Administrator."
     }), 200
 ```
 
 ---
 
-## 7. Authentication Security Verification Checklist
+## 7. Checklist Verifikasi Keamanan Autentikasi
 
-Use this checklist during security audits, code reviews, and penetration testing:
+Gunakan checklist ini saat melakukan *code review* atau pengujian penetrasi antarmuka autentikasi:
 
-- [ ] All authentication endpoints enforce per-IP and per-account rate limits.
-- [ ] Progressive exponential backoff is triggered upon consecutive failures.
-- [ ] Passwords and sensitive secrets are verified using slow, memory-hard hashing algorithms (Argon2id, bcrypt, PBKDF2).
-- [ ] Response timing is normalized between valid and invalid usernames to prevent user enumeration.
-- [ ] Pre-authentication session IDs are destroyed and regenerated immediately upon successful login.
-- [ ] Session cookies enforce `Secure`, `HttpOnly`, and `SameSite=Strict` or `Lax`.
-- [ ] Multi-Factor Authentication (FIDO2/TOTP) is enforced for all administrative and privileged access.
-- [ ] Audit logs record all authentication attempts with IP, timestamp, and result (never logging cleartext credentials).
+- [ ] Seluruh endpoint autentikasi membatasi request per IP dan per akun (*Rate Limiting*).
+- [ ] Penundaan respons bertahap (*Exponential Backoff*) diaktifkan pada kegagalan berulang.
+- [ ] Kata sandi dan rahasia diverifikasi menggunakan algoritma *password hashing* lambat berkekuatan tinggi (Argon2id, bcrypt, atau PBKDF2).
+- [ ] Waktu respons login konsisten terhadap *valid username* dan *invalid username* guna mencegah *user enumeration timing attacks*.
+- [ ] Session ID diregenerasi setelah autentikasi berhasil untuk mencegah serangan *Session Fixation*.
+- [ ] Cookie sesi membawa flag `Secure`, `HttpOnly`, dan `SameSite=Strict` atau `Lax`.
+- [ ] Fitur MFA (WebAuthn/TOTP) diwajibkan untuk semua akses administratif dan endpoint kritis.
+- [ ] Log audit mencatat kegagalan dan keberhasilan login lengkap dengan IP, stempel waktu, dan identitas (tanpa pernah mencatat kata sandi plaintext).

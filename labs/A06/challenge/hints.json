@@ -4,22 +4,22 @@
     {
       "tier": 1,
       "type": "conceptual",
-      "hint": "Review the mental model in the lesson: consider how Insecure Design differs from standard coding bugs."
+      "hint": "Pelajari model mental pada materi: pahami bagaimana celah Insecure Design berbeda secara fundamental dari bug kodingan biasa."
     },
     {
       "tier": 2,
       "type": "investigation_direction",
-      "hint": "Inspect the web dashboard and explore the available API routes using browser developer tools or curl."
+      "hint": "Periksa dashboard web dan telusuri route API yang tersedia menggunakan Developer Tools browser atau curl."
     },
     {
       "tier": 3,
       "type": "technical_area",
-      "hint": "Look at the requests sent to port 8016. The vulnerability lies in how input parameters or exception states dictate business decisions."
+      "hint": "Amati request yang dikirimkan ke port 8016. Celah keamanan terletak pada bagaimana parameter input atau kondisi exception menentukan keputusan alur bisnis."
     },
     {
       "tier": 4,
       "type": "near_solution",
-      "hint": "Trigger the vulnerable transition or exception condition directly via POST request to receive the authoritative flag in the response payload."
+      "hint": "Picu transisi rentan atau kondisi exception secara langsung via request POST untuk menerima flag resmi di dalam respons payload."
     }
   ]
 }

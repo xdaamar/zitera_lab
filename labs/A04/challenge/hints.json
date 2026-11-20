@@ -4,22 +4,22 @@
     {
       "tier": 1,
       "type": "conceptual",
-      "hint": "Unsalted hash functions like MD5 produce deterministic outputs that are indexed in public lookup tables and rainbow databases."
+      "hint": "Celah kriptografi pada sistem ini berkaitan dengan penyimpanan hash kata sandi yang tidak menggunakan salt dan memakai fungsi hash deterministik yang usang (MD5)."
     },
     {
       "tier": 2,
       "type": "investigation_direction",
-      "hint": "Check the /api/audit/hashes endpoint to inspect stored password hashes for all users."
+      "hint": "Periksa endpoint API audit /api/audit/hashes untuk menginspeksi daftar hash kata sandi yang tersimpan bagi semua pengguna."
     },
     {
       "tier": 3,
       "type": "technical_area",
-      "hint": "The administrator's hash is '21232f297a57a5a743894a0e4a801fc3'. A 32-character hex string is typical for MD5."
+      "hint": "Hash akun administrator berupa string hex 32 karakter '21232f297a57a5a743894a0e4a801fc3'. Karena dibuat dengan MD5 tanpa salt, kamu dapat memecahkannya via rainbow table atau lookup database."
     },
     {
       "tier": 4,
       "type": "near_solution",
-      "hint": "21232f297a57a5a743894a0e4a801fc3 is the MD5 hash of 'admin'. Log in as admin:admin and open /vault to retrieve the flag."
+      "hint": "Hash 21232f297a57a5a743894a0e4a801fc3 adalah MD5 dari 'admin'. Masuk dengan akun admin:admin dan buka /vault untuk mengambil flag."
     }
   ]
 }

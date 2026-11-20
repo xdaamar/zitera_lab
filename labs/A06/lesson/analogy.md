@@ -1,41 +1,46 @@
-﻿# Real-World Analogy: The Ten-Ton Vault Door with Drywall Partitions
+﻿# Analogi Dunia Nyata: Mesin Kasir Toko yang Tombol "Lunas" Bisa Ditekan Pembeli
 
-To understand why Insecure Design cannot be resolved simply by refining code syntax, consider how a bank constructs a secure bullion vault:
-
----
-
-### 1. The World's Strongest Vault Door (Flawless Implementation)
-The bank board allocates significant capital to purchase the most advanced vault door available:
-- The door is forged from 10 tons of solid explosive-resistant hardened alloy steel.
-- The locking mechanism utilizes dual biometric fingerprint scanners and multi-dial rotary cylinders.
-- The mechanical hinges are perfectly machined and lubricated, functioning flawlessly with zero mechanical glitches (*zero implementation defects*).
+Untuk memahami apa itu **Insecure Design** tanpa kebingungan teknis, mari kita gunakan analogi kasir toko elektronik:
 
 ---
 
-### 2. The Architectural Blueprint Oversight (Insecure Design)
-When the lead architect drafts the building schematics, prioritizing cost savings and rapid construction deadlines:
-- The architect specifies surrounding vault walls built from lightweight wooden studs and **1-centimeter drywall plasterboard**, rather than reinforced concrete and steel rebar.
-- The design review team fails to ask: *"What if an intruder chooses not to attack the impenetrable door, but instead breaches the surrounding perimeter?"* (*omission of threat modeling*).
+### Cerita: Toko Elektronik Mewah dengan Kasir Otomatis
+Bayangkan sebuah toko gadget mewah merancang sistem kasir mandiri (*Self-Checkout Counter*):
+
+1. **Aturan Bisnis Resmi**:
+   Pemilik toko menetapkan aturan:
+   - Barang seharga di bawah 500 ribu (misal: casing HP, kabel charger) boleh langsung dibayar di mesin kasir tanpa pengawasan staf.
+   - Barang mahal di atas 50 juta (misal: Laptop Gaming Tier-0, Server Rak) **wajib diperiksa oleh Manajer Toko** sebelum diserahkan ke pembeli. Manajer harus memeriksa kartu identitas dan bukti transfer bank.
+2. **Cacat Desain Mesin Kasir**:
+   Arsitek sistem yang merancang mesin kasir membuat layar sentuh dengan 4 tombol status:
+   `[ 1. DRAFT ]` $\rightarrow$ `[ 2. TINJAUAN MANAJER ]` $\rightarrow$ `[ 3. KLIRING BANK ]` $\rightarrow$ `[ 4. SUDAH LUNAS / DISPATCHED ]`
+   Namun, arsitek tersebut lupa membuat tombol nomor 4 terkunci untuk pembeli! Tombol nomor 4 dibiarkan menyala hijau di layar sentuh pembeli.
+3. **Aksi Pembeli Nakal**:
+   Seorang pembeli memilih server komputer seharga $50,000 (sekitar 800 juta rupiah). Layar kasir menampilkan status: `DRAFT`.
+   Tanpa memanggil manajer toko dan tanpa mentransfer uang sepeser pun, pembeli itu langsung menekan tombol layar sentuh nomor 4: **`[ SUDAH LUNAS / DISPATCHED ]`**!
+4. **Hasilnya**:
+   Mesin kasir mencetak struk bertuliskan: *"Barang lunas! Silakan bawa pulang barang Anda."* Petugas keamanan di pintu keluar melihat struk bertuliskan "Lunas" dan mempersilakan pembeli itu keluar dengan membawa server mahal tersebut!
 
 ---
 
-### 3. Effortless Exploitation
-One evening, an intruder enters the facility:
-1. The intruder observes the massive 10-ton vault door, recognizes its impenetrability, and immediately ignores it.
-2. The intruder steps two feet to the right, takes out a standard utility knife, and cuts a person-sized opening through the drywall within twenty seconds.
-3. The intruder steps into the vault and carries away millions in bullion unimpeded.
+### Pelajaran Keamanan
+Bukan mesin kasirnya yang rusak secara fisik (tidak ada kabel yang konslet, tidak ada kaca yang pecah). Sistem berfungsi 100% sesuai instruksi perangkat lunak.
+Namun, **desain logika alur kerjanya yang cacat secara fundamental**: Mengizinkan pembeli menentukan sendiri status pesanannya!
 
 ---
 
-### 4. Post-Incident Forensics
-When investigative auditors arrive:
-- The vault door sensors report that the lock engaged perfectly according to factory specifications without a single mechanical fault.
-- Every bolt is intact; every sensor operated cleanly.
-- Yet the institution faces catastrophic bankruptcy because the underlying architectural design was fundamentally compromised.
+### Tabel Perbandingan: Dunia Fisik vs Dunia Web (Zitera Procurement)
+
+| Unsur Alur | Dunia Fisik (Mesin Kasir Toko) | Dunia Web (Zitera Procurement) |
+| :--- | :--- | :--- |
+| **Aset Bernilai Tinggi** | Server komputer rak seharga $50,000 | Permohonan Order `#9999` ($50,000) status `DRAFT` |
+| **Aturan Kebijakan Bisnis** | Wajib verifikasi fisik identitas oleh Manajer | Pesanan $\ge \$500$ wajib status `MANAGER_APPROVED` |
+| **Cacat Desain** | Tombol "Lunas" di layar sentuh bebas ditekan pembeli | Endpoint `/api/orders/<id>/transition` menerima input klien |
+| **Eksploitasi** | Pembeli menekan tombol "Lunas" langsung | Klien mengirim JSON `{"target_state": "DISPATCHED"}` |
+| **Dampak** | Barang dibawa kabur tanpa pembayaran | Sistem menyetujui pengiriman dan membuka Flag rahasia |
 
 ---
 
-### Core Security Takeaway
-In software engineering:
-- Writing bug-free, type-safe, and memory-safe code is equivalent to purchasing a 10-ton vault door.
-- However, if your business workflow architecture allows clients to skip managerial review steps, you have surrounded your impenetrable door with drywall.
+### Inti Pelajaran (Key Takeaway)
+> [!TIP]
+> Keamanan yang kuat harus dirancang sejak awal (*Secure by Design*). Jangan pernah mengizinkan klien memilih status berikutnya dalam suatu proses transaksi! Server harus menjadi satu-satunya pihak yang berhak mengubah status berdasarkan aturan bisnis yang ketat.

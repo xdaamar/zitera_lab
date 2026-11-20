@@ -1,8 +1,8 @@
-# System Architecture & Resilient Supply Chain Design
+# Arsitektur Sistem & Model Rantai Pasok Berintegritas Tinggi
 
-## 1. Lab A03 Architecture Topology (ApexCorp Package Registry)
+## 1. Topologi Arsitektur Lab A03 (ApexCorp Package Registry)
 
-The A03 target environment models an internal enterprise artifact cache and dependency audit gateway (*ApexCorp Dependency Inspector*) hosting build manifests on port 8013:
+Layanan lab A03 mensimulasikan sistem proxy registry dependensi internal perusahaan (*ApexCorp Dependency Inspector*) yang mengelola dan memvalidasi lockfile sebelum disebarkan ke runner produksi:
 
 ```text
 [ Developer Workstation / CI Runner ]
@@ -33,31 +33,31 @@ The A03 target environment models an internal enterprise artifact cache and depe
 
 ---
 
-## 2. Vulnerable Component Analysis
-The target application exhibits multiple structural architectural flaws:
-1. **Unscoped Package Ingestion**: The proxy accepted an unpinned, non-namespaced dependency `apex-internal-telemetry` (`v0.1.0-alpha.build.88`) lacking corporate GPG signing keys.
-2. **Unconfined Installation Lifecycle Hooks**: The malicious package configured a `postinstall_script: node ./scripts/send_env.js` hook that simulated pipeline credential harvesting (`exfiltrated_pipeline_token`).
-3. **Public Exposure of Build Telemetry**: The raw dependency audit manifest (`package_lock_audit.json`) was left publicly accessible over HTTP without authentication at `/packages/audit/package_lock_audit.json`.
+## 2. Analisis Titik Lemah Komponen (Vulnerable Component)
+Pada aplikasi target ini, terdapat kegagalan arsitektur kritis pada mekanisme build otomatis:
+1. **Kegagalan Pemisahan Scope Registry**: Sistem mempercayai paket `apex-internal-telemetry` versi `0.1.0-alpha.build.88` yang diunduh dari mirror lokal tanpa tanda tangan GPG korporat resmi.
+2. **Eksekusi Lifecycle Hook Tidak Terisolasi**: Paket jahat ini menyematkan skrip `postinstall_script: node ./scripts/send_env.js` yang secara simulatif mengekstraksi token rahasia pipeline deployment (`exfiltrated_pipeline_token`).
+3. **Eksposisi Laporan Audit Tanpa Kontrol Akses**: Laporan build mentah yang memuat seluruh metadata paket (`package_lock_audit.json`) dapat diakses secara publik tanpa autentikasi melalui endpoint `/packages/audit/package_lock_audit.json`.
 
 ---
 
-## 3. High-Assurance Supply Chain Architecture (SLSA Framework)
-To eliminate these vectors, modern architectures implement the **SLSA (Supply-chain Levels for Software Artifacts)** Level 3/4 framework:
+## 3. Arsitektur Rantai Pasok Standar Industri (SLSA Framework)
+Untuk mencegah kegagalan seperti ini, arsitektur enterprise modern harus mengadopsi kerangka kerja **SLSA (Supply-chain Levels for Software Artifacts)** Level 3/4:
 
 ```text
-[ Git Source Code ] ──▶ [ Isolated Build Runner ] ──▶ [ Cryptographic Attestation ]
- (Signed Commits)       (Hermetic Container,           (Sigstore Cosign Provenance)
-                         Zero Ambient Internet)                  │
+[ Sumber Kode Git ] ──▶ [ Isolated Build Runner ] ──▶ [ Attestation / Provenance ]
+ (Signed Commits)       (Ephemeral Container,          (Sigstore Cosign Hash)
+                         No Ambient Internet)                    │
                                                                  ▼
-                                                    [ Quarantined Artifact Repo ]
+                                                    [ Private Quarantined Repo ]
                                                                  │
-                                                    (Policy & Vulnerability Gate)
+                                                    (Security Policy Verification)
                                                                  │
                                                                  ▼
                                                     [ Production Deployment ]
 ```
 
-### Core Architecture Pillars:
-- **Hermetic Build Isolation**: Build runners execute inside isolated, ephemeral containers denied general internet access. Dependencies are supplied strictly through verified local proxy caches.
-- **Cryptographic Provenance Attestation**: Every generated binary or container image is cryptographically signed (e.g. via Cosign/Sigstore) with tamper-proof claims specifying source repository, commit SHA, and builder identities.
-- **Quarantined Ingestion Gateways**: External packages are quarantined and subjected to automated SCA scanners, behavioral sandboxing, and manual sign-off before entering internal enterprise registries.
+### Elemen Kunci Arsitektur yang Aman:
+- **Build Service Terisolasi (*Hermetic Builds*)**: Server kompilasi dijalankan dalam container sementara (*ephemeral*) tanpa akses internet bebas, hanya dapat mengakses dependensi yang telah di-cache dan diverifikasi hash integritasnya.
+- **Verifikasi Asal-Usul (*Provenance Attestation*)**: Setiap artefak binary wajib disertai metadata yang ditandatangani secara kriptografis (misalnya via Sigstore/Cosign) yang membuktikan repositori sumber, commit SHA, dan identitas runner yang membangunnya.
+- **Quarantine Registry & Dual-Key Approval**: Dependensi baru yang masuk dari publik ditempatkan di zona karantina hingga lulus pemindaian SCA otomatis dan persetujuan manual tim keamanan.

@@ -1,28 +1,28 @@
-﻿# Remediation & Structured Security Telemetry Architecture
+﻿# Remediasi & Arsitektur Telemetri Keamanan Terstruktur
 
-To resolve **OWASP A09:2025 – Security Logging and Alerting Failures**, software architectures must upgrade logging from ad-hoc text output into **a structured, tamper-evident telemetry pipeline integrated directly with SIEM detection engines**.
+Untuk mengatasi **OWASP A09:2025 – Security Logging and Alerting Failures**, arsitektur aplikasi harus mentransformasikan logging dari sekadar pencatatan teks informal menjadi **pipa telemetri keamanan terstruktur, kebal manipulasi (*tamper-evident*), dan terintegrasi langsung dengan mesin deteksi SIEM**.
 
 ---
 
-## 1. Centralized Telemetry & Log Immutability
+## 1. Arsitektur Telemetri Terpusat & Immutability
 
-In modern environments, security logs stored locally on application host filesystems are vulnerable to tampering, alteration, or deletion by adversaries who acquire shell access (*MITRE ATT&CK T1070: Indicator Removal*). Audit logs must be forwarded immediately to remote, append-only repositories enforcing **Write-Once-Read-Many (WORM)** retention policies.
+Dalam lingkungan modern, file log yang tersimpan secara lokal di mesin server rentan dimanipulasi atau dihapus oleh penyerang yang berhasil mendapatkan akses shell (*MITRE ATT&CK T1070: Indicator Removal*). Log audit keamanan harus segera dikirimkan ke repositori eksternal yang menerapkan kebijakan **Write-Once-Read-Many (WORM)**.
 
 ```
 ┌─────────────────────────────────┐
-│     Web App / API Gateway       │
+│     Aplikasi Web / Gateway      │
 │  - JSON Structured Logger       │
 │  - Correlation ID Injection     │
 └─────────────────────────────────┘
                  │
                  ▼ (gRPC / TLS Syslog / HTTPS Stream)
 ┌─────────────────────────────────┐
-│   Log Forwarder (Fluentbit)     │
+│   Log Collector (Fluentbit)     │
 └─────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────┐      Real-time Stream      ┌─────────────────────────────────┐
-│  SIEM / Central Store (Elastic) │ ─────────────────────────> │   Detection & Alerting Engine   │
+│  SIEM / Search Cluster (Elastic)│ ─────────────────────────> │   Rule Engine & Alerting        │
 │  - Immutable WORM Storage       │                            │   - Slack / PagerDuty / SOC     │
 │  - Merkle Tree Hash Chaining    │                            │   - Automated IP Ban via WAF    │
 └─────────────────────────────────┘                            └─────────────────────────────────┘
@@ -30,9 +30,9 @@ In modern environments, security logs stored locally on application host filesys
 
 ---
 
-## 2. Backend Code Refactoring: Structured Telemetry & Active Alerting
+## 2. Refactor Backend: Logging Terstruktur & Peringatan Proaktif
 
-The following Python/Flask refactor for the `Zitera SOC Audit & Telemetry Console` introduces structured JSON security events and real-time SIEM alert triggers:
+Berikut adalah refactoring aman pada backend Python/Flask untuk `Zitera SOC Audit & Telemetry Console`, menerapkan logging terstruktur dan pemantauan batas ambang alert real-time:
 
 ```python
 import datetime
@@ -43,7 +43,7 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Structured JSON Logger Configuration
+# Konfigurasi Structured JSON Logger
 class StructuredJsonFormatter(logging.Formatter):
     def format(self, record):
         log_obj = {
@@ -66,7 +66,7 @@ FAILED_LOGINS_BY_IP = {}
 
 def record_security_audit_event(category: str, action: str, severity: str, actor: dict, target: dict, outcome: str, details: dict):
     """
-    Appends a structured security event to the immutable in-memory audit stream.
+    Mencatat security event ke audit trail yang tidak dapat disangkal (non-repudiable).
     """
     event = {
         "event_id": str(uuid.uuid4()),
@@ -85,7 +85,7 @@ def record_security_audit_event(category: str, action: str, severity: str, actor
 
 def trigger_soc_alert(rule_name: str, severity: str, context: dict):
     """
-    Fires an actionable real-time security alert to SIEM and increments SOC alert counter.
+    Memicu alarm real-time ke SIEM dan menaikkan counter alert SOC.
     """
     global ALERTS_FIRED_COUNT
     ALERTS_FIRED_COUNT += 1
@@ -118,7 +118,7 @@ def secure_login():
         FAILED_LOGINS_BY_IP.pop(client_ip, None)
         return jsonify({"status": "authenticated", "role": "admin"}), 200
 
-    # Authentication Failure Handling: Audit Logging & Threshold Monitoring
+    # Tangani Kegagalan Autentikasi: Catat dan Evaluasi Batas Ambang Alert
     fails = FAILED_LOGINS_BY_IP.get(client_ip, 0) + 1
     FAILED_LOGINS_BY_IP[client_ip] = fails
 
@@ -132,16 +132,16 @@ def secure_login():
         details={"consecutive_attempts": fails}
     )
 
-    # Brute-force threshold: fire SOC alarm when failures reach or exceed 5
+    # Deteksi Brute Force: Picu Alarm SOC saat percobaan mencapai ambang batas 5x
     if fails >= 5:
         trigger_soc_alert(
             rule_name="AUTH_BRUTE_FORCE_THRESHOLD_EXCEEDED",
             severity="CRITICAL",
             context={"ip": client_ip, "target_user": user, "attempt_count": fails}
         )
-        return jsonify({"error": "Excessive failures. Access throttled and flagged to SOC."}), 429
+        return jsonify({"error": "Terlalu banyak percobaan gagal. Akses ditangguhkan dan dicatat oleh SOC."}), 429
 
-    return jsonify({"error": "Invalid credentials", "attempt": fails}), 401
+    return jsonify({"error": "Kredensial tidak valid", "attempt": fails}), 401
 
 @app.route('/api/admin/role_escalate', methods=['POST'])
 def secure_role_escalate():
@@ -152,7 +152,7 @@ def secure_role_escalate():
 
     actor_info = {"ip": client_ip, "user_agent": request.headers.get("User-Agent")}
 
-    # 1. Mandatory audit recording of privilege changes
+    # 1. Catat aksi eskalasi hak istimewa secara wajib ke Audit Trail
     record_security_audit_event(
         category="IDENTITY_AND_ACCESS",
         action="iam.role.escalated",
@@ -163,7 +163,7 @@ def secure_role_escalate():
         details={"approval_ticket": "SEC-TICK-2026"}
     )
 
-    # 2. Trigger high-severity alert for superuser role assignments
+    # 2. Picu notifikasi instan untuk setiap penetapan peran administrator
     if new_role == "super_admin":
         trigger_soc_alert(
             rule_name="SUPERUSER_PRIVILEGE_ASSIGNED",
@@ -173,31 +173,31 @@ def secure_role_escalate():
 
     return jsonify({
         "status": "granted",
-        "message": f"User {target_user} assigned role {new_role} with audit trace logged.",
+        "message": f"User {target_user} berhasil diubah perannya menjadi {new_role} dengan jejak audit lengkap.",
         "audit_recorded": True
     }), 200
 ```
 
 ---
 
-## 3. SIEM Detection Rules & Alert Calibration
+## 3. Desain Peringatan SIEM & Korelasi Multivariat
 
-To prevent operational alert fatigue, SIEM rules must balance precision and sensitivity:
+Agar tim SOC tidak mengalami *alert fatigue* (kelelahan akibat terlalu banyak alarm palsu), aturan deteksi harus dikalibrasi secara cermat:
 
-1. **Sliding Time-Window Aggregations**: Evaluate events over bounded durations (e.g., 5 failures in 300 seconds).
-2. **Multivariate Threat Correlation**: Correlate application-tier authentication failures with network firewall alerts and geo-IP velocity anomalies.
-3. **Automated Incident Response (SOAR)**: Leverage Security Orchestration, Automation, and Response playbooks to temporarily blacklist offending IPs on perimeter WAFs without requiring manual human dispatch.
+1. **Korelasi Berbasis Waktu**: Kelompokkan beberapa peristiwa gagal dalam rentang waktu terukur (misal: 5 peristiwa dalam 300 detik).
+2. **Korelasi Multivariat**: Hubungkan kegagalan otentikasi di aplikasi dengan anomali geolokasi IP atau lalu lintas DNS yang mencurigakan.
+3. **Automated Containment (SOAR)**: Integrasikan platform Security Orchestration, Automation, and Response (SOAR) untuk secara dinamis memasukkan IP penyerang ke blokir WAF tanpa memerlukan intervensi manusia manual.
 
 ---
 
-## 4. Telemetry and Audit Verification Checklist
+## 4. Checklist Audit Telemetri dan Deteksi Keamanan
 
-Use this checklist during architecture reviews and penetration testing audits:
+Gunakan checklist ini dalam peninjauan arsitektur telemetri:
 
-- [ ] Every authentication and authorization failure is captured with source IP and UTC timestamp.
-- [ ] Privileged administrative modifications (role changes, credential resets, key rotations) are audited unconditionally.
-- [ ] Logs are formatted as structured JSON resistant to CRLF log injection attacks.
-- [ ] PII, passwords, payment tokens, and cryptographic keys are strictly excluded from audit payloads.
-- [ ] Real-time alert triggers monitor repeated failure thresholds and high-risk administrative escalations.
-- [ ] Log events stream to an external immutable, append-only repository (WORM compliance).
-- [ ] Incident response teams conduct regular logging health and tamper-resilience exercises.
+- [ ] Seluruh kegagalan autentikasi dan otorisasi dicatat ke log audit dengan IP sumber dan stempel waktu UTC.
+- [ ] Operasi administratif kritis (perubahan peran, reset MFA, pergantian kunci enkripsi) dicatat tanpa terkecuali.
+- [ ] Log diformat dalam skema terstruktur (JSON) yang kebal terhadap serangan CRLF log injection.
+- [ ] Informasi sensitif (kata sandi, nomor kartu kredit, token utuh) disaring sebelum log disimpan.
+- [ ] Ambang batas alert otomatis dikonfigurasi untuk serangan berulang (*brute-force* & *credential stuffing*).
+- [ ] File log ditransmisikan secara real-time ke penyimpanan terpusat yang aman dan tidak dapat diedit (*immutable WORM*).
+- [ ] Tim respons insiden secara berkala melakukan simulasi uji pemadaman log (*log tampering drills*).

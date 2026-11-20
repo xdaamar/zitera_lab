@@ -4,22 +4,22 @@
     {
       "tier": 1,
       "type": "conceptual",
-      "hint": "Review the mental model in the lesson: consider how Mishandling of Exceptional Conditions differs from standard coding bugs."
+      "hint": "Pelajari model mental pada materi: perhatikan bagaimana kegagalan penanganan exception fail-open membuka akses yang tidak sah."
     },
     {
       "tier": 2,
       "type": "investigation_direction",
-      "hint": "Inspect the web dashboard and explore the available API routes using browser developer tools or curl."
+      "hint": "Periksa dashboard web dan telusuri route API yang tersedia menggunakan Developer Tools browser atau curl."
     },
     {
       "tier": 3,
       "type": "technical_area",
-      "hint": "Look at the requests sent to port 8020. The vulnerability lies in how input parameters or exception states dictate business decisions."
+      "hint": "Amati request yang dikirimkan ke port 8020. Celah keamanan terletak pada bagaimana server merespons kondisi error yang tidak terduga."
     },
     {
       "tier": 4,
       "type": "near_solution",
-      "hint": "Trigger the vulnerable transition or exception condition directly via POST request to receive the authoritative flag in the response payload."
+      "hint": "Picu exception kondisi tak terduga via request POST untuk menerima flag resmi di response payload."
     }
   ]
 }

@@ -4,22 +4,22 @@
     {
       "tier": 1,
       "type": "conceptual",
-      "hint": "Secure authentication systems implement exponential backoff, rate limiting, and CAPTCHAs to prevent automated guessing."
+      "hint": "Sistem autentikasi yang aman wajib menerapkan penundaan eksponensial (exponential backoff), pembatasan frekuensi (rate limiting), dan penguncian akun untuk mencegah serangan tebakan otomatis."
     },
     {
       "tier": 2,
       "type": "directional",
-      "hint": "Observe the login behavior when submitting incorrect passwords multiple times. Notice that no delays or lockouts are imposed."
+      "hint": "Amati perilaku sistem saat kamu mencoba memasukkan kata sandi salah beberapa kali. Perhatikan bahwa tidak ada penundaan waktu respon ataupun blokir IP."
     },
     {
       "tier": 3,
       "type": "technical",
-      "hint": "The administrator password is a 4-digit numeric PIN representing the year this lab suite was built (2020-2030)."
+      "hint": "Kata sandi akun admin berupa PIN numerik 4 digit yang merepresentasikan tahun pembuatan paket lab ini (rentang 2020-2030)."
     },
     {
       "tier": 4,
       "type": "near_solution",
-      "hint": "Try logging in as admin with PIN 2026. Once authenticated, the flag ZITERA{4uth_f41lur3_brut3_f0rc3_2026} is revealed."
+      "hint": "Coba login sebagai username admin dengan PIN 2026. Setelah berhasil autentikasi, flag ZITERA{4uth_f41lur3_brut3_f0rc3_2026} akan langsung terbuka."
     }
   ]
 }

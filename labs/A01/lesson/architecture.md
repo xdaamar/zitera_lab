@@ -1,66 +1,66 @@
-# Security Architecture: Layered Authorization Enforcement
+# Arsitektur Keamanan: Penegakan Otorisasi Multi-Lapis
 
-To permanently eradicate Broken Access Control vulnerabilities across enterprise web architectures, systems must not rely on single ad-hoc checks scattered throughout controller functions. The architecture must enforce a layered **Policy Enforcement Point (PEP)** and **Policy Decision Point (PDP)** model.
+Untuk mencegah kerentanan Broken Access Control secara menyeluruh pada skala enterprise, sistem tidak boleh hanya bergantung pada satu pengecekan ad-hoc di controller. Arsitektur harus menerapkan model **Policy Enforcement Point (PEP)** dan **Policy Decision Point (PDP)** berlapis.
 
 ---
 
-### End-to-End Authorization Architecture Flow
+### Alur Arsitektur Penegakan Kontrol Akses
 
 ```
-[ CLIENT / BROWSER ]
-       │  HTTP Request: GET /invoice/2
+[ KLIEN / BROWSER ]
+       │  Request HTTP: GET /invoice/2
        ▼
 ┌────────────────────────────────────────────────────────┐
 │ 1. API Gateway / Reverse Proxy                         │
 │    - Rate Limiting                                     │
-│    - Token & Session Signature Validation              │
+│    - Validasi Format Token / Session Signature         │
 └──────────────────────┬─────────────────────────────────┘
                        │
                        ▼
 ┌────────────────────────────────────────────────────────┐
-│ 2. Authentication Middleware (AuthN)                   │
-│    - Inspects Cookie / Authorization Bearer header     │
-│    - Establishes verified identity: user_id=1          │
+│ 2. Middleware Autentikasi (AuthN)                      │
+│    - Membaca Cookie / Header Authorization             │
+│    - Mengidentifikasi identitas pengguna: user_id=1    │
 └──────────────────────┬─────────────────────────────────┘
                        │
                        ▼
 ┌────────────────────────────────────────────────────────┐
 │ 3. Policy Enforcement Point (PEP)                      │
-│    - Checks whether user_id=1 is permitted to read    │
-│      target resource invoice_id=2                      │
-│    - Sends context to Policy Decision Point (PDP)      │
+│    - Memeriksa apakah user_id=1 diizinkan membaca      │
+│      faktur invoice_id=2                               │
+│    - Mengirim konteks ke Policy Decision Point (PDP)   │
 └──────────────────────┬─────────────────────────────────┘
-                       │  Authorization DENIED (Not Owner)
+                       │  Otorisasi GAGAL (Bukan Pemilik)
                        ├────────────────────────► [ 403 / 404 Deny ]
-                       │  Authorization GRANTED
+                       │  Otorisasi SUKSES
                        ▼
 ┌────────────────────────────────────────────────────────┐
-│ 4. Data Access Layer (DAL)                             │
-│    - Scoped multi-tenant queries (Tenant Scoping)      │
+│ 4. Lapisan Akses Data (Data Access Layer / DAL)        │
+│    - Query berlingkup penyewa (Tenant Scoping)         │
 │    - SELECT * FROM invoices WHERE id=2 AND owner_id=1  │
 └──────────────────────┬─────────────────────────────────┘
                        │
                        ▼
-[ ISOLATED DATABASE ENGINE ]
+[ DATABASE SISTEM TERISOLASI ]
 ```
 
 ---
 
-### Three Core Pillars of Secure Authorization Architecture
-1. **Deny by Default:**
-   Every new endpoint, method, or resource must be blocked by default unless explicit authorization policies are declared and verified.
-2. **Session-Bound Ownership:**
-   User identity must never be extracted from untrusted client parameters (`request.args['user_id']` or request body), but must always be resolved from securely signed, server-side session stores.
-3. **Indirect Reference Maps:**
-   Never expose sequential primary keys (`1, 2, 3...`) in public APIs. Replace them with cryptographically random UUIDv4 identifiers or per-session ephemeral token lookup maps, preventing trivial enumeration attacks.
+### Tiga Pilar Arsitektur Kontrol Akses
+1. **Penolakan Secara Default (*Deny by Default*):**
+   Setiap endpoint atau rute baru harus dianggap tertutup secara default, kecuali jika aturan otorisasi eksplisit telah didefinisikan dan disetujui.
+2. **Keterikatan Konteks Sesi (*Session-Bound Ownership*):**
+   Identitas pengguna tidak boleh diambil dari parameter request (`$_GET['user_id']` atau JSON body), melainkan wajib dibaca dari data sesi server yang telah terenkripsi atau ditandatangani (*signed session*).
+3. **Peta Referensi Tidak Langsung (*Indirect Reference Maps*):**
+   Jangan pernah mengekspos ID integer berurutan (`1, 2, 3...`) ke antarmuka publik. Gunakan UUIDv4 kriptografis acak atau peta token sementara (*ephemeral tokens*) per sesi pengguna, sehingga penyerang tidak dapat menebak nomor urut data lain.
 
 ---
 
-### Role-Based Access Control (RBAC) Matrix
+### Matriks Otorisasi Berbasis Peran (RBAC)
 
-| Role | Read Own Invoices | Read Others' Invoices | Download Master Invoices | Modify System Rates |
+| Peran (Role) | Baca Faktur Sendiri | Baca Faktur Orang Lain | Unduh Master Invoice | Ubah Tarif Penagihan |
 | :--- | :---: | :---: | :---: | :---: |
-| **Anonymous (Guest)** | ❌ | ❌ | ❌ | ❌ |
+| **Anonymous (Tamu)** | ❌ | ❌ | ❌ | ❌ |
 | **Standard User (Alice/Bob)** | ✅ | ❌ | ❌ | ❌ |
 | **Auditor / Finance Staff** | ✅ | ✅ (Read-Only) | ❌ | ❌ |
 | **System Administrator** | ✅ | ✅ | ✅ | ✅ |

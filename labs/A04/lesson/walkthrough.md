@@ -1,43 +1,37 @@
-# Practice Walkthrough: Cryptographic Failures & Unsalted Hash Reversal
+# Panduan Praktik Terbimbing: Audit Kriptografi pada SafeKey Corporate Vault
 
-This walkthrough adheres to the 4-Tier Mission Progression methodology, balancing **60% manual inspection** and **40% command-line tooling**:
-
----
-
-## Tier 1: Attack Surface Observation (Weight: 15%)
-
-1. **Verify Lab Container Readiness**:
-   Open your browser and navigate to the target address:
-   `http://127.0.0.1:8014`
-
-2. **Inspect the CryptoVault Landing Page**:
-   Observe the *ZITERA CryptoVault Key Management System* dashboard:
-   - Notice the purple *Public Cryptographic Inspection Endpoints* container.
-   - Three key routes are listed:
-     - `/health` — Service health probe.
-     - `/api/audit/hashes` — Legacy audit table exposing user credential hashes.
-     - `/vault` — Master cryptographic storage (restricted to SecurityOfficer/admin).
-   - Click **Sign In to Vault** to examine the credential form at `/login`.
+Dalam latihan terarah ini, kamu akan mempraktikkan proses penemuan kelemahan algoritma hashing dan eksfiltrasi kredensial pada modul perbankan **SafeKey Corporate Vault (Banking Encryption & Credential Vault)** yang beroperasi pada `http://127.0.0.1:8014`.
 
 ---
 
-## Tier 2: Endpoint Discovery & Request Injection (Weight: 25%)
-
-1. **Probe Health Status**:
-   Verify container availability via terminal or browser:
+### Langkah 1: Observasi Antarmuka & Uji Ketersediaan Layanan
+1. Uji ketersediaan layanan melalui terminal:
    ```bash
    curl -s http://127.0.0.1:8014/health
    ```
-   *Expected response*: `{"lab":"A04","port":8014,"status":"healthy"}`
+   *Respons yang diharapkan:*
+   ```json
+   {"lab":"A04","port":8014,"status":"healthy"}
+   ```
+2. Buka peramban web dan akses halaman beranda CryptoVault:
+   `http://127.0.0.1:8014/`
+3. Amati antarmuka brankas:
+   - Terlihat panel informasi *Public Cryptographic Inspection Endpoints*.
+   - Rute penting yang terdaftar:
+     - `/health` — Endpoint status layanan.
+     - `/api/audit/hashes` — Tabel audit telemetri kredensial warisan (*legacy*).
+     - `/vault` — Enklave brankas master (dibatasi khusus peran SecurityOfficer/admin).
+4. Klik tombol **"Sign In to Vault"** untuk memeriksa antarmuka login di `/login`.
 
-2. **Inspect the Audit Hashes Endpoint**:
-   Navigate to `http://127.0.0.1:8014/api/audit/hashes` in your browser or issue a curl request:
+---
+
+### Langkah 2: Inspeksi Endpoint Audit Hashes
+1. Akses endpoint audit melalui peramban atau jalankan perintah cURL:
    ```bash
    curl -s http://127.0.0.1:8014/api/audit/hashes
    ```
-
-3. **Analyze Returned Cryptographic Material**:
-   Inspect the JSON response payload:
+2. **Analisis Struktur Dokumen JSON:**
+   Perhatikan objek records yang dikembalikan:
    ```json
    {
      "records": [
@@ -48,48 +42,45 @@ This walkthrough adheres to the 4-Tier Mission Progression methodology, balancin
      "status": "success"
    }
    ```
-   - Administrator Digest: 32-character hexadecimal string (128 bits): `21232f297a57a5a743894a0e4a801fc3`.
-   - Vulnerability Indicator: The algorithm is marked explicitly as **MD5 (Unsalted)**.
+3. **Temuan Kritis:**
+   - Semua hash menggunakan algoritma **MD5 tanpa salt** (*Unsalted*).
+   - Pengguna dengan peran tertinggi (`SecurityOfficer`) adalah akun `admin` dengan nilai hash:
+     `21232f297a57a5a743894a0e4a801fc3`
+
+> [!NOTE]
+> **💡 Di Balik Layar: Mengapa MD5 tanpa Salt sangat mudah dibongkar?**  
+> Salt adalah deretan karakter acak unik yang digabungkan ke kata sandi sebelum di-hash (misal: `password` + `x89#A!` &rarr; hash). Tanpa salt, kata sandi yang sama akan selalu menghasilkan hash yang identik di seluruh dunia:  
+> `MD5("admin")` = `21232f297a57a5a743894a0e4a801fc3`  
+> Karena deterministik, peretas telah menghitung miliaran nilai hash ini ke dalam basis data daring (*Rainbow Tables*).
 
 ---
 
-## Tier 3: Weaponization & Secret Recovery (Weight: 35%)
+### Langkah 3: Pembalikan Hash MD5 (Rainbow Table Lookup)
+1. Periksa panjang dan format string hash:
+   - `21232f297a57a5a743894a0e4a801fc3` memiliki panjang 32 karakter heksadesimal (MD5).
+2. Lakukan pencarian nilai teks asli hash tersebut menggunakan utilitas lokal, lookup table, atau kalkulator MD5:
+   - Nilai hash `21232f297a57a5a743894a0e4a801fc3` berasal dari string plaintext yang sangat umum: **`admin`**.
+3. Kredensial akun eksekutif berhasil diidentifikasi:
+   - **Username:** `admin`
+   - **Password:** `admin`
 
-1. **Reverse the Unsalted MD5 Digest**:
-   Because the hash lacks cryptographic salting, identical inputs yield identical outputs globally. Test common administrative passwords in the terminal:
+---
+
+### Langkah 4: Autentikasi ke Master Vault & Eksfiltrasi Flag
+1. Kunjungi formulir autentikasi di peramban pada `http://127.0.0.1:8014/login`.
+2. Masukkan kredensial hasil pemecahan:
+   - **Operator Account:** `admin`
+   - **Vault Passphrase:** `admin`
+3. Sistem akan memvalidasi hash dan mengalihkan Anda ke halaman rahasia:
+   `http://127.0.0.1:8014/vault`
+4. Atau kamu dapat mengeksekusi proses login dan akses brankas secara langsung melalui terminal:
    ```bash
-   # Test candidate password 'admin'
-   echo -n "admin" | md5sum
+   # 1. Login dan simpan sesi cookie
+   curl -s -c cookies.txt -d "username=admin&password=admin" http://127.0.0.1:8014/login
+
+   # 2. Akses enklave brankas master menggunakan sesi admin
+   curl -s -b cookies.txt http://127.0.0.1:8014/vault
    ```
-   *Output*: `21232f297a57a5a743894a0e4a801fc3` (Exact match with the target administrator digest).
-
-2. **Authenticate into the Portal**:
-   Navigate to the login interface at `http://127.0.0.1:8014/login`:
-   - **Username**: `admin`
-   - **Password**: `admin`
-   - Click **Authenticate**.
-
-3. **Capture the Master Vault Secret**:
-   The backend matches the MD5 hash and redirects your authenticated session to `/vault`:
-   - Authenticated Role: `SecurityOfficer (admin)`.
-   - Master Vault Activation Key in standard format: `ZITERA{...}`.
-   - Copy the displayed flag token and submit it to the Challenge tab.
-
----
-
-## Tier 4: Defensive Verification & Remediation Hardening (Weight: 25%)
-
-1. **Decommission Public Telemetry Endpoints**:
-   Remove or restrict `/api/audit/hashes` behind strict internal administrative authorization guards.
-
-2. **Migrate to Adaptive Salted Hashing (bcrypt / Argon2id)**:
-   Replace deprecated MD5 logic with modern salted hashing:
-   ```python
-   import bcrypt
-   # Generate secure hash with unique salt (cost factor 12)
-   salt = bcrypt.gensalt(rounds=12)
-   hashed = bcrypt.hashpw("admin".encode('utf-8'), salt)
-   ```
-
-3. **Verify Precomputation Resistance**:
-   Under bcrypt or Argon2id, every newly generated digest for `"admin"` produces an entirely unique string (e.g. `$2b$12$K...`), neutralizing rainbow table indices completely.
+5. Di dalam **Master Cryptographic Key Enclave**, amati banner aktivasi sistem yang memuat segel flag autoritatif:
+   `ZITERA{cryp70_f41lur35_w34k_k3y_2026}`
+6. Salin bukti flag dan submit ke formulir tantangan Zitera Lab desktop untuk menyelesaikan modul ini!

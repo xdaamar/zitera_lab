@@ -1,51 +1,35 @@
-# Practice Walkthrough: Lockfile Audit Investigation & Dependency Exfiltration
+# Panduan Praktik Terbimbing: Audit Rantai Pasok pada PackNexus Supply Hub
 
-This walkthrough follows the 4-Tier Mission Progression methodology, balancing **60% manual inspection** and **40% command-line tooling**:
-
----
-
-## Tier 1: Attack Surface Observation (Weight: 15%)
-
-1. **Verify Lab Container Status**:
-   Open your web browser and navigate to the lab target:
-   `http://127.0.0.1:8013`
-
-2. **Inspect the Registry Interface**:
-   Examine the *ApexCorp // Internal Package Registry* dashboard:
-   - Review the *Active Registry Dependencies* table.
-   - Observe row 3: the package `apex-internal-telemetry` (version `0.1.0-alpha.build.88`) displays a prominent warning status: `UNTRUSTED / UNPINNED`.
-   - The resolved repository source points to a local address (`http://127.0.0.1:8013/packages/download/`) rather than the official npm registry.
-   - Note the link to the full manifest report: `/packages/audit/package_lock_audit.json`.
+Dalam panduan terarah ini, kamu akan mempraktikkan proses audit forensik terhadap sistem registri paket dan manifest build **PackNexus Supply Hub (B2B Package Registry & Build Pipeline Hub)** yang beroperasi pada `http://127.0.0.1:8013`.
 
 ---
 
-## Tier 2: Endpoint Discovery & Request Injection (Weight: 25%)
-
-1. **Probe Health Endpoint**:
-   Verify service readiness using terminal or browser:
+### Langkah 1: Observasi Registri & Pemeriksaan Kesehatan Layanan
+1. Pastikan target lab telah berjalan dan uji ketersediaan layanan melalui terminal:
    ```bash
    curl -s http://127.0.0.1:8013/health
    ```
-   *Expected response*: `{"lab":"A03","port":8013,"status":"ok"}`
-
-2. **Manual Inspection of the Lockfile Audit Manifest**:
-   Open the audit link in your browser or run curl to retrieve the raw JSON document:
-   ```bash
-   curl -s http://127.0.0.1:8013/packages/audit/package_lock_audit.json
+   *Respons yang diharapkan:*
+   ```json
+   {"lab":"A03","port":8013,"status":"ok"}
    ```
-
-3. **Analyze the Document Structure**:
-   Notice that the document follows standard npm lockfile schema (`lockfileVersion: 3`) and contains a `dependencies` dictionary:
-   - `express` (`4.19.2`): Fetched from `https://registry.npmjs.org/` with verified sha512 integrity.
-   - `lodash` (`4.17.21`): Verified with authentic cryptographic integrity hash.
-   - `apex-internal-telemetry`: Features irregular and high-risk metadata properties.
+2. Buka peramban web dan akses portal PackNexus Supply Hub:
+   `http://127.0.0.1:8013`
+3. Perhatikan tabel **Active Registry Dependencies**:
+   - Paket `express` (v4.19.2) - Berstatus resmi terverifikasi (*Sigstore Verified*).
+   - Paket `lodash` (v4.17.21) - Berstatus resmi terverifikasi (*Sigstore Verified*).
+   - Paket `apex-internal-telemetry` (v0.1.0-alpha.build.88) - Berstatus **UNTRUSTED / UNPINNED** dengan peringatan merah menyala!
 
 ---
 
-## Tier 3: Weaponization & Secret Exfiltration Recovery (Weight: 35%)
-
-1. **Dissect Suspicious Package Metadata**:
-   Review the JSON payload for `apex-internal-telemetry`:
+### Langkah 2: Mengunduh & Menganalisis Manifest `package_lock_audit.json`
+1. Buka tautan laporan audit di browser atau unduh file JSON audit menggunakan cURL:
+   ```bash
+   curl -s http://127.0.0.1:8013/packages/audit/package_lock_audit.json
+   ```
+2. **Analisis Struktur Dokumen JSON:**
+   Perhatikan objek `dependencies` pada manifest tersebut. Paket `express` dan `lodash` memiliki asal repositori resmi npmjs serta checksum sha512 yang valid.
+3. Namun, periksa entri paket mencurigakan `apex-internal-telemetry`:
    ```json
    "apex-internal-telemetry": {
      "version": "0.1.0-alpha.build.88",
@@ -53,45 +37,32 @@ This walkthrough follows the 4-Tier Mission Progression methodology, balancing *
      "author": "shadow-developer-anonymous",
      "integrity": "sha512-poisoned_build_hash_xyz",
      "postinstall_script": "node ./scripts/send_env.js",
-     "exfiltrated_pipeline_token": "ZITERA{...}",
+     "exfiltrated_pipeline_token": "ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}",
      "warning": "CRITICAL: Package not signed with corporate GPG key; untrusted origin."
    }
    ```
 
-2. **Identify the Attack Indicators**:
-   - `author`: `shadow-developer-anonymous` (untrusted publisher identity).
-   - `postinstall_script`: `node ./scripts/send_env.js` (unauthorized lifecycle script executing upon package installation).
-   - `exfiltrated_pipeline_token`: Harvested CI/CD runner secret captured during automated build execution.
-
-3. **Validate the Retrieved Flag**:
-   Submit the exfiltrated pipeline token via the web verification form at `/api/supply-chain/verify` or via curl:
-   ```bash
-   curl -s -X POST http://127.0.0.1:8013/api/supply-chain/verify -d "token=<RECOVERED_FLAG_TOKEN>"
-   ```
-   *Expected response*:
-   ```json
-   {
-     "status": "passed",
-     "message": "Flag verified! Supply chain backdoored dependency successfully audited.",
-     "flag": "ZITERA{...}"
-   }
-   ```
+> [!NOTE]
+> **💡 Di Balik Layar: Mengapa skrip `postinstall` berbahaya?**  
+> Manajer paket seperti `npm` secara default menjalankan skrip `postinstall` segera setelah paket selesai diunduh. Jika dependensi disusupi, skrip ini berjalan dengan hak akses penuh mesin pengembang atau server CI/CD, mampu membaca variabel lingkungan (`process.env`) dan mengirimkan token rahasia ke server penyerang!
 
 ---
 
-## Tier 4: Defensive Verification & Remediation Hardening (Weight: 25%)
-
-1. **Disable Lifecycle Script Execution**:
-   Enforce non-executing installation flags inside automated CI/CD pipelines:
+### Langkah 3: Ekstraksi Token & Verifikasi Attestation Pipeline
+1. Pada atribut `exfiltrated_pipeline_token`, temukan flag validasi kepatuhan:
+   `ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}`
+2. Lakukan pengesahan token melalui formulir **Pipeline Attestation Verifier** di antarmuka web, atau kirimkan via cURL:
    ```bash
-   npm ci --ignore-scripts
+   curl -s -X POST http://127.0.0.1:8013/api/supply-chain/verify \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "token=ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}"
    ```
-
-2. **Audit Lockfile Dependencies**:
-   Perform automated dependency vulnerability scanning prior to packaging:
-   ```bash
-   npm audit --audit-level=high
+3. **Respons Konfirmasi Keberhasilan:**
+   ```json
+   {
+     "status": "passed",
+     "message": "Token verified! Supply chain audit completed successfully.",
+     "verified_token": "ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}"
+   }
    ```
-
-3. **Enforce Private Scoped Namespaces**:
-   Configure `.npmrc` to strictly route internal corporate scopes (e.g. `@apexcorp/`) exclusively to authenticated private registries.
+4. Salin flag `ZITERA{5upply_ch41n_p0150n1ng_d3p_2026}` dan kirimkan (*submit*) ke Zitera Lab desktop untuk menyelesaikan tantangan ini!

@@ -1,35 +1,35 @@
-﻿# Core Concepts: Security Telemetry, Auditing & SIEM Alerting
+﻿# Konsep Mendalam: Telemetri Keamanan, Audit, dan Alerting
 
-Modern security operations depend upon three mutually reinforcing pillars: **Logging**, **Auditing**, and **Alerting**. A defect or omission in any of these components degrades the organization's overall Incident Detection and Response posture.
+Sistem pemantauan keamanan modern beroperasi di atas tiga pilar yang saling melengkapi: **Logging**, **Auditing**, dan **Alerting**. Kegagalan pada salah satu pilar ini melemahkan seluruh postur deteksi insiden (*incident detection & response*).
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                   SYSTEM SECURITY TELEMETRY            │
+│                      TELEMETRI SISTEM                   │
 ├────────────────────┬───────────────────┬───────────────┤
 │      LOGGING       │     AUDITING      │   ALERTING    │
 ├────────────────────┼───────────────────┼───────────────┤
-│ Continuous stream  │ Tamper-evident,   │ Real-time     │
-│ of system events   │ non-repudiable    │ notifications │
-│ for diagnostics    │ proof of critical │ to SOC when   │
-│ and troubleshooting│ user transactions │ anomaly lines │
-│                    │ (compliance)      │ are crossed   │
+│ Mencatat seluruh   │ Jejak bukti tak   │ Peringatan    │
+│ aliran event untuk │ terbantahkan      │ real-time ke  │
+│ debugging dan      │ terkait aksi      │ tim SOC saat  │
+│ operasional umum   │ pengguna kritis   │ ambang bahaya │
+│                    │ (compliance)      │ terlampaui    │
 └────────────────────┴───────────────────┴───────────────┘
 ```
 
 ---
 
-## 1. Anatomy of a High-Fidelity Security Event Schema
+## 1. Anatomi Peristiwa Keamanan Kritis (*Security Event Schema*)
 
-Effective security logging goes beyond unstructured free-form text strings like `print("Login failed")`. Security events must adhere to a standardized, machine-parsable schema (such as JSON or CEF/CECS) that can be ingested, indexed, and analyzed automatically by SIEM systems (e.g., Splunk, Elastic SIEM, or Wazuh).
+Pencatatan log keamanan yang efektif tidak cukup hanya berupa pesan teks sembarang seperti `print("Login gagal")`. Log harus mengikuti skema terstruktur (seperti JSON) yang dapat di-ingest dan diindeks secara otomatis oleh SIEM (Security Information and Event Management) seperti Splunk, Elastic SIEM, atau Wazuh.
 
-### Mandatory Attributes in Security Events:
-1. **Timestamp**: UTC ISO 8601 with millisecond precision (`2026-11-15T12:00:00.123Z`).
-2. **Event Identifier & Category**: Standardized taxonomy (e.g., `auth.attempt.failed` or `iam.privilege.escalated`).
-3. **Actor Context**: Unique user identity (`user_id`, username, or hashed session ID).
-4. **Network Origin**: Remote client IP address (`client_ip`), port, and client User-Agent string.
-5. **Target Resource**: The entity or asset being manipulated (`resource_id`, `target_role`).
-6. **Outcome**: Discrete result of the action (`SUCCESS`, `FAILURE`, `DENIED`).
-7. **Severity Level**: Standardized severity rating (`DEBUG`, `INFO`, `WARN`, `HIGH`, `CRITICAL`).
+### Atribut Wajib dalam Security Event:
+1. **Timestamp**: Format UTC ISO 8601 dengan presisi milidetik (`2026-11-15T12:00:00.123Z`).
+2. **Event Identifier & Category**: Klasifikasi baku, misal `auth.attempt.failed` atau `iam.privilege.escalated`.
+3. **Actor Context**: Pengenal unik pengguna (`user_id`, username, atau token ID parsial).
+4. **Network Origin**: IP sumber (`client_ip`), port, dan User-Agent klien.
+5. **Target Resource**: Objek atau entitas yang menjadi sasaran aksi (`resource_id`, `target_role`).
+6. **Outcome**: Status keberhasilan aksi (`SUCCESS`, `FAILURE`, `DENIED`).
+7. **Severity**: Klasifikasi keparahan (`DEBUG`, `INFO`, `WARN`, `HIGH`, `CRITICAL`).
 
 ```json
 {
@@ -53,36 +53,36 @@ Effective security logging goes beyond unstructured free-form text strings like 
 
 ---
 
-## 2. Sensitive Data Prohibitions in Audit Streams
+## 2. Larangan Informasi Sensitif dalam Log (Data Privacy & Compliance)
 
-While logging too little creates detection blind spots, logging forbidden data creates severe privacy and regulatory liabilities (*Data Leakage via Logging*). Regulatory standards (PCI-DSS 4.0, GDPR, HIPAA) strictly forbid storing:
-- Passwords, PINs, or passphrase secrets in cleartext.
-- Full Primary Account Numbers (PANs) and CVV/CVC verification codes.
-- Cryptographic private keys, seed phrases, or full session bearer tokens.
-- Protected Health Information (PHI) and raw personally identifiable information (PII).
+Mencatat terlalu sedikit informasi menciptakan titik buta, namun mencatat data yang salah dapat menyebabkan kebocoran privasi (*Data Leakage via Logs*). Standar industri seperti PCI-DSS, GDPR, dan HIPAA melarang keras pencatatan:
+- Kata sandi, PIN, atau *passphrase* dalam bentuk plaintext.
+- Nomor kartu kredit lengkap (PAN) dan kode keamanan CVV/CVC.
+- Kunci privat kriptografis atau token sesi otentikasi utuh.
+- Data kesehatan pribadi (*Protected Health Information* - PHI).
 
 ---
 
-## 3. Log Injection Hazards (CWE-117: CRLF Injection)
+## 3. Bahaya Log Injection (CWE-117: CRLF Injection)
 
-When an application concatenates untrusted user inputs directly into plaintext log files without sanitization:
+Jika aplikasi mencatat input pengguna langsung ke dalam file teks log tanpa sanitasi:
 ```python
-# VULNERABLE: Direct string interpolation enables CRLF injection
-app.logger.info(f"Failed login attempt for user: {username}")
+# RENTAN: CRLF Injection
+app.logger.info(f"Login failed for user: {username}")
 ```
-An attacker can supply carriage return and line feed characters (`\r\n` or `%0d%0a`) inside the username parameter:
+Penyerang dapat mengirimkan karakter baris baru (`\r\n` atau `%0d%0a`) dalam username:
 ```
 admin\r\n2026-11-15 12:00:00 [INFO] User admin logged in successfully.
 ```
-This inserts a forged line into the log file, deceptive to security analysts conducting an incident review.
+Tindakan ini menyisipkan baris palsu ke dalam berkas log, menipu analis keamanan yang mengira pengguna telah berhasil login secara sah.
 
-**Mitigation**: Always employ structured JSON logging where newline characters are automatically escaped to literal `\n` within valid JSON string properties.
+**Mitigasi**: Selalu gunakan format terstruktur (JSON) di mana pemisah baris baru secara otomatis di-escape menjadi `\n` di dalam string JSON.
 
 ---
 
-## 4. SIEM Alerting Rules & Proactive Thresholds
+## 4. Ambang Batas Peringatan (*Alerting Thresholds*) dan Deteksi SIEM
 
-Modern detection engineering does not wait for a breach to conclude before firing an alert. Automated rules must detect anomalies proactively:
-- **Rule 1 (Brute-Force Attack)**: $\ge 5$ failed login attempts from a single IP address within a 5-minute window $\rightarrow$ Severity: HIGH, Trigger IP-level throttle.
-- **Rule 2 (Stealth Privilege Escalation)**: Any role escalation event to `super_admin` or granting of root privileges $\rightarrow$ Severity: CRITICAL, Real-time dispatch to SOC incident channel.
-- **Rule 3 (Distributed Identity Attack)**: Single user identity failing logins from $\ge 3$ distinct geographic subnets within 10 minutes $\rightarrow$ Severity: HIGH, Trigger mandatory MFA challenge.
+Sistem deteksi modern tidak boleh menunggu penyerang berhasil membobol sistem baru mengeluarkan peringatan. Aturan deteksi anomali harus memicu alert secara proaktif:
+- **Rule 1 (Brute-Force Detection)**: $\ge 5$ percobaan login gagal dari IP yang sama dalam interval 5 menit $\rightarrow$ Severity: HIGH, Trigger IP Throttling.
+- **Rule 2 (Silent Privilege Escalation)**: Setiap perubahan peran ke `super_admin` atau penambahan hak `root` $\rightarrow$ Severity: CRITICAL, Notifikasi instan ke Channel Keamanan SOC.
+- **Rule 3 (Distributed Probing)**: 1 akun mengalami kegagalan login dari $\ge 3$ negara/subnet berbeda dalam 10 menit $\rightarrow$ Severity: HIGH, Tantang Step-up MFA.

@@ -4,22 +4,22 @@
     {
       "tier": 1,
       "type": "conceptual",
-      "hint": "Security misconfigurations often stem from leaving default credentials, sample files, or server diagnostic options enabled."
+      "hint": "Celah Security Misconfiguration sering berakar dari kredensial default, file contoh instalasi, atau opsi diagnostik server yang lupa dimatikan."
     },
     {
       "tier": 2,
       "type": "investigation_direction",
-      "hint": "Check if default administrative credentials like admin:admin work on the login page, or inspect exposed debug routes listed in the portal."
+      "hint": "Periksa apakah kredensial default seperti admin:admin berfungsi pada form login, atau periksa path URL yang biasa digunakan untuk menyimpan data server."
     },
     {
       "tier": 3,
       "type": "technical_area",
-      "hint": "The /backups/ route has directory browsing enabled. Web servers without disabled indexing display a list of all downloadable files."
+      "hint": "Route /backups/ mengaktifkan fitur directory browsing. Web server yang tidak mematikan fitur ini akan menampilkan daftar seluruh file yang dapat diunduh bebas."
     },
     {
       "tier": 4,
       "type": "near_solution",
-      "hint": "Download /backups/backup_config.json.bak and examine the 'admin_system_key' property inside the JSON payload."
+      "hint": "Unduh file /backups/backup_config.json.bak dan periksa nilai pada properti 'admin_system_key' di dalam data JSON tersebut."
     }
   ]
 }

@@ -1,59 +1,59 @@
-﻿# Technical Analysis: Authentication Vectors, Keyspace Search, & Rate Limiting
+﻿# Pembahasan Teknis: Anatomi Serangan Autentikasi & Brute-Force
 
-Robust authentication security depends upon two foundational variables: **credential entropy (keyspace complexity)** and the **system's architectural ability to throttle automated candidate submissions (*rate limiting & backoff*)**.
-
----
-
-## 1. Mathematical Keyspace Feasibility Analysis
-When an application restricts credentials to a 4-digit numeric PIN (`0000` through `9999`):
-- Total combinatorial keyspace:
-  $$10^4 = 10,000\text{ permutations}$$
-- **Unthrottled Exhaustive Search Duration**:
-  If the HTTP server processes an incoming verification request in 10 milliseconds (100 requests/second), the entire search space of 10,000 candidate PINs completes in:
-  $$\frac{10,000}{100} = 100\text{ seconds (under 2 minutes!)}$$
-- **Context-Aware Targeted Guessing**:
-  If reconnaissance reveals that the administrator chose a PIN corresponding to an active release cycle year (range 2020 through 2030), the search space collapses from 10,000 to just **11 discrete candidates**!
+Keamanan autentikasi bergantung pada dua faktor fundamental: **entropi kredensial (kompleksitas ruang pencarian)** dan **kemampuan sistem menahan laju tebakan otomatis (*rate limiting & throttling*)**.
 
 ---
 
-## 2. Authentication Attack Taxonomies
+## 1. Analisis Matematis Ruang Pencarian (Keyspace Feasibility)
+Ketika sebuah aplikasi mengizinkan PIN numerik 4 digit (`0000` hingga `9999`):
+- Total kemungkinan kombinasi:
+  $$10^4 = 10.000\text{ kombinasi}$$
+- **Waktu Pencarian Tanpa Rate Limiting**:
+  Jika server memproses satu request HTTP dalam 10 milidetik (100 request/detik), maka seluruh 10.000 kombinasi dapat diselesaikan dalam:
+  $$\frac{10.000}{100} = 100\text{ detik (kurang dari 2 menit!)}$$
+- **Pencarian Terarah Berbasis Konteks**:
+  Jika penyerang mengetahui petunjuk bahwa PIN merupakan tahun rilis proyek dalam dekade saat ini (rentang 2020 hingga 2030), ruang pencarian menciut dari 10.000 menjadi hanya **11 kemungkinan angka**!
+
+---
+
+## 2. Taksonomi Serangan Terhadap Lapisan Autentikasi
 
 ### A. Brute-Force Attack
-Systematically submitting every possible character sequence against a single target identity (such as `admin`). Extremely lethal when passwords are short or rate-limiting guards are absent.
+Mencoba seluruh kemungkinan karakter secara berurutan atau acak terhadap satu akun spesifik (seperti akun `admin`). Serangan ini sangat efektif bila kata sandi pendek atau batas tebakan tidak dibatasi.
 
-### B. Dictionary Attack
-Evaluating curated lists of statistically frequent human passwords (such as `rockyou.txt` containing hundreds of millions of observed leaked passwords: `password`, `123456`, `admin2026`).
+### B. Dictionary Attack (Serangan Kamus)
+Menggunakan daftar kata sandi populer yang paling sering digunakan manusia (seperti daftar `rockyou.txt` yang memuat jutaan password populer: `password`, `123456`, `admin2026`).
 
 ### C. Credential Stuffing
-Replaying pre-compiled databases of authentic username/password pairs exfiltrated from previous enterprise breaches against secondary portals, capitalizing on pervasive human password reuse.
+Penyerang tidak menebak dari nol, melainkan menggunakan database hasil kebocoran data (*dump breach*) dari situs lain yang memuat jutaan pasang email dan password nyata.
 
 ### D. Password Spraying
-The inverse of targeted brute force: testing 1 or 2 highly probable passwords (e.g., `Winter2026!`) across thousands of distinct enterprise user accounts to remain beneath per-account lockout thresholds.
+Kebalikan dari brute-force biasa: penyerang mencoba 1 atau 2 kata sandi yang sangat umum (misal `Winter2026!`) terhadap ribuan akun pengguna yang berbeda secara perlahan untuk menghindari ambang batas penguncian akun per individu.
 
 ---
 
-## 3. Session Fixation & Lifecycle Management
-Beyond credential evaluation, authentication security governs token lifecycles:
-- **Session Fixation**: The adversary initializes an anonymous session and forces a victim to authenticate using that predefined session identifier (via URL query parameters or cookie injection). If the server fails to issue a new session token, the adversary inherits the authenticated state.
-- **Mandatory Session Token Regeneration**: Secure architectures **MUST** invalidate the pre-authentication session identifier upon successful credential validation, issuing a newly minted cryptographically random session token.
+## 3. Bahaya Session Fixation & Hijacking
+Selain masalah tebakan kata sandi, kerentanan autentikasi mencakup siklus hidup token sesi:
+- **Session Fixation**: Penyerang membuat sesi kosong di server, lalu memaksa korban menggunakan session ID tersebut (melalui tautan URL). Ketika korban berhasil login, penyerang langsung menggunakan session ID yang sama untuk mengakses akun korban.
+- **Missing Session Regeneration**: Aplikasi yang aman **WAJIB** menghancurkan session ID lama dan menerbitkan token sesi acak baru (*session regeneration*) tepat saat verifikasi login berhasil.
 
 ---
 
-## 4. Code Anatomy of Missing Rate Limiting
-Examine this unhardened authentication endpoint:
+## 4. Anatomi Ketiadaan Rate Limiting pada Kode
+Perhatikan kode endpoint login yang rentan di bawah ini:
 ```python
-# VULNERABLE IMPLEMENTATION: Zero throttling, zero progressive delay
+# IMPLEMENTASI RENTAN: Tanpa jeda waktu dan tanpa penguncian akun
 @app.route("/api/login", methods=["POST"])
 def api_login():
     data = request.get_json()
     user = data.get("username")
     pw = data.get("password")
 
-    # CRITICAL DEFECT: Synchronous evaluation without tracking failed attempts
+    # KESALAHAN FATAL: Memverifikasi langsung tanpa menghitung jumlah kegagalan
     if user == ADMIN_USER and pw == ADMIN_PIN:
         return jsonify({"status": "passed", "flag": FLAG})
 
-    # Returns 401 in milliseconds without enforcing a cooldown delay
+    # Mengembalikan 401 seketika dalam hitungan milidetik
     return jsonify({"status": "failed", "message": "Invalid credentials"}), 401
 ```
-Because the handler lacks stateful attempt tracking (such as in-memory leaky buckets or Redis counters) and returns immediately without a `Retry-After` enforcement throttle, automated scripts can flood the endpoint continuously.
+Karena tidak ada penyimpanan jejak kegagalan (misalnya di Redis atau memory cache) dan tidak ada header `Retry-After`, bot penyerang dapat membanjiri endpoint ini tanpa hambatan sama sekali.

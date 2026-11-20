@@ -1,55 +1,55 @@
-﻿# System Architecture & Integrity Vulnerability Analysis (A08)
+﻿# Arsitektur Sistem & Titik Kelemahan Integritas (A08)
 
-The **A08: Software or Data Integrity Failures** module models a dynamic firmware and configuration ingestion service deployed on the **Zitera Edge Gateway (Port 8018)**. This architecture represents IoT gateways, microservice nodes, and automotive telematics systems accepting remote operational parameters via REST APIs.
+Modul **A08: Software or Data Integrity Failures** mensimulasikan gerbang ingesti pembaruan firmware dan konfigurasi pada perangkat **Zitera Edge Gateway (Port 8018)**. Layanan ini merefleksikan arsitektur sistem tertanam (*embedded system*) atau mikroservis IoT yang menerima arahan konfigurasi dinamis melalui REST API.
 
 ---
 
-## 1. Service Topology & Endpoint Inventory
+## 1. Topologi Layanan & Pemetaan Endpoint
 
-The Zitera Edge service exposes the following HTTP endpoints on port 8018:
+Perangkat Zitera Edge mengekspos endpoint HTTP berikut pada port 8018:
 
-| Method | Endpoint | Authorization | Functional Role | Security Posture |
+| Metode | Endpoint | Hak Akses | Deskripsi Fungsionalitas | Karakteristik Keamanan |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/` | Public | Active Configuration Web Dashboard. | Renders current active memory parameters (`active_config`). |
-| `GET` | `/health` | Public | Service health probe. | Returns JSON liveness status for port 8018. |
-| `GET` | `/api/config` | Public | Active configuration reader. | Returns in-memory operational dictionary. |
-| `POST` | `/api/deploy_update` | Public | Configuration & firmware deployment endpoint. | **VULNERABLE**: Blindly hot-loads untrusted JSON payloads. |
-| `POST` | `/api/reset` | Public | Factory reset endpoint. | Restores default signed configuration state. |
-| `GET` | `/practice/verify` | Internal/Tester | Automated mission verification gate. | Assesses if unsigned/tampered package was hot-loaded. |
+| `GET` | `/` | Publik | Konsol Web Status Konfigurasi Aktif. | Menampilkan parameter runtime saat ini (`active_config`). |
+| `GET` | `/health` | Publik | Healthcheck status layanan lab. | Mengembalikan JSON status ketersediaan port 8018. |
+| `GET` | `/api/config` | Publik | API pembacaan konfigurasi aktif. | Mengembalikan objek konfigurasi yang sedang dieksekusi memori. |
+| `POST` | `/api/deploy_update` | Publik | Endpoint pembaruan konfigurasi/firmware. | **VULNERABLE**: Menerima payload tanpa validasi kriptografis. |
+| `POST` | `/api/reset` | Publik | Reset konfigurasi ke setelan default pabrik. | Mengembalikan state `DEFAULT_CONFIG` bertanda tangan valid. |
+| `GET` | `/practice/verify` | Internal/Tester | Verifikasi otomatis penyelesaian target lab. | Menguji apakah konfigurasi tak tepercaya berhasil disuntikkan. |
 
 ---
 
-## 2. Data Flow & Trust Boundary Collapse
+## 2. Diagram Aliran Data & Peruntuhan Batas Kepercayaan
 
-The following diagram illustrates how untrusted configuration payloads breach system runtime memory boundaries:
+Diagram berikut mengilustrasikan bagaimana payload yang tidak diverifikasi menembus batas kepercayaan sistem runtime:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Attacker as Adversary / Security Tester
+    actor Attacker as Penyerang / Pentester
     participant EdgeGateway as Zitera Edge Gateway (:8018)
     participant RuntimeMemory as Active Memory (active_config)
-    participant VerificationGate as Cryptographic Verification Gate
+    participant VerificationGate as Gerbang Verifikasi Kriptografi
 
-    Attacker->>EdgeGateway: POST /api/deploy_update (Unsigned Payload)
-    Note over EdgeGateway: Ingests raw JSON from external network
+    Attacker->>EdgeGateway: POST /api/deploy_update (Payload Tanpa Tanda Tangan)
+    Note over EdgeGateway: Menerima JSON dari jaringan luar
 
-    alt Vulnerable Architecture (Current Scenario)
-        EdgeGateway->>RuntimeMemory: Hot-load active_config directly!
-        Note over RuntimeMemory: ❌ debug_backdoor=True, mtls=False applied!
-        EdgeGateway-->>Attacker: HTTP 200 OK (Mutated In-Memory State)
-    else Secure Architecture (Proper Remediation)
-        EdgeGateway->>VerificationGate: Inspect Ed25519 Signature + Public Key
-        VerificationGate-->>EdgeGateway: REJECT (Missing / Invalid Signature)
-        EdgeGateway-->>Attacker: HTTP 403 Forbidden (Integrity Validation Failed)
+    alt Arsitektur Rentan (Skenario Saat Ini)
+        EdgeGateway->>RuntimeMemory: Terapkan active_config langsung!
+        Note over RuntimeMemory: ❌ debug_backdoor=True, mtls=False diterapkan!
+        EdgeGateway-->>Attacker: HTTP 200 OK (Konfigurasi Aktif Termutasi)
+    else Arsitektur Aman (Remediasi yang Benar)
+        EdgeGateway->>VerificationGate: Periksa Ed25519 Signature + Public Key
+        VerificationGate-->>EdgeGateway: REJECT (Tanda Tangan Tidak Ditemukan/Palsu)
+        EdgeGateway-->>Attacker: HTTP 403 Forbidden (Integritas Gagal)
     end
 ```
 
 ---
 
-## 3. Vulnerable Code Anatomy (`docker/app.py`)
+## 3. Analisis Anatomi Kode Rentan (`app.py`)
 
-The critical flaw resides in the `do_POST` dispatch handler inside `docker/app.py`:
+Kelemahan fatal terletak pada fungsi pengendali request `do_POST` di dalam `docker/app.py`:
 
 ```python
 if parsed.path == "/api/deploy_update":
@@ -71,7 +71,7 @@ if parsed.path == "/api/deploy_update":
     self._send_json(200, resp)
 ```
 
-### Key Architectural Vulnerabilities:
-1. **Client-Controlled Integrity Assertion**: The server trusts the client's own statement (`payload.get("signature_verified")`). Delegating integrity verification to callers completely defeats the boundary.
-2. **Missing Asymmetric Verification**: No cryptographic verification (e.g., Ed25519, RSA-PSS, or Sigstore cosign) takes place against an authoritative public key ring.
-3. **Unrestricted In-Memory Mutation**: Client-provided JSON parameters directly overwrite the core operational parameters of the running process without schema or constraint enforcement.
+### Kesalahan Arsitektur Fatal:
+1. **Delegasi Validasi ke Klien**: Server membaca `payload.get("signature_verified")`. Mengizinkan klien mengklaim apakah data sudah diverifikasi atau belum adalah anti-pattern fatal.
+2. **Ketiadaan Validasi Kunci Publik**: Tidak ada mekanisme pengecekan sertifikat x509, signature Ed25519, atau HMAC terhadap secret server.
+3. **Penyuntikan Langsung ke Runtime State**: Data klien langsung menimpa variabel global `active_config` tanpa melewati lapisan sanitasi skema (*strict schema validation*).

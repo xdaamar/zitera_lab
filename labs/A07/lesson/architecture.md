@@ -1,8 +1,8 @@
-﻿# System Architecture: Authentication Defense & Resilient Session Topologies
+﻿# Arsitektur Sistem: Desain Pertahanan Lapisan Autentikasi & Manajemen Sesi
 
-## 1. Lab A07 Architecture Topology (OmniAuth Admin Gateway)
+## 1. Topologi Arsitektur Lab A07 (OmniAuth Admin Gateway)
 
-The A07 target environment simulates an administrative single sign-on ingress portal (*OmniAuth Admin Gateway*) running on port 8017:
+Layanan lab A07 mensimulasikan gerbang login administrasi (*OmniAuth Admin Gateway*) yang berjalan pada port 8017:
 
 ```text
 [ Browser / Brute-Force Bot ]
@@ -39,17 +39,17 @@ The A07 target environment simulates an administrative single sign-on ingress po
 
 ---
 
-## 2. Vulnerable Architectural Analysis
-The service exhibits multiple architectural security anti-patterns:
-1. **Omission of Rate Limiting Guards**: Both web forms and JSON API routes execute immediate synchronous credential evaluations without querying client submission frequencies.
-2. **Monolithic Single-Factor Dependency**: High-privilege administrative access relies completely upon a low-entropy single factor (4-digit numeric PIN) without secondary challenge requirements.
-3. **Sub-Millisecond Rejection Latency**: The application returns rejection codes instantaneously (< 10ms), providing ideal conditions for parallel automated socket bombardment.
+## 2. Analisis Titik Lemah Arsitektur (Architectural Deficiencies)
+Pada sistem target ini, terdapat kelemahan arsitektur struktural yang saling memperparah:
+1. **Ketiadaan Lapisan Pembatas Laju (Missing Rate Limiting Guard)**: Baik form web maupun endpoint API JSON langsung mengevaluasi kredensial tanpa memeriksa frekuensi request dari IP pemanggil.
+2. **Ketergantungan pada Faktor Tunggal Berentropi Rendah**: Akun memiliki hak istimewa administratif penuh hanya dilindungi oleh PIN 4 digit tanpa autentikasi dua faktor (*Multi-Factor Authentication*).
+3. **Respon Waktu Cepat Tanpa Jeda Sintetis**: Server mengembalikan respon kesalahan seketika (< 10ms), memungkinkan penyerang memaksimalkan throughput pengujian tebakan via koneksi socket lokal.
 
 ---
 
-## 3. High-Assurance Identity Architecture (Centralized IdP & Multi-Layered Throttling)
+## 3. Arsitektur Manajemen Identitas & Autentikasi Enterprise Modern
 
-Production architectures decouple network ingress from credential evaluation through isolated layers:
+Sistem berdaya tahan tinggi memisahkan gerbang ingress jaringan dan evaluasi autentikasi melalui arsitektur terisolasi:
 
 ```text
 [ External Traffic ]
@@ -81,8 +81,8 @@ Production architectures decouple network ingress from credential evaluation thr
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Core Architecture Pillars:
-- **Perimeter Rate Limiting**: Request limits are enforced at the network ingress proxy using the *Token Bucket* or *Sliding Window Counter* algorithms backed by low-latency datastores.
-- **Adaptive Exponential Backoff**: Injecting synthetic response delays that increase exponentially following sequential failed authentication attempts.
-- **Hardware-Backed MFA**: Requiring FIDO2/WebAuthn physical authenticators or cryptographic TOTP app challenges across administrative domains.
-- **Strict Session Cookie Isolation**: Emitting session cookies strictly with `HttpOnly`, `Secure`, and `SameSite=Strict` attributes, invalidating pre-authentication session tokens upon identity verification.
+### Prinsip Arsitektur yang Aman:
+- **Distributed Rate Limiting**: Batasan frekuensi ditegakkan di lapisan gateway terluar menggunakan algoritma *Token Bucket* atau *Sliding Window* dengan penyimpanan terdistribusi (Redis).
+- **Adaptive Progressive Delays**: Menambahkan penundaan respons buatan (*synthetic delay*) yang meningkat secara eksponensial setelah setiap kegagalan login berturut-turut.
+- **Universal Multi-Factor Authentication**: Wajibkan faktor kedua berbasis kepemilikan perangkat keras (*WebAuthn/FIDO2 hardware keys*) atau aplikasi TOTP untuk seluruh akun administratif.
+- **Strict Session Isolation**: Seluruh cookie sesi wajib menggunakan flag `HttpOnly`, `Secure`, dan `SameSite=Lax/Strict` dengan regenerasi ID otomatis saat kenaikan status hak akses.
