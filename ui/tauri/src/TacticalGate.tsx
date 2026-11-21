@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import {
   ShieldCheck,
   KeyRound,
@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Compass,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import { login, getDeviceFingerprint } from './authService'
 
@@ -28,6 +30,8 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [deviceId, setDeviceId] = useState<string>('DETECTING...')
   const [isFormVisible, setIsFormVisible] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     let mounted = true
@@ -38,6 +42,29 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
       mounted = false
     }
   }, [])
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted
+      videoRef.current.play().catch(() => {
+        // Fallback if browser requires initial user gesture
+      })
+    }
+  }, [isMuted])
+
+  useEffect(() => {
+    const handleFirstGesture = () => {
+      if (videoRef.current && !isMuted) {
+        videoRef.current.play().catch(() => {})
+      }
+    }
+    window.addEventListener('click', handleFirstGesture, { once: true })
+    window.addEventListener('keydown', handleFirstGesture, { once: true })
+    return () => {
+      window.removeEventListener('click', handleFirstGesture)
+      window.removeEventListener('keydown', handleFirstGesture)
+    }
+  }, [isMuted])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -78,16 +105,19 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-between overflow-hidden bg-stone-950 text-white select-none">
-      {/* 1. Original Unfiltered High-Resolution Anime Background */}
+      {/* 1. Raw HD Anime Video Background: Pure Unfiltered Clarity with Audio */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <img
-          src="/assets/login_bg.jpg"
-          alt="Zitera Anime Wallpaper"
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          playsInline
           className="absolute inset-0 w-full h-full object-cover select-none"
+          src="/assets/login_bg_video.mp4"
         />
       </div>
 
-      {/* 2. Top Navigation Bar: Minimal Clean Brand Typography */}
+      {/* 2. Top Navigation Bar: Brand Typography & Sound Controls */}
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 md:px-10 py-5">
         <div className="flex items-center gap-2.5">
           <span className="font-['Space_Grotesk'] font-black text-2xl tracking-wider bg-gradient-to-r from-white via-teal-200 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(45,212,191,0.4)]">
@@ -96,6 +126,28 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-white/10 text-teal-300 border border-white/20 backdrop-blur-md">
             ACADEMY
           </span>
+        </div>
+
+        {/* Top-Right Sound ON / OFF Switch */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsMuted((prev) => !prev)}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/40 hover:bg-black/60 active:scale-95 text-xs font-black tracking-wider text-white backdrop-blur-xl border border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-300 cursor-pointer"
+            title={isMuted ? 'Nyalakan Musik (Sound ON)' : 'Matikan Musik (Sound OFF)'}
+          >
+            {isMuted ? (
+              <>
+                <VolumeX size={16} className="text-stone-400" />
+                <span className="font-mono text-[11px] text-stone-300">SOUND OFF</span>
+              </>
+            ) : (
+              <>
+                <Volume2 size={16} className="text-teal-300 animate-pulse" />
+                <span className="font-mono text-[11px] text-teal-200">SOUND ON</span>
+              </>
+            )}
+          </button>
         </div>
       </header>
 
