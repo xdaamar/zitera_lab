@@ -167,7 +167,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
         </div>
       </div>
 
-      {/* 4. Right Side: Transparent Smoked Crystal Glass Login Card with Razor-Sharp Legibility */}
+      {/* 4. Right Side: Transparent Dark Glass Login Card (Zero Blur - 100% Sharp Background Visibility) */}
       <div
         className={`relative z-20 w-full sm:w-[480px] p-4 sm:p-8 sm:pr-12 lg:pr-16 flex flex-col justify-center transition-all duration-500 ease-out ${
           isFormVisible
@@ -175,14 +175,14 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
             : 'translate-x-24 opacity-0 pointer-events-none'
         }`}
       >
-        <div className="relative w-full rounded-3xl backdrop-blur-md bg-stone-950/45 border border-white/20 p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.25)] text-white overflow-hidden">
-          {/* Crystal Glass Top Edge Highlight */}
-          <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+        <div className="relative w-full rounded-3xl bg-black/25 border border-white/15 p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-white overflow-hidden">
+          {/* Top Edge Subtle Highlight */}
+          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
           {/* Card Header & Security Badge */}
           <div className="space-y-3 mb-6">
             <div className="flex items-center justify-between">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/40 backdrop-blur-md">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-900/40 border border-teal-500/30">
                 <span className="w-2 h-2 rounded-full bg-teal-300 animate-ping" />
                 <span className="text-[10px] font-black font-['JetBrains_Mono'] tracking-wider text-teal-300 uppercase">
                   HARDWARE BOUND
@@ -191,25 +191,25 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
               <button
                 type="button"
                 onClick={() => setIsFormVisible(false)}
-                className="p-2 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 text-stone-200 hover:text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer"
+                className="p-2 rounded-2xl bg-black/30 hover:bg-black/50 active:scale-95 text-teal-300 hover:text-white border border-white/10 transition-all cursor-pointer"
                 title="Sembunyikan Form"
               >
-                <EyeOff size={16} className="text-teal-300" />
+                <EyeOff size={16} />
               </button>
             </div>
 
             <div>
-              <h2 className="text-2xl font-black font-['Space_Grotesk'] tracking-tight text-white drop-shadow-md">
+              <h2 className="text-2xl font-black font-['Space_Grotesk'] tracking-tight text-white">
                 Ruang Operasi Siswa
               </h2>
-              <p className="text-xs text-stone-300 mt-1 font-medium">
+              <p className="text-xs text-white/80 mt-1 font-medium">
                 Gunakan kredensial yang diberikan Administrator untuk membuka lisensi.
               </p>
             </div>
           </div>
 
-          {/* Single-Machine Hardware Enclave Fingerprint Card (Clean Transparent with High Contrast) */}
-          <div className="mb-5 p-3 rounded-2xl bg-black/35 border border-white/15 backdrop-blur-md flex items-center gap-3">
+          {/* Single-Machine Hardware Enclave Fingerprint Card (Dark Semi-Transparent, No Blur) */}
+          <div className="mb-5 p-3 rounded-2xl bg-black/40 border border-white/10 flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-400/30 flex items-center justify-center shrink-0">
               <Cpu size={16} className="text-teal-300" />
             </div>
@@ -227,11 +227,11 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Input Username */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-stone-200 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-stone-300 uppercase tracking-wider">
                 Username Lisensi
               </label>
               <div className="relative flex items-center">
-                <div className="absolute left-3.5 text-teal-300 pointer-events-none">
+                <div className="absolute left-3.5 text-teal-400/80 pointer-events-none">
                   <User size={16} />
                 </div>
                 <input
@@ -240,7 +240,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Masukkan username Anda..."
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 bg-black/30 hover:bg-black/40 focus:bg-black/55 border border-white/20 focus:border-teal-400 focus:shadow-[0_0_20px_rgba(45,212,191,0.35)] rounded-2xl text-sm font-semibold text-white placeholder-stone-400 outline-none backdrop-blur-md transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-black/35 hover:bg-black/45 focus:bg-black/55 border border-white/10 focus:border-teal-400 rounded-2xl text-sm font-semibold text-white placeholder-stone-400 outline-none transition-all"
                 />
               </div>
             </div>
@@ -248,12 +248,12 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
             {/* Input Password */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-stone-200 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-stone-300 uppercase tracking-wider">
                   Password Akun
                 </label>
               </div>
               <div className="relative flex items-center">
-                <div className="absolute left-3.5 text-teal-300 pointer-events-none">
+                <div className="absolute left-3.5 text-teal-400/80 pointer-events-none">
                   <KeyRound size={16} />
                 </div>
                 <input
@@ -262,12 +262,12 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password Anda..."
                   disabled={loading}
-                  className="w-full pl-10 pr-11 py-3 bg-black/30 hover:bg-black/40 focus:bg-black/55 border border-white/20 focus:border-teal-400 focus:shadow-[0_0_20px_rgba(45,212,191,0.35)] rounded-2xl text-sm font-semibold text-white placeholder-stone-400 outline-none backdrop-blur-md transition-all"
+                  className="w-full pl-10 pr-11 py-3 bg-black/35 hover:bg-black/45 focus:bg-black/55 border border-white/10 focus:border-teal-400 rounded-2xl text-sm font-semibold text-white placeholder-stone-400 outline-none transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3.5 text-stone-300 hover:text-white transition-colors cursor-pointer"
+                  className="absolute right-3.5 text-stone-400 hover:text-white transition-colors cursor-pointer"
                   title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -277,28 +277,28 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
 
             {/* Alert / Notification Feedback */}
             {errorMsg && (
-              <div className="p-3 rounded-2xl bg-rose-500/25 border border-rose-500/50 backdrop-blur-md flex items-start gap-2.5 text-xs font-bold text-rose-100">
+              <div className="p-3 rounded-2xl bg-rose-500/25 border border-rose-500/50 flex items-start gap-2.5 text-xs font-bold text-rose-100">
                 <AlertCircle size={16} className="shrink-0 text-rose-300 mt-0.5" />
                 <span>{errorMsg}</span>
               </div>
             )}
             {successMsg && (
-              <div className="p-3 rounded-2xl bg-teal-500/25 border border-teal-500/50 backdrop-blur-md flex items-start gap-2.5 text-xs font-bold text-teal-100">
+              <div className="p-3 rounded-2xl bg-teal-500/25 border border-teal-500/50 flex items-start gap-2.5 text-xs font-bold text-teal-100">
                 <CheckCircle2 size={16} className="shrink-0 text-teal-300 mt-0.5" />
                 <span>{successMsg}</span>
               </div>
             )}
 
-            {/* Submit Button: Crystal Glass with Glowing Teal Accent */}
+            {/* Submit Button: Outlined Translucent Teal Capsule (Exact match with reference image) */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-6 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-[0.98] border border-teal-400/50 hover:border-teal-300 text-teal-200 hover:text-white font-black text-sm tracking-wider uppercase backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.4),0_0_20px_rgba(45,212,191,0.25),inset_0_1px_1px_rgba(255,255,255,0.3)] transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3"
+              className="w-full py-3.5 px-6 rounded-2xl border border-teal-400/60 hover:border-teal-300 bg-teal-950/25 hover:bg-teal-900/35 active:scale-[0.98] text-teal-300 hover:text-teal-200 font-bold text-sm tracking-wider uppercase transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span className="text-white">Memverifikasi Hardware...</span>
+                  <div className="w-4 h-4 border-2 border-teal-300 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-teal-300">Memverifikasi Hardware...</span>
                 </>
               ) : (
                 <>
@@ -310,14 +310,14 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
           </form>
 
           {/* Footer: WhatsApp License Purchase & Reset */}
-          <div className="mt-6 pt-5 border-t border-white/15 text-center space-y-2.5">
+          <div className="mt-6 pt-5 border-t border-white/10 text-center space-y-2.5">
             <p className="text-[11px] text-stone-300 font-medium">
               Belum punya lisensi atau butuh reset hardware binding?
             </p>
             <button
               type="button"
               onClick={handleOpenWhatsApp}
-              className="w-full py-2.5 px-4 rounded-xl bg-black/25 hover:bg-black/40 active:scale-[0.98] border border-white/15 hover:border-white/25 text-xs font-bold text-teal-300 hover:text-teal-200 backdrop-blur-md flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              className="w-full py-2.5 px-4 rounded-xl bg-black/35 hover:bg-black/50 active:scale-[0.98] border border-white/10 text-xs font-bold text-teal-300 hover:text-teal-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
             >
               <MessageSquare size={14} />
               <span>Aktivasi / Bantuan via WhatsApp</span>
@@ -327,16 +327,16 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
         </div>
       </div>
 
-      {/* 5. Minimalist Floating Pill when Form is Hidden (Account Icon Trigger) */}
+      {/* 5. Minimalist Floating Pill when Form is Hidden */}
       {!isFormVisible && (
         <div className="absolute bottom-8 right-8 z-30">
           <button
             type="button"
             onClick={() => setIsFormVisible(true)}
-            className="flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-white/[0.12] hover:bg-white/[0.22] text-white font-black text-sm tracking-wider uppercase backdrop-blur-2xl border border-white/30 hover:border-teal-400/60 shadow-[0_15px_40px_rgba(0,0,0,0.4),0_0_25px_rgba(45,212,191,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] active:scale-95 transition-all duration-300 cursor-pointer"
+            className="flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-black/40 hover:bg-black/60 text-teal-300 font-bold text-sm tracking-wider uppercase border border-teal-400/60 shadow-[0_15px_40px_rgba(0,0,0,0.4)] active:scale-95 transition-all duration-300 cursor-pointer"
           >
             <UserCircle2 size={18} className="text-teal-300" />
-            <span className="drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">GASSS LOGHINN</span>
+            <span>GASSS LOGHINN</span>
           </button>
         </div>
       )}
