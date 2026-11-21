@@ -3,7 +3,6 @@ import {
   ShieldCheck,
   KeyRound,
   User,
-  Sparkles,
   Eye,
   EyeOff,
   MessageSquare,
@@ -11,7 +10,6 @@ import {
   Cpu,
   CheckCircle2,
   AlertCircle,
-  Maximize2,
   Compass,
 } from 'lucide-react'
 import { login, getDeviceFingerprint } from './authService'
@@ -28,7 +26,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [deviceId, setDeviceId] = useState<string>('DETECTING...')
-  const [isFormVisible, setIsFormVisible] = useState(true)
+  const [isFormVisible, setIsFormVisible] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -90,55 +88,23 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
           }}
         />
         {/* Soft atmospheric gradient overlays for iOS-level contrast & anime sunset vibrance */}
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950/60 via-transparent to-stone-950/70" />
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-stone-950/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-stone-950/45 via-transparent to-stone-950/50" />
+        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-transparent to-stone-950/25" />
         
         {/* Radial subtle anime lens flare & cyan ambient glow */}
         <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
         <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-teal-400/15 rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
       </div>
 
-      {/* 2. Top Navigation Bar: Stylized Brand Typography & Quick Controls */}
+      {/* 2. Top Navigation Bar: Minimal Clean Brand Typography */}
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 md:px-10 py-5">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-[0_4px_20px_rgba(45,212,191,0.25)]">
-            <Sparkles size={20} className="text-teal-300 animate-float-gentle" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-['Space_Grotesk'] font-black text-2xl tracking-wider bg-gradient-to-r from-white via-teal-200 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(45,212,191,0.4)]">
-                ZITERA
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-teal-500/20 text-teal-300 border border-teal-400/30 backdrop-blur-md">
-                ACADEMY
-              </span>
-            </div>
-            <p className="text-[11px] font-['JetBrains_Mono'] text-stone-300/80 tracking-wide">
-              GENSHIN IMPACT AESTHETIC // VIRTUAL CYBER RANGE
-            </p>
-          </div>
-        </div>
-
-        {/* Top-Right Toggle & View Button */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsFormVisible((prev) => !prev)}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 text-xs font-bold text-white backdrop-blur-2xl border border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-300 cursor-pointer"
-            title={isFormVisible ? 'Sembunyikan menu login untuk menikmati pemandangan' : 'Tampilkan menu login'}
-          >
-            {isFormVisible ? (
-              <>
-                <EyeOff size={15} className="text-teal-300" />
-                <span className="hidden sm:inline">Nikmati Pemandangan</span>
-              </>
-            ) : (
-              <>
-                <Eye size={15} className="text-teal-300" />
-                <span>Buka Form Login</span>
-              </>
-            )}
-          </button>
+        <div className="flex items-center gap-2.5">
+          <span className="font-['Space_Grotesk'] font-black text-2xl tracking-wider bg-gradient-to-r from-white via-teal-200 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(45,212,191,0.4)]">
+            ZITERA
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-white/10 text-teal-300 border border-white/20 backdrop-blur-md">
+            ACADEMY
+          </span>
         </div>
       </header>
 
@@ -166,14 +132,14 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
             : 'translate-x-24 opacity-0 pointer-events-none'
         }`}
       >
-        <div className="relative w-full rounded-3xl backdrop-blur-3xl bg-black/35 border border-white/20 p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_40px_rgba(45,212,191,0.18)] text-white overflow-hidden">
+        <div className="relative w-full rounded-3xl backdrop-blur-2xl bg-white/[0.08] border border-white/25 p-6 sm:p-8 shadow-[0_30px_70px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.4),0_0_35px_rgba(45,212,191,0.15)] text-white overflow-hidden">
           {/* Frosted Glass Top Edge Highlight */}
-          <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
 
           {/* Card Header & Security Badge */}
           <div className="space-y-3 mb-6">
             <div className="flex items-center justify-between">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/15 border border-teal-400/30 backdrop-blur-md">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
                 <span className="w-2 h-2 rounded-full bg-teal-400 animate-ping" />
                 <span className="text-[10px] font-black font-['JetBrains_Mono'] tracking-wider text-teal-300 uppercase">
                   HARDWARE BOUND
@@ -182,31 +148,30 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
               <button
                 type="button"
                 onClick={() => setIsFormVisible(false)}
-                className="p-1 rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition-colors"
-                title="Sembunyikan Menu"
+                className="p-2 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 text-stone-300 hover:text-white backdrop-blur-xl border border-white/20 transition-all cursor-pointer"
+                title="Sembunyikan Form"
               >
-                <Maximize2 size={16} />
+                <EyeOff size={16} className="text-teal-300" />
               </button>
             </div>
 
             <div>
-              <h2 className="text-2xl font-black font-['Space_Grotesk'] tracking-tight text-white flex items-center gap-2">
-                <span>Ruang Operasi Siswa</span>
-                <Sparkles size={18} className="text-teal-300" />
+              <h2 className="text-2xl font-black font-['Space_Grotesk'] tracking-tight text-white">
+                Ruang Operasi Siswa
               </h2>
-              <p className="text-xs text-stone-300/80 mt-1">
+              <p className="text-xs text-stone-200/80 mt-1">
                 Gunakan kredensial yang diberikan Administrator untuk membuka lisensi.
               </p>
             </div>
           </div>
 
           {/* Single-Machine Hardware Enclave Fingerprint Card */}
-          <div className="mb-5 p-3 rounded-2xl bg-white/[0.06] border border-white/10 backdrop-blur-md flex items-center gap-3">
+          <div className="mb-5 p-3 rounded-2xl bg-white/[0.07] border border-white/15 backdrop-blur-xl flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-400/30 flex items-center justify-center shrink-0">
               <Cpu size={16} className="text-teal-300" />
             </div>
             <div className="overflow-hidden">
-              <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+              <div className="text-[10px] font-bold text-stone-300/80 uppercase tracking-wider">
                 ID Perangkat Terdeteksi
               </div>
               <div className="text-xs font-mono font-bold text-teal-200 truncate">
@@ -223,7 +188,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
                 Username Lisensi
               </label>
               <div className="relative flex items-center">
-                <div className="absolute left-3.5 text-stone-400 pointer-events-none">
+                <div className="absolute left-3.5 text-stone-300/70 pointer-events-none">
                   <User size={16} />
                 </div>
                 <input
@@ -232,7 +197,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Masukkan username Anda..."
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.15] border border-white/15 focus:border-teal-400 focus:shadow-[0_0_20px_rgba(45,212,191,0.35)] rounded-2xl text-sm font-medium text-white placeholder-stone-400/70 outline-none backdrop-blur-xl transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.18] border border-white/20 focus:border-teal-400 focus:shadow-[0_0_20px_rgba(45,212,191,0.35)] rounded-2xl text-sm font-medium text-white placeholder-stone-300/60 outline-none backdrop-blur-xl transition-all"
                 />
               </div>
             </div>
@@ -245,7 +210,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
                 </label>
               </div>
               <div className="relative flex items-center">
-                <div className="absolute left-3.5 text-stone-400 pointer-events-none">
+                <div className="absolute left-3.5 text-stone-300/70 pointer-events-none">
                   <KeyRound size={16} />
                 </div>
                 <input
@@ -254,12 +219,12 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password Anda..."
                   disabled={loading}
-                  className="w-full pl-10 pr-11 py-3 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.15] border border-white/15 focus:border-teal-400 focus:shadow-[0_0_20px_rgba(45,212,191,0.35)] rounded-2xl text-sm font-medium text-white placeholder-stone-400/70 outline-none backdrop-blur-xl transition-all"
+                  className="w-full pl-10 pr-11 py-3 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.18] border border-white/20 focus:border-teal-400 focus:shadow-[0_0_20px_rgba(45,212,191,0.35)] rounded-2xl text-sm font-medium text-white placeholder-stone-300/60 outline-none backdrop-blur-xl transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3.5 text-stone-400 hover:text-white transition-colors"
+                  className="absolute right-3.5 text-stone-300/70 hover:text-white transition-colors cursor-pointer"
                   title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -285,31 +250,31 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-300 hover:from-teal-300 hover:to-emerald-300 active:scale-[0.98] text-stone-950 font-black text-sm tracking-wide shadow-[0_10px_30px_-5px_rgba(20,184,166,0.6)] hover:shadow-[0_15px_35px_-5px_rgba(20,184,166,0.8)] transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3.5 px-6 rounded-2xl bg-white/[0.12] hover:bg-white/[0.22] active:scale-[0.98] border border-white/30 hover:border-teal-400/50 text-white font-black text-sm tracking-wider uppercase backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:shadow-[0_10px_35px_rgba(45,212,191,0.35)] transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Memverifikasi Hardware...</span>
                 </>
               ) : (
                 <>
-                  <ShieldCheck size={18} />
-                  <span>Masuk ke Ruang Operasi</span>
+                  <ShieldCheck size={18} className="text-teal-300" />
+                  <span>GASSS LOGHINN</span>
                 </>
               )}
             </button>
           </form>
 
           {/* Footer: WhatsApp License Purchase & Reset */}
-          <div className="mt-6 pt-5 border-t border-white/10 text-center space-y-2.5">
-            <p className="text-[11px] text-stone-300/80">
+          <div className="mt-6 pt-5 border-t border-white/15 text-center space-y-2.5">
+            <p className="text-[11px] text-stone-200/80">
               Belum punya lisensi atau butuh reset hardware binding?
             </p>
             <button
               type="button"
               onClick={handleOpenWhatsApp}
-              className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.98] border border-white/15 text-xs font-bold text-teal-300 hover:text-teal-200 backdrop-blur-md flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.98] border border-white/20 text-xs font-bold text-teal-300 hover:text-teal-200 backdrop-blur-md flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
             >
               <MessageSquare size={14} />
               <span>Aktivasi / Bantuan via WhatsApp</span>
@@ -325,10 +290,10 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
           <button
             type="button"
             onClick={() => setIsFormVisible(true)}
-            className="flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-black/40 hover:bg-black/60 text-white font-black text-sm backdrop-blur-3xl border border-white/30 shadow-[0_10px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(45,212,191,0.3)] active:scale-95 transition-all duration-300 cursor-pointer"
+            className="flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-white/[0.12] hover:bg-white/[0.22] text-white font-black text-sm tracking-wider uppercase backdrop-blur-2xl border border-white/30 hover:border-teal-400/60 shadow-[0_15px_40px_rgba(0,0,0,0.4),0_0_25px_rgba(45,212,191,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] active:scale-95 transition-all duration-300 cursor-pointer"
           >
-            <Sparkles size={16} className="text-teal-300 animate-spin" style={{ animationDuration: '6s' }} />
-            <span>Masuk ke Ruang Operasi</span>
+            <Eye size={18} className="text-teal-300" />
+            <span>GASSS LOGHINN</span>
           </button>
         </div>
       )}
