@@ -78,23 +78,19 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-between overflow-hidden bg-stone-950 text-white select-none">
-      {/* 1. Cinematic Background: Makoto Shinkai / Genshin Impact Mountain Scenic Wallpaper */}
+      {/* 1. Cinematic Background: Live Anime Video Looping */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute -inset-10 bg-cover bg-center animate-anime-pan"
-          style={{
-            backgroundImage: "url('/assets/login_bg.jpg')",
-            willChange: 'transform',
-            transform: 'translateZ(0)',
-          }}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          src="/assets/login_bg_video.mp4"
         />
-        {/* Soft atmospheric gradient overlays for iOS-level contrast & anime sunset vibrance */}
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950/45 via-transparent to-stone-950/50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-transparent to-stone-950/25" />
-        
-        {/* Radial subtle anime lens flare & cyan ambient glow */}
-        <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-teal-400/15 rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
+        {/* Ultra-thin atmospheric filter so video resolution & colors remain 100% pristine */}
+        <div className="absolute inset-0 bg-stone-950/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/30 via-transparent to-stone-950/10" />
       </div>
 
       {/* 2. Top Navigation Bar: Minimal Clean Brand Typography */}
