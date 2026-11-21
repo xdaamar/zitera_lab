@@ -9,11 +9,23 @@ import { ScoreboardView } from './ScoreboardView'
 import { ToolsView } from './ToolsView'
 import { EnvironmentView } from './EnvironmentView'
 import { SettingsView } from './SettingsView'
-import { initAuth } from './authService'
+import { TacticalGate } from './TacticalGate'
+import {
+  initAuth,
+  getCurrentUser,
+  subscribeAuth,
+  touchSession,
+  getSessionLastActive,
+  SESSION_MAX_INACTIVE_MS,
+  logout,
+  type UserModel,
+} from './authService'
 import { useZoomManager, ZoomFloatingWidget, ZoomToast } from './ZoomControls'
 import './App.css'
 
 export function App() {
+  const [currentUser, setCurrentUser] = useState<UserModel | null>(getCurrentUser())
+  const [authInitialized, setAuthInitialized] = useState(false)
   const [navIndex, setNavIndex] = useState<NavIndex>(0)
   const [activeLabId, setActiveLabId] = useState<string | null>(null)
   const [authOpen, setAuthOpen] = useState(false)
@@ -29,14 +41,63 @@ export function App() {
   const { zoom, zoomIn, zoomOut, resetZoom, setZoom, toastVisible } = useZoomManager()
 
   useEffect(() => {
-    initAuth()
+    const unsub = subscribeAuth((user) => {
+      setCurrentUser(user)
+    })
+    initAuth().finally(() => {
+      setAuthInitialized(true)
+    })
+
+    // Session activity tracker (5-hour auto logout when inactive/closed)
+    const handleActivity = () => {
+      touchSession()
+    }
+    const sessionInterval = setInterval(() => {
+      const lastActive = getSessionLastActive()
+      if (lastActive > 0 && Date.now() - lastActive > SESSION_MAX_INACTIVE_MS) {
+        logout()
+      }
+    }, 60000)
+
+    window.addEventListener('mousedown', handleActivity, { passive: true })
+    window.addEventListener('keydown', handleActivity, { passive: true })
+
+    // Anti-tamper & anti-inspect keyboard prevention
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c', 'K', 'k'].includes(e.key)) ||
+        (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S'))
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    const handleContextMenu = (e: MouseEvent) => {
+      // Prevent browser inspect element context menu
+      e.preventDefault()
+    }
+
+    window.addEventListener('keydown', handleKeyDown, true)
+    window.addEventListener('contextmenu', handleContextMenu, true)
+
+    return () => {
+      unsub()
+      clearInterval(sessionInterval)
+      window.removeEventListener('mousedown', handleActivity)
+      window.removeEventListener('keydown', handleActivity)
+      window.removeEventListener('keydown', handleKeyDown, true)
+      window.removeEventListener('contextmenu', handleContextMenu, true)
+    }
   }, [])
 
   const handleToggleCursor = (enabled: boolean) => {
     setCursorEnabled(enabled)
     try {
       localStorage.setItem('zitera_cursor_enabled', String(enabled))
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   const handleOpenLab = (labId: string) => {
@@ -45,6 +106,11 @@ export function App() {
 
   const handleBackFromLab = () => {
     setActiveLabId(null)
+  }
+
+  // 1. Mandatory Tactical Gate: If user is not logged in, show Full-Screen Tactical Gate
+  if (authInitialized && !currentUser) {
+    return <TacticalGate onLoginSuccess={() => {}} />
   }
 
   return (

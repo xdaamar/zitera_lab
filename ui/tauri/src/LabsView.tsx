@@ -38,8 +38,11 @@ import { CuteAnimeLoading } from './CuteAnimeLoading'
 import {
   getLabProgression,
   isLabSolved,
+  canUserAccessLab,
   type LabProgressionInfo,
+  type TierAccessResult,
 } from './progressionHelper'
+import { getCurrentUser } from './authService'
 
 interface LabsViewProps {
   onSelectLab: (labId: string) => void
@@ -79,6 +82,21 @@ const STICKER_MAP: Record<string, string> = {
   A10: '/assets/sticker_duck.png',
   'A10-02': '/assets/sticker_cat_laptop.png',
   'A10-03': '/assets/sticker_hamster.png',
+  F01: '/assets/sticker_cat_laptop.png',
+  F02: '/assets/sticker_duck.png',
+  F03: '/assets/sticker_bunny.png',
+  F04: '/assets/sticker_purple.png',
+  F05: '/assets/sticker_shiba.png',
+  F06: '/assets/sticker_pink.png',
+  W01: '/assets/sticker_duck.png',
+  W02: '/assets/sticker_bunny.png',
+  W03: '/assets/sticker_cat_laptop.png',
+  W04: '/assets/sticker_hamster.png',
+  W05: '/assets/sticker_shiba.png',
+  D01: '/assets/sticker_blonde.png',
+  D02: '/assets/sticker_purple.png',
+  A11: '/assets/sticker_pink.png',
+  A12: '/assets/sticker_duck.png',
 }
 
 interface LabMetadata {
@@ -319,6 +337,115 @@ const LAB_DETAILS: Record<string, LabMetadata> = {
     skills: ['Blind SSRF', 'Cloud Metadata Pivot', 'DNS Rebinding Defense'],
     difficulty: 'Advanced',
   },
+
+  // Track 1: Cyber Operative Foundations
+  F01: {
+    targetApp: 'Terminal Operative & Raw HTTP Inspector',
+    domain: 'Cybersecurity Educational Core Architecture',
+    desc: 'Kuasai dasar protokol HTTP: analisis method GET/POST/PUT, status code 200/403/500, dan struktur header permintaan web.',
+    skills: ['HTTP Protocol', 'Headers', 'Status Codes', 'Web Traffic'],
+    difficulty: 'Beginner',
+  },
+  F02: {
+    targetApp: 'Session & Token Guardian',
+    domain: 'State Management & Storage Inspector',
+    desc: 'Pahami sifat stateless HTTP, pemeriksaan atribut keamanan cookie (HttpOnly, Secure, SameSite), dan lifecycle session ID.',
+    skills: ['Cookies', 'Sessions', 'Token Security', 'DevTools'],
+    difficulty: 'Beginner',
+  },
+  F03: {
+    targetApp: 'Trust Boundary Gateway',
+    domain: 'Identity & Access Verification Core',
+    desc: 'Pahami perbedaan fundamental siapa Anda (AuthN) dan apa hak Anda (AuthZ) dalam arsitektur software berstandar industri.',
+    skills: ['Authentication', 'Authorization', 'Trust Boundary'],
+    difficulty: 'Beginner',
+  },
+  F04: {
+    targetApp: 'Crypto Core Laboratory',
+    domain: 'Applied Cryptography & Data Integrity',
+    desc: 'Hilangkan kerancuan antara Base64, SHA-256, dan AES. Pelajari perbedaan encoding, hashing, dan enkripsi berpasangan.',
+    skills: ['Encoding', 'Hashing', 'Encryption', 'Data Integrity'],
+    difficulty: 'Beginner',
+  },
+  F05: {
+    targetApp: 'SQL Parsing & Query Sandbox',
+    domain: 'Database Engine & Command/Data Separation',
+    desc: 'Pelajari bagaimana parser SQL mengompilasi string query dan pentingnya pemisahan data versus instruksi eksekusi.',
+    skills: ['SQL Parsing', 'Prepared Statements', 'Database Core'],
+    difficulty: 'Beginner',
+  },
+  F06: {
+    targetApp: 'Zitera Flag Engine & Triager Studio',
+    domain: 'Bug Bounty Simulation & Verification',
+    desc: 'Orientasi lengkap alur kerja ZITERA LAB: kontrol sandbox lokal, pembuktian bukti kerentanan, dan validasi flag CTF.',
+    skills: ['Sandbox Controls', 'Flag Validation', 'CTF Mechanics'],
+    difficulty: 'Beginner',
+  },
+
+  // Track 3: Web Security Specialist & Defense
+  W01: {
+    targetApp: 'QuickTransfer Wire Portal',
+    domain: 'Fintech User Fund Transfer & Transaction Core',
+    desc: 'Eksploitasi dan mitigasi serangan Cross-Site Request Forgery (CSRF) pada transaksi perbankan tanpa perlindungan token anti-CSRF.',
+    skills: ['CSRF', 'SameSite Cookies', 'Transaction Tampering'],
+    difficulty: 'Intermediate',
+  },
+  W02: {
+    targetApp: 'CloudBridge Webhook Processor',
+    domain: 'Enterprise Cloud Integration & Metadata Service',
+    desc: 'Lakukan peretasan Server-Side Request Forgery (SSRF) untuk menjangkau API internal dan layanan metadata cloud.',
+    skills: ['SSRF', 'Cloud Metadata', 'Internal Pivoting'],
+    difficulty: 'Advanced',
+  },
+  W03: {
+    targetApp: 'MedCare HealthRecords API',
+    domain: 'Healthcare Medical Records & Doctor Portal',
+    desc: 'Audit celah Broken Object Level Authorization (API BOLA) pada endpoint GraphQL/REST untuk mengakses rekam medis pasien lain.',
+    skills: ['BOLA', 'API Authorization', 'REST API Security'],
+    difficulty: 'Intermediate',
+  },
+  W04: {
+    targetApp: 'MediaDrop Document Cloud',
+    domain: 'Cloud Storage & Asset Ingestion Service',
+    desc: 'Bypass validasi MIME-Type dan ekstensi ganda untuk mengunggah web shell dan mengeksekusi Remote Code Execution (RCE).',
+    skills: ['File Upload', 'MIME Sniffing', 'Web Shell RCE'],
+    difficulty: 'Advanced',
+  },
+  W05: {
+    targetApp: 'SysView Report Viewer',
+    domain: 'Enterprise System Diagnostics & Log Portal',
+    desc: 'Eksploitasi Path Traversal dan Local File Inclusion (LFI) untuk membaca berkas rahasia sistem (/etc/passwd) pada server Linux.',
+    skills: ['Path Traversal', 'LFI', 'Directory Traversal'],
+    difficulty: 'Intermediate',
+  },
+  D01: {
+    targetApp: 'ThreatWatch SIEM Console',
+    domain: 'SOC Incident Response & Forensics Platform',
+    desc: 'Analisis log server web Apache/Nginx untuk mendeteksi jejak serangan web scanner otomatis dan payload injeksi berbahaya.',
+    skills: ['Log Analysis', 'Threat Hunting', 'Incident Response'],
+    difficulty: 'Intermediate',
+  },
+  D02: {
+    targetApp: 'PkgVerify Security Guard',
+    domain: 'Software Supply Chain Cryptographic Verification',
+    desc: 'Verifikasi tanda tangan digital package manifest dan hash checksum SHA-256 untuk mendeteksi paket biner yang dirusak.',
+    skills: ['Code Signing', 'Package Integrity', 'Cryptographic Audit'],
+    difficulty: 'Intermediate',
+  },
+  A11: {
+    targetApp: 'TeamOps Workspace API',
+    domain: 'B2B SaaS Workspace & User Profile API',
+    desc: 'Manfaatkan celah Mass Assignment pada JSON payload untuk menginjeksi atribut role: "admin" secara diam-diam.',
+    skills: ['Mass Assignment', 'Object Injection', 'API Escalation'],
+    difficulty: 'Intermediate',
+  },
+  A12: {
+    targetApp: 'AuthLink Identity Federation',
+    domain: 'SSO & OAuth 2.0 Account Linking Provider',
+    desc: 'Eksploitasi penggabungan akun OAuth 2.0 tanpa verifikasi email dan missing state parameter untuk pengambilalihan akun korban.',
+    skills: ['OAuth 2.0', 'Account Takeover', 'SSO Misconfig'],
+    difficulty: 'Advanced',
+  },
 }
 
 interface CategoryStyle {
@@ -532,17 +659,88 @@ const CATEGORY_STYLES: Record<string, CategoryStyle> = {
     badgeText: '#BE123C',
     badgeShadow: '#FECDD3',
   },
+  FOUNDATIONS: {
+    id: 'FOUNDATIONS',
+    name: 'Cyber Foundations',
+    slug: 'foundations',
+    owaspTag: 'TRACK 1 // FOUNDATIONS',
+    accent: '#0F766E',
+    border: '#2DD4BF',
+    shadow: '#0F766E',
+    glowRgba: 'rgba(45,212,191,0.25)',
+    bgLight: '#F0FDFA',
+    cartridgeBg: '#CCFBF1',
+    cartridgeBorder: '#2DD4BF',
+    cartridgeText: '#0F766E',
+    cartridgeShadow: '#5EEAD4',
+    badgeBg: '#CCFBF1',
+    badgeBorder: '#2DD4BF',
+    badgeText: '#0F766E',
+    badgeShadow: '#99F6E4',
+  },
+  WEB_EXPLOIT: {
+    id: 'WEB_EXPLOIT',
+    name: 'Web Security Specialist',
+    slug: 'web-exploit',
+    owaspTag: 'TRACK 3 // SPECIALIST',
+    accent: '#6D28D9',
+    border: '#A78BFA',
+    shadow: '#6D28D9',
+    glowRgba: 'rgba(167,139,250,0.25)',
+    bgLight: '#F5F3FF',
+    cartridgeBg: '#EDE9FE',
+    cartridgeBorder: '#A78BFA',
+    cartridgeText: '#6D28D9',
+    cartridgeShadow: '#C4B5FD',
+    badgeBg: '#EDE9FE',
+    badgeBorder: '#A78BFA',
+    badgeText: '#6D28D9',
+    badgeShadow: '#DDD6FE',
+  },
+  DEFENSE: {
+    id: 'DEFENSE',
+    name: 'Threat Hunting & Defense',
+    slug: 'defense',
+    owaspTag: 'TRACK 3 // DEFENSE',
+    accent: '#0369A1',
+    border: '#38BDF8',
+    shadow: '#0369A1',
+    glowRgba: 'rgba(56,189,248,0.25)',
+    bgLight: '#F0F9FF',
+    cartridgeBg: '#E0F2FE',
+    cartridgeBorder: '#38BDF8',
+    cartridgeText: '#0369A1',
+    cartridgeShadow: '#7DD3FC',
+    badgeBg: '#E0F2FE',
+    badgeBorder: '#38BDF8',
+    badgeText: '#0369A1',
+    badgeShadow: '#BAE6FD',
+  },
 }
 
 const CATEGORY_LIST = Object.values(CATEGORY_STYLES)
 
+export type TrackFilter = 'ALL' | 'TRACK_1' | 'TRACK_2' | 'TRACK_3'
+
 export function getBaseCategory(labId: string): string {
-  const match = labId.trim().toUpperCase().match(/^(A\d{2})/)
-  return match ? match[1] : 'A01'
+  const clean = labId.trim().toUpperCase()
+  if (clean.startsWith('F')) return 'FOUNDATIONS'
+  if (clean.startsWith('W') || clean === 'A11' || clean === 'A12') return 'WEB_EXPLOIT'
+  if (clean.startsWith('D')) return 'DEFENSE'
+  const match = clean.match(/^(A\d{2})/)
+  return match ? match[1] : 'FOUNDATIONS'
+}
+
+export function getLabTrack(labId: string): TrackFilter {
+  const clean = labId.trim().toUpperCase()
+  if (clean.startsWith('F')) return 'TRACK_1'
+  if (clean.startsWith('W') || clean === 'A11' || clean === 'A12' || clean.startsWith('D')) return 'TRACK_3'
+  return 'TRACK_2'
 }
 
 export function LabsView({ onSelectLab }: LabsViewProps) {
   const [labs, setLabs] = useState<LabItem[]>([])
+  const [selectedTrack, setSelectedTrack] = useState<TrackFilter>('ALL')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [difficulty, setDifficulty] = useState<DifficultyFilter>('ALL')
@@ -551,7 +749,9 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
   const [actionInProgress, setActionInProgress] = useState<Record<string, string>>({})
   const [solvedLabsMap, setSolvedLabsMap] = useState<Record<string, boolean>>({})
   const [lockedModalInfo, setLockedModalInfo] = useState<LabProgressionInfo | null>(null)
+  const [upgradeModalInfo, setUpgradeModalInfo] = useState<{ labId: string; tierAccess: TierAccessResult } | null>(null)
   const isMountedRef = useRef(true)
+  const currentUser = getCurrentUser()
 
   const syncSolvedStatus = (labList?: LabItem[]) => {
     try {
@@ -608,7 +808,14 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
   }, [])
 
   const handleAction = async (labId: string, action: 'start' | 'stop' | 'reset' | 'update') => {
-    // Check progression gate before starting
+    // 1. Authoritative Tier Gating Check
+    const tierAccess = canUserAccessLab(labId, currentUser?.tier)
+    if (action === 'start' && !tierAccess.allowed) {
+      setUpgradeModalInfo({ labId, tierAccess })
+      return
+    }
+
+    // 2. Sequential Progression Gating Check
     const progression = getLabProgression(labId)
     if (action === 'start' && !progression.prerequisiteSolved) {
       setLockedModalInfo(progression)
@@ -706,9 +913,11 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
         baseCat === selectedCategory ||
         (style && style.slug === selectedCategory)
 
-      return matchesSearch && matchesStatus && matchesDifficulty && matchesCategory
+      const matchesTrack = selectedTrack === 'ALL' || getLabTrack(lab.id) === selectedTrack
+
+      return matchesSearch && matchesStatus && matchesDifficulty && matchesCategory && matchesTrack
     })
-  }, [labs, search, statusFilter, difficulty, selectedCategory, solvedLabsMap])
+  }, [labs, search, statusFilter, difficulty, selectedCategory, solvedLabsMap, selectedTrack])
 
   return (
     <div className="flex-1 h-full overflow-hidden relative bg-[#FCFBF8]">
@@ -892,6 +1101,48 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
           </div>
         </div>
 
+        {/* 3.5 Career Tracks Selector Bar */}
+        <div className="bg-[#181512] border-2 border-[#2DD4BF] rounded-2xl p-3 shadow-[0_4px_0_0_#0F766E] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 px-1 text-[#2DD4BF] font-['Space_Grotesk'] font-bold text-xs uppercase tracking-wider shrink-0">
+            <Compass size={16} />
+            <span>CAREER TRACK:</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 flex-1 md:justify-end">
+            {[
+              { id: 'ALL' as TrackFilter, name: 'Semua Track', count: labs.length, desc: 'Semua Laboratorium' },
+              { id: 'TRACK_1' as TrackFilter, name: 'Track 1: Cyber Foundations', count: 6, desc: 'Linux CLI • Nmap • HTTP • Cookies' },
+              { id: 'TRACK_2' as TrackFilter, name: 'Track 2: OWASP Top 10 Bug Hunter', count: 30, desc: '10 Core + 20 Explore Real Cases' },
+              { id: 'TRACK_3' as TrackFilter, name: 'Track 3: Web Specialist & Zero-Day', count: 9, desc: 'API BOLA • OAuth • Cloud SSRF' },
+            ].map((t) => {
+              const active = selectedTrack === t.id
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setSelectedTrack(t.id)
+                    setSelectedCategory('ALL')
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold font-['Space_Grotesk'] border-2 transition-all cursor-pointer flex items-center gap-2 ${
+                    active
+                      ? 'bg-[#2DD4BF] border-[#5EEAD4] text-[#042F2C] shadow-[0_2px_0_0_#0F766E] translate-y-0.5'
+                      : 'bg-[#26221D] border-[#3E3830] text-[#D6D3D1] hover:border-[#2DD4BF] hover:text-[#5EEAD4]'
+                  }`}
+                >
+                  <span>{t.name}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded text-[10px] font-['JetBrains_Mono'] font-bold ${
+                      active ? 'bg-[#042F2C] text-[#2DD4BF]' : 'bg-[#181512] text-[#A8A29E]'
+                    }`}
+                  >
+                    {t.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* 4. Search & Filter Bar with 3D Depth & Category Progression Tabs */}
         <div className="space-y-3 bg-[#FCFBF8] border-2 border-[#CEC8BF] rounded-2xl p-4 shadow-[0_3px_0_0_#E4DFD7]">
           {/* Top Row: Search Input + Status Tabs + Difficulty */}
@@ -976,14 +1227,27 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                   : 'bg-white border-[#CEC8BF] text-[#5C5347] shadow-[0_3px_0_0_#E4DFD7] hover:border-[#2DD4BF] hover:-translate-y-0.5'
               }`}
             >
-              <span>ALL CATEGORIES ({labs.length || 30})</span>
+              <span>
+                {selectedTrack === 'ALL'
+                  ? `ALL CATEGORIES (${labs.length || 45})`
+                  : selectedTrack === 'TRACK_1'
+                  ? 'ALL FOUNDATIONS (6)'
+                  : selectedTrack === 'TRACK_2'
+                  ? 'ALL OWASP TOP 10 (30)'
+                  : 'ALL SPECIALIST (9)'}
+              </span>
               <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[9.5px]">
                 {solvedCount}/{totalCount}
               </span>
             </button>
 
-            {/* 10 Category Tabs */}
-            {CATEGORY_LIST.map((cat) => {
+            {/* Dynamic Category Tabs */}
+            {CATEGORY_LIST.filter((cat) => {
+              if (selectedTrack === 'TRACK_1') return cat.id === 'FOUNDATIONS'
+              if (selectedTrack === 'TRACK_2') return cat.id.startsWith('A') && cat.id !== 'A11' && cat.id !== 'A12'
+              if (selectedTrack === 'TRACK_3') return cat.id === 'WEB_EXPLOIT' || cat.id === 'DEFENSE'
+              return true
+            }).map((cat) => {
               const isSelected = selectedCategory === cat.id || selectedCategory === cat.slug
               const stat = categoryStats[cat.id] || { total: 3, solved: 0 }
               const isComplete = stat.total > 0 && stat.solved === stat.total
@@ -1066,6 +1330,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                 onSelectLab={onSelectLab}
                 onAction={handleAction}
                 onOpenLockModal={(info) => setLockedModalInfo(info)}
+                onOpenUpgradeModal={(info) => setUpgradeModalInfo(info)}
               />
             ))}
           </div>
@@ -1135,6 +1400,83 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
           </div>
         </div>
       )}
+
+      {/* 7. Pro Edition Upgrade Required Modal */}
+      {upgradeModalInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
+          <div className="relative max-w-lg w-full bg-[#FCFBF8] border-2 border-[#D97706] rounded-2xl p-6 md:p-8 shadow-[0_8px_0_0_#92400E,0_24px_48px_rgba(0,0,0,0.3)] space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header with Gold Lock Icon */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-13 h-13 rounded-2xl bg-[#FEF3C7] border-2 border-[#F59E0B] text-[#D97706] flex items-center justify-center shadow-[0_3px_0_0_#D97706] shrink-0">
+                <Lock size={26} />
+              </div>
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309] border border-[#FCD34D] text-[10px] font-['JetBrains_Mono'] font-extrabold tracking-wider">
+                  PRO EDITION ACCESS REQUIRED
+                </span>
+                <h3 className="text-xl font-black font-['Space_Grotesk'] text-[#1E1A14] leading-tight mt-1">
+                  Eksklusif Pro Edition
+                </h3>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#5C5347] font-sans leading-relaxed">
+              Laboratorium <strong className="text-[#1E1A14]">"{LAB_DETAILS[upgradeModalInfo.labId]?.targetApp || upgradeModalInfo.labId}"</strong> merupakan bagian dari <strong className="text-[#D97706]">{upgradeModalInfo.tierAccess.trackName}</strong>. Akun Anda saat ini memiliki akses paket <strong>Foundation Only</strong>.
+            </p>
+
+            {/* Feature comparison / Benefit Box */}
+            <div className="p-4 bg-[#FFFBEB] border-2 border-[#FCD34D] rounded-xl space-y-2.5">
+              <div className="text-[11px] font-['Space_Grotesk'] font-bold text-[#92400E] uppercase flex items-center gap-1.5">
+                <Sparkles size={14} className="text-[#D97706]" />
+                <span>Keuntungan Upgrade ke Pro Edition:</span>
+              </div>
+              <ul className="text-xs text-[#78350F] space-y-1.5 font-sans">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-[#16A34A] shrink-0" />
+                  <span>Akses penuh seluruh <strong>45 Laboratorium</strong> (Track 1, 2, & 3)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-[#16A34A] shrink-0" />
+                  <span>30 Modul OWASP Top 10 + 20 Variasi Eksploitasi Lanjutan</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-[#16A34A] shrink-0" />
+                  <span>9 Lab Spesialis: BOLA API, File Upload RCE, LFI, CSRF & SIEM Forensik</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-[#16A34A] shrink-0" />
+                  <span>Tantangan CTF, Peringkat Scoreboard Global & Sertifikasi Digital</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setUpgradeModalInfo(null)}
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold font-['Space_Grotesk'] text-[#5C5347] bg-white border-2 border-[#CEC8BF] rounded-xl hover:bg-[#F0EDE8] shadow-[0_2px_0_0_#CEC8BF] hover:translate-y-0.5 cursor-pointer transition-all"
+              >
+                Nanti Saja
+              </button>
+
+              <button
+                onClick={() => {
+                  const username = currentUser?.username || 'user'
+                  const msg = encodeURIComponent(
+                    `Halo Admin Zitera Lab, saya ingin upgrade akun (username: ${username}) dari Foundation ke Pro Edition! Mohon info instruksi pembayarannya.`,
+                  )
+                  openBrowser(`https://wa.me/6282283088667?text=${msg}`)
+                  setUpgradeModalInfo(null)
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 text-xs font-black font-['Space_Grotesk'] text-white bg-[#D97706] hover:bg-[#B45309] border-2 border-[#B45309] rounded-xl shadow-[0_3px_0_0_#78350F] hover:shadow-[0_1px_0_0_#78350F] hover:translate-y-0.5 active:translate-y-1 flex items-center justify-center gap-2 cursor-pointer transition-all"
+              >
+                <Sparkles size={15} />
+                <span>Hubungi Admin via WhatsApp</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1149,6 +1491,7 @@ interface TactileLabCardProps {
   onSelectLab: (id: string) => void
   onAction: (id: string, action: 'start' | 'stop' | 'reset' | 'update') => Promise<void>
   onOpenLockModal: (info: LabProgressionInfo) => void
+  onOpenUpgradeModal: (info: { labId: string; tierAccess: TierAccessResult }) => void
 }
 
 function TactileLabCard({
@@ -1158,10 +1501,15 @@ function TactileLabCard({
   onSelectLab,
   onAction,
   onOpenLockModal,
+  onOpenUpgradeModal,
 }: TactileLabCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const progression = getLabProgression(lab.id)
-  const isLocked = !progression.prerequisiteSolved
+  const currentUser = getCurrentUser()
+  const tierAccess = canUserAccessLab(lab.id, currentUser?.tier)
+  const isTierLocked = !tierAccess.allowed
+  const isProgressionLocked = !progression.prerequisiteSolved
+  const isLocked = isTierLocked || isProgressionLocked
   const baseCat = getBaseCategory(lab.id)
 
   const detail = LAB_DETAILS[lab.id] ?? {
@@ -1193,7 +1541,9 @@ function TactileLabCard({
   }
 
   const handleCardClick = () => {
-    if (isLocked) {
+    if (isTierLocked) {
+      onOpenUpgradeModal({ labId: lab.id, tierAccess })
+    } else if (isProgressionLocked) {
       onOpenLockModal(progression)
     } else {
       onSelectLab(lab.id)
@@ -1281,8 +1631,13 @@ function TactileLabCard({
                 </span>
               )}
 
-              {/* 2. Locked Badge if Prerequisite Unmet */}
-              {isLocked ? (
+              {/* 2. Locked Badge if Tier or Prerequisite Unmet */}
+              {isTierLocked ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FEF3C7] border-2 border-[#F59E0B] text-[10px] font-['JetBrains_Mono'] font-extrabold text-[#B45309] shadow-[0_2px_0_0_#D97706]">
+                  <Lock size={10} className="text-[#B45309]" />
+                  <span>PRO EDITION ONLY</span>
+                </span>
+              ) : isProgressionLocked ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FEF2F2] border-2 border-[#EF4444] text-[10px] font-['JetBrains_Mono'] font-extrabold text-[#DC2626] shadow-[0_2px_0_0_#DC2626]">
                   <Lock size={10} />
                   <span>TERKUNCI (Selesaikan Lab Wajib)</span>
@@ -1393,7 +1748,15 @@ function TactileLabCard({
       {/* Bottom Action Controls with Tactile Press Depth */}
       <div className="pt-3.5 mt-3.5 border-t-2 border-[#E6E2D8] flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          {isLocked ? (
+          {isTierLocked ? (
+            <button
+              onClick={() => onOpenUpgradeModal({ labId: lab.id, tierAccess })}
+              className="px-3.5 py-2 bg-[#FEF3C7] hover:bg-[#FDE68A] text-[#B45309] text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 border-2 border-[#F59E0B] shadow-[0_3px_0_0_#D97706] hover:shadow-[0_1px_0_0_#D97706] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
+            >
+              <Sparkles size={13} className="text-[#D97706]" />
+              <span>UPGRADE KE PRO</span>
+            </button>
+          ) : isProgressionLocked ? (
             <button
               onClick={() => onOpenLockModal(progression)}
               className="px-4 py-2 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#64748B] text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 border-2 border-[#CBD5E1] shadow-[0_3px_0_0_#94A3B8] hover:shadow-[0_1px_0_0_#94A3B8] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
@@ -1455,12 +1818,14 @@ function TactileLabCard({
         <button
           onClick={handleCardClick}
           className={`px-3.5 py-2 border-2 text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 cursor-pointer transition-all ${
-            isLocked
+            isTierLocked
+              ? 'bg-[#FFFBEB] border-[#F59E0B] text-[#B45309] shadow-[0_2px_0_0_#D97706]'
+              : isProgressionLocked
               ? 'bg-[#F1F5F9] border-[#CBD5E1] text-[#64748B] shadow-[0_2px_0_0_#94A3B8]'
               : 'bg-white hover:bg-[#F0FDFA] border-[#2DD4BF] text-[#0F766E] shadow-[0_3px_0_0_#5EEAD4] hover:shadow-[0_1px_0_0_#5EEAD4] hover:translate-y-0.5 active:translate-y-1 active:shadow-none'
           }`}
         >
-          <span>{isLocked ? 'Lihat Prasyarat' : 'Inspect Lab'}</span>
+          <span>{isTierLocked ? 'Eksklusif Pro' : isProgressionLocked ? 'Lihat Prasyarat' : 'Inspect Lab'}</span>
           <ChevronRight size={14} />
         </button>
       </div>

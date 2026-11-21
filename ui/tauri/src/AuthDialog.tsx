@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { X, CheckCircle2, AlertTriangle, Check } from 'lucide-react'
+import { X, CheckCircle2, AlertTriangle, Check, LogOut } from 'lucide-react'
 import {
   AVATAR_REGISTRY,
   getAvatarById,
@@ -8,7 +8,6 @@ import {
 import {
   getCurrentUser,
   login,
-  register,
   updateAvatar,
   logout,
 } from './authService'
@@ -16,10 +15,10 @@ import {
 interface AuthDialogProps {
   isOpen: boolean
   onClose: () => void
-  initialMode?: 'login' | 'register' | 'avatars'
+  initialMode?: 'login' | 'avatars'
 }
 
-type TabMode = 'login' | 'register' | 'avatars'
+type TabMode = 'login' | 'avatars'
 type GenderFilter = 'ALL' | 'Female' | 'Male' | 'Classic'
 
 export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialogProps) {
@@ -67,23 +66,7 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
     const res = await login(username, password)
     setLoading(false)
     if (res.success) {
-      setMessage({ text: `Welcome back, Operative ${res.user?.username}!` })
-      setTimeout(() => {
-        onClose()
-      }, 700)
-    } else {
-      setMessage({ text: res.message, error: true })
-    }
-  }
-
-  const handleRegister = async (e: FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage(null)
-    const res = await register(username, password, selectedAvatarId)
-    setLoading(false)
-    if (res.success) {
-      setMessage({ text: `Operative registered! Assigned: ${selectedAvatarId}` })
+      setMessage({ text: `Selamat datang kembali, Operative ${res.user?.username}!` })
       setTimeout(() => {
         onClose()
       }, 700)
@@ -99,9 +82,9 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
       const ok = await updateAvatar(avatar.id)
       setLoading(false)
       if (ok) {
-        setMessage({ text: `Operative identity updated to ${avatar.name}!` })
+        setMessage({ text: `Identitas avatar berhasil diperbarui ke ${avatar.name}!` })
       } else {
-        setMessage({ text: 'Failed to update avatar.', error: true })
+        setMessage({ text: 'Gagal memperbarui avatar.', error: true })
       }
     }
   }
@@ -111,7 +94,8 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
     await logout()
     setLoading(false)
     setTab('login')
-    setMessage({ text: 'Logged out successfully.' })
+    setMessage({ text: 'Berhasil logout dari sistem.' })
+    onClose()
   }
 
   const selectedAvatar = getAvatarById(selectedAvatarId)
@@ -119,16 +103,16 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs cursor-pointer"
     >
       <div
-        className="w-full max-w-2xl bg-[#FCFBF8] border-2 border-[#E6E2D8] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] cursor-default"
+        className="w-full max-w-2xl bg-[#FCFBF8] border-2 border-[#1E1A14] rounded-2xl shadow-[0_10px_0_0_#1E1A14] overflow-hidden flex flex-col max-h-[90vh] cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#F0EDE8] border-b border-[#E6E2D8]">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#F0EDE8] border-b-2 border-[#E6E2D8]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full border-2 border-[#2DD4BF] bg-[#CCFBF1] flex items-center justify-center overflow-hidden">
+            <div className="w-10 h-10 rounded-full border-2 border-[#2DD4BF] bg-[#CCFBF1] flex items-center justify-center overflow-hidden shadow-[0_2px_0_0_#5EEAD4]">
               <img
                 src={selectedAvatar.assetPath}
                 alt={selectedAvatar.name}
@@ -139,17 +123,24 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
               />
             </div>
             <div>
-              <h2 className="text-base font-bold font-['Space_Grotesk'] text-[#1E1A14]">
-                OPERATIVE HQ // {currentUser ? currentUser.username.toUpperCase() : 'AUTH GATEWAY'}
+              <h2 className="text-base font-bold font-['Space_Grotesk'] text-[#1E1A14] flex items-center gap-1.5">
+                <span>OPERATIVE HQ // {currentUser ? currentUser.username.toUpperCase() : 'AUTH GATEWAY'}</span>
+                {currentUser?.role === 'admin' && (
+                  <span className="px-1.5 py-0.2 rounded bg-[#FEF3C7] border border-[#FBBF24] text-[9.5px] font-['JetBrains_Mono'] font-bold text-[#B45309]">
+                    ADMIN
+                  </span>
+                )}
               </h2>
               <p className="text-xs font-['JetBrains_Mono'] text-[#0F766E]">
-                {currentUser ? `Active Avatar: ${selectedAvatar.name} (${selectedAvatar.role})` : 'Turso CTF Session Hub'}
+                {currentUser
+                  ? `Active Identity: ${selectedAvatar.name} (${selectedAvatar.role})`
+                  : 'Sesi Resmi ZITERA LAB'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-[#E6E2D8] bg-[#FCFBF8] hover:bg-[#F0EDE8] text-[#5C5347] flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-lg border border-[#CEC8BF] bg-[#FCFBF8] hover:bg-[#F0EDE8] text-[#5C5347] flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
             title="Tutup Dialog"
           >
             <X className="w-4 h-4" />
@@ -157,76 +148,43 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
         </div>
 
         {/* Tab switcher */}
-        <div className="flex border-b border-[#E6E2D8] bg-[#F7F5F0] px-6 gap-2 pt-2">
+        <div className="flex border-b-2 border-[#E6E2D8] bg-[#F7F5F0] px-6 gap-2 pt-2">
           {!currentUser ? (
-            <>
-              <button
-                onClick={() => { setTab('login'); setMessage(null) }}
-                className={`px-4 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-colors border-t border-x ${
-                  tab === 'login'
-                    ? 'bg-[#FCFBF8] border-[#2DD4BF] text-[#0F766E]'
-                    : 'border-transparent text-[#9C9080] hover:text-[#1E1A14]'
-                }`}
-              >
-                LOGIN
-              </button>
-              <button
-                onClick={() => { setTab('register'); setMessage(null) }}
-                className={`px-4 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-colors border-t border-x ${
-                  tab === 'register'
-                    ? 'bg-[#FCFBF8] border-[#2DD4BF] text-[#0F766E]'
-                    : 'border-transparent text-[#9C9080] hover:text-[#1E1A14]'
-                }`}
-              >
-                REGISTER
-              </button>
-            </>
+            <button
+              onClick={() => {
+                setTab('login')
+                setMessage(null)
+              }}
+              className="px-4 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-colors border-t border-x bg-[#FCFBF8] border-[#2DD4BF] text-[#0F766E]"
+            >
+              LOGIN KE LAB
+            </button>
           ) : (
             <button
-              onClick={() => { setTab('avatars'); setMessage(null) }}
-              className="px-4 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg bg-[#FCFBF8] border-t border-x border-[#2DD4BF] text-[#0F766E]"
+              onClick={() => {
+                setTab('avatars')
+                setMessage(null)
+              }}
+              className="px-4 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-colors border-t border-x bg-[#FCFBF8] border-[#2DD4BF] text-[#0F766E]"
             >
-              OPERATIVE ROSTER (14 AVATARS)
+              PILIH KARAKTER & AVATAR ({AVATAR_REGISTRY.length})
             </button>
-          )}
-
-          <button
-            onClick={() => { setTab('avatars'); setMessage(null) }}
-            className={`px-4 py-2 text-xs font-['Space_Grotesk'] font-bold rounded-t-lg transition-colors border-t border-x ${
-              tab === 'avatars'
-                ? 'bg-[#FCFBF8] border-[#2DD4BF] text-[#0F766E]'
-                : 'border-transparent text-[#9C9080] hover:text-[#1E1A14]'
-            }`}
-          >
-            ROSTER ({selectedAvatar.name})
-          </button>
-
-          {currentUser && (
-            <div className="ml-auto flex items-center pb-2">
-              <button
-                onClick={handleLogout}
-                disabled={loading}
-                className="px-3 py-1 text-xs font-['JetBrains_Mono'] text-[#EF4444] hover:bg-[#FEE2E2] rounded border border-[#EF4444]/30"
-              >
-                LOGOUT
-              </button>
-            </div>
           )}
         </div>
 
         {/* Message Banner */}
         {message && (
           <div
-            className={`px-6 py-2 text-xs font-['JetBrains_Mono'] flex items-center gap-2 border-b ${
+            className={`px-6 py-2.5 text-xs font-['JetBrains_Mono'] flex items-center gap-2 border-b ${
               message.error
-                ? 'bg-[#FEF2F2] border-[#FCA5A5] text-[#DC2626]'
-                : 'bg-[#ECFDF5] border-[#6EE7B7] text-[#0F766E]'
+                ? 'bg-[#FEE2E2] text-[#991B1B] border-[#F87171]'
+                : 'bg-[#DCFCE7] text-[#166534] border-[#86EFAC]'
             }`}
           >
             {message.error ? (
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-[#DC2626]" />
+              <AlertTriangle className="w-4 h-4 shrink-0 text-[#EF4444]" />
             ) : (
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-[#0F766E]" />
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#16A34A]" />
             )}
             <span>{message.text}</span>
           </div>
@@ -245,14 +203,14 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. shadow_neko"
-                  className="w-full px-3 py-2 text-sm bg-white border border-[#E6E2D8] rounded-lg focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono']"
+                  placeholder="e.g. operative_andi"
+                  className="w-full px-3 py-2 text-xs bg-white border-2 border-[#CEC8BF] rounded-xl focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono']"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-['Space_Grotesk'] font-bold text-[#5C5347] mb-1">
-                  PASSWORD
+                  PASSWORD / ACCESS KEY
                 </label>
                 <input
                   type="password"
@@ -260,181 +218,106 @@ export function AuthDialog({ isOpen, onClose, initialMode = 'login' }: AuthDialo
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-3 py-2 text-sm bg-white border border-[#E6E2D8] rounded-lg focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono']"
+                  className="w-full px-3 py-2 text-xs bg-white border-2 border-[#CEC8BF] rounded-xl focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono']"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-['Space_Grotesk'] font-bold rounded-lg shadow-sm transition-all disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-['Space_Grotesk'] font-bold rounded-xl shadow-[0_3px_0_0_#042F2C] transition-all disabled:opacity-50 cursor-pointer"
               >
-                {loading ? 'AUTHENTICATING...' : 'LOGIN TO LAB'}
+                {loading ? 'MEMVERIFIKASI...' : 'MASUK KE RUANG OPERASI'}
               </button>
 
-              <p className="text-center text-xs text-[#9C9080]">
-                Need an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => setTab('register')}
-                  className="text-[#0F766E] font-bold hover:underline"
-                >
-                  Register new Operative
-                </button>
+              <p className="text-center text-[11px] text-[#786F62] font-sans">
+                Kredensial resmi diterbitkan oleh Administrator ZITERA LAB melalui WhatsApp.
               </p>
-            </form>
-          )}
-
-          {tab === 'register' && (
-            <form onSubmit={handleRegister} className="space-y-4 max-w-md mx-auto py-2">
-              <div>
-                <label className="block text-xs font-['Space_Grotesk'] font-bold text-[#5C5347] mb-1">
-                  DESIRED OPERATIVE CODENAME
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. cyber_operator"
-                  className="w-full px-3 py-2 text-sm bg-white border border-[#E6E2D8] rounded-lg focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono']"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-['Space_Grotesk'] font-bold text-[#5C5347] mb-1">
-                  PASSWORD
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 4 characters"
-                  className="w-full px-3 py-2 text-sm bg-white border border-[#E6E2D8] rounded-lg focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono']"
-                />
-              </div>
-
-              {/* Chosen avatar preview */}
-              <div className="p-3 bg-[#F0EDE8] rounded-lg border border-[#E6E2D8] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full border-2 border-[#2DD4BF] overflow-hidden bg-white">
-                    <img
-                      src={selectedAvatar.assetPath}
-                      alt={selectedAvatar.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14]">
-                      {selectedAvatar.name} — {selectedAvatar.role}
-                    </div>
-                    <div className="text-[10px] font-['JetBrains_Mono'] text-[#5C5347]">
-                      {selectedAvatar.expression}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setTab('avatars')}
-                  className="text-xs font-['Space_Grotesk'] font-bold px-3 py-1.5 bg-[#2DD4BF]/20 text-[#0F766E] border border-[#2DD4BF] rounded-md hover:bg-[#2DD4BF]/30"
-                >
-                  Change
-                </button>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 px-4 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-['Space_Grotesk'] font-bold rounded-lg shadow-sm transition-all disabled:opacity-50"
-              >
-                {loading ? 'REGISTERING...' : 'REGISTER OPERATIVE'}
-              </button>
             </form>
           )}
 
           {tab === 'avatars' && (
             <div className="space-y-4">
               {/* Filter controls */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1 bg-[#F0EDE8] p-1 rounded-lg border border-[#E6E2D8]">
-                  {(['ALL', 'Female', 'Male', 'Classic'] as GenderFilter[]).map((filter) => (
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                  {(['ALL', 'Female', 'Male', 'Classic'] as GenderFilter[]).map((g) => (
                     <button
-                      key={filter}
-                      onClick={() => setGenderFilter(filter)}
-                      className={`px-3 py-1 text-xs font-['Space_Grotesk'] font-bold rounded-md transition-colors ${
-                        genderFilter === filter
-                          ? 'bg-[#FCFBF8] text-[#0F766E] shadow-xs'
-                          : 'text-[#5C5347] hover:text-[#1E1A14]'
+                      key={g}
+                      onClick={() => setGenderFilter(g)}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                        genderFilter === g
+                          ? 'bg-[#2DD4BF] text-[#042F2C]'
+                          : 'bg-[#F0EDE8] text-[#5C5347] hover:bg-[#E6E2D8]'
                       }`}
                     >
-                      {filter}
+                      {g}
                     </button>
                   ))}
                 </div>
-
                 <input
                   type="text"
-                  placeholder="Filter by name or role..."
+                  placeholder="Cari avatar..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="px-3 py-1.5 text-xs bg-white border border-[#E6E2D8] rounded-lg focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono'] w-52"
+                  className="w-full sm:w-48 px-3 py-1 text-xs bg-white border border-[#CEC8BF] rounded-lg focus:outline-none focus:border-[#2DD4BF]"
                 />
               </div>
 
-              {/* Grid of 14 avatars */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {/* Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[48vh] overflow-y-auto pr-1">
                 {filteredAvatars.map((avatar) => {
                   const isSelected = selectedAvatarId === avatar.id
                   return (
-                    <div
+                    <button
                       key={avatar.id}
                       onClick={() => handleAvatarSelect(avatar)}
-                      className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center ${
+                      className={`group relative p-2.5 rounded-xl border-2 text-left flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
                         isSelected
-                          ? 'border-[#2DD4BF] bg-[#CCFBF1]/30 shadow-md ring-2 ring-[#2DD4BF]/50'
-                          : 'border-[#E6E2D8] bg-[#FCFBF8] hover:border-[#2DD4BF]/60 hover:bg-[#F0FDFA]'
+                          ? 'bg-[#CCFBF1] border-[#0F766E] shadow-[0_3px_0_0_#0F766E]'
+                          : 'bg-white border-[#E6E2D8] hover:border-[#2DD4BF] hover:shadow-xs'
                       }`}
                     >
-                      <div className="relative w-16 h-16 rounded-full border-2 border-[#2DD4BF] overflow-hidden bg-white mb-2 shadow-xs">
+                      {isSelected && (
+                        <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#0F766E] rounded-full flex items-center justify-center text-white">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
+                      )}
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/80 bg-[#F0EDE8] shadow-xs">
                         <img
                           src={avatar.assetPath}
                           alt={avatar.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           onError={(e) => {
                             ;(e.target as HTMLElement).style.display = 'none'
                           }}
                         />
-                        {isSelected && (
-                          <div className="absolute top-0 right-0 w-4 h-4 bg-[#0F766E] text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-xs">
-                            <Check className="w-2.5 h-2.5" />
-                          </div>
-                        )}
                       </div>
-
-                      <div className="font-['Space_Grotesk'] font-bold text-xs text-[#1E1A14]">
-                        {avatar.name}
+                      <div className="text-center w-full">
+                        <div className="text-xs font-bold font-['Space_Grotesk'] text-[#1E1A14] truncate">
+                          {avatar.name}
+                        </div>
+                        <div className="text-[10px] text-[#786F62] truncate">
+                          {avatar.role}
+                        </div>
                       </div>
-                      <div className="text-[10px] font-['JetBrains_Mono'] text-[#0F766E] font-medium leading-tight">
-                        {avatar.role}
-                      </div>
-                      <div className="text-[9px] text-[#9C9080] mt-1 line-clamp-1">
-                        {avatar.expression}
-                      </div>
-                    </div>
+                    </button>
                   )
                 })}
               </div>
 
-              {/* Confirm button if not logged in */}
-              {!currentUser && (
-                <div className="pt-2 flex justify-end">
+              {/* Logout button at bottom */}
+              {currentUser && (
+                <div className="pt-4 border-t-2 border-[#E6E2D8] flex items-center justify-between">
+                  <div className="text-xs font-['JetBrains_Mono'] text-[#786F62]">
+                    Hardware Bound: {currentUser.deviceId ? 'TERIKAT' : 'UNBOUND'}
+                  </div>
                   <button
-                    type="button"
-                    onClick={() => setTab('register')}
-                    className="px-5 py-2 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-['Space_Grotesk'] font-bold rounded-lg"
+                    onClick={handleLogout}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#FEE2E2] hover:bg-[#FCA5A5] text-[#991B1B] border border-[#F87171] text-xs font-bold font-['Space_Grotesk'] flex items-center gap-1.5 transition-all cursor-pointer"
                   >
-                    SELECT {selectedAvatar.name.toUpperCase()} & RETURN
+                    <LogOut size={13} />
+                    <span>Logout dari Lab</span>
                   </button>
                 </div>
               )}

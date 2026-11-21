@@ -282,7 +282,7 @@ export function SettingsView({
               <span className="font-bold text-[#1E1A14]">Turso v2 Pipeline Online</span>
             </div>
             <div className="text-[10px] text-[#9C9080] truncate">
-              Endpoint: https://ziteralab-xdaamar.aws-ap-northeast-1.turso.io/v2/pipeline
+              Endpoint: Enclave Protected (Hardware-Bound LibSQL Pipeline)
             </div>
           </div>
         </div>

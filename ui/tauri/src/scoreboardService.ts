@@ -1,6 +1,7 @@
 // Scoreboard Service — ZiteraLab React/Tauri
 import { tursoExecute } from './tursoClient'
 import { getCurrentUser } from './authService'
+import { canUserAccessLab } from './progressionHelper'
 
 export interface ScoreboardEntry {
   rank: number
@@ -20,6 +21,16 @@ export async function recordSolve(labId: string, points = DEFAULT_POINTS_PER_LAB
   if (!user) return false
 
   const cleanLabId = labId.trim().toUpperCase()
+
+  // Strict Tier Authorization Check: Block Foundation accounts from earning Track 2 / Track 3 points
+  const access = canUserAccessLab(cleanLabId, user.tier)
+  if (!access.allowed) {
+    console.warn(
+      `[ScoreboardService] Access denied: User ${user.username} (tier: ${user.tier}) is unauthorized to submit solve for ${cleanLabId} (${access.trackName}).`,
+    )
+    return false
+  }
+
   const solveId = `s_${user.id}_${cleanLabId}`
   const solvedAt = Date.now()
   const avatarId = user.avatarId || 'zeta'

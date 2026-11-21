@@ -895,7 +895,7 @@ export async function getCatalog(): Promise<CatalogEntry[]> {
       id: lab.id,
       packageId: `zitera-lab-${lab.id.toLowerCase()}`,
       title: lab.title,
-      repository: 'https://github.com/zitera/zitera-labs',
+      repository: 'zitera-internal/protected_bundle',
       version: lab.version,
       difficulty: 'Beginner',
       owasp: `A0${lab.id.replace('A', '')}:2025`,

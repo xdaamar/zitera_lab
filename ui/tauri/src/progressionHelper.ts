@@ -1,5 +1,16 @@
 // Progression Gating & Multi-Lab Architecture Helper for Zitera Lab
-// Supports all 30 laboratories (10 Lab Wajib: A01..A10 + 20 Lab Eksplorasi)
+// Supports all 45 laboratories (Track 1: Foundations, Track 2: OWASP Top 10, Track 3: Specialist)
+
+export type UserTier = 'foundation' | 'pro' | 'enterprise'
+
+export interface TierAccessResult {
+  allowed: boolean
+  isTierLocked: boolean
+  requiredTier: 'foundation' | 'pro'
+  track: 'TRACK_1' | 'TRACK_2' | 'TRACK_3'
+  trackName: string
+  reason?: string
+}
 
 export interface LabProgressionInfo {
   isCore: boolean
@@ -16,6 +27,10 @@ export interface LabProgressionInfo {
 }
 
 export const CATEGORY_NAMES: Record<string, string> = {
+  // Track 1
+  FOUNDATIONS: 'Web Security Foundations',
+
+  // Track 2 (OWASP Top 10)
   A01: 'Broken Access Control',
   A02: 'Security Misconfiguration',
   A03: 'Supply Chain Failures',
@@ -26,6 +41,10 @@ export const CATEGORY_NAMES: Record<string, string> = {
   A08: 'Software & Data Integrity',
   A09: 'Security Logging & SIEM',
   A10: 'Server-Side Request Forgery',
+
+  // Track 3
+  WEB_EXPLOIT: 'Web Security Specialist',
+  DEFENSE: 'Threat Hunting & Defense',
 }
 
 export const LAB_CATALOG_TITLES: Record<string, string> = {
@@ -78,6 +97,80 @@ export const LAB_CATALOG_TITLES: Record<string, string> = {
   A10: 'Server-Side Request Forgery (SSRF)',
   'A10-02': 'Blind Out-of-Band SSRF via Webhook Callback',
   'A10-03': 'Server-Side Request Forgery via Internal DNS Rebinding',
+
+  // Track 1 (Foundations)
+  F01: 'Dasar Protokol HTTP & Web Architecture',
+  F02: 'Cookies, Tokens & Session Security',
+  F03: 'Authentication vs Authorization & Trust Boundaries',
+  F04: 'Kriptografi Esensial: Encoding vs Hashing vs Enkripsi',
+  F05: 'Dasar Query Database & Pemisahan Data/Perintah',
+  F06: 'Mekanisme Lab ZITERA & Pengiriman Flag CTF',
+
+  // Track 3 (Specialist & Defense)
+  W01: 'Cross-Site Request Forgery (CSRF) & Token Defense',
+  W02: 'Server-Side Request Forgery (SSRF) & Metadata Service',
+  W03: 'Broken Object Level Authorization (API BOLA)',
+  W04: 'Arbitrary File Upload & MIME Sniffing Bypass',
+  W05: 'Path Traversal & Local File Inclusion (LFI)',
+  D01: 'Web Server Log Analysis & Threat Detection',
+  D02: 'Binary & Package Cryptographic Integrity',
+  A11: 'API Mass Assignment & Privilege Escalation',
+  A12: 'OAuth 2.0 & Account Linking Takeover',
+}
+
+/**
+ * Authoritative Tier Gating Enforcement
+ * - Track 1 (F01..F06): Foundation, Pro, Enterprise
+ * - Track 2 (A01..A10 + explores): Pro, Enterprise
+ * - Track 3 (W01..W05, D01..D02, A11, A12): Pro, Enterprise
+ */
+export function canUserAccessLab(labId: string, userTier?: string | null): TierAccessResult {
+  const cleanId = (labId || '').trim().toUpperCase()
+  const effectiveTier = (userTier || 'foundation').toLowerCase()
+
+  // Track 1: Web Security Foundations
+  if (cleanId.startsWith('F')) {
+    return {
+      allowed: true,
+      isTierLocked: false,
+      requiredTier: 'foundation',
+      track: 'TRACK_1',
+      trackName: 'Track 1: Web Security Foundations',
+    }
+  }
+
+  // Track 3: Web Security Specialist & Defense
+  if (
+    cleanId.startsWith('W') ||
+    cleanId.startsWith('D') ||
+    cleanId === 'A11' ||
+    cleanId === 'A12'
+  ) {
+    const isProOrAbove = effectiveTier === 'pro' || effectiveTier === 'enterprise'
+    return {
+      allowed: isProOrAbove,
+      isTierLocked: !isProOrAbove,
+      requiredTier: 'pro',
+      track: 'TRACK_3',
+      trackName: 'Track 3: Web Security Specialist',
+      reason: isProOrAbove
+        ? undefined
+        : 'Laboratorium ini merupakan bagian dari Track 3 (Web Security Specialist) dan eksklusif untuk peserta Pro Edition.',
+    }
+  }
+
+  // Track 2: OWASP Top 10 Enterprise
+  const isProOrAbove = effectiveTier === 'pro' || effectiveTier === 'enterprise'
+  return {
+    allowed: isProOrAbove,
+    isTierLocked: !isProOrAbove,
+    requiredTier: 'pro',
+    track: 'TRACK_2',
+    trackName: 'Track 2: OWASP Top 10 Enterprise',
+    reason: isProOrAbove
+      ? undefined
+      : 'Laboratorium ini merupakan bagian dari Track 2 (OWASP Top 10) dan eksklusif untuk peserta Pro Edition.',
+  }
 }
 
 export function isLabSolved(labId: string): boolean {

@@ -322,6 +322,66 @@ fn set_app_zoom(window: tauri::WebviewWindow, scale: f64) -> Result<(), String> 
     window.set_zoom(scale).map_err(|e| e.to_string())
 }
 
+/// Returns persistent hardware machine identifier for single-device licensing binding.
+#[tauri::command]
+fn get_device_fingerprint() -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let output = Command::new("reg")
+            .args(["query", "HKLM\\SOFTWARE\\Microsoft\\Cryptography", "/v", "MachineGuid"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
+        if let Ok(out) = output {
+            let text = String::from_utf8_lossy(&out.stdout);
+            for line in text.lines() {
+                if line.contains("MachineGuid") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 3 {
+                        let guid = parts[2];
+                        let hostname = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "WIN-PC".into());
+                        return Ok(format!("{}_{}", hostname, guid));
+                    }
+                }
+            }
+        }
+    }
+    let host = std::env::var("COMPUTERNAME").or_else(|_| std::env::var("HOSTNAME")).unwrap_or_else(|_| "DEVICE".into());
+    Ok(format!("{}_NODEVICEGUID", host))
+}
+
+mod turso;
+
+#[cfg(target_os = "windows")]
+extern "system" {
+    fn IsDebuggerPresent() -> i32;
+    fn CheckRemoteDebuggerPresent(hProcess: *mut std::ffi::c_void, pbDebuggerPresent: *mut i32) -> i32;
+    fn GetCurrentProcess() -> *mut std::ffi::c_void;
+}
+
+fn check_debugger_tampering() -> Result<(), String> {
+    #[cfg(all(target_os = "windows", not(debug_assertions)))]
+    unsafe {
+        if IsDebuggerPresent() != 0 {
+            return Err("[ANTI_REVERSE] Execution halted: active debugger detected.".into());
+        }
+        let mut remote: i32 = 0;
+        CheckRemoteDebuggerPresent(GetCurrentProcess(), &mut remote);
+        if remote != 0 {
+            return Err("[ANTI_REVERSE] Execution halted: remote debugger attached.".into());
+        }
+    }
+    Ok(())
+}
+
+/// Executes an authorized batch of Turso LibSQL statements within the native enclave.
+#[tauri::command]
+fn turso_execute_batch(
+    statements: Vec<turso::StatementInput>,
+) -> Result<Vec<turso::TursoQueryResult>, String> {
+    check_debugger_tampering()?;
+    turso::execute_batch(statements)
+}
+
 // ---------------------------------------------------------------------------
 // App entry-point
 // ---------------------------------------------------------------------------
@@ -360,6 +420,10 @@ pub fn run() {
             clear_auth_session,
             // Window Zoom
             set_app_zoom,
+            // Device Hardware Binding
+            get_device_fingerprint,
+            // Native Turso Database Enclave
+            turso_execute_batch,
         ])
         .run(tauri::generate_context!())
         .expect("error while building tauri application");

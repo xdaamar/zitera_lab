@@ -853,6 +853,13 @@ pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String
         ));
     }
 
+    if item.repository.starts_with("zitera-internal/") || item.repository.starts_with("pkg://") {
+        return Err(format!(
+            "Lab {} is a protected proprietary package. Please place '{}.zlab' into the packages/ directory to install.",
+            lab_id, lab_id.to_lowercase()
+        ));
+    }
+
     let repo_url = if item.repository.starts_with("http") {
         item.repository
     } else {
@@ -1981,7 +1988,7 @@ mod tests {
 
     #[test]
     fn test_validate_repo_url_trusted() {
-        assert!(validate_repo_url("https://github.com/xdaamar/zitera_lab_a01.git").is_ok());
+        assert!(validate_repo_url("https://github.com/zitera-labs/zitera_lab_a01.git").is_ok());
         assert!(validate_repo_url("https://github.com/owner/valid-repo_123").is_ok());
     }
 

@@ -48,6 +48,15 @@ scratch/
 tmp/
 reports/
 zitera_progress.json
+admin_portal.html
+scripts/check_turso.py
+scripts/migrate_turso.py
+scripts/setup_admin.py
+scripts/test_device_binding.py
+scripts/harden_curriculum_vault.*
+scripts/sync_catalog.py
+__pycache__/
+*.pyc
 *.tmp
 dist/
 packages/

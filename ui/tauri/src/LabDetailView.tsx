@@ -29,6 +29,7 @@ import {
   BookOpen,
   Unlock,
   Award,
+  Lock,
 } from 'lucide-react'
 import {
   getLabContent,
@@ -43,6 +44,7 @@ import {
   type LabItem,
 } from './engineClient'
 import { recordSolve } from './scoreboardService'
+import { getCurrentUser } from './authService'
 import { CuteAnimeLoading } from './CuteAnimeLoading'
 import { getInteractiveCurriculumForLab, getBugBountyReportForLab } from './lessonInteractiveData'
 import {
@@ -59,6 +61,7 @@ import { LessonMarkdownRenderer } from './LessonMarkdownRenderer'
 import {
   getLabProgression,
   recordLabSolveProgression,
+  canUserAccessLab,
 } from './progressionHelper'
 
 interface LabDetailViewProps {
@@ -140,6 +143,9 @@ function resolveLessonMarkdown(lessons: Record<string, string>, sectionKey: stri
 }
 
 export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps) {
+  const currentUser = getCurrentUser()
+  const tierAccess = canUserAccessLab(labId, currentUser?.tier)
+
   const [content, setContent] = useState<LabContent | null>(null)
   const [status, setStatus] = useState<LabItem | null>(null)
   const [activeSection, setActiveSection] = useState<SectionKey>('introduction')
@@ -273,6 +279,20 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
         }))
       }
     } else {
+      // Authoritative Tier Check before launching Target Sandbox
+      if (!tierAccess.allowed) {
+        setTargetOp({
+          isOpen: true,
+          type: 'launch',
+          status: 'error',
+          step: 1,
+          errorMessage:
+            tierAccess.reason ||
+            'AKSES DITOLAK: Sandbox target ini hanya tersedia untuk akun Pro Edition.',
+        })
+        return
+      }
+
       // Launching Target with progressive steps & loading popup
       setTargetOp({
         isOpen: true,
@@ -328,6 +348,16 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
   const handleFlagSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!flagInput.trim()) return
+
+    // Authoritative Tier Check before flag validation and score recording
+    if (!tierAccess.allowed) {
+      setFlagResult({
+        passed: false,
+        message: 'Akses Ditolak: Akun tier Foundation tidak memiliki izin mencatat skor CTF pada Track ini.',
+      })
+      return
+    }
+
     setSubmittingFlag(true)
     setFlagResult(null)
 
@@ -524,6 +554,21 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
                 <span>{targetOp.isOpen && targetOp.type === 'stop' ? 'STOPPING...' : 'Stop'}</span>
               </button>
             </>
+          ) : !tierAccess.allowed ? (
+            <button
+              onClick={() => {
+                const username = currentUser?.username || 'user'
+                const msg = encodeURIComponent(
+                  `Halo Admin Zitera Lab, saya ingin upgrade akun (username: ${username}) ke Pro Edition untuk membuka seluruh 45 lab!`,
+                )
+                openBrowser(`https://wa.me/6282283088667?text=${msg}`)
+              }}
+              className="px-3.5 py-1.5 bg-[#D97706] hover:bg-[#B45309] text-white text-xs font-bold font-['Space_Grotesk'] rounded-lg flex items-center gap-1.5 shadow-[0_2px_0_0_#92400E] active:translate-y-0.5 transition-all cursor-pointer"
+              title="Terkunci: Khusus Pro Edition"
+            >
+              <Lock size={13} />
+              <span>UPGRADE KE PRO</span>
+            </button>
           ) : (
             <button
               onClick={handleToggleTarget}
@@ -789,17 +834,49 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
 
                   {/* Section 5: Dedicated Interactive Step-by-Step Walkthrough Card */}
                   {activeSection === 'walkthrough' && (
-                    <>
-                      <InteractiveWalkthroughCard
-                        data={interactiveCurriculum.walkthrough}
-                        targetPort={targetPort}
-                        onSendToTerminal={handleSendToTerminal}
-                      />
-                      <BugBountyReportCard
-                        report={bugBountyReport}
-                        onSendToTerminal={handleSendToTerminal}
-                      />
-                    </>
+                    !tierAccess.allowed ? (
+                      <div className="p-8 rounded-2xl border-2 border-[#F59E0B] bg-[#FFFBEB] shadow-[0_4px_0_0_#D97706] text-center space-y-4 animate-in fade-in duration-150">
+                        <div className="w-14 h-14 rounded-2xl bg-[#FEF3C7] border-2 border-[#F59E0B] text-[#D97706] flex items-center justify-center mx-auto shadow-[0_2px_0_0_#D97706]">
+                          <Lock size={26} />
+                        </div>
+                        <div>
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#FEF3C7] border border-[#FCD34D] text-[#B45309] text-[10px] font-['JetBrains_Mono'] font-bold uppercase tracking-wider">
+                            PRO EDITION EXCLUSIVE // WALKTHROUGH LOCKED
+                          </span>
+                          <h3 className="text-lg font-bold font-['Space_Grotesk'] text-[#92400E] mt-1.5">
+                            Panduan Eksploitasi & Payload Step-by-Step Terkunci
+                          </h3>
+                          <p className="text-xs text-[#78350F] max-w-lg mx-auto leading-relaxed mt-1">
+                            Langkah-langkah exploit interaktif, payload cURL/HTTP, analisis server-side, serta laporan bug bounty untuk laboratorium ini merupakan materi eksklusif paket Pro Edition.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const username = currentUser?.username || 'user'
+                            const msg = encodeURIComponent(
+                              `Halo Admin Zitera Lab, saya ingin upgrade akun (username: ${username}) ke Pro Edition untuk membuka seluruh 45 lab!`,
+                            )
+                            openBrowser(`https://wa.me/6282283088667?text=${msg}`)
+                          }}
+                          className="px-6 py-3 bg-[#D97706] hover:bg-[#B45309] text-white border-2 border-[#B45309] shadow-[0_3px_0_0_#92400E] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-bold font-['Space_Grotesk'] inline-flex items-center gap-2 cursor-pointer transition-all"
+                        >
+                          <Sparkles size={15} />
+                          <span>Upgrade ke Pro Edition via WhatsApp</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <InteractiveWalkthroughCard
+                          data={interactiveCurriculum.walkthrough}
+                          targetPort={targetPort}
+                          onSendToTerminal={handleSendToTerminal}
+                        />
+                        <BugBountyReportCard
+                          report={bugBountyReport}
+                          onSendToTerminal={handleSendToTerminal}
+                        />
+                      </>
+                    )
                   )}
 
                   {/* Section 6: Dedicated Remediation Code Comparison Card */}
@@ -1028,79 +1105,113 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
                     </div>
                   </div>
 
-                  {/* Target Connection Card */}
-                  <div className="p-4 rounded-xl border border-[#E6E2D8] bg-white flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <div>
-                      <span className="font-bold font-['Space_Grotesk'] text-[#1E1A14]">
-                        Target URL Sandbox:
-                      </span>{' '}
-                      <code className="px-2 py-1 rounded bg-[#F0EDE8] text-[#0F766E] font-['JetBrains_Mono']">
-                        {activeTargetUrl}
-                      </code>
-                    </div>
-                    {status?.running ? (
-                      <button
-                        onClick={() => openBrowser(activeTargetUrl)}
-                        className="px-3 py-1 bg-[#F0EDE8] hover:bg-[#E6E2D8] text-[#0F766E] font-bold rounded flex items-center gap-1 font-['Space_Grotesk'] cursor-pointer"
-                      >
-                        <span>Buka di Peramban</span>
-                        <ExternalLink size={12} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleToggleTarget}
-                        disabled={targetOp.isOpen}
-                        className="px-3.5 py-1.5 bg-[#0F766E] hover:bg-[#115E59] active:bg-[#094D47] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 font-['Space_Grotesk'] shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                      >
-                        {targetOp.isOpen && targetOp.type === 'launch' ? (
-                          <Loader2 size={12} className="animate-spin text-[#5EEAD4]" />
-                        ) : (
-                          <Play size={12} />
-                        )}
-                        <span>{targetOp.isOpen && targetOp.type === 'launch' ? 'Memulai...' : 'Jalankan Target'}</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* CTF Flag Submission Form */}
-                  <form
-                    onSubmit={handleFlagSubmit}
-                    className="p-5 rounded-xl border border-[#E6E2D8] bg-white shadow-xs space-y-3"
-                  >
-                    <label className="block text-xs font-['Space_Grotesk'] font-bold text-[#1E1A14]">
-                      Kirim Flag CTF yang Ditemukan (*Submit Flag*)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={flagInput}
-                        onChange={(e) => setFlagInput(e.target.value)}
-                        placeholder="ZITERA{...} atau FLAG{...}"
-                        className="flex-1 px-3.5 py-2.5 text-xs bg-[#FCFBF8] border border-[#E6E2D8] rounded-lg focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono']"
-                      />
-                      <button
-                        type="submit"
-                        disabled={submittingFlag || !flagInput.trim()}
-                        className="px-5 py-2.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-['Space_Grotesk'] font-bold rounded-lg shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
-                      >
-                        <span>{submittingFlag ? 'Verifikasi...' : 'Kirim Flag'}</span>
-                        <Send size={13} />
-                      </button>
-                    </div>
-
-                    {flagResult && (
-                      <div
-                        className={`p-3 rounded-lg border text-xs font-['JetBrains_Mono'] flex items-center gap-2 ${
-                          flagResult.passed
-                            ? 'bg-[#E6F9F2] border-[#86EFAC] text-[#16A34A]'
-                            : 'bg-[#FEE2E2] border-[#FCA5A5] text-[#DC2626]'
-                        }`}
-                      >
-                        {flagResult.passed ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                        <span>{flagResult.message}</span>
+                  {!tierAccess.allowed ? (
+                    <div className="p-8 rounded-2xl border-2 border-[#F59E0B] bg-[#FFFBEB] shadow-[0_4px_0_0_#D97706] text-center space-y-4 animate-in fade-in duration-150">
+                      <div className="w-14 h-14 rounded-2xl bg-[#FEF3C7] border-2 border-[#F59E0B] text-[#D97706] flex items-center justify-center mx-auto shadow-[0_2px_0_0_#D97706]">
+                        <Lock size={26} />
                       </div>
-                    )}
-                  </form>
+                      <div>
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#FEF3C7] border border-[#FCD34D] text-[#B45309] text-[10px] font-['JetBrains_Mono'] font-bold uppercase tracking-wider">
+                          PRO EDITION EXCLUSIVE // CTF CHALLENGE LOCKED
+                        </span>
+                        <h3 className="text-lg font-bold font-['Space_Grotesk'] text-[#92400E] mt-1.5">
+                          Tantangan CTF & Submit Flag Terkunci
+                        </h3>
+                        <p className="text-xs text-[#78350F] max-w-lg mx-auto leading-relaxed mt-1">
+                          Verifikasi bendera CTF, peluncuran target sandbox langsung, dan pencatatan skor leaderboard pada laboratorium ini hanya dapat diakses oleh akun Pro Edition.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const username = currentUser?.username || 'user'
+                          const msg = encodeURIComponent(
+                            `Halo Admin Zitera Lab, saya ingin upgrade akun (username: ${username}) ke Pro Edition untuk membuka seluruh 45 lab!`,
+                          )
+                          openBrowser(`https://wa.me/6282283088667?text=${msg}`)
+                        }}
+                        className="px-6 py-3 bg-[#D97706] hover:bg-[#B45309] text-white border-2 border-[#B45309] shadow-[0_3px_0_0_#92400E] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-bold font-['Space_Grotesk'] inline-flex items-center gap-2 cursor-pointer transition-all"
+                      >
+                        <Sparkles size={15} />
+                        <span>Upgrade ke Pro Edition via WhatsApp</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Target Connection Card */}
+                      <div className="p-4 rounded-xl border border-[#E6E2D8] bg-white flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div>
+                          <span className="font-bold font-['Space_Grotesk'] text-[#1E1A14]">
+                            Target URL Sandbox:
+                          </span>{' '}
+                          <code className="px-2 py-1 rounded bg-[#F0EDE8] text-[#0F766E] font-['JetBrains_Mono']">
+                            {activeTargetUrl}
+                          </code>
+                        </div>
+                        {status?.running ? (
+                          <button
+                            onClick={() => openBrowser(activeTargetUrl)}
+                            className="px-3 py-1 bg-[#F0EDE8] hover:bg-[#E6E2D8] text-[#0F766E] font-bold rounded flex items-center gap-1 font-['Space_Grotesk'] cursor-pointer"
+                          >
+                            <span>Buka di Peramban</span>
+                            <ExternalLink size={12} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleToggleTarget}
+                            disabled={targetOp.isOpen}
+                            className="px-3.5 py-1.5 bg-[#0F766E] hover:bg-[#115E59] active:bg-[#094D47] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 font-['Space_Grotesk'] shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            {targetOp.isOpen && targetOp.type === 'launch' ? (
+                              <Loader2 size={12} className="animate-spin text-[#5EEAD4]" />
+                            ) : (
+                              <Play size={12} />
+                            )}
+                            <span>{targetOp.isOpen && targetOp.type === 'launch' ? 'Memulai...' : 'Jalankan Target'}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* CTF Flag Submission Form */}
+                      <form
+                        onSubmit={handleFlagSubmit}
+                        className="p-5 rounded-xl border border-[#E6E2D8] bg-white shadow-xs space-y-3"
+                      >
+                        <label className="block text-xs font-['Space_Grotesk'] font-bold text-[#1E1A14]">
+                          Kirim Flag CTF yang Ditemukan (*Submit Flag*)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={flagInput}
+                            onChange={(e) => setFlagInput(e.target.value)}
+                            placeholder="ZITERA{...} atau FLAG{...}"
+                            className="flex-1 px-3.5 py-2.5 text-xs bg-[#FCFBF8] border border-[#E6E2D8] rounded-lg focus:outline-none focus:border-[#2DD4BF] font-['JetBrains_Mono']"
+                          />
+                          <button
+                            type="submit"
+                            disabled={submittingFlag || !flagInput.trim()}
+                            className="px-5 py-2.5 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-['Space_Grotesk'] font-bold rounded-lg shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            <span>{submittingFlag ? 'Verifikasi...' : 'Kirim Flag'}</span>
+                            <Send size={13} />
+                          </button>
+                        </div>
+
+                        {flagResult && (
+                          <div
+                            className={`p-3 rounded-lg border text-xs font-['JetBrains_Mono'] flex items-center gap-2 ${
+                              flagResult.passed
+                                ? 'bg-[#E6F9F2] border-[#86EFAC] text-[#16A34A]'
+                                : 'bg-[#FEE2E2] border-[#FCA5A5] text-[#DC2626]'
+                            }`}
+                          >
+                            {flagResult.passed ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                            <span>{flagResult.message}</span>
+                          </div>
+                        )}
+                      </form>
+                    </>
+                  )}
 
                   {/* HackerOne Bug Bounty Report Triage & Grading Card */}
                   <HackerOneTriagerCard
