@@ -78,19 +78,13 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-between overflow-hidden bg-stone-950 text-white select-none">
-      {/* 1. Cinematic Background: Live Anime Video Looping */}
+      {/* 1. Original Unfiltered High-Resolution Anime Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          src="/assets/login_bg_video.mp4"
+        <img
+          src="/assets/login_bg.jpg"
+          alt="Zitera Anime Wallpaper"
+          className="absolute inset-0 w-full h-full object-cover select-none"
         />
-        {/* Ultra-thin atmospheric filter so video resolution & colors remain 100% pristine */}
-        <div className="absolute inset-0 bg-stone-950/10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/30 via-transparent to-stone-950/10" />
       </div>
 
       {/* 2. Top Navigation Bar: Minimal Clean Brand Typography */}
