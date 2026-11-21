@@ -112,7 +112,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
           autoPlay
           loop
           playsInline
-          className="absolute inset-0 w-full h-full object-cover select-none"
+          className="absolute inset-0 w-full h-full object-cover select-none video-hd-crisp"
           src="/assets/login_bg_video.mp4"
         />
       </div>

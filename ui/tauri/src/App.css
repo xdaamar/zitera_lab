@@ -44,3 +44,11 @@
   animation: floatGentle 4s ease-in-out infinite;
 }
 
+.video-hd-crisp {
+  object-fit: cover;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
