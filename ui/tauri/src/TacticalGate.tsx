@@ -3,7 +3,6 @@ import {
   ShieldCheck,
   KeyRound,
   User,
-  UserCircle2,
   Eye,
   EyeOff,
   MessageSquare,
@@ -27,7 +26,6 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [deviceId, setDeviceId] = useState<string>('DETECTING...')
-  const [isFormVisible, setIsFormVisible] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -78,19 +76,19 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-between overflow-hidden bg-stone-950 text-white select-none">
-      {/* 1. Cinematic Background: Soft-Focus Dreamy Anime Video (Subtle Desaturation & Darkening) */}
+      {/* 1. Cinematic Background: Crisp Anime Video with Balanced Tone (No Heavy Black Tint) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover select-none scale-[1.03] filter blur-[2px] brightness-[0.85] saturate-[0.85]"
+          className="absolute inset-0 w-full h-full object-cover select-none scale-[1.01] filter blur-[0.8px] brightness-[0.95] saturate-[0.92]"
           src="/assets/login_bg_video.mp4"
         />
-        {/* Subtle cinematic tint to disguise pixelation & deepen UI contrast */}
-        <div className="absolute inset-0 bg-stone-950/25" />
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/40 via-transparent to-stone-950/20" />
+        {/* Subtle, balanced contrast: preserves original video clarity without excessive darkening */}
+        <div className="absolute inset-0 bg-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-black/30" />
       </div>
 
       {/* 2. Top Navigation Bar: Minimal Brand Typography */}
@@ -121,14 +119,8 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
         </div>
       </div>
 
-      {/* 4. Right Side: Transparent Dark Glass Login Card (Zero Blur - 100% Sharp Background Visibility) */}
-      <div
-        className={`relative z-20 w-full sm:w-[480px] p-4 sm:p-8 sm:pr-12 lg:pr-16 flex flex-col justify-center transition-all duration-500 ease-out ${
-          isFormVisible
-            ? 'translate-x-0 opacity-100 pointer-events-auto'
-            : 'translate-x-24 opacity-0 pointer-events-none'
-        }`}
-      >
+      {/* 4. Right Side: Transparent Dark Glass Login Card (Always Visible) */}
+      <div className="relative z-20 w-full sm:w-[480px] p-4 sm:p-8 sm:pr-12 lg:pr-16 flex flex-col justify-center pointer-events-auto">
         <div className="relative w-full rounded-3xl bg-black/25 border border-white/15 p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-white overflow-hidden">
           {/* Top Edge Subtle Highlight */}
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
@@ -142,14 +134,6 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
                   HARDWARE BOUND
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsFormVisible(false)}
-                className="p-2 rounded-2xl bg-black/30 hover:bg-black/50 active:scale-95 text-teal-300 hover:text-white border border-white/10 transition-all cursor-pointer"
-                title="Sembunyikan Form"
-              >
-                <EyeOff size={16} />
-              </button>
             </div>
 
             <div>
@@ -281,21 +265,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
         </div>
       </div>
 
-      {/* 5. Minimalist Floating Pill when Form is Hidden */}
-      {!isFormVisible && (
-        <div className="absolute bottom-8 right-8 z-30">
-          <button
-            type="button"
-            onClick={() => setIsFormVisible(true)}
-            className="flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-black/40 hover:bg-black/60 text-teal-300 font-bold text-sm tracking-wider uppercase border border-teal-400/60 shadow-[0_15px_40px_rgba(0,0,0,0.4)] active:scale-95 transition-all duration-300 cursor-pointer"
-          >
-            <UserCircle2 size={18} className="text-teal-300" />
-            <span>GASSS LOGHINN</span>
-          </button>
-        </div>
-      )}
-
-      {/* 6. Subtle Bottom Copyright */}
+      {/* 5. Subtle Bottom Copyright */}
       <footer className="absolute bottom-4 left-6 md:left-10 z-10 pointer-events-none">
         <p className="text-[10px] font-mono text-white/50 tracking-wider">
           © 2026 ZITERA LABS. ALL RIGHTS RESERVED. PROTECTED BY ENCLAVE HARDWARE BINDING.
