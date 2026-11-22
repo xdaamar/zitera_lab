@@ -78,16 +78,19 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-between overflow-hidden bg-stone-950 text-white select-none">
-      {/* 1. Raw HD Anime Video Background: Pure Unfiltered Clarity (Permanently Muted) */}
+      {/* 1. Cinematic Background: Soft-Focus Dreamy Anime Video (Subtle Desaturation & Darkening) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover select-none video-hd-crisp"
+          className="absolute inset-0 w-full h-full object-cover select-none scale-[1.03] filter blur-[2px] brightness-[0.85] saturate-[0.85]"
           src="/assets/gemini_generated_video_4357dadb.mp4"
         />
+        {/* Subtle cinematic tint to disguise pixelation & deepen UI contrast */}
+        <div className="absolute inset-0 bg-stone-950/25" />
+        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/40 via-transparent to-stone-950/20" />
       </div>
 
       {/* 2. Top Navigation Bar: Minimal Brand Typography */}
