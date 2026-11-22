@@ -1,7 +1,7 @@
 // Progression Gating & Multi-Lab Architecture Helper for Zitera Lab
 // Supports all 45 laboratories (Track 1: Foundations, Track 2: OWASP Top 10, Track 3: Specialist)
 
-export type UserTier = 'foundation' | 'pro' | 'enterprise'
+export type UserTier = 'foundation' | 'pro' | 'enterprise' | 'trial'
 
 export interface TierAccessResult {
   allowed: boolean
@@ -120,15 +120,17 @@ export const LAB_CATALOG_TITLES: Record<string, string> = {
 
 /**
  * Authoritative Tier Gating Enforcement
- * - Track 1 (F01..F06): Foundation, Pro, Enterprise
- * - Track 2 (A01..A10 + explores): Pro, Enterprise
- * - Track 3 (W01..W05, D01..D02, A11, A12): Pro, Enterprise
+ * - Track 1 (F01..F06): Foundation, Trial, Pro, Enterprise (All users)
+ * - Track 2 (A01): Flagship Starter Lab (VaultPay Enterprise IDOR) allowed for Foundation & Trial users
+ * - Track 2 (A01-02, A01-03, A02..A10 + explores): Strictly locked (requiredTier: 'pro')
+ * - Track 3 (W01..W05, D01..D02, A11, A12): Strictly locked (requiredTier: 'pro')
  */
 export function canUserAccessLab(labId: string, userTier?: string | null): TierAccessResult {
   const cleanId = (labId || '').trim().toUpperCase()
-  const effectiveTier = (userTier || 'foundation').toLowerCase()
+  const effectiveTier = (userTier || 'foundation').trim().toLowerCase()
+  const isProOrAbove = effectiveTier === 'pro' || effectiveTier === 'enterprise'
 
-  // Track 1: Web Security Foundations
+  // Track 1: Web Security Foundations (F01..F06)
   if (cleanId.startsWith('F')) {
     return {
       allowed: true,
@@ -139,14 +141,24 @@ export function canUserAccessLab(labId: string, userTier?: string | null): TierA
     }
   }
 
-  // Track 3: Web Security Specialist & Defense
+  // A01 (VaultPay Enterprise IDOR): Flagship trial lab open to foundation & trial tier
+  if (cleanId === 'A01') {
+    return {
+      allowed: true,
+      isTierLocked: false,
+      requiredTier: 'foundation',
+      track: 'TRACK_2',
+      trackName: 'Track 2: OWASP Top 10 Enterprise',
+    }
+  }
+
+  // Track 3: Web Security Specialist & Defense (W01..W05, D01..D02, A11, A12)
   if (
     cleanId.startsWith('W') ||
     cleanId.startsWith('D') ||
     cleanId === 'A11' ||
     cleanId === 'A12'
   ) {
-    const isProOrAbove = effectiveTier === 'pro' || effectiveTier === 'enterprise'
     return {
       allowed: isProOrAbove,
       isTierLocked: !isProOrAbove,
@@ -155,12 +167,12 @@ export function canUserAccessLab(labId: string, userTier?: string | null): TierA
       trackName: 'Track 3: Web Security Specialist',
       reason: isProOrAbove
         ? undefined
-        : 'Laboratorium ini merupakan bagian dari Track 3 (Web Security Specialist) dan eksklusif untuk peserta Pro Edition.',
+        : 'Laboratorium ini merupakan bagian dari Track 3 (Web Security Specialist & Defense) dan eksklusif untuk peserta Pro Edition. Upgrade ke Pro Edition untuk membuka seluruh laboratorium spesialis ini.',
     }
   }
 
-  // Track 2: OWASP Top 10 Enterprise
-  const isProOrAbove = effectiveTier === 'pro' || effectiveTier === 'enterprise'
+  // Track 2: OWASP Top 10 Enterprise (A01-02, A01-03, A02..A10 + explores)
+  const isA01Explore = cleanId === 'A01-02' || cleanId === 'A01-03'
   return {
     allowed: isProOrAbove,
     isTierLocked: !isProOrAbove,
@@ -169,25 +181,76 @@ export function canUserAccessLab(labId: string, userTier?: string | null): TierA
     trackName: 'Track 2: OWASP Top 10 Enterprise',
     reason: isProOrAbove
       ? undefined
-      : 'Laboratorium ini merupakan bagian dari Track 2 (OWASP Top 10) dan eksklusif untuk peserta Pro Edition.',
+      : isA01Explore
+        ? `Laboratorium lanjutan ${cleanId} eksklusif untuk peserta Pro Edition. Lab dasar A01 (VaultPay Enterprise IDOR) terbuka untuk dicoba pada tier Foundation/Trial, namun skenario lanjutan A01-02 & A01-03 memerlukan lisensi Pro Edition.`
+        : 'Laboratorium ini merupakan bagian dari Track 2 (OWASP Top 10 Enterprise) dan eksklusif untuk peserta Pro Edition. Upgrade ke Pro Edition untuk mengakses seluruh 30 laboratorium OWASP Top 10.',
   }
 }
 
 export function isLabSolved(labId: string): boolean {
   try {
-    return localStorage.getItem(`zitera_solved_${labId}`) === 'true'
+    const cleanId = (labId || '').trim().toUpperCase()
+    return (
+      localStorage.getItem(`zitera_solved_${cleanId}`) === 'true' ||
+      localStorage.getItem(`zitera_solved_${labId}`) === 'true'
+    )
   } catch {
     return false
   }
 }
 
 export function getLabProgression(labId: string): LabProgressionInfo {
-  const parts = labId.split('-')
-  const baseCategory = parts[0].toUpperCase()
+  const cleanId = (labId || '').trim().toUpperCase()
+  const parts = cleanId.split('-')
+  const baseCategory = parts[0]
   const suffix = parts.length > 1 ? parts[1] : null
   const categoryName = CATEGORY_NAMES[baseCategory] || 'Security Category'
 
-  // 1. Lab Wajib (Core Foundation) e.g. A01, A02, etc.
+  // 1. Track 1: Foundations (F01..F06)
+  if (baseCategory.startsWith('F')) {
+    const num = parseInt(baseCategory.substring(1), 10)
+    const nextLabId = num < 6 ? `F0${num + 1}` : null
+    return {
+      isCore: true,
+      isExplore: false,
+      tier: 'core',
+      tierLabel: 'Web Security Foundations',
+      categoryCode: 'FOUNDATIONS',
+      categoryName: CATEGORY_NAMES['FOUNDATIONS'] || 'Web Security Foundations',
+      prerequisiteId: null,
+      prerequisiteTitle: null,
+      prerequisiteSolved: true,
+      nextLabId,
+      nextLabTitle: nextLabId ? LAB_CATALOG_TITLES[nextLabId] || `Lab ${nextLabId}` : null,
+    }
+  }
+
+  // 2. Track 3: Specialist & Defense (W01..W05, D01..D02, A11, A12)
+  if (
+    baseCategory.startsWith('W') ||
+    baseCategory.startsWith('D') ||
+    baseCategory === 'A11' ||
+    baseCategory === 'A12'
+  ) {
+    const isDefense = baseCategory.startsWith('D')
+    const catCode = isDefense ? 'DEFENSE' : 'WEB_EXPLOIT'
+    return {
+      isCore: true,
+      isExplore: false,
+      tier: 'core',
+      tierLabel: isDefense ? 'Threat Hunting & Defense' : 'Web Security Specialist',
+      categoryCode: catCode,
+      categoryName: CATEGORY_NAMES[catCode] || 'Specialist Lab',
+      prerequisiteId: null,
+      prerequisiteTitle: null,
+      prerequisiteSolved: true,
+      nextLabId: null,
+      nextLabTitle: null,
+    }
+  }
+
+  // 3. Track 2: OWASP Top 10 Enterprise (A01..A10)
+  // 3.1 Lab Wajib (Core Foundation) e.g. A01, A02, etc.
   if (!suffix) {
     const nextLabId = `${baseCategory}-02`
     return {
@@ -205,7 +268,7 @@ export function getLabProgression(labId: string): LabProgressionInfo {
     }
   }
 
-  // 2. Lab Explore 1 (e.g. A01-02)
+  // 3.2 Lab Explore 1 (e.g. A01-02)
   if (suffix === '02') {
     const prereqId = baseCategory
     const nextLabId = `${baseCategory}-03`
@@ -224,7 +287,7 @@ export function getLabProgression(labId: string): LabProgressionInfo {
     }
   }
 
-  // 3. Lab Explore 2 (e.g. A01-03)
+  // 3.3 Lab Explore 2 (e.g. A01-03)
   const prereqId = `${baseCategory}-02`
   return {
     isCore: false,
@@ -243,9 +306,11 @@ export function getLabProgression(labId: string): LabProgressionInfo {
 
 export function recordLabSolveProgression(labId: string): void {
   try {
+    const cleanId = (labId || '').trim().toUpperCase()
+    localStorage.setItem(`zitera_solved_${cleanId}`, 'true')
     localStorage.setItem(`zitera_solved_${labId}`, 'true')
     // Dispatch custom event to notify all components of progression change
-    window.dispatchEvent(new CustomEvent('zitera_progression_solved', { detail: { labId } }))
+    window.dispatchEvent(new CustomEvent('zitera_progression_solved', { detail: { labId: cleanId } }))
   } catch {
     // Ignore storage errors in restricted sandboxes
   }

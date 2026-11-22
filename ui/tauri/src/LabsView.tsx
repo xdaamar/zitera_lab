@@ -24,6 +24,9 @@ import {
   Compass,
   Target,
   Award,
+  Clock,
+  ArrowRight,
+  MessageCircle,
 } from 'lucide-react'
 import {
   getLabs,
@@ -39,10 +42,108 @@ import {
   getLabProgression,
   isLabSolved,
   canUserAccessLab,
+  LAB_CATALOG_TITLES,
   type LabProgressionInfo,
   type TierAccessResult,
 } from './progressionHelper'
-import { getCurrentUser } from './authService'
+import { getCurrentUser, subscribeAuth, type UserModel } from './authService'
+
+interface DomainMeta {
+  name: string
+  icon: string
+  accentColor: string
+  bgLight: string
+  borderColor: string
+}
+
+function getDomainCategory(labId: string): DomainMeta {
+  const clean = labId.trim().toUpperCase()
+  if (clean === 'A01' || clean === 'A06-02' || clean === 'W01') {
+    return {
+      name: 'Fintech & Digital Banking',
+      icon: '💳',
+      accentColor: '#0F766E',
+      bgLight: '#F0FDFA',
+      borderColor: '#2DD4BF',
+    }
+  }
+  if (clean === 'A07' || clean === 'W03') {
+    return {
+      name: 'Healthcare & Medical Records',
+      icon: '🏥',
+      accentColor: '#0284C7',
+      bgLight: '#F0F9FF',
+      borderColor: '#38BDF8',
+    }
+  }
+  if (clean.startsWith('F')) {
+    return {
+      name: 'Cyber Operative Core Foundations',
+      icon: '🛡️',
+      accentColor: '#0F766E',
+      bgLight: '#F0FDFA',
+      borderColor: '#2DD4BF',
+    }
+  }
+  if (clean === 'A05' || clean === 'A08-02') {
+    return {
+      name: 'E-Commerce & High-Volume Retail',
+      icon: '🛒',
+      accentColor: '#B45309',
+      bgLight: '#FFFBEB',
+      borderColor: '#FBBF24',
+    }
+  }
+  if (clean === 'D01' || clean === 'D02') {
+    return {
+      name: 'SOC Defense, SIEM & Forensics',
+      icon: '🔍',
+      accentColor: '#0369A1',
+      bgLight: '#F0F9FF',
+      borderColor: '#38BDF8',
+    }
+  }
+  return {
+    name: 'Cloud ERP, DevOps & Enterprise SaaS',
+    icon: '☁️',
+    accentColor: '#6D28D9',
+    bgLight: '#F5F3FF',
+    borderColor: '#A78BFA',
+  }
+}
+
+interface BountyPotential {
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM'
+  score: string
+  rewardEstimate: string
+  businessImpact: string
+}
+
+function getBountyPotential(_labId: string, difficulty?: string): BountyPotential {
+  const diff = difficulty || 'Intermediate'
+  if (diff === 'Advanced') {
+    return {
+      severity: 'CRITICAL',
+      score: 'CVSS 9.1 - 9.8',
+      rewardEstimate: '$2,500 - $5,000+ Bounty',
+      businessImpact: 'Full Remote Code Execution, Cloud Boundary Escape, or Master Key Compromise.',
+    }
+  }
+  if (diff === 'Intermediate') {
+    return {
+      severity: 'HIGH',
+      score: 'CVSS 7.5 - 8.8',
+      rewardEstimate: '$1,200 - $2,800 Bounty',
+      businessImpact: 'Horizontal Account Takeover, Mass Exfiltration, or Financial Ledger Tampering.',
+    }
+  }
+  return {
+    severity: 'MEDIUM',
+    score: 'CVSS 5.4 - 6.8',
+    rewardEstimate: '$500 - $1,200 Bounty',
+    businessImpact: 'Direct Object Reference, Session Leakage, or Authorization Bypass.',
+  }
+}
 
 interface LabsViewProps {
   onSelectLab: (labId: string) => void
@@ -751,7 +852,108 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
   const [lockedModalInfo, setLockedModalInfo] = useState<LabProgressionInfo | null>(null)
   const [upgradeModalInfo, setUpgradeModalInfo] = useState<{ labId: string; tierAccess: TierAccessResult } | null>(null)
   const isMountedRef = useRef(true)
-  const currentUser = getCurrentUser()
+  const [currentUser, setCurrentUser] = useState<UserModel | null>(getCurrentUser())
+  const [now, setNow] = useState(Date.now())
+  const [mission3Explored, setMission3Explored] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('zitera_mission_pro_explored') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  // Subscribe to auth state updates
+  useEffect(() => {
+    const unsub = subscribeAuth((user) => {
+      setCurrentUser(user)
+    })
+    return () => unsub()
+  }, [])
+
+  // 1-second interval for real-time countdown
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Trial Mode Detection (Active student with foundation tier or expiresAt set)
+  const isTrialUser = useMemo(() => {
+    if (!currentUser) return true // In demo / local preview show HUD
+    if (currentUser.isActive === false) return false
+    return currentUser.tier === 'foundation' || Boolean(currentUser.expiresAt && currentUser.expiresAt > 0)
+  }, [currentUser])
+
+  // Countdown calculations (Hours, Minutes, Seconds remaining)
+  const trialDurationMs = 72 * 60 * 60 * 1000 // 72 hours
+  const targetExpiry = useMemo(() => {
+    if (currentUser?.expiresAt && currentUser.expiresAt > 0) {
+      return currentUser.expiresAt
+    }
+    if (currentUser?.createdAt && currentUser.createdAt > 0) {
+      return currentUser.createdAt + trialDurationMs
+    }
+    try {
+      const stored = localStorage.getItem('zitera_trial_start')
+      if (stored) return Number(stored) + trialDurationMs
+      const start = Date.now()
+      localStorage.setItem('zitera_trial_start', String(start))
+      return start + trialDurationMs
+    } catch {
+      return Date.now() + trialDurationMs
+    }
+  }, [currentUser])
+
+  const remainingMs = Math.max(0, targetExpiry - now)
+  const hoursLeft = Math.floor(remainingMs / (1000 * 60 * 60))
+  const minutesLeft = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60))
+  const secondsLeft = Math.floor((remainingMs % (1000 * 60)) / 1000)
+  const isTrialExpired = remainingMs === 0
+  const trialPercentRemaining = Math.max(0, Math.min(100, Math.round((remainingMs / trialDurationMs) * 100)))
+
+  // 3 Golden Path Quick Missions State
+  const isM1Solved = Boolean(solvedLabsMap['F01'] || solvedLabsMap['F06'])
+  const isM2Solved = Boolean(solvedLabsMap['A01'])
+  const isM3Solved = Boolean(
+    mission3Explored ||
+    Object.keys(solvedLabsMap).some((k) => (k.startsWith('A') && k !== 'A01') || k.startsWith('W') || k.startsWith('D'))
+  )
+  const goldenSolvedCount = (isM1Solved ? 1 : 0) + (isM2Solved ? 1 : 0) + (isM3Solved ? 1 : 0)
+
+  const handleLaunchMission1 = () => {
+    // Pemanasan Protokol HTTP & Flag (F01 / F06)
+    const target = solvedLabsMap['F01'] ? 'F06' : 'F01'
+    onSelectLab(target)
+  }
+
+  const handleLaunchMission2 = () => {
+    // Sensasi Bobol Saldo Bank VaultPay IDOR (A01)
+    onSelectLab('A01')
+  }
+
+  const handleLaunchMission3 = () => {
+    // Jelajahi 42 Skenario Serangan PRO
+    try {
+      localStorage.setItem('zitera_mission_pro_explored', 'true')
+    } catch {}
+    setMission3Explored(true)
+    const sampleProLab = 'A02'
+    const tierAccess = canUserAccessLab(sampleProLab, currentUser?.tier)
+    setUpgradeModalInfo({ labId: sampleProLab, tierAccess })
+  }
+
+  const handleWhatsAppUpgrade = (targetLabId?: string) => {
+    const studentId = currentUser?.id || 'STUDENT-' + Math.floor(1000 + Math.random() * 9000)
+    const username = currentUser?.username || 'Siswa'
+    let text = ''
+    if (targetLabId) {
+      const detail = LAB_DETAILS[targetLabId]
+      const title = LAB_CATALOG_TITLES[targetLabId] || detail?.targetApp || targetLabId
+      text = `Halo Tim Admin Zitera Lab! Saya ${username} (Student ID: ${studentId}).\n\nSaya sedang mencoba 72-Hour Free Trial dan sangat ingin membuka akses VIP PRO untuk lab:\n👉 [${targetLabId}] ${title} (${detail?.targetApp || ''} • ${detail?.domain || ''})\n\nMohon info aktivasi upgrade akun saya ke ZITERA PRO Edition!`
+    } else {
+      text = `Halo Tim Admin Zitera Lab! Saya ${username} (Student ID: ${studentId}).\n\nSaya sedang dalam 72-Hour Free Trial (${goldenSolvedCount}/3 Misi Emas Selesai) dan ingin segera upgrade ke ZITERA PRO Edition untuk akses penuh seluruh 45 Laboratorium & Tantangan CTF!\n\nMohon informasi aktivasi dan rekening pembayarannya.`
+    }
+    openBrowser(`https://wa.me/6282283088667?text=${encodeURIComponent(text)}`)
+  }
 
   const syncSolvedStatus = (labList?: LabItem[]) => {
     try {
@@ -965,6 +1167,251 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
             </button>
           </div>
         </div>
+
+        {/* 2.5 Prominent 72-HOUR TRIAL FLIGHT HUD */}
+        {isTrialUser && (
+          <div className="relative overflow-hidden rounded-3xl border-2 border-[#2DD4BF] bg-gradient-to-br from-[#0B1E1C] via-[#0D2825] to-[#0A1A2F] p-5 lg:p-6 shadow-[0_8px_0_0_#0F766E,0_20px_40px_rgba(15,118,110,0.25)] select-none animate-in fade-in slide-in-from-top-4 duration-300">
+            {/* Ambient Cyber Grid & Glow Lines */}
+            <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#2DD4BF_1px,transparent_1px)] [background-size:16px_16px]" />
+            <div className="absolute -top-12 -right-12 w-64 h-64 bg-[#2DD4BF]/15 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Top Bar: Telemetry Badge + Title + Countdown HUD Display */}
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#2DD4BF]/25 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#042F2C] text-[#2DD4BF] border border-[#2DD4BF] text-[10px] font-['JetBrains_Mono'] font-extrabold flex items-center gap-1.5 shadow-[0_0_12px_rgba(45,212,191,0.4)]">
+                    <span className="w-2 h-2 rounded-full bg-[#2DD4BF] animate-ping" />
+                    <span>72-HOUR TRIAL FLIGHT HUD // LIVE TELEMETRY</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/10 text-[#A7F3D0] text-[10px] font-['JetBrains_Mono'] font-bold">
+                    GOLDEN PATH ACTIVE
+                  </span>
+                </div>
+                <h2 className="text-xl lg:text-2xl font-black font-['Space_Grotesk'] text-white tracking-tight flex items-center gap-2">
+                  <span>ZITERA CYBER COMBAT FLIGHT DECK</span>
+                  <Sparkles size={20} className="text-[#FBBF24]" />
+                </h2>
+                <p className="text-xs text-[#99F6E4] font-sans">
+                  Selesaikan 3 Misi Emas di bawah untuk merasakan sensasi penetrasi sistem nyata sebelum upgrade ke PRO Edition.
+                </p>
+              </div>
+
+              {/* Real-Time Countdown Timer Capsule */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="bg-[#051C1A]/90 border-2 border-[#2DD4BF] rounded-2xl px-4 py-2.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),0_0_15px_rgba(45,212,191,0.2)] flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#042F2C] border border-[#2DD4BF] flex items-center justify-center text-[#2DD4BF]">
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <div className="text-[9.5px] font-['JetBrains_Mono'] font-extrabold uppercase tracking-wider text-[#5EEAD4] flex items-center gap-1">
+                      <span>SISA WAKTU TRIAL</span>
+                      <span className="text-[#FBBF24]">({trialPercentRemaining}%)</span>
+                    </div>
+                    {isTrialExpired ? (
+                      <div className="text-base font-black font-['JetBrains_Mono'] text-[#EF4444] animate-pulse">
+                        TRIAL EXPIRED
+                      </div>
+                    ) : (
+                      <div className="text-lg lg:text-xl font-black font-['JetBrains_Mono'] text-white tracking-wider flex items-baseline gap-1">
+                        <span className="text-[#5EEAD4]">{String(hoursLeft).padStart(2, '0')}</span>
+                        <span className="text-xs text-[#99F6E4]">j</span>
+                        <span className="text-white">{String(minutesLeft).padStart(2, '0')}</span>
+                        <span className="text-xs text-[#99F6E4]">m</span>
+                        <span className="text-[#FDE047]">{String(secondsLeft).padStart(2, '0')}</span>
+                        <span className="text-xs text-[#99F6E4]">d</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Section: 3 Golden Path Quick Mission Cards */}
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-3.5 my-4">
+              {/* Mission 1 */}
+              <div
+                onClick={handleLaunchMission1}
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between group ${
+                  isM1Solved
+                    ? 'bg-[#042F2C]/80 border-[#22C55E] shadow-[0_3px_0_0_#15803D]'
+                    : 'bg-[#0F2D2A]/60 hover:bg-[#0F2D2A] border-[#2DD4BF]/70 hover:border-[#2DD4BF] shadow-[0_3px_0_0_#0F766E] hover:-translate-y-0.5'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2 py-0.5 rounded text-[9.5px] font-['JetBrains_Mono'] font-bold bg-[#042F2C] text-[#2DD4BF] border border-[#2DD4BF]/50">
+                      MISI 01 // FOUNDATION
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-['JetBrains_Mono'] font-extrabold bg-white/10 text-white">
+                      F01 / F06
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black font-['Space_Grotesk'] text-white group-hover:text-[#5EEAD4] transition-colors">
+                    Pemanasan Protokol HTTP & Flag
+                  </h4>
+                  <p className="text-[11px] text-[#A7F3D0]/80 font-sans mt-1 line-clamp-2">
+                    Analisis raw HTTP request, pelajari status code web, dan dapatkan flag CTF pertama Anda.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between">
+                  {isM1Solved ? (
+                    <span className="text-[10.5px] font-['JetBrains_Mono'] font-extrabold text-[#4ADE80] flex items-center gap-1">
+                      <CheckCircle2 size={13} />
+                      <span>SELESAI (100%)</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10.5px] font-['Space_Grotesk'] font-bold text-[#5EEAD4] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                      <span>Luncurkan Misi</span>
+                      <ArrowRight size={13} />
+                    </span>
+                  )}
+                  <span className="text-[10px] text-[#99F6E4]/70 font-['JetBrains_Mono']">
+                    {solvedLabsMap['F01'] && solvedLabsMap['F06'] ? 'F01 & F06 ✓' : solvedLabsMap['F01'] ? 'F01 ✓' : 'Mulai F01'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mission 2 */}
+              <div
+                onClick={handleLaunchMission2}
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between group ${
+                  isM2Solved
+                    ? 'bg-[#042F2C]/80 border-[#22C55E] shadow-[0_3px_0_0_#15803D]'
+                    : 'bg-[#0F2D2A]/60 hover:bg-[#0F2D2A] border-[#F59E0B]/70 hover:border-[#F59E0B] shadow-[0_3px_0_0_#B45309] hover:-translate-y-0.5'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2 py-0.5 rounded text-[9.5px] font-['JetBrains_Mono'] font-bold bg-[#451A03] text-[#FBBF24] border border-[#F59E0B]/50">
+                      MISI 02 // REAL ATTACK
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-['JetBrains_Mono'] font-extrabold bg-[#F59E0B]/20 text-[#FDE047]">
+                      A01 • FINTECH
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black font-['Space_Grotesk'] text-white group-hover:text-[#FDE047] transition-colors">
+                    Sensasi Bobol Saldo Bank VaultPay IDOR
+                  </h4>
+                  <p className="text-[11px] text-[#A7F3D0]/80 font-sans mt-1 line-clamp-2">
+                    Eksploitasi celah Insecure Direct Object Reference (IDOR) pada API transfer perbankan nyata.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between">
+                  {isM2Solved ? (
+                    <span className="text-[10.5px] font-['JetBrains_Mono'] font-extrabold text-[#4ADE80] flex items-center gap-1">
+                      <CheckCircle2 size={13} />
+                      <span>SELESAI (100%)</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10.5px] font-['Space_Grotesk'] font-bold text-[#FDE047] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                      <span>Bobol Saldo VaultPay</span>
+                      <ArrowRight size={13} />
+                    </span>
+                  )}
+                  <span className="text-[10px] text-[#99F6E4]/70 font-['JetBrains_Mono']">
+                    {isM2Solved ? 'Flag Diserahkan ✓' : 'Target Live :8011'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mission 3 */}
+              <div
+                onClick={handleLaunchMission3}
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between group ${
+                  isM3Solved
+                    ? 'bg-[#1E1138]/80 border-[#A78BFA] shadow-[0_3px_0_0_#6D28D9]'
+                    : 'bg-[#1E1138]/50 hover:bg-[#1E1138]/80 border-[#C084FC]/70 hover:border-[#C084FC] shadow-[0_3px_0_0_#7E22CE] hover:-translate-y-0.5'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2 py-0.5 rounded text-[9.5px] font-['JetBrains_Mono'] font-bold bg-[#3B0764] text-[#E9D5FF] border border-[#A855F7]/50">
+                      MISI 03 // VIP SHOWCASE
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-['JetBrains_Mono'] font-extrabold bg-[#C084FC]/20 text-[#F5D0FE]">
+                      42 PRO SCENARIOS
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black font-['Space_Grotesk'] text-white group-hover:text-[#F5D0FE] transition-colors">
+                    Jelajahi 42 Skenario Serangan PRO
+                  </h4>
+                  <p className="text-[11px] text-[#E9D5FF]/80 font-sans mt-1 line-clamp-2">
+                    Intip simulasi Cloud ERP, BOLA Healthcare, File Upload RCE, dan peretasan tingkat lanjut.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between">
+                  {isM3Solved ? (
+                    <span className="text-[10.5px] font-['JetBrains_Mono'] font-extrabold text-[#D8B4FE] flex items-center gap-1">
+                      <Sparkles size={13} />
+                      <span>TEREKSPLORASI ✓</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10.5px] font-['Space_Grotesk'] font-bold text-[#F5D0FE] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                      <span>Intip 42 Lab PRO</span>
+                      <ArrowRight size={13} />
+                    </span>
+                  )}
+                  <span className="text-[10px] text-[#DDD6FE]/70 font-['JetBrains_Mono']">
+                    Candy Store Showcase
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Bar: Live Solved Count Indicator + CTA Button */}
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pt-3 border-t border-[#2DD4BF]/25">
+              {/* Solved Count Indicator */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#042F2C] border border-[#2DD4BF] flex items-center justify-center text-[#FBBF24] shrink-0">
+                  <Trophy size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black font-['JetBrains_Mono'] text-white">
+                      {goldenSolvedCount}/3 Misi Emas Selesai
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-['JetBrains_Mono'] font-bold bg-[#2DD4BF]/20 text-[#2DD4BF]">
+                      {goldenSolvedCount === 3 ? '100% COMPLETE' : `${Math.round((goldenSolvedCount / 3) * 100)}% PROGRESS`}
+                    </span>
+                  </div>
+                  {/* Segmented 3-part progress indicator */}
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    {[1, 2, 3].map((step) => {
+                      const completed = goldenSolvedCount >= step
+                      return (
+                        <div
+                          key={step}
+                          className={`h-2 w-14 rounded-full transition-all duration-500 ${
+                            completed
+                              ? 'bg-gradient-to-r from-[#22C55E] to-[#4ADE80] shadow-[0_0_8px_#22C55E]'
+                              : 'bg-white/15'
+                          }`}
+                        />
+                      )
+                    })}
+                    <span className="text-[10.5px] font-sans text-[#A7F3D0] ml-1">
+                      {goldenSolvedCount === 0 && 'Mulai dengan Misi 1 (F01/F06)'}
+                      {goldenSolvedCount === 1 && 'Bagus! Lanjutkan ke Misi 2 (A01)'}
+                      {goldenSolvedCount === 2 && 'Hampir selesai! Eksplor Misi 3'}
+                      {goldenSolvedCount === 3 && 'Luar biasa! Saatnya naik kelas ke ZITERA PRO'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Upgrade Button */}
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => handleWhatsAppUpgrade()}
+                  className="w-full md:w-auto px-5 py-2.5 bg-gradient-to-r from-[#F59E0B] via-[#D97706] to-[#B45309] hover:from-[#FBBF24] hover:to-[#D97706] text-white border-2 border-[#FDE68A] shadow-[0_4px_0_0_#78350F,0_8px_16px_rgba(217,119,6,0.3)] hover:shadow-[0_2px_0_0_#78350F] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-black font-['Space_Grotesk'] flex items-center justify-center gap-2 cursor-pointer transition-all"
+                >
+                  <MessageCircle size={15} />
+                  <span>Upgrade ke PRO via WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 3. Vibrant 3D Stats Banner Header matching Flutter's Pastel Aesthetic */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1326,6 +1773,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                 key={lab.id}
                 lab={lab}
                 isSolved={!!solvedLabsMap[lab.id]}
+                currentUser={currentUser}
                 inProgress={actionInProgress[lab.id]}
                 onSelectLab={onSelectLab}
                 onAction={handleAction}
@@ -1401,82 +1849,191 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
         </div>
       )}
 
-      {/* 7. Pro Edition Upgrade Required Modal */}
-      {upgradeModalInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
-          <div className="relative max-w-lg w-full bg-[#FCFBF8] border-2 border-[#D97706] rounded-2xl p-6 md:p-8 shadow-[0_8px_0_0_#92400E,0_24px_48px_rgba(0,0,0,0.3)] space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            {/* Header with Gold Lock Icon */}
-            <div className="flex items-center gap-3.5">
-              <div className="w-13 h-13 rounded-2xl bg-[#FEF3C7] border-2 border-[#F59E0B] text-[#D97706] flex items-center justify-center shadow-[0_3px_0_0_#D97706] shrink-0">
-                <Lock size={26} />
-              </div>
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309] border border-[#FCD34D] text-[10px] font-['JetBrains_Mono'] font-extrabold tracking-wider">
-                  PRO EDITION ACCESS REQUIRED
-                </span>
-                <h3 className="text-xl font-black font-['Space_Grotesk'] text-[#1E1A14] leading-tight mt-1">
-                  Eksklusif Pro Edition
-                </h3>
-              </div>
-            </div>
+      {/* 7. The 'Candy Store' VIP Pro Exclusive Lab Showcase Modal */}
+      {upgradeModalInfo && (() => {
+        const targetLabId = upgradeModalInfo.labId
+        const detail = LAB_DETAILS[targetLabId] ?? {
+          targetApp: 'Corporate Portal Target',
+          domain: 'Enterprise Security Assessment Target',
+          desc: 'Simulasi eksploitasi keamanan web pada infrastruktur aplikasi perusahaan nyata.',
+          skills: ['Exploitation', 'Security Audit'],
+          difficulty: 'Intermediate',
+        }
+        const domainMeta = getDomainCategory(targetLabId)
+        const bountyMeta = getBountyPotential(targetLabId, detail.difficulty)
+        const labTitle = LAB_CATALOG_TITLES[targetLabId] || detail.targetApp || targetLabId
+        const sticker = STICKER_MAP[targetLabId] ?? '/assets/sticker_cat_laptop.png'
 
-            <p className="text-xs text-[#5C5347] font-sans leading-relaxed">
-              Laboratorium <strong className="text-[#1E1A14]">"{LAB_DETAILS[upgradeModalInfo.labId]?.targetApp || upgradeModalInfo.labId}"</strong> merupakan bagian dari <strong className="text-[#D97706]">{upgradeModalInfo.tierAccess.trackName}</strong>. Akun Anda saat ini memiliki akses paket <strong>Foundation Only</strong>.
-            </p>
-
-            {/* Feature comparison / Benefit Box */}
-            <div className="p-4 bg-[#FFFBEB] border-2 border-[#FCD34D] rounded-xl space-y-2.5">
-              <div className="text-[11px] font-['Space_Grotesk'] font-bold text-[#92400E] uppercase flex items-center gap-1.5">
-                <Sparkles size={14} className="text-[#D97706]" />
-                <span>Keuntungan Upgrade ke Pro Edition:</span>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm select-none overflow-y-auto">
+            <div className="relative max-w-xl w-full bg-[#FCFBF8] border-2 border-[#D97706] rounded-3xl p-6 md:p-7 shadow-[0_12px_0_0_#78350F,0_28px_56px_rgba(0,0,0,0.45)] space-y-4 my-8 animate-in fade-in zoom-in-95 duration-150">
+              {/* Peeking Mascot Sticker */}
+              <div className="absolute top-4 right-14 w-12 h-12 pointer-events-none select-none drop-shadow-md">
+                <img
+                  src={sticker}
+                  alt=""
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    ;(e.target as HTMLElement).style.display = 'none'
+                  }}
+                />
               </div>
-              <ul className="text-xs text-[#78350F] space-y-1.5 font-sans">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-[#16A34A] shrink-0" />
-                  <span>Akses penuh seluruh <strong>45 Laboratorium</strong> (Track 1, 2, & 3)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-[#16A34A] shrink-0" />
-                  <span>30 Modul OWASP Top 10 + 20 Variasi Eksploitasi Lanjutan</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-[#16A34A] shrink-0" />
-                  <span>9 Lab Spesialis: BOLA API, File Upload RCE, LFI, CSRF & SIEM Forensik</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-[#16A34A] shrink-0" />
-                  <span>Tantangan CTF, Peringkat Scoreboard Global & Sertifikasi Digital</span>
-                </li>
-              </ul>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+              {/* Close Button */}
               <button
                 onClick={() => setUpgradeModalInfo(null)}
-                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold font-['Space_Grotesk'] text-[#5C5347] bg-white border-2 border-[#CEC8BF] rounded-xl hover:bg-[#F0EDE8] shadow-[0_2px_0_0_#CEC8BF] hover:translate-y-0.5 cursor-pointer transition-all"
+                className="absolute top-4 right-4 p-1.5 text-[#786F62] hover:text-[#1E1A14] bg-white border border-[#CEC8BF] rounded-xl hover:bg-[#F0EDE8] cursor-pointer transition-all"
+                title="Tutup"
               >
-                Nanti Saja
+                <X size={18} />
               </button>
 
-              <button
-                onClick={() => {
-                  const username = currentUser?.username || 'user'
-                  const msg = encodeURIComponent(
-                    `Halo Admin Zitera Lab, saya ingin upgrade akun (username: ${username}) dari Foundation ke Pro Edition! Mohon info instruksi pembayarannya.`,
-                  )
-                  openBrowser(`https://wa.me/6282283088667?text=${msg}`)
-                  setUpgradeModalInfo(null)
-                }}
-                className="w-full sm:w-auto px-6 py-2.5 text-xs font-black font-['Space_Grotesk'] text-white bg-[#D97706] hover:bg-[#B45309] border-2 border-[#B45309] rounded-xl shadow-[0_3px_0_0_#78350F] hover:shadow-[0_1px_0_0_#78350F] hover:translate-y-0.5 active:translate-y-1 flex items-center justify-center gap-2 cursor-pointer transition-all"
-              >
-                <Sparkles size={15} />
-                <span>Hubungi Admin via WhatsApp</span>
-              </button>
+              {/* Top Header with VIP Gold Badge & Domain Chip */}
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-2 pr-12">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border-2 border-[#F59E0B] text-[10px] font-['JetBrains_Mono'] font-black tracking-wider flex items-center gap-1.5 shadow-[0_2px_0_0_#D97706]">
+                    <Sparkles size={11} className="text-[#D97706]" />
+                    <span>VIP PRO EXCLUSIVE LAB</span>
+                  </span>
+                  <span
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-['JetBrains_Mono'] font-extrabold border"
+                    style={{
+                      backgroundColor: domainMeta.bgLight,
+                      borderColor: domainMeta.borderColor,
+                      color: domainMeta.accentColor,
+                    }}
+                  >
+                    {domainMeta.icon} {domainMeta.name}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1] text-[10px] font-['JetBrains_Mono'] font-bold">
+                    PORT :{targetLabId.startsWith('A') && targetLabId.length > 3 ? '804x' : '80xx'}
+                  </span>
+                </div>
+
+                <h3 className="text-xl md:text-2xl font-black font-['Space_Grotesk'] text-[#1E1A14] leading-tight">
+                  [{targetLabId}] {labTitle}
+                </h3>
+                <div className="text-xs font-['Space_Grotesk'] text-[#786F62] font-semibold mt-0.5 flex items-center gap-1.5">
+                  <span className="text-[#0F766E] font-bold">{detail.targetApp}</span>
+                  <span>•</span>
+                  <span>{detail.domain}</span>
+                </div>
+              </div>
+
+              {/* Real-World Attack Scenario Showcase Box (The Candy Store Experience) */}
+              <div className="bg-[#181512] border-2 border-[#3E3830] rounded-2xl p-4 text-[#D6D3D1] space-y-2.5 shadow-[0_4px_0_0_#0F0D0B]">
+                <div className="flex items-center justify-between text-[10.5px] font-['JetBrains_Mono'] font-bold text-[#2DD4BF] uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5">
+                    <Target size={14} className="text-[#2DD4BF]" />
+                    <span>SKENARIO SERANGAN DUNIA NYATA:</span>
+                  </span>
+                  <span className="text-[#A8A29E] font-normal">SIMULASI LIVE SANDBOX</span>
+                </div>
+
+                <p className="text-xs text-[#E7E5E4] font-sans leading-relaxed">
+                  {detail.desc}
+                </p>
+
+                {/* Target Attack Skills */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {detail.skills.map((sk) => (
+                    <span
+                      key={sk}
+                      className="px-2 py-0.5 rounded-md bg-[#26221D] border border-[#3E3830] text-[10px] font-['JetBrains_Mono'] font-semibold text-[#5EEAD4]"
+                    >
+                      #{sk}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bug Bounty Impact Potential Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="p-3 bg-[#FEF2F2] border-2 border-[#FCA5A5] rounded-xl flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#FEE2E2] border border-[#EF4444] text-[#DC2626] flex items-center justify-center shrink-0">
+                    <ShieldAlert size={18} />
+                  </div>
+                  <div>
+                    <div className="text-[9.5px] font-['JetBrains_Mono'] font-bold text-[#991B1B] uppercase">
+                      Severity Rating
+                    </div>
+                    <div className="text-xs font-black font-['JetBrains_Mono'] text-[#DC2626]">
+                      {bountyMeta.severity} • {bountyMeta.score}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-[#FEF3C7] border-2 border-[#FCD34D] rounded-xl flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#FEF3C7] border border-[#F59E0B] text-[#B45309] flex items-center justify-center shrink-0">
+                    <Trophy size={18} />
+                  </div>
+                  <div>
+                    <div className="text-[9.5px] font-['JetBrains_Mono'] font-bold text-[#92400E] uppercase">
+                      Bug Bounty Impact
+                    </div>
+                    <div className="text-xs font-black font-['JetBrains_Mono'] text-[#B45309]">
+                      {bountyMeta.rewardEstimate}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Business Impact Risk Note */}
+              <div className="p-3 bg-[#F0EDE8] border-2 border-[#CEC8BF] rounded-xl text-[11px] text-[#5C5347] font-sans">
+                <strong className="text-[#1E1A14]">Dampak Finansial / Risiko: </strong>
+                {bountyMeta.businessImpact}
+              </div>
+
+              {/* Pro Edition Package Perks */}
+              <div className="p-3.5 bg-[#FFFBEB] border-2 border-[#FCD34D] rounded-xl space-y-2">
+                <div className="text-[10.5px] font-['Space_Grotesk'] font-bold text-[#92400E] uppercase flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-[#16A34A]" />
+                  <span>Dapatkan Akses Penuh di Paket ZITERA PRO:</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] text-[#78350F] font-sans">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#16A34A] font-bold">✓</span>
+                    <span>Seluruh <strong>45 Laboratorium</strong> (Track 1, 2, 3)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#16A34A] font-bold">✓</span>
+                    <span>Dedicated Local Port Sandbox</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#16A34A] font-bold">✓</span>
+                    <span>6 Modul Kurikulum & Eksploitasi</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#16A34A] font-bold">✓</span>
+                    <span>Scoreboard & Sertifikat Digital</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 1-Click WhatsApp Upgrade Button Pre-Filled */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-2.5">
+                <button
+                  onClick={() => setUpgradeModalInfo(null)}
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold font-['Space_Grotesk'] text-[#5C5347] bg-white border-2 border-[#CEC8BF] rounded-xl hover:bg-[#F0EDE8] shadow-[0_2px_0_0_#CEC8BF] hover:translate-y-0.5 cursor-pointer transition-all"
+                >
+                  Jelajahi Lab Lain
+                </button>
+
+                <button
+                  onClick={() => {
+                    handleWhatsAppUpgrade(targetLabId)
+                    setUpgradeModalInfo(null)
+                  }}
+                  className="w-full sm:flex-1 px-5 py-3 text-xs font-black font-['Space_Grotesk'] text-white bg-gradient-to-r from-[#D97706] to-[#B45309] hover:from-[#F59E0B] hover:to-[#D97706] border-2 border-[#78350F] rounded-xl shadow-[0_4px_0_0_#78350F,0_10px_20px_rgba(217,119,6,0.3)] hover:shadow-[0_2px_0_0_#78350F] hover:translate-y-0.5 active:translate-y-1 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                >
+                  <MessageCircle size={16} />
+                  <span>Buka Akses Lab via WhatsApp (1-Click)</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
@@ -1487,6 +2044,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
 interface TactileLabCardProps {
   lab: LabItem
   isSolved: boolean
+  currentUser?: UserModel | null
   inProgress?: string
   onSelectLab: (id: string) => void
   onAction: (id: string, action: 'start' | 'stop' | 'reset' | 'update') => Promise<void>
@@ -1497,6 +2055,7 @@ interface TactileLabCardProps {
 function TactileLabCard({
   lab,
   isSolved,
+  currentUser,
   inProgress,
   onSelectLab,
   onAction,
@@ -1505,8 +2064,8 @@ function TactileLabCard({
 }: TactileLabCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const progression = getLabProgression(lab.id)
-  const currentUser = getCurrentUser()
-  const tierAccess = canUserAccessLab(lab.id, currentUser?.tier)
+  const effectiveUser = currentUser ?? getCurrentUser()
+  const tierAccess = canUserAccessLab(lab.id, effectiveUser?.tier)
   const isTierLocked = !tierAccess.allowed
   const isProgressionLocked = !progression.prerequisiteSolved
   const isLocked = isTierLocked || isProgressionLocked
