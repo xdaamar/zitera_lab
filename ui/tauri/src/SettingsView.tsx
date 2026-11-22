@@ -102,6 +102,25 @@ export function SettingsView({
                   <div className="text-[9px] font-['JetBrains_Mono'] text-[#9C9080] mt-0.5">
                     ID: {currentUser.id}
                   </div>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    {currentUser.role === 'admin' ? (
+                      <span className="px-2 py-0.5 rounded text-[9.5px] font-['JetBrains_Mono'] font-bold bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D]">
+                        SUPERADMIN CONSOLE
+                      </span>
+                    ) : currentUser.expiresAt ? (
+                      <span className={`px-2 py-0.5 rounded text-[9.5px] font-['JetBrains_Mono'] font-bold border ${
+                        currentUser.expiresAt - Date.now() <= 3 * 86400000
+                          ? 'bg-[#E0F2FE] text-[#0369A1] border-[#7DD3FC]'
+                          : 'bg-[#CCFBF1] text-[#0F766E] border-[#2DD4BF]/60'
+                      }`}>
+                        LISENSI AKTIF S/D {new Date(currentUser.expiresAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[9.5px] font-['JetBrains_Mono'] font-bold bg-[#F3E8FF] text-[#7E22CE] border border-[#D8B4FE]">
+                        LIFETIME LICENSE
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

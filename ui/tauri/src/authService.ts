@@ -15,6 +15,7 @@ export interface UserModel {
   boundAt?: number | null
   isActive?: boolean
   notes?: string | null
+  expiresAt?: number | null
 }
 
 export interface AuthResult {
@@ -201,6 +202,7 @@ async function loadSession(): Promise<UserModel | null> {
         boundAt: data.bound_at ? Number(data.bound_at) : data.boundAt ? Number(data.boundAt) : null,
         isActive: data.is_active !== undefined ? Number(data.is_active) === 1 : data.isActive !== undefined ? !!data.isActive : true,
         notes: data.notes ? String(data.notes) : null,
+        expiresAt: data.expires_at ? Number(data.expires_at) : data.expiresAt ? Number(data.expiresAt) : null,
       }
       if (user.id && user.username) return user
     } catch {
@@ -213,7 +215,7 @@ async function loadSession(): Promise<UserModel | null> {
 export async function verifyServerSession(cachedUser: UserModel): Promise<UserModel | null> {
   try {
     const res = await tursoExecute(
-      'SELECT id, username, role, tier, device_id, is_active FROM users WHERE id = ?',
+      'SELECT id, username, role, tier, device_id, is_active, expires_at FROM users WHERE id = ?',
       [cachedUser.id],
     )
     if (res.rows.length === 0) {
@@ -223,6 +225,20 @@ export async function verifyServerSession(cachedUser: UserModel): Promise<UserMo
     }
 
     const row = res.rows[0]
+    const userRole = (row.role as 'admin' | 'student') || 'student'
+    const expiresAt = row.expires_at ? Number(row.expires_at) : null
+
+    // Check expiration for student accounts
+    if (userRole !== 'admin' && expiresAt && expiresAt > 0 && Date.now() > expiresAt) {
+      console.warn('[authService] License has expired. Logging out and disabling session.')
+      try {
+        await tursoExecute('UPDATE users SET is_active = 0 WHERE id = ?', [cachedUser.id])
+      } catch {}
+      await clearSession()
+      _notify(null)
+      return null
+    }
+
     const isActive = row.is_active !== undefined && row.is_active !== null ? Number(row.is_active) === 1 : true
     if (!isActive) {
       console.warn('[authService] Account deactivated by administrator.')
@@ -233,7 +249,6 @@ export async function verifyServerSession(cachedUser: UserModel): Promise<UserMo
 
     const currentFp = await getDeviceFingerprint()
     const storedDeviceId = row.device_id ? String(row.device_id).trim() : ''
-    const userRole = (row.role as 'admin' | 'student') || 'student'
     if (userRole !== 'admin' && storedDeviceId && !isDeviceMatch(storedDeviceId, currentFp)) {
       console.warn('[authService] Hardware device mismatch detected.')
       await clearSession()
@@ -250,6 +265,7 @@ export async function verifyServerSession(cachedUser: UserModel): Promise<UserMo
       tier: serverTier,
       deviceId: storedDeviceId || cachedUser.deviceId,
       isActive: true,
+      expiresAt: expiresAt || null,
     }
 
     await persistSession(updatedUser)
@@ -280,7 +296,7 @@ export async function login(username: string, password: string): Promise<AuthRes
 
   try {
     const res = await tursoExecute(
-      'SELECT id, username, password_hash, created_at, avatar_id, role, tier, device_id, device_name, bound_at, is_active, notes FROM users WHERE username = ?',
+      'SELECT id, username, password_hash, created_at, avatar_id, role, tier, device_id, device_name, bound_at, is_active, notes, expires_at FROM users WHERE username = ?',
       [cleanUsername],
     )
     if (res.rows.length === 0)
@@ -290,6 +306,27 @@ export async function login(username: string, password: string): Promise<AuthRes
     const storedHash = String(row.password_hash ?? '')
     const ok = await verifyPassword(password, storedHash)
     if (!ok) return { success: false, message: 'Password salah. Periksa kembali kredensial Anda.' }
+
+    const userRole = (row.role as 'admin' | 'student') || 'student'
+    const expiresAt = row.expires_at ? Number(row.expires_at) : null
+
+    // Check expiration for student accounts
+    if (userRole !== 'admin' && expiresAt && expiresAt > 0 && Date.now() > expiresAt) {
+      try {
+        await tursoExecute('UPDATE users SET is_active = 0 WHERE id = ?', [String(row.id)])
+      } catch {}
+      const expDateStr = new Date(expiresAt).toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      return {
+        success: false,
+        message: `MASA AKTIF LISENSI KEDALUWARSA: Akun Anda telah habis masa aktifnya pada ${expDateStr}. Silakan hubungi Admin via WhatsApp untuk melakukan perpanjangan lisensi.`,
+      }
+    }
 
     const isActive = row.is_active !== undefined && row.is_active !== null ? Number(row.is_active) === 1 : true
     if (!isActive) {
@@ -301,7 +338,6 @@ export async function login(username: string, password: string): Promise<AuthRes
 
     const currentFp = await getDeviceFingerprint()
     const storedDeviceId = row.device_id ? String(row.device_id).trim() : ''
-    const userRole = (row.role as 'admin' | 'student') || 'student'
     const userTier = (row.tier as 'foundation' | 'pro' | 'enterprise') || 'pro'
     let finalDeviceId = storedDeviceId
     let finalBoundAt = row.bound_at ? Number(row.bound_at) : null
@@ -340,6 +376,7 @@ export async function login(username: string, password: string): Promise<AuthRes
       boundAt: finalBoundAt,
       isActive: true,
       notes: row.notes ? String(row.notes) : null,
+      expiresAt: expiresAt || null,
     }
 
     await persistSession(user)
