@@ -215,7 +215,7 @@ async function loadSession(): Promise<UserModel | null> {
 export async function verifyServerSession(cachedUser: UserModel): Promise<UserModel | null> {
   try {
     const res = await tursoExecute(
-      'SELECT id, username, role, tier, device_id, is_active, expires_at FROM users WHERE id = ?',
+      'SELECT id, username, role, tier, device_id, is_active, expires_at, (unixepoch() * 1000) AS server_now FROM users WHERE id = ?',
       [cachedUser.id],
     )
     if (res.rows.length === 0) {
@@ -227,9 +227,10 @@ export async function verifyServerSession(cachedUser: UserModel): Promise<UserMo
     const row = res.rows[0]
     const userRole = (row.role as 'admin' | 'student') || 'student'
     const expiresAt = row.expires_at ? Number(row.expires_at) : null
+    const serverNow = row.server_now ? Number(row.server_now) : Date.now()
 
-    // Check expiration for student accounts
-    if (userRole !== 'admin' && expiresAt && expiresAt > 0 && Date.now() > expiresAt) {
+    // Authoritative expiration verification (checks against cloud server timestamp + local clock)
+    if (userRole !== 'admin' && expiresAt && expiresAt > 0 && (serverNow > expiresAt || Date.now() > expiresAt)) {
       console.warn('[authService] License has expired. Logging out and disabling session.')
       try {
         await tursoExecute('UPDATE users SET is_active = 0 WHERE id = ?', [cachedUser.id])
@@ -296,7 +297,7 @@ export async function login(username: string, password: string): Promise<AuthRes
 
   try {
     const res = await tursoExecute(
-      'SELECT id, username, password_hash, created_at, avatar_id, role, tier, device_id, device_name, bound_at, is_active, notes, expires_at FROM users WHERE username = ?',
+      'SELECT id, username, password_hash, created_at, avatar_id, role, tier, device_id, device_name, bound_at, is_active, notes, expires_at, (unixepoch() * 1000) AS server_now FROM users WHERE username = ?',
       [cleanUsername],
     )
     if (res.rows.length === 0)
@@ -309,9 +310,10 @@ export async function login(username: string, password: string): Promise<AuthRes
 
     const userRole = (row.role as 'admin' | 'student') || 'student'
     const expiresAt = row.expires_at ? Number(row.expires_at) : null
+    const serverNow = row.server_now ? Number(row.server_now) : Date.now()
 
-    // Check expiration for student accounts
-    if (userRole !== 'admin' && expiresAt && expiresAt > 0 && Date.now() > expiresAt) {
+    // Authoritative expiration check for student accounts (prevents client clock spoofing)
+    if (userRole !== 'admin' && expiresAt && expiresAt > 0 && (serverNow > expiresAt || Date.now() > expiresAt)) {
       try {
         await tursoExecute('UPDATE users SET is_active = 0 WHERE id = ?', [String(row.id)])
       } catch {}
