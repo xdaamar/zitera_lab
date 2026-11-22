@@ -86,7 +86,7 @@ export function TacticalGate({ onLoginSuccess }: TacticalGateProps) {
           muted
           playsInline
           className="absolute inset-0 w-full h-full object-cover select-none scale-[1.03] filter blur-[2px] brightness-[0.85] saturate-[0.85]"
-          src="/assets/gemini_generated_video_4357dadb.mp4"
+          src="/assets/login_bg_video.mp4"
         />
         {/* Subtle cinematic tint to disguise pixelation & deepen UI contrast */}
         <div className="absolute inset-0 bg-stone-950/25" />
