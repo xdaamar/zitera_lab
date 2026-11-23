@@ -10,6 +10,7 @@ import { ToolsView } from './ToolsView'
 import { EnvironmentView } from './EnvironmentView'
 import { SettingsView } from './SettingsView'
 import { TacticalGate } from './TacticalGate'
+import { ErrorBoundary } from './ErrorBoundary'
 import {
   initAuth,
   getCurrentUser,
@@ -139,41 +140,43 @@ export function App() {
             <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#2DD4BF] to-transparent animate-beam-sweep" />
           </div>
 
-          {activeLabId ? (
-            <LabDetailView
-              labId={activeLabId}
-              onBack={handleBackFromLab}
-              onSelectLab={handleOpenLab}
-            />
-          ) : (
-            <>
-              {navIndex === 0 && (
-                <DashboardView
-                  onNavigate={(idx) => {
-                    setNavIndex(idx as NavIndex)
-                    setActiveLabId(null)
-                  }}
-                  onOpenLab={handleOpenLab}
-                />
-              )}
-              {navIndex === 1 && <LabsView onSelectLab={handleOpenLab} />}
-              {navIndex === 2 && <ScoreboardView />}
-              {navIndex === 3 && <ToolsView />}
-              {navIndex === 4 && <EnvironmentView />}
-              {navIndex === 5 && (
-                <SettingsView
-                  cursorEnabled={cursorEnabled}
-                  onToggleCursor={handleToggleCursor}
-                  onOpenAuth={() => setAuthOpen(true)}
-                  zoom={zoom}
-                  onZoomIn={zoomIn}
-                  onZoomOut={zoomOut}
-                  onResetZoom={resetZoom}
-                  onSetZoom={setZoom}
-                />
-              )}
-            </>
-          )}
+          <ErrorBoundary>
+            {activeLabId ? (
+              <LabDetailView
+                labId={activeLabId}
+                onBack={handleBackFromLab}
+                onSelectLab={handleOpenLab}
+              />
+            ) : (
+              <>
+                {navIndex === 0 && (
+                  <DashboardView
+                    onNavigate={(idx) => {
+                      setNavIndex(idx as NavIndex)
+                      setActiveLabId(null)
+                    }}
+                    onOpenLab={handleOpenLab}
+                  />
+                )}
+                {navIndex === 1 && <LabsView onSelectLab={handleOpenLab} />}
+                {navIndex === 2 && <ScoreboardView />}
+                {navIndex === 3 && <ToolsView />}
+                {navIndex === 4 && <EnvironmentView />}
+                {navIndex === 5 && (
+                  <SettingsView
+                    cursorEnabled={cursorEnabled}
+                    onToggleCursor={handleToggleCursor}
+                    onOpenAuth={() => setAuthOpen(true)}
+                    zoom={zoom}
+                    onZoomIn={zoomIn}
+                    onZoomOut={zoomOut}
+                    onResetZoom={resetZoom}
+                    onSetZoom={setZoom}
+                  />
+                )}
+              </>
+            )}
+          </ErrorBoundary>
         </div>
       </main>
 
