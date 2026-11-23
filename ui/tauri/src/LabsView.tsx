@@ -27,6 +27,7 @@ import {
   Clock,
   ArrowRight,
   MessageCircle,
+  Terminal,
 } from 'lucide-react'
 import {
   getLabs,
@@ -47,6 +48,8 @@ import {
   type TierAccessResult,
 } from './progressionHelper'
 import { getCurrentUser, subscribeAuth, type UserModel } from './authService'
+import { BurpLiteModal } from './BurpLiteModal'
+import { ZetaMentorModal } from './ZetaMentorModal'
 
 interface DomainMeta {
   name: string
@@ -1158,6 +1161,9 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
   const [solvedLabsMap, setSolvedLabsMap] = useState<Record<string, boolean>>({})
   const [lockedModalInfo, setLockedModalInfo] = useState<LabProgressionInfo | null>(null)
   const [upgradeModalInfo, setUpgradeModalInfo] = useState<{ labId: string; tierAccess: TierAccessResult } | null>(null)
+  const [burpModalOpen, setBurpModalOpen] = useState(false)
+  const [zetaModalOpen, setZetaModalOpen] = useState(false)
+  const [activeInspectorLab, setActiveInspectorLab] = useState<{ id: string; port: number } | null>(null)
   const isMountedRef = useRef(true)
   const [currentUser, setCurrentUser] = useState<UserModel | null>(getCurrentUser())
   const [mission3Explored, setMission3Explored] = useState<boolean>(() => {
@@ -1407,7 +1413,31 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={() => {
+                setActiveInspectorLab(null)
+                setBurpModalOpen(true)
+              }}
+              className="px-3.5 py-2 bg-[#12151D] text-[#FB923C] hover:bg-[#1A1F2C] border-2 border-[#F97316] shadow-[0_3px_0_0_#C2410C] hover:shadow-[0_1px_0_0_#C2410C] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-bold font-['Space_Grotesk'] flex items-center gap-2 cursor-pointer transition-all"
+              title="Buka Zitera Burp Suite Lite (HTTP Inspector & Repeater)"
+            >
+              <Terminal size={14} className="text-[#FB923C]" />
+              <span>Burp Suite Lite</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveInspectorLab(null)
+                setZetaModalOpen(true)
+              }}
+              className="px-3.5 py-2 bg-gradient-to-r from-[#042F2C] to-[#0D3833] text-[#2DD4BF] hover:from-[#0F4A44] hover:to-[#134E4A] border-2 border-[#2DD4BF] shadow-[0_3px_0_0_#0F766E] hover:shadow-[0_1px_0_0_#0F766E] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-bold font-['Space_Grotesk'] flex items-center gap-2 cursor-pointer transition-all"
+              title="Tanya Zeta Cyber Intel Mentor (Socratic Hints)"
+            >
+              <Sparkles size={14} className="text-[#FBBF24]" />
+              <span>Tanya Zeta Mentor</span>
+            </button>
+
             <button
               onClick={loadLabs}
               className="px-4 py-2 bg-white text-[#0F766E] hover:bg-[#F0FDFA] border-2 border-[#2DD4BF] shadow-[0_3px_0_0_#5EEAD4] hover:shadow-[0_1px_0_0_#5EEAD4] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-bold font-['Space_Grotesk'] flex items-center gap-2 cursor-pointer transition-all"
@@ -1804,6 +1834,14 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                 onAction={handleAction}
                 onOpenLockModal={(info) => setLockedModalInfo(info)}
                 onOpenUpgradeModal={(info) => setUpgradeModalInfo(info)}
+                onOpenBurpLite={(labId, port) => {
+                  setActiveInspectorLab({ id: labId, port })
+                  setBurpModalOpen(true)
+                }}
+                onOpenZetaMentor={(labId) => {
+                  setActiveInspectorLab({ id: labId, port: lab.port || 8011 })
+                  setZetaModalOpen(true)
+                }}
               />
             ))}
           </div>
@@ -2059,6 +2097,26 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
           </div>
         )
       })()}
+
+      {/* 8. Zitera Burp Suite Replica Lite Modal */}
+      {burpModalOpen && (
+        <BurpLiteModal
+          isOpen={burpModalOpen}
+          onClose={() => setBurpModalOpen(false)}
+          activeLabId={activeInspectorLab?.id || 'A01'}
+          activeLabPort={activeInspectorLab?.port || 8011}
+        />
+      )}
+
+      {/* 9. Zeta Socratic Cyber Intel Companion Modal */}
+      {zetaModalOpen && (
+        <ZetaMentorModal
+          isOpen={zetaModalOpen}
+          onClose={() => setZetaModalOpen(false)}
+          currentLabId={activeInspectorLab?.id || 'A01'}
+          userTier={currentUser?.tier}
+        />
+      )}
     </div>
   )
 }
@@ -2075,6 +2133,8 @@ interface TactileLabCardProps {
   onAction: (id: string, action: 'start' | 'stop' | 'reset' | 'update') => Promise<void>
   onOpenLockModal: (info: LabProgressionInfo) => void
   onOpenUpgradeModal: (info: { labId: string; tierAccess: TierAccessResult }) => void
+  onOpenBurpLite?: (labId: string, port: number) => void
+  onOpenZetaMentor?: (labId: string) => void
 }
 
 function TactileLabCard({
@@ -2086,6 +2146,8 @@ function TactileLabCard({
   onAction,
   onOpenLockModal,
   onOpenUpgradeModal,
+  onOpenBurpLite,
+  onOpenZetaMentor,
 }: TactileLabCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const progression = getLabProgression(lab.id)
@@ -2352,15 +2414,30 @@ function TactileLabCard({
             <>
               <button
                 onClick={() => openBrowser(`http://127.0.0.1:${lab.port}`)}
-                className="px-3.5 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 border-2 border-[#1E40AF] shadow-[0_3px_0_0_#1E3A8A] hover:shadow-[0_1px_0_0_#1E3A8A] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
+                className="px-3 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 border-2 border-[#1E40AF] shadow-[0_3px_0_0_#1E3A8A] hover:shadow-[0_1px_0_0_#1E3A8A] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
               >
                 <span>Buka Web</span>
                 <ExternalLink size={13} />
               </button>
               <button
+                onClick={() => onOpenBurpLite?.(lab.id, lab.port || 8011)}
+                className="px-2.5 py-2 bg-[#12151D] hover:bg-[#1A1F2C] border-2 border-[#F97316] text-[#FB923C] text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1 shadow-[0_3px_0_0_#C2410C] hover:shadow-[0_1px_0_0_#C2410C] hover:translate-y-0.5 active:translate-y-1 cursor-pointer transition-all"
+                title="Buka lab di Zitera Burp Suite Lite"
+              >
+                <Terminal size={12} />
+                <span>Repeater</span>
+              </button>
+              <button
+                onClick={() => onOpenZetaMentor?.(lab.id)}
+                className="p-2 bg-[#042F2C] hover:bg-[#0D3833] border-2 border-[#2DD4BF] text-[#2DD4BF] rounded-xl shadow-[0_3px_0_0_#0F766E] hover:shadow-[0_1px_0_0_#0F766E] hover:translate-y-0.5 active:translate-y-1 cursor-pointer transition-all"
+                title="Tanya petunjuk ke Zeta Mentor"
+              >
+                <Sparkles size={13} className="text-[#FBBF24]" />
+              </button>
+              <button
                 onClick={() => onAction(lab.id, 'stop')}
                 disabled={!!inProgress}
-                className="px-3 py-2 bg-white hover:bg-[#FEF2F2] border-2 border-[#EF4444] text-[#DC2626] text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 shadow-[0_3px_0_0_#F87171] hover:shadow-[0_1px_0_0_#F87171] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 cursor-pointer"
+                className="px-2.5 py-2 bg-white hover:bg-[#FEF2F2] border-2 border-[#EF4444] text-[#DC2626] text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1 shadow-[0_3px_0_0_#F87171] hover:shadow-[0_1px_0_0_#F87171] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Square size={12} />
                 <span>Stop</span>
@@ -2375,14 +2452,23 @@ function TactileLabCard({
               </button>
             </>
           ) : (
-            <button
-              onClick={() => onAction(lab.id, 'start')}
-              disabled={!!inProgress}
-              className="px-4 py-2 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 border-2 border-[#094D47] shadow-[0_3px_0_0_#063934] hover:shadow-[0_1px_0_0_#063934] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 cursor-pointer"
-            >
-              <Play size={13} />
-              <span>{inProgress === 'start' ? 'Launching...' : 'RUN LAB'}</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onAction(lab.id, 'start')}
+                disabled={!!inProgress}
+                className="px-4 py-2 bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1.5 border-2 border-[#094D47] shadow-[0_3px_0_0_#063934] hover:shadow-[0_1px_0_0_#063934] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <Play size={13} />
+                <span>{inProgress === 'start' ? 'Launching...' : 'RUN LAB'}</span>
+              </button>
+              <button
+                onClick={() => onOpenZetaMentor?.(lab.id)}
+                className="p-2 bg-white hover:bg-[#F0FDFA] border-2 border-[#2DD4BF] text-[#0F766E] rounded-xl shadow-[0_3px_0_0_#5EEAD4] hover:shadow-[0_1px_0_0_#5EEAD4] hover:translate-y-0.5 active:translate-y-1 cursor-pointer transition-all"
+                title="Petunjuk Lab dari Zeta Mentor"
+              >
+                <Sparkles size={13} className="text-[#F59E0B]" />
+              </button>
+            </div>
           )}
 
           {lab.hasUpdate && (
