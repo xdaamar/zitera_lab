@@ -391,7 +391,7 @@ export function ZetaMentorModal({
                 alt={currentMentor.name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  ;(e.target as HTMLImageElement).src = '/assets/zeta_avatar.png'
+                  ;(e.target as HTMLImageElement).src = '/assets/mentors/zeta_avatar.png'
                 }}
               />
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-stone-950 animate-pulse" />
@@ -426,16 +426,20 @@ export function ZetaMentorModal({
                   <button
                     key={m.id}
                     onClick={() => handleSwitchMentor(m.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-['Space_Grotesk'] font-bold transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-['Space_Grotesk'] font-bold transition-all cursor-pointer ${
                       isSelected
                         ? `${m.badgeBg} ${m.badgeText} border shadow-xs`
                         : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60 border border-transparent'
                     }`}
                     title={`Ganti mentor ke ${m.name} (${m.role})`}
                   >
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: m.themeColor }}
+                    <img
+                      src={m.avatar}
+                      alt={m.name}
+                      className="w-4 h-4 rounded-full object-cover border border-stone-600 shrink-0"
+                      onError={(e) => {
+                        ;(e.target as HTMLImageElement).style.display = 'none'
+                      }}
                     />
                     <span>{m.name}</span>
                   </button>
@@ -489,31 +493,31 @@ export function ZetaMentorModal({
               </div>
 
               {/* Realistic Anime Mentor Teaching Figure Stage */}
-              <div className="relative w-full h-56 sm:h-64 rounded-xl overflow-hidden border border-stone-800 bg-gradient-to-t from-stone-950 via-stone-900 to-stone-950 flex items-center justify-center group shadow-inner">
+              <div className="relative w-full h-72 sm:h-80 md:h-[350px] rounded-2xl overflow-hidden border border-stone-800 bg-stone-950 flex items-center justify-center group shadow-xl">
                 <img
                   src={activePoseImage}
                   alt={`${currentMentor.name} Teaching Pose`}
-                  className="w-full h-full object-contain object-bottom transition-all duration-300 group-hover:scale-105 select-none"
+                  className="w-full h-full object-cover object-top transition-all duration-300 group-hover:scale-105 select-none"
                   onError={(e) => {
                     ;(e.target as HTMLImageElement).src = currentMentor.avatar
                   }}
                 />
 
                 {/* Subtle vignette shadow */}
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-transparent to-stone-950/30 pointer-events-none" />
 
-                {/* Live Specialty Badge Overlay */}
-                <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-stone-950/85 border border-stone-700 text-[10px] font-mono font-bold text-stone-200 flex items-center gap-1.5 backdrop-blur-xs">
+                {/* Live Active Mentor Tag Overlay */}
+                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-stone-950/85 border border-stone-700/80 text-[10px] font-mono font-bold text-stone-200 flex items-center gap-1.5 backdrop-blur-md shadow-md">
                   <span
                     className="w-2 h-2 rounded-full animate-ping"
                     style={{ backgroundColor: currentMentor.themeColor }}
                   />
-                  <span>{currentMentor.name}: {currentMentor.specialty}</span>
+                  <span>{currentMentor.name.toUpperCase()} // ACTIVE</span>
                 </div>
 
                 {/* Active Pose Mode Tag */}
-                <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-stone-950/85 border border-stone-800 text-[9px] font-mono text-stone-400 backdrop-blur-xs flex items-center gap-1">
-                  <UserCheck className="w-2.5 h-2.5 text-teal-400" />
+                <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-stone-950/85 border border-stone-700/80 text-[10px] font-mono text-stone-300 backdrop-blur-md flex items-center gap-1.5 shadow-md">
+                  <UserCheck className="w-3 h-3 text-teal-400" />
                   <span>{currentMoodUi.poseLabel}</span>
                 </div>
               </div>
@@ -773,13 +777,13 @@ export function ZetaMentorModal({
                       className={`flex gap-3 ${isStudent ? 'justify-end' : 'justify-start'}`}
                     >
                       {!isStudent && (
-                        <div className="w-8 h-8 rounded-lg bg-stone-900 border border-teal-500/40 flex items-center justify-center shrink-0 mt-0.5 overflow-hidden">
+                        <div className="w-9 h-9 rounded-xl bg-stone-900 border border-teal-500/40 flex items-center justify-center shrink-0 mt-0.5 overflow-hidden shadow-xs">
                           <img
                             src={msgMentor.avatar}
                             alt={msgMentor.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              ;(e.target as HTMLImageElement).src = '/assets/zeta_avatar.png'
+                              ;(e.target as HTMLImageElement).src = '/assets/mentors/zeta_avatar.png'
                             }}
                           />
                         </div>

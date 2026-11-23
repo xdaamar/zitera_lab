@@ -39,7 +39,7 @@ export const MENTOR_REGISTRY: Record<MentorId, MentorProfile> = {
     badgeText: 'text-teal-300',
     accentBorder: 'border-teal-500/40',
     accentGlow: 'shadow-[0_0_24px_rgba(45,212,191,0.25)]',
-    avatar: '/assets/zeta_avatar.png',
+    avatar: '/assets/mentors/zeta_avatar.png',
     poses: {
       teaching: '/assets/mentors/zeta_teaching.jpg',
       eureka: '/assets/mentors/zeta_praise.jpg',
@@ -62,7 +62,7 @@ export const MENTOR_REGISTRY: Record<MentorId, MentorProfile> = {
     badgeText: 'text-purple-300',
     accentBorder: 'border-purple-500/40',
     accentGlow: 'shadow-[0_0_24px_rgba(168,85,247,0.25)]',
-    avatar: '/assets/avatars/aoi.png',
+    avatar: '/assets/mentors/aoi_avatar.png',
     poses: {
       teaching: '/assets/mentors/aoi_teaching.jpg',
       eureka: '/assets/mentors/aoi_praise.jpg',
@@ -85,7 +85,7 @@ export const MENTOR_REGISTRY: Record<MentorId, MentorProfile> = {
     badgeText: 'text-amber-300',
     accentBorder: 'border-amber-500/40',
     accentGlow: 'shadow-[0_0_24px_rgba(245,158,11,0.25)]',
-    avatar: '/assets/avatars/girl_cheerful.png',
+    avatar: '/assets/mentors/elysia_avatar.png',
     poses: {
       teaching: '/assets/mentors/elysia_teaching.jpg',
       eureka: '/assets/mentors/elysia_praise.jpg',
