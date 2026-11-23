@@ -824,9 +824,9 @@ export async function startLab(labId: string): Promise<string> {
     return String(res)
   } catch (err: unknown) {
     if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
-      console.error('[startLab] Tauri engine IPC error:', err)
+      console.error('[startLab] Runtime IPC error:', err)
       const msg = err instanceof Error ? err.message : String(err)
-      throw new Error(msg || 'Gagal menyalakan engine backend.')
+      throw new Error(msg || 'Gagal menginisialisasi sandbox target.')
     }
     const lab = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
     if (lab) lab.running = true
@@ -848,9 +848,9 @@ export async function stopLab(labId: string): Promise<string> {
     return String(res)
   } catch (err: unknown) {
     if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
-      console.error('[stopLab] Tauri engine IPC error:', err)
+      console.error('[stopLab] Runtime IPC error:', err)
       const msg = err instanceof Error ? err.message : String(err)
-      throw new Error(msg || 'Gagal menghentikan engine backend.')
+      throw new Error(msg || 'Gagal menghentikan target.')
     }
     const lab = MOCK_LABS.find((l) => l.id.toUpperCase() === labId.toUpperCase())
     if (lab) lab.running = false

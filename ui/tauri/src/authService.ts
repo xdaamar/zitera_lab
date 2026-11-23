@@ -1,7 +1,7 @@
 // Auth Service — ZiteraLab React/Tauri
 // Secure Enterprise Authentication, Hardware Enclave Binding & Admin Provisioning
 
-import { tursoExecute } from './tursoClient'
+import { cloudExecute } from './cloudClient'
 
 export interface UserModel {
   id: string
@@ -214,7 +214,7 @@ async function loadSession(): Promise<UserModel | null> {
 
 export async function verifyServerSession(cachedUser: UserModel): Promise<UserModel | null> {
   try {
-    const res = await tursoExecute(
+    const res = await cloudExecute(
       'SELECT id, username, role, tier, device_id, is_active, expires_at, (unixepoch() * 1000) AS server_now FROM users WHERE id = ?',
       [cachedUser.id],
     )
@@ -233,7 +233,7 @@ export async function verifyServerSession(cachedUser: UserModel): Promise<UserMo
     if (userRole !== 'admin' && expiresAt && expiresAt > 0 && (serverNow > expiresAt || Date.now() > expiresAt)) {
       console.warn('[authService] License has expired. Logging out and disabling session.')
       try {
-        await tursoExecute('UPDATE users SET is_active = 0 WHERE id = ?', [cachedUser.id])
+        await cloudExecute('UPDATE users SET is_active = 0 WHERE id = ?', [cachedUser.id])
       } catch {}
       await clearSession()
       _notify(null)
@@ -296,7 +296,7 @@ export async function login(username: string, password: string): Promise<AuthRes
     return { success: false, message: 'Username dan Password wajib diisi.' }
 
   try {
-    const res = await tursoExecute(
+    const res = await cloudExecute(
       'SELECT id, username, password_hash, created_at, avatar_id, role, tier, device_id, device_name, bound_at, is_active, notes, expires_at, (unixepoch() * 1000) AS server_now FROM users WHERE username = ?',
       [cleanUsername],
     )
@@ -315,7 +315,7 @@ export async function login(username: string, password: string): Promise<AuthRes
     // Authoritative expiration check for student accounts (prevents client clock spoofing)
     if (userRole !== 'admin' && expiresAt && expiresAt > 0 && (serverNow > expiresAt || Date.now() > expiresAt)) {
       try {
-        await tursoExecute('UPDATE users SET is_active = 0 WHERE id = ?', [String(row.id)])
+        await cloudExecute('UPDATE users SET is_active = 0 WHERE id = ?', [String(row.id)])
       } catch {}
       const expDateStr = new Date(expiresAt).toLocaleDateString('id-ID', {
         day: '2-digit',
@@ -351,7 +351,7 @@ export async function login(username: string, password: string): Promise<AuthRes
         finalDeviceId = currentFp
         finalBoundAt = Date.now()
         const devName = currentFp.split('_')[0] || 'Win32_Host'
-        await tursoExecute(
+        await cloudExecute(
           'UPDATE users SET device_id = ?, device_name = ?, bound_at = ? WHERE id = ?',
           [currentFp, devName, finalBoundAt, String(row.id)],
         )
@@ -394,7 +394,7 @@ export async function updateAvatar(avatarId: string): Promise<boolean> {
   if (!user) return false
   const cleanAvatarId = avatarId.trim() || 'zeta'
   try {
-    await tursoExecute('UPDATE users SET avatar_id = ? WHERE id = ?', [cleanAvatarId, user.id])
+    await cloudExecute('UPDATE users SET avatar_id = ? WHERE id = ?', [cleanAvatarId, user.id])
     const updated: UserModel = { ...user, avatarId: cleanAvatarId }
     await persistSession(updated)
     _notify(updated)

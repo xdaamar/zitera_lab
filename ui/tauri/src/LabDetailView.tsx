@@ -1412,8 +1412,8 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
                 <span className="w-2 h-2 rounded-full bg-[#5EEAD4] animate-ping" />
                 <span>
                   {targetOp.type === 'launch'
-                    ? 'WIN32 ENGINE // MEMULAI TARGET'
-                    : 'WIN32 ENGINE // MENGHENTIKAN TARGET'}
+                    ? 'TARGET RUNTIME // MEMULAI TARGET'
+                    : 'TARGET RUNTIME // MENGHENTIKAN TARGET'}
                 </span>
               </div>
               <span className="text-[10px] font-['JetBrains_Mono'] text-teal-200 bg-[#042F2E]/60 px-2 py-0.5 rounded border border-[#2DD4BF]/40">
@@ -1489,7 +1489,7 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
                   <div className="px-3 py-2 rounded-lg bg-[#F5F5F4] border border-[#E7E5E4] text-[11px] text-[#78716C] leading-relaxed flex items-center gap-2 text-left">
                     <Shield size={14} className="shrink-0 text-[#0F766E]" />
                     <span>
-                      Engine sedang memproses sandbox di latar belakang. Tombol dinonaktifkan untuk mencegah spam click!
+                      Sistem sedang menyiapkan sandbox di latar belakang. Tombol dinonaktifkan untuk mencegah spam click!
                     </span>
                   </div>
                 </>
@@ -1527,7 +1527,7 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
                         : 'GAGAL MENGHENTIKAN TARGET'}
                     </h3>
                     <p className="text-xs text-[#DC2626] font-['JetBrains_Mono'] bg-[#FEF2F2] p-2.5 rounded-lg border border-[#FCA5A5] text-left">
-                      {targetOp.errorMessage || 'Terjadi kesalahan sistem saat menghubungi engine backend.'}
+                      {targetOp.errorMessage || 'Terjadi kendala saat menginisialisasi sandbox target.'}
                     </p>
                   </div>
                   <button

@@ -100,7 +100,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         <div className="relative z-10">
           <CuteAnimeLoading
             message="INITIALIZING CYBER DASHBOARD..."
-            subMessage="NEKO ENGINE ACTIVE // RUNTIME ONLINE"
+            subMessage="SESSION ACTIVE // RUNTIME ONLINE"
           />
         </div>
       </div>
@@ -235,14 +235,14 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         {/* Stat 3: Environment / Runtimes */}
         <div className="p-4 rounded-xl border-2 border-[#FCD34D] bg-[#FEF3C7] text-[#B45309] shadow-[0_3px_0_0_#FCD34D] hover:shadow-[0_1px_0_0_#FCD34D] hover:translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs font-['Space_Grotesk'] font-bold">
-            <span>RUNTIME HEALTH</span>
+            <span>SYSTEM INTEGRITY</span>
             <ShieldCheck size={16} />
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold font-['JetBrains_Mono']">
               {diagnostics?.allReady ? '100%' : '90%'}
             </div>
-            <div className="text-[10px] font-medium opacity-80 mt-0.5">Isolation & Broker OK</div>
+            <div className="text-[10px] font-medium opacity-80 mt-0.5">Sandbox & Boundary Active</div>
           </div>
         </div>
 
@@ -341,7 +341,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
         <div className="md:col-span-2 bg-[#FCFBF8] border-2 border-[#CEC8BF] rounded-xl p-5 shadow-[0_3px_0_0_#E4DFD7]">
           <div className="flex items-center justify-between mb-3 border-b-2 border-[#E6E2D8] pb-2">
             <h3 className="text-sm font-bold font-['Space_Grotesk'] text-[#1E1A14]">
-              TOP OPERATIVES // LIVE TURSO LEADERBOARD
+              TOP OPERATIVES // LIVE GLOBAL LEADERBOARD
             </h3>
             <button
               onClick={() => onNavigate(2)}
@@ -444,7 +444,7 @@ export function DashboardView({ onNavigate, onOpenLab }: DashboardViewProps) {
               }}
             />
             <div className="text-[10px] text-[#5C5347] font-['JetBrains_Mono']">
-              Engine connected. AppContainer boundary enforced.
+              System Core: Active // Boundary Enforced.
             </div>
           </div>
         </div>

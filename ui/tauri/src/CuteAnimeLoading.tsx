@@ -19,7 +19,7 @@ function getSharedCatImg(): HTMLImageElement {
 
 export function CuteAnimeLoading({
   message = 'INITIALIZING CYBER MATRIX...',
-  subMessage = 'NEKO ENGINE ACTIVE // RUNTIME ONLINE',
+  subMessage = 'SESSION ACTIVE // RUNTIME ONLINE',
   compact = false,
 }: CuteAnimeLoadingProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)

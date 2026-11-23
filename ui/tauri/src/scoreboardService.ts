@@ -1,5 +1,5 @@
 // Scoreboard Service — ZiteraLab React/Tauri
-import { tursoExecute } from './tursoClient'
+import { cloudExecute } from './cloudClient'
 import { getCurrentUser } from './authService'
 import { canUserAccessLab } from './progressionHelper'
 
@@ -36,7 +36,7 @@ export async function recordSolve(labId: string, points = DEFAULT_POINTS_PER_LAB
   const avatarId = user.avatarId || 'zeta'
 
   try {
-    await tursoExecute(
+    await cloudExecute(
       'INSERT OR IGNORE INTO solves (id, user_id, username, lab_id, points, solved_at, avatar_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [solveId, user.id, user.username, cleanLabId, points, solvedAt, avatarId],
     )
@@ -61,7 +61,7 @@ export async function getLeaderboard(): Promise<ScoreboardEntry[]> {
     GROUP BY u.id, u.username, u.avatar_id
     ORDER BY total_points DESC, last_solve_at ASC, u.created_at ASC
   `
-  const res = await tursoExecute(sql)
+  const res = await cloudExecute(sql)
   const currentUser = getCurrentUser()
 
   return res.rows.map((row, i) => {

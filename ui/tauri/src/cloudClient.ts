@@ -1,33 +1,33 @@
-// ZITERA CYBER_LAB — Turso Client (Native Enclave IPC Bridge)
+// ZITERA CYBER_LAB — Cloud Client (Native Enclave IPC Bridge)
 // All database queries and authentication tokens are routed exclusively through
 // the native Rust security enclave, completely scrubbing raw credentials from JavaScript.
 
 import { invoke } from '@tauri-apps/api/core'
 
-export interface TursoQueryResult {
+export interface CloudQueryResult {
   affectedRowCount: number
   columns: string[]
   rows: Record<string, unknown>[]
 }
 
-export async function tursoExecute(sql: string, args?: unknown[]): Promise<TursoQueryResult> {
-  const results = await tursoBatch([{ sql, args }])
+export async function cloudExecute(sql: string, args?: unknown[]): Promise<CloudQueryResult> {
+  const results = await cloudBatch([{ sql, args }])
   return results[0]
 }
 
-export async function tursoBatch(
+export async function cloudBatch(
   statements: { sql: string; args?: unknown[] }[],
-): Promise<TursoQueryResult[]> {
+): Promise<CloudQueryResult[]> {
   try {
     const formattedStatements = statements.map((stmt) => ({
       sql: stmt.sql,
       args: stmt.args ?? [],
     }))
-    return await invoke<TursoQueryResult[]>('turso_execute_batch', {
+    return await invoke<CloudQueryResult[]>('cloud_execute_batch', {
       statements: formattedStatements,
     })
   } catch (err) {
-    console.error('[SECURITY ENCLAVE] Turso Enclave execution error:', err)
+    console.error('[SECURITY ENCLAVE] Cloud Enclave execution error:', err)
     throw new Error(`Enclave Database Error: ${err}`)
   }
 }

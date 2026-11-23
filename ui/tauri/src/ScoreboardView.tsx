@@ -123,7 +123,7 @@ export function ScoreboardView() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-[#FFEDD5] text-[#C2410C] border border-[#FDBA74] text-[10px] font-['Space_Grotesk'] font-bold">
-              TURSO CLOUD CTF
+              ZITERA CLOUD CTF
             </span>
             <span className="text-[10px] font-['JetBrains_Mono'] text-[#9C9080]">
               REAL-TIME OPERATIVE STANDINGS
@@ -146,7 +146,7 @@ export function ScoreboardView() {
       {loading ? (
         <div className="py-16 flex items-center justify-center">
           <CuteAnimeLoading
-            message="SYNCING TURSO LEADERBOARD..."
+            message="SYNCING CLOUD LEADERBOARD..."
             subMessage="SYNCHRONIZING LIVE GLOBAL RANKS"
           />
         </div>
@@ -359,7 +359,7 @@ export function ScoreboardView() {
 
               {entries.length === 0 && (
                 <div className="p-8 text-center text-xs text-[#9C9080] font-['JetBrains_Mono']">
-                  No records found on Turso pipeline. Solves will appear automatically.
+                  No records found on cloud pipeline. Solves will appear automatically.
                 </div>
               )}
             </div>

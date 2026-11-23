@@ -349,7 +349,7 @@ fn get_device_fingerprint() -> Result<String, String> {
     Ok(format!("{}_NODEVICEGUID", host))
 }
 
-mod turso;
+mod cloud_enclave;
 
 #[cfg(target_os = "windows")]
 extern "system" {
@@ -373,13 +373,13 @@ fn check_debugger_tampering() -> Result<(), String> {
     Ok(())
 }
 
-/// Executes an authorized batch of Turso LibSQL statements within the native enclave.
+/// Executes an authorized batch of SQL statements within the native security enclave.
 #[tauri::command]
-fn turso_execute_batch(
-    statements: Vec<turso::StatementInput>,
-) -> Result<Vec<turso::TursoQueryResult>, String> {
+fn cloud_execute_batch(
+    statements: Vec<cloud_enclave::StatementInput>,
+) -> Result<Vec<cloud_enclave::CloudQueryResult>, String> {
     check_debugger_tampering()?;
-    turso::execute_batch(statements)
+    cloud_enclave::execute_batch(statements)
 }
 
 // ---------------------------------------------------------------------------
@@ -422,8 +422,8 @@ pub fn run() {
             set_app_zoom,
             // Device Hardware Binding
             get_device_fingerprint,
-            // Native Turso Database Enclave
-            turso_execute_batch,
+            // Native Security Enclave
+            cloud_execute_batch,
         ])
         .run(tauri::generate_context!())
         .expect("error while building tauri application");

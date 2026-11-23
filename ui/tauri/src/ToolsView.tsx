@@ -119,12 +119,6 @@ export function ToolsView() {
                   </div>
                 )}
 
-                {tool.path && (
-                  <div className="text-[10px] font-['JetBrains_Mono'] text-[#9C9080] truncate mt-1">
-                    Path: {tool.path}
-                  </div>
-                )}
-
                 {/* Capabilities pills */}
                 {tool.capabilities.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-3">

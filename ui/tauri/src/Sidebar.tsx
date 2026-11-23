@@ -242,7 +242,7 @@ export function Sidebar({ selectedIndex, onSelect, onOpenAuth }: SidebarProps) {
                   currentUser ? 'text-[#115E59] font-bold' : 'text-[#78716C]'
                 }`}
               >
-                {currentUser ? 'TURSO CTF ACTIVE' : 'Sync CTF Solves'}
+                {currentUser ? 'CLOUD SYNC ACTIVE' : 'Sync CTF Solves'}
               </div>
             </div>
           </div>
@@ -264,14 +264,14 @@ export function Sidebar({ selectedIndex, onSelect, onOpenAuth }: SidebarProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-['Space_Grotesk'] font-bold tracking-tight text-[#1E1A14]">
-                NEKO STATUS
+                SYSTEM STATUS
               </span>
               <span className="text-[11px] font-['JetBrains_Mono'] font-bold text-[#16A34A] tracking-wider animate-pulse">
                 READY
               </span>
             </div>
             <div className="text-[10px] font-['JetBrains_Mono'] text-[#5C5347] truncate mt-0.5">
-              127.0.0.1 // WS-01
+              ENCLAVE // SECURED
             </div>
           </div>
         </div>

@@ -146,7 +146,7 @@ export function SettingsView({
                   Anonymous Operator Session
                 </div>
                 <div className="text-[10px] text-[#5C5347] font-['JetBrains_Mono']">
-                  Login or create an account to record your CTF flags to Turso.
+                  Login or create an account to record your CTF flags to Cloud CTF.
                 </div>
               </div>
               <button
@@ -289,19 +289,19 @@ export function SettingsView({
           </div>
         </div>
 
-        {/* Section 3: Turso LibSQL Cloud Database */}
+        {/* Section 3: Zitera Cloud Sync */}
         <div className="p-5 rounded-xl border-2 border-[#CEC8BF] bg-[#FCFBF8] shadow-[0_3px_0_0_#E4DFD7] space-y-3">
           <div className="flex items-center gap-2 font-['Space_Grotesk'] font-bold text-sm text-[#1E1A14]">
             <Database size={16} className="text-[#38BDF8]" />
-            <span>TURSO LIBSQL CLOUD SYNC</span>
+            <span>ZITERA CLOUD SYNCHRONIZATION</span>
           </div>
           <div className="text-xs text-[#5C5347] font-['JetBrains_Mono'] bg-[#F7F5F0] p-3 rounded-lg border border-[#E6E2D8] space-y-1">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-              <span className="font-bold text-[#1E1A14]">Turso v2 Pipeline Online</span>
+              <span className="font-bold text-[#1E1A14]">Cloud Enclave Sync Active</span>
             </div>
             <div className="text-[10px] text-[#9C9080] truncate">
-              Endpoint: Enclave Protected (Hardware-Bound LibSQL Pipeline)
+              Status: Enclave Protected & Cryptographically Verified
             </div>
           </div>
         </div>
