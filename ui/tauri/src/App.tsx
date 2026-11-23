@@ -17,7 +17,9 @@ import {
   subscribeAuth,
   touchSession,
   getSessionLastActive,
+  getSessionStartedAt,
   SESSION_MAX_INACTIVE_MS,
+  SESSION_MAX_LIFETIME_MS,
   logout,
   type UserModel,
 } from './authService'
@@ -49,13 +51,18 @@ export function App() {
       setAuthInitialized(true)
     })
 
-    // Session activity tracker (5-hour auto logout when inactive/closed)
+    // Session activity tracker (12-hour session with inactivity & lifetime reset)
     const handleActivity = () => {
       touchSession()
     }
     const sessionInterval = setInterval(() => {
       const lastActive = getSessionLastActive()
-      if (lastActive > 0 && Date.now() - lastActive > SESSION_MAX_INACTIVE_MS) {
+      const startedAt = getSessionStartedAt()
+      const now = Date.now()
+      if (
+        (lastActive > 0 && now - lastActive > SESSION_MAX_INACTIVE_MS) ||
+        (startedAt > 0 && now - startedAt > SESSION_MAX_LIFETIME_MS)
+      ) {
         logout()
       }
     }, 60000)

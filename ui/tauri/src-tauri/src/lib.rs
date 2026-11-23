@@ -279,21 +279,21 @@ fn open_browser(url: String) -> Result<(), String> {
 
 /// Reads and returns the persisted auth session, or null if none.
 #[tauri::command]
-fn get_auth_session(app: tauri::AppHandle) -> Result<Option<AuthSession>, String> {
+fn get_auth_session(app: tauri::AppHandle) -> Result<Option<serde_json::Value>, String> {
     let path = auth_session_path(&app)?;
     if !path.exists() {
         return Ok(None);
     }
     let raw = std::fs::read_to_string(&path)
         .map_err(|e| format!("Cannot read auth session: {e}"))?;
-    let session: AuthSession =
+    let session: serde_json::Value =
         serde_json::from_str(&raw).map_err(|e| format!("Cannot parse auth session: {e}"))?;
     Ok(Some(session))
 }
 
 /// Persists the auth session to disk.
 #[tauri::command]
-fn save_auth_session(app: tauri::AppHandle, session: AuthSession) -> Result<(), String> {
+fn save_auth_session(app: tauri::AppHandle, session: serde_json::Value) -> Result<(), String> {
     let path = auth_session_path(&app)?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)

@@ -16,6 +16,9 @@ export interface UserModel {
   isActive?: boolean
   notes?: string | null
   expiresAt?: number | null
+  sessionId?: string | null
+  sessionStartedAt?: number | null
+  sessionExpiresAt?: number | null
 }
 
 export interface AuthResult {
@@ -47,8 +50,9 @@ function _notify(user: UserModel | null) {
   _listeners.forEach((fn) => fn(user))
 }
 
-// ── Session 5-Hour Inactivity Expiry ─────────────────────────────────────────
-export const SESSION_MAX_INACTIVE_MS = 5 * 60 * 60 * 1000 // 5 hours
+// ── Session 12-Hour Expiry Window & Auto Reset ──────────────────────────────
+export const SESSION_MAX_INACTIVE_MS = 12 * 60 * 60 * 1000 // 12 hours (43,200,000 ms)
+export const SESSION_MAX_LIFETIME_MS = 12 * 60 * 60 * 1000 // 12 hours absolute lifetime reset
 
 let _lastTouched = 0
 export function touchSession(): void {
@@ -66,6 +70,23 @@ export function getSessionLastActive(): number {
     return val ? Number(val) : 0
   } catch {
     return 0
+  }
+}
+
+export function getSessionStartedAt(): number {
+  try {
+    const val = localStorage.getItem('zitera_session_started_at')
+    return val ? Number(val) : 0
+  } catch {
+    return 0
+  }
+}
+
+export function getCurrentSessionId(): string | null {
+  try {
+    return localStorage.getItem('zitera_session_id') || null
+  } catch {
+    return null
   }
 }
 
@@ -141,9 +162,19 @@ export async function verifyPassword(password: string, storedHash: string): Prom
 // ── Session persistence via Tauri IPC / LocalStorage ─────────────────────────
 async function persistSession(user: UserModel): Promise<void> {
   touchSession()
+  if (user.sessionId) {
+    try {
+      localStorage.setItem('zitera_session_id', user.sessionId)
+    } catch {}
+  }
+  if (user.sessionStartedAt) {
+    try {
+      localStorage.setItem('zitera_session_started_at', String(user.sessionStartedAt))
+    } catch {}
+  }
   try {
     const { invoke } = await import('@tauri-apps/api/core')
-    await invoke('save_auth_session', { session: JSON.stringify(user) })
+    await invoke('save_auth_session', { session: user })
   } catch {
     try {
       localStorage.setItem('zitera_auth_session', JSON.stringify(user))
@@ -154,6 +185,12 @@ async function persistSession(user: UserModel): Promise<void> {
 }
 
 async function clearSession(): Promise<void> {
+  const activeSessId = getCurrentSessionId()
+  if (activeSessId) {
+    try {
+      await cloudExecute('UPDATE user_sessions SET is_revoked = 1 WHERE id = ?', [activeSessId])
+    } catch {}
+  }
   try {
     const { invoke } = await import('@tauri-apps/api/core')
     await invoke('clear_auth_session')
@@ -162,6 +199,8 @@ async function clearSession(): Promise<void> {
   }
   try {
     localStorage.removeItem('zitera_session_last_active')
+    localStorage.removeItem('zitera_session_started_at')
+    localStorage.removeItem('zitera_session_id')
   } catch {
     /* ignore */
   }
@@ -169,51 +208,94 @@ async function clearSession(): Promise<void> {
 
 async function loadSession(): Promise<UserModel | null> {
   const lastActive = getSessionLastActive()
-  if (lastActive > 0 && Date.now() - lastActive > SESSION_MAX_INACTIVE_MS) {
-    console.warn('[authService] Sesi login telah berakhir (> 5 jam tidak aktif). Membuka gerbang masuk kembali.')
+  const startedAt = getSessionStartedAt()
+  const now = Date.now()
+
+  // 1. Check inactivity timeout (12 hours without active input)
+  if (lastActive > 0 && now - lastActive > SESSION_MAX_INACTIVE_MS) {
+    console.warn('[authService] Sesi login telah berakhir (> 12 jam tidak aktif). Membuka gerbang masuk kembali.')
     await clearSession()
     return null
   }
-  let raw: string | null = null
+
+  // 2. Check total session lifetime (12 hours absolute reset)
+  if (startedAt > 0 && now - startedAt > SESSION_MAX_LIFETIME_MS) {
+    console.warn('[authService] Batas maksimal sesi 12 jam tercapai. Mereset sesi untuk otentikasi berkala.')
+    await clearSession()
+    return null
+  }
+
+  let raw: any = null
   try {
     const { invoke } = await import('@tauri-apps/api/core')
-    raw = await invoke<string>('get_auth_session')
+    raw = await invoke<any>('get_auth_session')
   } catch {
     raw = localStorage.getItem('zitera_auth_session')
   }
 
-  if (raw && typeof raw === 'object') {
-    // If returned as parsed object by Tauri
-    raw = JSON.stringify(raw)
+  if (raw && typeof raw === 'string') {
+    try {
+      raw = JSON.parse(raw)
+    } catch {}
   }
 
-  if (raw && typeof raw === 'string' && raw.trim().length > 0) {
-    try {
-      const data = JSON.parse(raw) as Record<string, unknown>
-      const user: UserModel = {
-        id: String(data.id ?? ''),
-        username: String(data.username ?? ''),
-        createdAt: Number(data.created_at ?? data.createdAt ?? 0),
-        avatarId: String(data.avatar_id ?? data.avatarId ?? 'zeta'),
-        role: (data.role as 'admin' | 'student') || 'student',
-        tier: (data.tier as 'foundation' | 'pro' | 'enterprise') || 'pro',
-        deviceId: data.device_id ? String(data.device_id) : data.deviceId ? String(data.deviceId) : null,
-        deviceName: data.device_name ? String(data.device_name) : data.deviceName ? String(data.deviceName) : null,
-        boundAt: data.bound_at ? Number(data.bound_at) : data.boundAt ? Number(data.boundAt) : null,
-        isActive: data.is_active !== undefined ? Number(data.is_active) === 1 : data.isActive !== undefined ? !!data.isActive : true,
-        notes: data.notes ? String(data.notes) : null,
-        expiresAt: data.expires_at ? Number(data.expires_at) : data.expiresAt ? Number(data.expiresAt) : null,
-      }
-      if (user.id && user.username) return user
-    } catch {
-      /* parse error */
+  if (raw && typeof raw === 'object') {
+    const data = raw as Record<string, unknown>
+    const user: UserModel = {
+      id: String(data.id ?? ''),
+      username: String(data.username ?? ''),
+      createdAt: Number(data.created_at ?? data.createdAt ?? 0),
+      avatarId: String(data.avatar_id ?? data.avatarId ?? 'zeta'),
+      role: (data.role as 'admin' | 'student') || 'student',
+      tier: (data.tier as 'foundation' | 'pro' | 'enterprise') || 'pro',
+      deviceId: data.device_id ? String(data.device_id) : data.deviceId ? String(data.deviceId) : null,
+      deviceName: data.device_name ? String(data.device_name) : data.deviceName ? String(data.deviceName) : null,
+      boundAt: data.bound_at ? Number(data.bound_at) : data.boundAt ? Number(data.boundAt) : null,
+      isActive: data.is_active !== undefined ? Number(data.is_active) === 1 : data.isActive !== undefined ? !!data.isActive : true,
+      notes: data.notes ? String(data.notes) : null,
+      expiresAt: data.expires_at ? Number(data.expires_at) : data.expiresAt ? Number(data.expiresAt) : null,
+      sessionId: data.session_id ? String(data.session_id) : data.sessionId ? String(data.sessionId) : (getCurrentSessionId() || null),
+      sessionStartedAt: data.session_started_at ? Number(data.session_started_at) : data.sessionStartedAt ? Number(data.sessionStartedAt) : (startedAt || null),
+      sessionExpiresAt: data.session_expires_at ? Number(data.session_expires_at) : data.sessionExpiresAt ? Number(data.sessionExpiresAt) : null,
     }
+    if (user.id && user.username) return user
   }
   return null
 }
 
 export async function verifyServerSession(cachedUser: UserModel): Promise<UserModel | null> {
   try {
+    // 1. Authoritative check on user_sessions table if sessionId is present
+    const currentSessionId = cachedUser.sessionId || getCurrentSessionId()
+    if (currentSessionId) {
+      try {
+        const sessRes = await cloudExecute(
+          'SELECT id, is_revoked, expires_at, (unixepoch() * 1000) AS server_now FROM user_sessions WHERE id = ?',
+          [currentSessionId],
+        )
+        if (sessRes.rows.length > 0) {
+          const sRow = sessRes.rows[0]
+          const isRevoked = Number(sRow.is_revoked) === 1
+          const sessExpiresAt = Number(sRow.expires_at)
+          const serverNow = Number(sRow.server_now) || Date.now()
+
+          if (isRevoked || serverNow > sessExpiresAt) {
+            console.warn('[authService] Sesi login di database telah kedaluwarsa (> 12 jam) atau dicabut.')
+            await clearSession()
+            _notify(null)
+            return null
+          }
+
+          // Update last_active timestamp in database
+          try {
+            await cloudExecute('UPDATE user_sessions SET last_active = ? WHERE id = ?', [Date.now(), currentSessionId])
+          } catch {}
+        }
+      } catch (sessErr) {
+        console.warn('[authService] Session audit query notice:', sessErr)
+      }
+    }
+
     const res = await cloudExecute(
       'SELECT id, username, role, tier, device_id, is_active, expires_at, (unixepoch() * 1000) AS server_now FROM users WHERE id = ?',
       [cachedUser.id],
@@ -267,6 +349,9 @@ export async function verifyServerSession(cachedUser: UserModel): Promise<UserMo
       deviceId: storedDeviceId || cachedUser.deviceId,
       isActive: true,
       expiresAt: expiresAt || null,
+      sessionId: currentSessionId,
+      sessionStartedAt: cachedUser.sessionStartedAt || getSessionStartedAt() || Date.now(),
+      sessionExpiresAt: cachedUser.sessionExpiresAt || ((cachedUser.sessionStartedAt || Date.now()) + SESSION_MAX_LIFETIME_MS),
     }
 
     await persistSession(updatedUser)
@@ -366,6 +451,10 @@ export async function login(username: string, password: string): Promise<AuthRes
 
     touchSession()
 
+    const now = Date.now()
+    const sessionExpiresAt = now + SESSION_MAX_LIFETIME_MS
+    const sessionId = `sess_${crypto.randomUUID().replace(/-/g, '')}`
+
     const user: UserModel = {
       id: String(row.id ?? ''),
       username: String(row.username ?? cleanUsername),
@@ -379,6 +468,28 @@ export async function login(username: string, password: string): Promise<AuthRes
       isActive: true,
       notes: row.notes ? String(row.notes) : null,
       expiresAt: expiresAt || null,
+      sessionId,
+      sessionStartedAt: now,
+      sessionExpiresAt,
+    }
+
+    // Record session in database for authoritative tracking & audit
+    try {
+      await cloudExecute(
+        'INSERT INTO user_sessions (id, user_id, username, device_id, device_name, created_at, last_active, expires_at, is_revoked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)',
+        [
+          sessionId,
+          user.id,
+          user.username,
+          finalDeviceId || 'UNKNOWN_DEVICE',
+          row.device_name ? String(row.device_name) : 'Win32_Host',
+          now,
+          now,
+          sessionExpiresAt,
+        ],
+      )
+    } catch (dbErr) {
+      console.warn('[authService] Session logging to database notice:', dbErr)
     }
 
     await persistSession(user)
