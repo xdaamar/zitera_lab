@@ -1838,10 +1838,6 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                   setActiveInspectorLab({ id: labId, port })
                   setBurpModalOpen(true)
                 }}
-                onOpenZetaMentor={(labId) => {
-                  setActiveInspectorLab({ id: labId, port: lab.port || 8011 })
-                  setZetaModalOpen(true)
-                }}
               />
             ))}
           </div>
@@ -2134,7 +2130,6 @@ interface TactileLabCardProps {
   onOpenLockModal: (info: LabProgressionInfo) => void
   onOpenUpgradeModal: (info: { labId: string; tierAccess: TierAccessResult }) => void
   onOpenBurpLite?: (labId: string, port: number) => void
-  onOpenZetaMentor?: (labId: string) => void
 }
 
 function TactileLabCard({
@@ -2147,7 +2142,6 @@ function TactileLabCard({
   onOpenLockModal,
   onOpenUpgradeModal,
   onOpenBurpLite,
-  onOpenZetaMentor,
 }: TactileLabCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const progression = getLabProgression(lab.id)
@@ -2428,13 +2422,6 @@ function TactileLabCard({
                 <span>Repeater</span>
               </button>
               <button
-                onClick={() => onOpenZetaMentor?.(lab.id)}
-                className="p-2 bg-[#042F2C] hover:bg-[#0D3833] border-2 border-[#2DD4BF] text-[#2DD4BF] rounded-xl shadow-[0_3px_0_0_#0F766E] hover:shadow-[0_1px_0_0_#0F766E] hover:translate-y-0.5 active:translate-y-1 cursor-pointer transition-all"
-                title="Tanya petunjuk ke Zeta Mentor"
-              >
-                <Sparkles size={13} className="text-[#FBBF24]" />
-              </button>
-              <button
                 onClick={() => onAction(lab.id, 'stop')}
                 disabled={!!inProgress}
                 className="px-2.5 py-2 bg-white hover:bg-[#FEF2F2] border-2 border-[#EF4444] text-[#DC2626] text-xs font-bold font-['Space_Grotesk'] rounded-xl flex items-center gap-1 shadow-[0_3px_0_0_#F87171] hover:shadow-[0_1px_0_0_#F87171] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 cursor-pointer"
@@ -2460,13 +2447,6 @@ function TactileLabCard({
               >
                 <Play size={13} />
                 <span>{inProgress === 'start' ? 'Launching...' : 'RUN LAB'}</span>
-              </button>
-              <button
-                onClick={() => onOpenZetaMentor?.(lab.id)}
-                className="p-2 bg-white hover:bg-[#F0FDFA] border-2 border-[#2DD4BF] text-[#0F766E] rounded-xl shadow-[0_3px_0_0_#5EEAD4] hover:shadow-[0_1px_0_0_#5EEAD4] hover:translate-y-0.5 active:translate-y-1 cursor-pointer transition-all"
-                title="Petunjuk Lab dari Zeta Mentor"
-              >
-                <Sparkles size={13} className="text-[#F59E0B]" />
               </button>
             </div>
           )}

@@ -58,6 +58,7 @@ import {
 import { VideoDrawerModal, YouTubeIcon } from './VideoDrawerModal'
 import { HackerOneTriagerCard } from './HackerOneTriagerCard'
 import { LessonMarkdownRenderer } from './LessonMarkdownRenderer'
+import { ZetaMentorModal } from './ZetaMentorModal'
 import {
   getLabProgression,
   recordLabSolveProgression,
@@ -175,6 +176,9 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
 
   // Video Bootcamp Modal State
   const [videoModalOpen, setVideoModalOpen] = useState(false)
+
+  // Zeta Socratic AI Mentor Floating Modal State
+  const [zetaMentorOpen, setZetaMentorOpen] = useState(false)
 
   // CTF Challenge state
   const [flagInput, setFlagInput] = useState('')
@@ -1550,6 +1554,48 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
         labId={labId}
         labTitle={content.manifest.title}
       />
+
+      {/* Floating AI Mentor Contact Bubble (Landing Page Style FAB) */}
+      <div className="fixed bottom-6 right-6 z-40 flex items-center group">
+        <button
+          onClick={() => setZetaMentorOpen(true)}
+          className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-[#12151D] hover:bg-[#1A202C] text-white border-2 border-[#2DD4BF] shadow-[0_6px_20px_rgba(15,118,110,0.4),0_3px_0_0_#0F766E] hover:shadow-[0_8px_25px_rgba(45,212,191,0.5),0_4px_0_0_#0F766E] hover:-translate-y-1 active:translate-y-0.5 active:shadow-[0_2px_8px_rgba(15,118,110,0.3)] transition-all cursor-pointer"
+          title="Tanya Petunjuk AI (Zeta Mentor)"
+        >
+          {/* Cute Robot Mascot Icon */}
+          <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#2DD4BF] bg-[#090D16] shrink-0 shadow-xs flex items-center justify-center">
+            <img
+              src="/assets/robot_mentor_icon.png"
+              alt="Robot Mentor"
+              className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform"
+              onError={(e) => {
+                ;(e.target as HTMLElement).style.display = 'none'
+              }}
+            />
+          </div>
+
+          {/* Label & Pulsing Online Dot */}
+          <div className="flex flex-col text-left pr-1">
+            <span className="text-xs font-bold font-['Space_Grotesk'] text-[#5EEAD4] tracking-wide flex items-center gap-1.5">
+              <span>Petunjuk AI</span>
+              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+            </span>
+            <span className="text-[9px] font-['JetBrains_Mono'] text-[#94A3B8] -mt-0.5">
+              Tanya Mentor
+            </span>
+          </div>
+        </button>
+      </div>
+
+      {/* Zeta Socratic Cyber Mentor Modal */}
+      {zetaMentorOpen && (
+        <ZetaMentorModal
+          isOpen={zetaMentorOpen}
+          onClose={() => setZetaMentorOpen(false)}
+          currentLabId={labId}
+          userTier={currentUser?.tier}
+        />
+      )}
     </div>
   )
 }
