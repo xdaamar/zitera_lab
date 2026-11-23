@@ -151,8 +151,8 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
   const [activeSection, setActiveSection] = useState<SectionKey>('introduction')
   const [loading, setLoading] = useState(true)
 
-  // Collapsible Terminal Panel State
-  const [terminalOpen, setTerminalOpen] = useState(true)
+  // Collapsible Terminal Panel State (Default hidden per UX requirement to keep curriculum reading distraction-free)
+  const [terminalOpen, setTerminalOpen] = useState(false)
 
   // Progress Tracking: Completed Sections (Indonesian curriculum)
   const [completedSections, setCompletedSections] = useState<Set<string>>(() => {
@@ -600,7 +600,7 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
           {/* Requirement 1: Collapsible Terminal Panel Toggle Button */}
           <button
             onClick={() => setTerminalOpen((prev) => !prev)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-bold font-['Space_Grotesk'] flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-lg border text-xs font-bold font-['Space_Grotesk'] flex items-center gap-1.5 transition-all cursor-pointer ${
               terminalOpen
                 ? 'border-[#E6E2D8] bg-white text-[#5C5347] hover:bg-[#F0EDE8]'
                 : 'border-[#2DD4BF] bg-[#CCFBF1] text-[#0F766E] hover:bg-[#99F6E4] shadow-xs'
