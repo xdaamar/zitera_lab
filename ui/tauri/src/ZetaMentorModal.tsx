@@ -79,8 +79,6 @@ export function ZetaMentorModal({
   const [unlockedClues, setUnlockedClues] = useState<number[]>([1]) // Level 1 unlocked by default
   const [expandedClueLevel, setExpandedClueLevel] = useState<number | null>(1)
   const [activeMood, setActiveMood] = useState<ZetaMood>('idle')
-  const [typedSpeech, setTypedSpeech] = useState<string>('')
-  const [fullSpeechTarget, setFullSpeechTarget] = useState<string>('')
   const [isTyping, setIsTyping] = useState<boolean>(false)
   const [inputPrompt, setInputPrompt] = useState<string>('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -98,7 +96,6 @@ export function ZetaMentorModal({
   const [mentorEnergy, setMentorEnergy] = useState<number>(5)
 
   const chatScrollRef = useRef<HTMLDivElement>(null)
-  const typingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Auto-inject handler connecting to Burp Lite Repeater
   const handleAutoInject = (payload: string, targetParam?: string) => {
@@ -133,7 +130,6 @@ export function ZetaMentorModal({
     const mentor = getMentor(mentorId)
     const newGreeting = mentor.greeting(cleanLabId, labTitle)
     setActiveMood('idle')
-    setFullSpeechTarget(newGreeting)
     setMessages((prev) => [
       ...prev,
       {
@@ -155,7 +151,6 @@ export function ZetaMentorModal({
     const greeting = initialMentor.greeting(cleanLabId, labTitle)
 
     setActiveMood('idle')
-    setFullSpeechTarget(greeting)
     setMessages([
       {
         id: 'msg_init',
@@ -170,49 +165,12 @@ export function ZetaMentorModal({
     setExpandedClueLevel(1)
   }, [isOpen, cleanLabId, labTitle])
 
-  // ── Typewriter Animation Pacing ────────────────────────────────────────────
-  useEffect(() => {
-    if (!fullSpeechTarget) return
-
-    if (typingTimerRef.current) {
-      clearInterval(typingTimerRef.current)
-    }
-
-    setTypedSpeech('')
-    setIsTyping(true)
-    let charIndex = 0
-
-    typingTimerRef.current = setInterval(() => {
-      charIndex += 2 // Type 2 chars per tick for responsive tactical cadence
-      if (charIndex >= fullSpeechTarget.length) {
-        setTypedSpeech(fullSpeechTarget)
-        setIsTyping(false)
-        if (typingTimerRef.current) clearInterval(typingTimerRef.current)
-      } else {
-        setTypedSpeech(fullSpeechTarget.slice(0, charIndex))
-      }
-    }, 18)
-
-    return () => {
-      if (typingTimerRef.current) clearInterval(typingTimerRef.current)
-    }
-  }, [fullSpeechTarget])
-
   // Auto-scroll chat console
   useEffect(() => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
-  }, [messages, typedSpeech])
-
-  // Instant skip typewriter
-  const handleSkipTyping = () => {
-    if (isTyping && fullSpeechTarget) {
-      if (typingTimerRef.current) clearInterval(typingTimerRef.current)
-      setTypedSpeech(fullSpeechTarget)
-      setIsTyping(false)
-    }
-  }
+  }, [messages])
 
   const isFoundationTier = userTier !== 'pro' && userTier !== 'enterprise'
 
@@ -220,16 +178,16 @@ export function ZetaMentorModal({
   const handleUnlockClue = (level: number) => {
     // Tier Gating Enforcement
     if (level === 2 && isFoundationTier) {
-      const upgradeMsg = `Clue Level 2 (Vulnerability Logic) adalah materi analisis mendalam. Selesaikan tantangan awal atau tingkatkan ke Pro Access untuk membuka tier analisis ini.`
       setActiveMood('warning')
-      setFullSpeechTarget(upgradeMsg)
+      setUpgradeTargetFeature('Clue Level 2 (Vulnerability Logic)')
+      setUpgradeModalOpen(true)
       return
     }
 
     if (level === 3 && isFoundationTier) {
-      const upgradeMsg = `Clue Level 3 (Payload Blueprint) dilindungi enkripsi lisensi. Fitur ini dirancang khusus untuk anggota Pro & Enterprise Operatives.`
       setActiveMood('warning')
-      setFullSpeechTarget(upgradeMsg)
+      setUpgradeTargetFeature('Clue Level 3 (Payload Blueprint)')
+      setUpgradeModalOpen(true)
       return
     }
 
@@ -242,7 +200,6 @@ export function ZetaMentorModal({
     if (targetClue) {
       const unlockSpeech = `[${currentMentor.name.toUpperCase()} // CLUE LEVEL ${level} TERBUKA]: ${targetClue.summary} Pelajari pertanyaan investigasi di bawah untuk mengarahkan pengujian Anda.`
       setActiveMood('eureka')
-      setFullSpeechTarget(unlockSpeech)
       setMessages((prev) => [
         ...prev,
         {
@@ -287,9 +244,11 @@ export function ZetaMentorModal({
     setMessages((prev) => [...prev, studentMsg])
     setInputPrompt('')
     setActiveMood('thinking')
+    setIsTyping(true)
 
     // Evaluate heuristic Socratic engine response with slight delay for realistic processing
     setTimeout(() => {
+      setIsTyping(false)
       const response = querySocraticEngine(query, cleanLabId)
       const mentorTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
@@ -302,7 +261,6 @@ export function ZetaMentorModal({
       }
 
       setActiveMood(response.mood)
-      setFullSpeechTarget(personalizedText)
 
       setMessages((prev) => [
         ...prev,
@@ -520,29 +478,6 @@ export function ZetaMentorModal({
                   <UserCheck className="w-3 h-3 text-teal-400" />
                   <span>{currentMoodUi.poseLabel}</span>
                 </div>
-              </div>
-
-              {/* Cyber-Tactical Speech Bubble with Typewriter Animation */}
-              <div
-                onClick={handleSkipTyping}
-                className="rounded-xl p-3.5 bg-stone-900/90 border border-stone-700/70 text-xs sm:text-[13px] leading-relaxed text-stone-200 cursor-pointer hover:border-teal-500/40 transition-colors shadow-inner"
-                title="Klik untuk menyelesaikan ketikan instan"
-              >
-                <div className="flex items-center gap-2 mb-1.5 font-mono text-[10px] text-teal-400 font-bold uppercase">
-                  <span>// {currentMentor.name} BIMBINGAN INTERAKTIF</span>
-                </div>
-                <p className="whitespace-pre-wrap font-sans">
-                  {typedSpeech || fullSpeechTarget}
-                  {isTyping && (
-                    <span className="inline-block w-1.5 h-3.5 ml-1 bg-teal-400 animate-pulse align-middle" />
-                  )}
-                </p>
-                {isTyping && (
-                  <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-stone-500">
-                    <span>{currentMentor.name} sedang membimbing...</span>
-                    <span className="text-teal-400 hover:underline">Klik untuk percepat</span>
-                  </div>
-                )}
               </div>
             </div>
 
