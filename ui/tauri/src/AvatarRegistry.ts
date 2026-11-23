@@ -1,4 +1,4 @@
-// 14 Zitera Operative Avatars with roles, expressions, and gender classifications
+// 13 Zitera Operative Avatars with roles, expressions, and gender classifications
 
 export interface AvatarDefinition {
   id: string
@@ -18,14 +18,6 @@ export const AVATAR_REGISTRY: AvatarDefinition[] = [
     role: 'Lead Operator',
     expression: 'Operator Classic',
     assetPath: '/assets/zeta_avatar.png',
-  },
-  {
-    id: 'neko',
-    name: 'Neko',
-    gender: 'Mascot',
-    role: 'Cyber Mascot',
-    expression: 'Calico Guardian',
-    assetPath: '/assets/calico_cat.png',
   },
 
   // ── Operatives: Girls ──
