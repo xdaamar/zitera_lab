@@ -34,12 +34,19 @@ import {
   type MentorId,
   type MentorProfile,
 } from './mentorRegistry'
+import {
+  generateAiOverview,
+  type ZiteraAiOverviewData,
+} from './fuzzySemanticEngine'
+import { ZiteraAiOverview } from './ZiteraAiOverview'
+import { UpgradeModal } from './UpgradeModal'
 
 export interface ZetaMentorModalProps {
   isOpen: boolean
   onClose: () => void
   currentLabId: string
   userTier?: string | null
+  onOpenBurpLite?: () => void
 }
 
 interface ChatMessage {
@@ -58,6 +65,7 @@ export function ZetaMentorModal({
   onClose,
   currentLabId,
   userTier,
+  onOpenBurpLite,
 }: ZetaMentorModalProps) {
   const cleanLabId = (currentLabId || 'F01').trim().toUpperCase()
   const labTitle = LAB_CATALOG_TITLES[cleanLabId] || `Laboratorium ${cleanLabId}`
@@ -77,8 +85,47 @@ export function ZetaMentorModal({
   const [inputPrompt, setInputPrompt] = useState<string>('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
 
+  // ── AI Overview & Paywall State ────────────────────────────────────────────
+  const [activeConsoleTab, setActiveConsoleTab] = useState<'overview' | 'chat'>('overview')
+  const [aiOverviewData, setAiOverviewData] = useState<ZiteraAiOverviewData>(() =>
+    generateAiOverview('', cleanLabId, (userTier as 'free' | 'pro' | 'vip') || 'free')
+  )
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState<boolean>(false)
+  const [upgradeTargetFeature, setUpgradeTargetFeature] = useState<string>(
+    'AI Payload Blueprint & Burp Auto-Inject'
+  )
+  const [injectToast, setInjectToast] = useState<string | null>(null)
+  const [mentorEnergy, setMentorEnergy] = useState<number>(5)
+
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const typingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Auto-inject handler connecting to Burp Lite Repeater
+  const handleAutoInject = (payload: string, targetParam?: string) => {
+    window.dispatchEvent(
+      new CustomEvent('zitera:inject-repeater', {
+        detail: {
+          payload,
+          targetParam,
+          path: targetParam
+            ? `/?${targetParam}=${encodeURIComponent(payload)}`
+            : `/?q=${encodeURIComponent(payload)}`,
+        },
+      })
+    )
+    if (onOpenBurpLite) {
+      onOpenBurpLite()
+    }
+    setInjectToast('Payload berhasil diinjeksikan ke Burp Lite Repeater!')
+    setTimeout(() => setInjectToast(null), 3500)
+  }
+
+  // Sync AI Overview when lab changes
+  useEffect(() => {
+    setAiOverviewData(
+      generateAiOverview('', cleanLabId, (userTier as 'free' | 'pro' | 'vip') || 'free')
+    )
+  }, [cleanLabId, userTier])
 
   // ── Mentor Switching Handler ───────────────────────────────────────────────
   const handleSwitchMentor = (mentorId: MentorId) => {
@@ -215,6 +262,19 @@ export function ZetaMentorModal({
     if (e) e.preventDefault()
     const query = inputPrompt.trim()
     if (!query || isTyping) return
+
+    // Deduct energy if > 0
+    if (mentorEnergy > 0) {
+      setMentorEnergy((prev) => Math.max(0, prev - 1))
+    }
+
+    // Generate enriched, typo-tolerant AI Overview
+    const newOverview = generateAiOverview(
+      query,
+      cleanLabId,
+      (userTier as 'free' | 'pro' | 'vip') || 'free'
+    )
+    setAiOverviewData(newOverview)
 
     const studentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const studentMsg: ChatMessage = {
@@ -625,69 +685,143 @@ export function ZetaMentorModal({
 
           {/* ── RIGHT COLUMN: INTERACTIVE SOCRATIC CHAT CONSOLE (7 Cols) ─────── */}
           <div className="lg:col-span-7 flex flex-col bg-stone-950/40 h-full overflow-hidden">
-            {/* Chat Messages Stream */}
-            <div
-              ref={chatScrollRef}
-              className="flex-1 p-4 md:p-5 overflow-y-auto custom-scrollbar space-y-4"
-            >
-              {messages.map((msg) => {
-                const isStudent = msg.sender === 'student'
-                const msgMentor = msg.mentorId ? getMentor(msg.mentorId) : currentMentor
+            {/* Top Mode Switcher Bar */}
+            <div className="px-4 py-2.5 bg-stone-950/90 border-b border-stone-800 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-stone-900 border border-stone-800">
+                <button
+                  type="button"
+                  onClick={() => setActiveConsoleTab('overview')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                    activeConsoleTab === 'overview'
+                      ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-xs'
+                      : 'text-stone-400 hover:text-stone-200 border border-transparent'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                  <span>AI OVERVIEW</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveConsoleTab('chat')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                    activeConsoleTab === 'chat'
+                      ? 'bg-stone-800 text-stone-200 border border-stone-700 shadow-xs'
+                      : 'text-stone-400 hover:text-stone-200 border border-transparent'
+                  }`}
+                >
+                  <Terminal className="w-3.5 h-3.5 text-stone-400" />
+                  <span>SOCRATIC CHAT ({messages.length})</span>
+                </button>
+              </div>
 
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex gap-3 ${isStudent ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {!isStudent && (
-                      <div className="w-8 h-8 rounded-lg bg-stone-900 border border-teal-500/40 flex items-center justify-center shrink-0 mt-0.5 overflow-hidden">
-                        <img
-                          src={msgMentor.avatar}
-                          alt={msgMentor.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            ;(e.target as HTMLImageElement).src = '/assets/zeta_avatar.png'
-                          }}
-                        />
-                      </div>
-                    )}
+              {/* Energy Badge Quick View */}
+              <button
+                type="button"
+                onClick={() => {
+                  setUpgradeTargetFeature('Overclock Instan & Unlimited AI Overview')
+                  setUpgradeModalOpen(true)
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-950/40 border border-teal-500/30 text-[11px] font-mono text-teal-300 hover:border-teal-400 transition-colors cursor-pointer"
+                title="Buka Upgrade Modal untuk Unlimited Token"
+              >
+                <Cpu className="w-3 h-3 text-teal-400" />
+                <span>ENERGI: {mentorEnergy}/5</span>
+              </button>
+            </div>
 
+            {/* Notification Toast for Auto-Inject */}
+            {injectToast && (
+              <div className="mx-4 mt-2 px-3.5 py-2 rounded-xl bg-emerald-950/90 border border-emerald-500/60 text-emerald-200 text-xs font-mono flex items-center gap-2 shadow-lg animate-in fade-in slide-in-from-top-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="flex-1 font-semibold">{injectToast}</span>
+              </div>
+            )}
+
+            {/* Dynamic Console Body */}
+            {activeConsoleTab === 'overview' ? (
+              <div className="flex-1 p-4 md:p-5 overflow-y-auto custom-scrollbar">
+                <ZiteraAiOverview
+                  data={aiOverviewData}
+                  currentTier={(userTier as 'free' | 'pro' | 'vip') || 'free'}
+                  activeMentorId={selectedMentorId}
+                  energy={mentorEnergy}
+                  maxEnergy={5}
+                  onAutoInject={handleAutoInject}
+                  onOpenUpgradeModal={() => {
+                    setUpgradeTargetFeature('Level 3 Payload Blueprint & Burp Auto-Inject')
+                    setUpgradeModalOpen(true)
+                  }}
+                  onMentorChange={handleSwitchMentor}
+                  onQueryChange={(corrected) => {
+                    setInputPrompt(corrected)
+                  }}
+                />
+              </div>
+            ) : (
+              /* Chat Messages Stream */
+              <div
+                ref={chatScrollRef}
+                className="flex-1 p-4 md:p-5 overflow-y-auto custom-scrollbar space-y-4"
+              >
+                {messages.map((msg) => {
+                  const isStudent = msg.sender === 'student'
+                  const msgMentor = msg.mentorId ? getMentor(msg.mentorId) : currentMentor
+
+                  return (
                     <div
-                      className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-[13px] leading-relaxed ${
-                        isStudent
-                          ? 'bg-teal-600 text-white rounded-br-xs shadow-md'
-                          : msg.antiSpoilerWarning
-                          ? 'bg-rose-950/60 border border-rose-500/40 text-rose-200 rounded-bl-xs'
-                          : 'bg-stone-900/90 border border-stone-800 text-stone-200 rounded-bl-xs shadow-sm'
-                      }`}
+                      key={msg.id}
+                      className={`flex gap-3 ${isStudent ? 'justify-end' : 'justify-start'}`}
                     >
                       {!isStudent && (
-                        <div className="flex items-center justify-between gap-3 pb-1 mb-1.5 border-b border-stone-800 text-[10px] font-mono text-stone-400">
-                          <span className="font-bold text-teal-400 uppercase">
-                            {msgMentor.name} // {msgMentor.codename}
-                          </span>
-                          <span>{msg.timestamp}</span>
+                        <div className="w-8 h-8 rounded-lg bg-stone-900 border border-teal-500/40 flex items-center justify-center shrink-0 mt-0.5 overflow-hidden">
+                          <img
+                            src={msgMentor.avatar}
+                            alt={msgMentor.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              ;(e.target as HTMLImageElement).src = '/assets/zeta_avatar.png'
+                            }}
+                          />
                         </div>
                       )}
 
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
+                      <div
+                        className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-[13px] leading-relaxed ${
+                          isStudent
+                            ? 'bg-teal-600 text-white rounded-br-xs shadow-md'
+                            : msg.antiSpoilerWarning
+                            ? 'bg-rose-950/60 border border-rose-500/40 text-rose-200 rounded-bl-xs'
+                            : 'bg-stone-900/90 border border-stone-800 text-stone-200 rounded-bl-xs shadow-sm'
+                        }`}
+                      >
+                        {!isStudent && (
+                          <div className="flex items-center justify-between gap-3 pb-1 mb-1.5 border-b border-stone-800 text-[10px] font-mono text-stone-400">
+                            <span className="font-bold text-teal-400 uppercase">
+                              {msgMentor.name} // {msgMentor.codename}
+                            </span>
+                            <span>{msg.timestamp}</span>
+                          </div>
+                        )}
 
-                      {msg.codeSnippet && (
-                        <pre className="mt-2 p-2 rounded bg-stone-950 border border-stone-800 text-[11px] font-mono text-cyan-300 overflow-x-auto">
-                          <code>{msg.codeSnippet}</code>
-                        </pre>
-                      )}
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
 
-                      {isStudent && (
-                        <div className="text-right text-[10px] font-mono text-teal-200/80 mt-1">
-                          {msg.timestamp}
-                        </div>
-                      )}
+                        {msg.codeSnippet && (
+                          <pre className="mt-2 p-2 rounded bg-stone-950 border border-stone-800 text-[11px] font-mono text-cyan-300 overflow-x-auto">
+                            <code>{msg.codeSnippet}</code>
+                          </pre>
+                        )}
+
+                        {isStudent && (
+                          <div className="text-right text-[10px] font-mono text-teal-200/80 mt-1">
+                            {msg.timestamp}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Quick Socratic Suggestion Chips */}
             <div className="px-4 py-2 bg-stone-950/80 border-t border-stone-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
@@ -697,6 +831,7 @@ export function ZetaMentorModal({
               {curriculum.suggestedPrompts.slice(0, 3).map((prompt, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => {
                     setInputPrompt(prompt)
                   }}
@@ -718,7 +853,7 @@ export function ZetaMentorModal({
                   type="text"
                   value={inputPrompt}
                   onChange={(e) => setInputPrompt(e.target.value)}
-                  placeholder={`Tanya ${currentMentor.name} seputar logika celah di ${cleanLabId}...`}
+                  placeholder={`Tanya ${currentMentor.name} (contoh: "kenapa 403", "sqli", "stuck di login")...`}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-stone-900 border border-stone-700 text-stone-200 placeholder-stone-500 text-xs sm:text-[13px] focus:outline-none focus:border-teal-400 transition-colors pr-10 font-sans"
                 />
                 <span className="absolute right-3 top-3 text-[10px] font-mono text-stone-500 hidden sm:inline">
@@ -732,13 +867,21 @@ export function ZetaMentorModal({
                 className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-40 disabled:hover:bg-teal-600 text-white font-['Space_Grotesk'] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
                 title="Kirim pesan ke mentor"
               >
-                <span>Kirim</span>
+                <span>Analisis</span>
                 <Send className="w-3.5 h-3.5" />
               </button>
             </form>
           </div>
         </div>
       </div>
+
+      {/* High-Conversion 3-Tier Decoy Upgrade Modal */}
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        currentTier={(userTier as 'free' | 'pro' | 'vip') || 'free'}
+        targetFeature={upgradeTargetFeature}
+      />
     </div>
   )
 }

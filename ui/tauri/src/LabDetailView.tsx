@@ -59,6 +59,7 @@ import { VideoDrawerModal, YouTubeIcon } from './VideoDrawerModal'
 import { HackerOneTriagerCard } from './HackerOneTriagerCard'
 import { LessonMarkdownRenderer } from './LessonMarkdownRenderer'
 import { ZetaMentorModal } from './ZetaMentorModal'
+import { BurpLiteModal } from './BurpLiteModal'
 import {
   getLabProgression,
   recordLabSolveProgression,
@@ -179,6 +180,8 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
 
   // Zeta Socratic AI Mentor Floating Modal State
   const [zetaMentorOpen, setZetaMentorOpen] = useState(false)
+  // Embedded Burp Lite Repeater Modal State
+  const [burpModalOpen, setBurpModalOpen] = useState(false)
 
   // CTF Challenge state
   const [flagInput, setFlagInput] = useState('')
@@ -1594,6 +1597,17 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
           onClose={() => setZetaMentorOpen(false)}
           currentLabId={labId}
           userTier={currentUser?.tier}
+          onOpenBurpLite={() => setBurpModalOpen(true)}
+        />
+      )}
+
+      {/* Embedded Burp Lite Repeater Modal */}
+      {burpModalOpen && (
+        <BurpLiteModal
+          isOpen={burpModalOpen}
+          onClose={() => setBurpModalOpen(false)}
+          activeLabId={labId}
+          activeLabPort={targetPort}
         />
       )}
     </div>

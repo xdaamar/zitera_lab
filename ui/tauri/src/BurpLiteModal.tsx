@@ -141,6 +141,35 @@ export function BurpLiteModal({
     }
   }
 
+  // Listen for zitera:inject-repeater custom event from Zitera AI Overview
+  useEffect(() => {
+    const handleInject = (e: Event) => {
+      const customEvent = e as CustomEvent<{ payload: string; targetParam?: string; path?: string }>
+      if (!customEvent.detail) return
+      const { payload, targetParam, path } = customEvent.detail
+      const tabPath = path || (targetParam ? `/?${targetParam}=${encodeURIComponent(payload)}` : `/?q=${encodeURIComponent(payload)}`)
+      const newId = `tab-inject-${Date.now()}`
+      const newTab: RepeaterTab = {
+        id: newId,
+        name: `AI Payload`,
+        method: 'GET',
+        path: tabPath,
+        headersText: DEFAULT_HEADERS,
+        body: payload,
+        bodyFormat: 'pretty',
+        response: null,
+        responseSubTab: 'pretty',
+        isLoading: false,
+      }
+      setRepeaterTabs((prev) => [...prev, newTab])
+      setActiveTabId(newId)
+      setActiveNavTab('repeater')
+    }
+
+    window.addEventListener('zitera:inject-repeater', handleInject)
+    return () => window.removeEventListener('zitera:inject-repeater', handleInject)
+  }, [])
+
   // Active Repeater Tab
   const activeTab = useMemo(() => {
     return repeaterTabs.find((t) => t.id === activeTabId) || repeaterTabs[0]
