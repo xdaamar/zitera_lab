@@ -1,10 +1,11 @@
-// ZITERA CYBER_LAB — High-Conversion 3-Tier Pricing Modal
+// ZITERA CYBER_LAB — High-Conversion 3-Tier Monthly Pricing Modal
 // Implements behavioral economics tripwire (<100k) & uniform increment ladder (+200k).
-// Tiers: Foundation (Rp 70k) -> PRO Specialist (Rp 270k) -> Enterprise VIP (Rp 470k).
+// All tiers are purely monthly and aligned directly with user account tier permissions.
+// Tiers: Foundation (Rp 70k/bln) -> PRO Specialist (Rp 270k/bln) -> Enterprise VIP (Rp 470k/bln).
 // Dark glassmorphism, responsive cyber aesthetic (#090D16, #161F30, #1E293B, #10B981, #06B6D4, #8B5CF6).
 // Zero emojis — Lucide icons and masterclass vector styling exclusively.
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import {
   X,
   Shield,
@@ -23,14 +24,13 @@ import {
 } from 'lucide-react'
 import { openBrowser } from './engineClient'
 
-export type BillingCycle = 'monthly' | 'annual'
 export type LicenseTierChoice = 'foundation' | 'pro' | 'vip'
 
 export interface UpgradeModalProps {
   isOpen: boolean
   onClose: () => void
   currentTier?: 'free' | 'foundation' | 'pro' | 'vip' | 'enterprise' | string
-  onSelectTier?: (tier: LicenseTierChoice, billingCycle: BillingCycle) => void
+  onSelectTier?: (tier: LicenseTierChoice) => void
   targetFeature?: string
   username?: string
 }
@@ -43,8 +43,6 @@ export function UpgradeModal({
   targetFeature,
   username = 'operative',
 }: UpgradeModalProps) {
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
-
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -64,39 +62,27 @@ export function UpgradeModal({
 
   const handleCheckout = (tier: LicenseTierChoice) => {
     if (onSelectTier) {
-      onSelectTier(tier, billingCycle)
+      onSelectTier(tier)
       return
     }
 
     // Default high-converting WhatsApp concierge checkout
     let tierName = ''
     if (tier === 'foundation') {
-      tierName = 'Foundation Edition (Rp 70.000 / Akses 1 Tahun)'
+      tierName = 'Foundation Edition (Rp 70.000 / bln)'
     } else if (tier === 'vip') {
-      tierName =
-        billingCycle === 'annual'
-          ? 'Enterprise VIP Tahunan (Rp 3.490.000 / thn)'
-          : 'Enterprise VIP Bulanan (Rp 470.000 / bln)'
+      tierName = 'Enterprise VIP (Rp 470.000 / bln)'
     } else {
       if (isCurrentFoundation) {
         tierName = 'PRO Specialist (Upgrade Credit Roll-Over: Rp 200.000)'
       } else {
-        tierName =
-          billingCycle === 'annual'
-            ? 'PRO Specialist Tahunan (Rp 1.990.000 / thn)'
-            : 'PRO Specialist Bulanan (Rp 270.000 / bln)'
+        tierName = 'PRO Specialist (Rp 270.000 / bln)'
       }
     }
 
-    const periodText =
-      tier === 'foundation'
-        ? 'Akses 1 Tahun'
-        : billingCycle === 'annual'
-        ? 'Paket Tahunan'
-        : 'Paket Bulanan'
     const contextFeature = targetFeature ? ` [Trigger: ${targetFeature}]` : ''
     const msg = encodeURIComponent(
-      `Halo Admin Zitera Lab, saya ingin aktivasi lisensi ${tierName} - ${periodText} untuk username: ${username}${contextFeature}. Mohon kirim instruksi QRIS/Virtual Account.`
+      `Halo Admin Zitera Lab, saya ingin aktivasi lisensi ${tierName} untuk username: ${username}${contextFeature}. Mohon kirim instruksi QRIS/Virtual Account.`
     )
     openBrowser(`https://wa.me/6282283088667?text=${msg}`)
     onClose()
@@ -143,7 +129,7 @@ export function UpgradeModal({
               Buka Potensi Penuh Riset Siber
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 font-sans leading-relaxed">
-              Pilih paket all-in-one sesuai target belajar Anda. Seluruh materi lab, petunjuk bertahap, dan bimbingan taktis mentor otomatis terbuka tanpa biaya tambahan.
+              Pilih paket all-in-one bulanan sesuai target belajar Anda. Seluruh materi lab, petunjuk bertahap, dan bimbingan taktis mentor otomatis terbuka tanpa biaya tambahan.
             </p>
 
             {/* Target Feature Context Notice */}
@@ -156,35 +142,6 @@ export function UpgradeModal({
                 </span>
               </div>
             )}
-
-            {/* Billing Cycle Selector */}
-            <div className="pt-3 flex items-center justify-center">
-              <div className="inline-flex items-center p-1 rounded-xl bg-[#161F30] border border-[#1E293B]">
-                <button
-                  onClick={() => setBillingCycle('monthly')}
-                  className={`px-4 py-1.5 rounded-lg font-mono text-xs font-semibold transition-all cursor-pointer ${
-                    billingCycle === 'monthly'
-                      ? 'bg-[#090D16] text-white shadow-sm border border-[#1E293B]'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Bulanan
-                </button>
-                <button
-                  onClick={() => setBillingCycle('annual')}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-mono text-xs font-semibold transition-all cursor-pointer ${
-                    billingCycle === 'annual'
-                      ? 'bg-gradient-to-r from-[#0F766E] to-[#06B6D4] text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span>Tahunan</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-[#10B981]/25 border border-[#10B981]/50 text-[#10B981] text-[10px] font-bold">
-                    HEMAT 38%
-                  </span>
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* ============================================================== */}
@@ -192,7 +149,7 @@ export function UpgradeModal({
           {/* ============================================================== */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch pt-2">
             {/* ------------------------------------------------------------ */}
-            {/* TIER 1: FOUNDATION (Entry Tripwire - Rp 70.000)              */}
+            {/* TIER 1: FOUNDATION (Entry Tripwire - Rp 70.000 / bln)        */}
             {/* ------------------------------------------------------------ */}
             <div className="relative flex flex-col justify-between rounded-xl bg-[#161F30]/60 border border-[#1E293B] p-5 hover:border-amber-500/40 transition-all">
               <div className="space-y-4">
@@ -219,11 +176,11 @@ export function UpgradeModal({
                       Rp 70.000
                     </span>
                     <span className="text-xs text-slate-400 font-sans">
-                      / sekali bayar
+                      / bulan
                     </span>
                   </div>
                   <div className="text-[11px] font-mono text-emerald-400 mt-0.5">
-                    Akses penuh 1 tahun kalender
+                    Paket pemula hemat di bawah Rp 100k
                   </div>
                 </div>
 
@@ -316,16 +273,14 @@ export function UpgradeModal({
                 <div className="pt-2 pb-1 border-y border-[#1E293B]">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-white font-mono">
-                      {billingCycle === 'monthly' ? 'Rp 270.000' : 'Rp 1.990.000'}
+                      Rp 270.000
                     </span>
                     <span className="text-xs text-cyan-300 font-sans">
-                      {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}
+                      / bulan
                     </span>
                   </div>
                   <div className="text-[11px] font-mono text-emerald-400 font-semibold mt-0.5">
-                    {billingCycle === 'annual'
-                      ? 'Hanya Rp 165.800 / bln (Hemat Rp 1.250.000!)'
-                      : isCurrentFoundation
+                    {isCurrentFoundation
                       ? 'Upgrade Roll-Over: Cukup bayar selisih Rp 200.000!'
                       : 'Investasi Rp 9.000 / hari'}
                   </div>
@@ -434,16 +389,14 @@ export function UpgradeModal({
                 <div className="pt-2 pb-1 border-y border-[#1E293B]">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-white font-mono">
-                      {billingCycle === 'monthly' ? 'Rp 470.000' : 'Rp 3.490.000'}
+                      Rp 470.000
                     </span>
                     <span className="text-xs text-purple-300 font-sans">
-                      {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}
+                      / bulan
                     </span>
                   </div>
                   <div className="text-[11px] font-mono text-emerald-400 font-semibold mt-0.5">
-                    {billingCycle === 'annual'
-                      ? 'Hanya Rp 290.800 / bln (Hemat Rp 2.150.000!)'
-                      : 'Hanya selisih Rp 200k dari PRO!'}
+                    Hanya selisih Rp 200k dari PRO!
                   </div>
                 </div>
 

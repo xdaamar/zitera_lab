@@ -120,15 +120,18 @@ export const LAB_CATALOG_TITLES: Record<string, string> = {
 
 /**
  * Authoritative Tier Gating Enforcement
- * - Track 1 (F01..F06): Foundation, Trial, Pro, Enterprise (All users)
- * - Track 2 (A01): Flagship Starter Lab (VaultPay Enterprise IDOR) allowed for Foundation & Trial users
- * - Track 2 (A01-02, A01-03, A02..A10 + explores): Strictly locked (requiredTier: 'pro')
- * - Track 3 (W01..W05, D01..D02, A11, A12): Strictly locked (requiredTier: 'pro')
+ * - Track 1 (F01..F06): Foundation, Trial, Pro, VIP, Enterprise (All users)
+ * - Track 2 (A01): Flagship Starter Lab (VaultPay Enterprise IDOR) allowed for Trial, Foundation, Pro, VIP
+ * - Track 2 (A02): Security Misconfiguration allowed for Foundation, Pro, VIP (Total 8 Foundation Labs)
+ * - Track 2 (A01-02, A01-03, A03..A10 + explores): Strictly locked for Pro & VIP
+ * - Track 3 (W01..W05, D01..D02, A11, A12): Strictly locked for Pro & VIP
  */
 export function canUserAccessLab(labId: string, userTier?: string | null): TierAccessResult {
   const cleanId = (labId || '').trim().toUpperCase()
-  const effectiveTier = (userTier || 'foundation').trim().toLowerCase()
-  const isProOrAbove = effectiveTier === 'pro' || effectiveTier === 'enterprise'
+  const effectiveTier = (userTier || 'trial').trim().toLowerCase()
+  const isProOrAbove =
+    effectiveTier === 'pro' || effectiveTier === 'vip' || effectiveTier === 'enterprise'
+  const isFoundationOrAbove = effectiveTier === 'foundation' || isProOrAbove
 
   // Track 1: Web Security Foundations (F01..F06)
   if (cleanId.startsWith('F')) {
@@ -141,7 +144,7 @@ export function canUserAccessLab(labId: string, userTier?: string | null): TierA
     }
   }
 
-  // A01 (VaultPay Enterprise IDOR): Flagship trial lab open to foundation & trial tier
+  // A01 (VaultPay Enterprise IDOR): Flagship trial lab open to all
   if (cleanId === 'A01') {
     return {
       allowed: true,
@@ -149,6 +152,20 @@ export function canUserAccessLab(labId: string, userTier?: string | null): TierA
       requiredTier: 'foundation',
       track: 'TRACK_2',
       trackName: 'Track 2: OWASP Top 10 Enterprise',
+    }
+  }
+
+  // A02 (Security Misconfiguration): Open to Foundation (8-lab bundle) and Pro/VIP
+  if (cleanId === 'A02') {
+    return {
+      allowed: isFoundationOrAbove,
+      isTierLocked: !isFoundationOrAbove,
+      requiredTier: 'foundation',
+      track: 'TRACK_2',
+      trackName: 'Track 2: OWASP Top 10 Enterprise',
+      reason: isFoundationOrAbove
+        ? undefined
+        : 'Laboratorium A02 (Security Misconfiguration) terbuka pada tier Foundation atau Pro. Upgrade ke Foundation (Rp 70.000 / bln) atau Pro untuk mengakses lab ini.',
     }
   }
 
@@ -171,7 +188,7 @@ export function canUserAccessLab(labId: string, userTier?: string | null): TierA
     }
   }
 
-  // Track 2: OWASP Top 10 Enterprise (A01-02, A01-03, A02..A10 + explores)
+  // Track 2: OWASP Top 10 Enterprise (A01-02, A01-03, A03..A10 + explores)
   const isA01Explore = cleanId === 'A01-02' || cleanId === 'A01-03'
   return {
     allowed: isProOrAbove,
@@ -183,7 +200,7 @@ export function canUserAccessLab(labId: string, userTier?: string | null): TierA
       ? undefined
       : isA01Explore
         ? `Laboratorium lanjutan ${cleanId} eksklusif untuk peserta Pro Edition. Lab dasar A01 (VaultPay Enterprise IDOR) terbuka untuk dicoba pada tier Foundation/Trial, namun skenario lanjutan A01-02 & A01-03 memerlukan lisensi Pro Edition.`
-        : 'Laboratorium ini merupakan bagian dari Track 2 (OWASP Top 10 Enterprise) dan eksklusif untuk peserta Pro Edition. Upgrade ke Pro Edition untuk mengakses seluruh 30 laboratorium OWASP Top 10.',
+        : 'Laboratorium ini merupakan bagian dari Track 2 (OWASP Top 10 Enterprise) dan eksklusif untuk peserta Pro Edition. Upgrade ke Pro Edition untuk mengakses seluruh laboratorium OWASP Top 10.',
   }
 }
 
