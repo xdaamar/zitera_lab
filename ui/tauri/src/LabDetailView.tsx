@@ -30,6 +30,7 @@ import {
   Unlock,
   Award,
   Lock,
+  Radio,
 } from 'lucide-react'
 import {
   getLabContent,
@@ -182,6 +183,41 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
   const [zetaMentorOpen, setZetaMentorOpen] = useState(false)
   // Embedded Burp Lite Repeater Modal State
   const [burpModalOpen, setBurpModalOpen] = useState(false)
+
+  // Floating Window Stacking and Toast Notification State
+  const [topWindow, setTopWindow] = useState<'mentor' | 'burp'>('mentor')
+  const [windowToast, setWindowToast] = useState<string | null>(null)
+  const windowToastTimerRef = useRef<number | null>(null)
+
+  const showWindowToast = (message: string) => {
+    setWindowToast(message)
+    if (windowToastTimerRef.current) {
+      window.clearTimeout(windowToastTimerRef.current)
+    }
+    windowToastTimerRef.current = window.setTimeout(() => {
+      setWindowToast(null)
+    }, 2800)
+  }
+
+  const handleToggleMentor = () => {
+    if (!zetaMentorOpen) {
+      setZetaMentorOpen(true)
+      setTopWindow('mentor')
+      showWindowToast('// POPUP AKTIF: Tanya Mentor dibuka dalam jendela mengambang (geser header untuk memindahkan).')
+    } else {
+      setZetaMentorOpen(false)
+    }
+  }
+
+  const handleToggleBurp = () => {
+    if (!burpModalOpen) {
+      setBurpModalOpen(true)
+      setTopWindow('burp')
+      showWindowToast('// POPUP AKTIF: Burp Suite Lite dibuka dalam jendela mengambang (geser header untuk memindahkan).')
+    } else {
+      setBurpModalOpen(false)
+    }
+  }
 
   // CTF Challenge state
   const [flagInput, setFlagInput] = useState('')
@@ -1558,56 +1594,128 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
         labTitle={content.manifest.title}
       />
 
-      {/* Floating AI Mentor Contact Bubble (Landing Page Style FAB) */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center group">
-        <button
-          onClick={() => setZetaMentorOpen(true)}
-          className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-[#12151D] hover:bg-[#1A202C] text-white border-2 border-[#2DD4BF] shadow-[0_6px_20px_rgba(15,118,110,0.4),0_3px_0_0_#0F766E] hover:shadow-[0_8px_25px_rgba(45,212,191,0.5),0_4px_0_0_#0F766E] hover:-translate-y-1 active:translate-y-0.5 active:shadow-[0_2px_8px_rgba(15,118,110,0.3)] transition-all cursor-pointer"
-          title="Tanya Petunjuk AI (Zeta Mentor)"
+      {/* Floating HUD Toast Notification when Popups open */}
+      {windowToast && (
+        <div
+          role="status"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[20000] pointer-events-none select-none transition-all duration-300 animate-in fade-in slide-in-from-top-4"
         >
-          {/* Cute Robot Mascot Icon */}
-          <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#2DD4BF] bg-[#090D16] shrink-0 shadow-xs flex items-center justify-center">
-            <img
-              src="/assets/robot_mentor_icon.png"
-              alt="Robot Mentor"
-              className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform"
-              onError={(e) => {
-                ;(e.target as HTMLElement).style.display = 'none'
-              }}
-            />
+          <div className="bg-[#12151D]/95 backdrop-blur-md text-[#5EEAD4] border border-[#2DD4BF]/50 rounded-xl px-4 py-2.5 shadow-[0_10px_35px_rgba(0,0,0,0.8)] flex items-center gap-3 font-mono text-xs font-semibold">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-ping" />
+            <span className="text-white">{windowToast}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Cyber Toolbars for Multi-Window Workspace (Burp Lite + Tanya Mentor) */}
+      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3 select-none">
+        {/* 1. Burp Suite Replica Lite Toggle Button */}
+        <div className="relative group">
+          {/* Instant Custom Cyber Tooltip on Hover */}
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-[#181C26]/95 border border-[#FF6633]/60 text-[#FF8855] font-mono text-[11px] font-bold shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-75 flex items-center gap-1.5 backdrop-blur-sm z-50">
+            <span>{burpModalOpen ? '[ Click for close ]' : '[ Buka Burp Repeater ]'}</span>
           </div>
 
-          {/* Label & Pulsing Online Dot */}
-          <div className="flex flex-col text-left pr-1">
-            <span className="text-xs font-bold font-['Space_Grotesk'] text-[#5EEAD4] tracking-wide flex items-center gap-1.5">
-              <span>Petunjuk AI</span>
-              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            </span>
-            <span className="text-[9px] font-['JetBrains_Mono'] text-[#94A3B8] -mt-0.5">
-              Tanya Mentor
-            </span>
+          <button
+            onClick={handleToggleBurp}
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-full text-white border-2 transition-all cursor-pointer shadow-lg active:scale-95 ${
+              burpModalOpen
+                ? 'bg-[#1E1512] border-[#FF6633] shadow-[0_0_20px_rgba(255,102,51,0.45)]'
+                : 'bg-[#12151D] hover:bg-[#1A202C] border-slate-700 hover:border-[#FF6633]/70 hover:-translate-y-0.5'
+            }`}
+            title=""
+          >
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-[#FF6633] text-white shrink-0 shadow-xs flex items-center justify-center">
+              <Radio size={16} className={burpModalOpen ? 'animate-pulse' : ''} />
+            </div>
+
+            <div className="flex flex-col text-left pr-1">
+              <span className="text-xs font-bold font-['Space_Grotesk'] text-[#FF8855] tracking-wide flex items-center gap-1.5">
+                <span>Burp Lite</span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    burpModalOpen ? 'bg-[#FF6633] animate-pulse' : 'bg-slate-600'
+                  }`}
+                />
+              </span>
+              <span className="text-[9px] font-['JetBrains_Mono'] text-[#94A3B8] -mt-0.5">
+                {burpModalOpen ? '(opened)' : 'Repeater Tool'}
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* 2. Tanya Mentor Toggle Button */}
+        <div className="relative group">
+          {/* Instant Custom Cyber Tooltip on Hover */}
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-[#0F172A]/95 border border-teal-500/60 text-teal-300 font-mono text-[11px] font-bold shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-75 flex items-center gap-1.5 backdrop-blur-sm z-50">
+            <span>{zetaMentorOpen ? '[ Click for close ]' : '[ Buka Tanya Mentor ]'}</span>
           </div>
-        </button>
+
+          <button
+            onClick={handleToggleMentor}
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-full text-white border-2 transition-all cursor-pointer shadow-lg active:scale-95 ${
+              zetaMentorOpen
+                ? 'bg-[#0E1B1D] border-[#2DD4BF] shadow-[0_0_20px_rgba(45,212,191,0.45)]'
+                : 'bg-[#12151D] hover:bg-[#1A202C] border-[#2DD4BF] shadow-[0_6px_20px_rgba(15,118,110,0.3)] hover:-translate-y-0.5'
+            }`}
+            title=""
+          >
+            {/* Cute Mascot Icon */}
+            <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#2DD4BF] bg-[#090D16] shrink-0 shadow-xs flex items-center justify-center">
+              <img
+                src="/assets/robot_mentor_icon.png"
+                alt="Mentor Mascot"
+                className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform"
+                onError={(e) => {
+                  ;(e.target as HTMLElement).style.display = 'none'
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col text-left pr-1">
+              <span className="text-xs font-bold font-['Space_Grotesk'] text-[#5EEAD4] tracking-wide flex items-center gap-1.5">
+                <span>Petunjuk AI</span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    zetaMentorOpen ? 'bg-[#10B981] animate-pulse' : 'bg-slate-600'
+                  }`}
+                />
+              </span>
+              <span className="text-[9px] font-['JetBrains_Mono'] text-[#94A3B8] -mt-0.5">
+                {zetaMentorOpen ? '(opened)' : 'Tanya Mentor'}
+              </span>
+            </div>
+          </button>
+        </div>
       </div>
 
-      {/* Zeta Socratic Cyber Mentor Modal */}
+      {/* Tanya Mentor Floating Window */}
       {zetaMentorOpen && (
         <ZetaMentorModal
           isOpen={zetaMentorOpen}
           onClose={() => setZetaMentorOpen(false)}
           currentLabId={labId}
           userTier={currentUser?.tier}
-          onOpenBurpLite={() => setBurpModalOpen(true)}
+          onOpenBurpLite={() => {
+            setBurpModalOpen(true)
+            setTopWindow('burp')
+            showWindowToast('// POPUP AKTIF: Burp Suite Lite dibuka dalam jendela mengambang.')
+          }}
+          zIndex={topWindow === 'mentor' ? 10001 : 10000}
+          onBringToFront={() => setTopWindow('mentor')}
         />
       )}
 
-      {/* Embedded Burp Lite Repeater Modal */}
+      {/* Embedded Burp Lite Repeater Floating Window */}
       {burpModalOpen && (
         <BurpLiteModal
           isOpen={burpModalOpen}
           onClose={() => setBurpModalOpen(false)}
           activeLabId={labId}
           activeLabPort={targetPort}
+          zIndex={topWindow === 'burp' ? 10001 : 10000}
+          onBringToFront={() => setTopWindow('burp')}
         />
       )}
     </div>

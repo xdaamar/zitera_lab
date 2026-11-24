@@ -64,7 +64,7 @@ export interface ZiteraAiOverviewProps {
 export function ZiteraAiOverview({
   data,
   currentTier = 'free',
-  activeMentorId = 'zeta',
+  activeMentorId = 'chiyo',
   energy = 5,
   maxEnergy = 5,
   nextResetTimestamp,

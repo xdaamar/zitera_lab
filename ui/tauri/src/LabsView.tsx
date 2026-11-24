@@ -1432,10 +1432,10 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                 setZetaModalOpen(true)
               }}
               className="px-3.5 py-2 bg-gradient-to-r from-[#042F2C] to-[#0D3833] text-[#2DD4BF] hover:from-[#0F4A44] hover:to-[#134E4A] border-2 border-[#2DD4BF] shadow-[0_3px_0_0_#0F766E] hover:shadow-[0_1px_0_0_#0F766E] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-bold font-['Space_Grotesk'] flex items-center gap-2 cursor-pointer transition-all"
-              title="Tanya Zeta Cyber Intel Mentor (Socratic Hints)"
+              title="Tanya Socratic Cyber Mentor (Petunjuk Taktis)"
             >
               <Sparkles size={14} className="text-[#FBBF24]" />
-              <span>Tanya Zeta Mentor</span>
+              <span>Tanya Mentor</span>
             </button>
 
             <button

@@ -22,6 +22,8 @@ import {
   RotateCcw,
   FastForward,
   CheckCircle2,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react'
 import {
   getSocraticCurriculum,
@@ -49,6 +51,8 @@ export interface ZetaMentorModalProps {
   currentLabId: string
   userTier?: string | null
   onOpenBurpLite?: () => void
+  zIndex?: number
+  onBringToFront?: () => void
 }
 
 interface ChatMessage {
@@ -68,13 +72,57 @@ export function ZetaMentorModal({
   currentLabId,
   userTier,
   onOpenBurpLite,
+  zIndex = 10000,
+  onBringToFront,
 }: ZetaMentorModalProps) {
+  // Floating Draggable Window Position State
+  const [position, setPosition] = useState<{ x: number; y: number }>(() => {
+    if (typeof window !== 'undefined') {
+      const defaultX = Math.max(16, window.innerWidth - 600)
+      const defaultY = Math.max(16, 40)
+      return { x: defaultX, y: defaultY }
+    }
+    return { x: 700, y: 40 }
+  })
+  const [isMaximized, setIsMaximized] = useState(false)
+
+  // Drag handler for window title bar
+  const handleDragMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0 || isMaximized) return
+    if ((e.target as HTMLElement).closest('button, input, a, select, textarea')) return
+
+    onBringToFront?.()
+
+    const startX = e.clientX
+    const startY = e.clientY
+    const initialX = position.x
+    const initialY = position.y
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const deltaY = moveEvent.clientY - startY
+      const maxX = Math.max(10, window.innerWidth - 180)
+      const maxY = Math.max(10, window.innerHeight - 80)
+      setPosition({
+        x: Math.min(maxX, Math.max(10, initialX + deltaX)),
+        y: Math.min(maxY, Math.max(10, initialY + deltaY)),
+      })
+    }
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }
   const cleanLabId = (currentLabId || 'F01').trim().toUpperCase()
   const labTitle = LAB_CATALOG_TITLES[cleanLabId] || `Laboratorium ${cleanLabId}`
   const curriculum = getSocraticCurriculum(cleanLabId, labTitle)
 
   // ── Multi-Mentor Persona State ─────────────────────────────────────────────
-  const [selectedMentorId, setSelectedMentorId] = useState<MentorId>('zeta')
+  const [selectedMentorId, setSelectedMentorId] = useState<MentorId>('chiyo')
   const currentMentor: MentorProfile = getMentor(selectedMentorId)
 
   // ── State Management ───────────────────────────────────────────────────────
@@ -380,10 +428,10 @@ export function ZetaMentorModal({
     const mentorTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
     let personalizedText = response.message
-    if (selectedMentorId === 'aoi' && !response.antiSpoilerWarning) {
-      personalizedText = `[Aoi Exploit Note]: ${response.message}`
-    } else if (selectedMentorId === 'elysia' && !response.antiSpoilerWarning) {
-      personalizedText = `[Elysia Defense Review]: ${response.message}`
+    if ((selectedMentorId === 'kaede' || selectedMentorId === 'aoi') && !response.antiSpoilerWarning) {
+      personalizedText = `[Kaede Exploit Note]: ${response.message}`
+    } else if ((selectedMentorId === 'valerie' || selectedMentorId === 'elysia') && !response.antiSpoilerWarning) {
+      personalizedText = `[Valerie Defense Review]: ${response.message}`
     }
 
     const mentorMsgId = `zeta_${Date.now()}`
@@ -515,14 +563,29 @@ export function ZetaMentorModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-stone-950/85 backdrop-blur-md select-none overflow-hidden animate-in fade-in duration-200">
-      {/* Container Card */}
-      <div className="relative w-full max-w-6xl h-[94vh] max-h-[920px] flex flex-col rounded-2xl bg-stone-900/95 border border-teal-500/30 shadow-[0_0_60px_rgba(0,0,0,0.8),0_0_20px_rgba(20,184,166,0.15)] overflow-hidden text-stone-200">
-        {/* Subtle Cyber Grid Background Texture */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(to_right,#14b8a6_1px,transparent_1px),linear-gradient(to_bottom,#14b8a6_1px,transparent_1px)] bg-[size:24px_24px]" />
+    <div
+      style={
+        isMaximized
+          ? { left: '1vw', top: '1vh', width: '98vw', height: '98vh', zIndex }
+          : {
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              width: 'min(640px, 94vw)',
+              height: 'min(780px, 88vh)',
+              zIndex,
+            }
+      }
+      className="fixed flex flex-col rounded-2xl bg-stone-900/95 border border-teal-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_30px_rgba(45,212,191,0.2)] overflow-hidden text-stone-200 select-none animate-in fade-in zoom-in-95 duration-150"
+      onClick={() => onBringToFront?.()}
+    >
+      {/* Subtle Cyber Grid Background Texture */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(to_right,#14b8a6_1px,transparent_1px),linear-gradient(to_bottom,#14b8a6_1px,transparent_1px)] bg-[size:24px_24px]" />
 
-        {/* ── TOP HEADER BAR ───────────────────────────────────────────────── */}
-        <header className="relative z-10 flex flex-wrap items-center justify-between px-4 sm:px-5 py-3 border-b border-stone-800 bg-stone-950/85 backdrop-blur-sm gap-3">
+      {/* ── TOP HEADER BAR (Draggable Handle) ─────────────────────────────────── */}
+      <header
+        onMouseDown={handleDragMouseDown}
+        className="relative z-10 flex flex-wrap items-center justify-between px-4 sm:px-5 py-3 border-b border-stone-800 bg-stone-950/85 backdrop-blur-sm gap-3 cursor-grab active:cursor-grabbing select-none"
+      >
           {/* Brand & Companion Identity */}
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-stone-900 border border-teal-500/40 shadow-[0_0_12px_rgba(20,184,166,0.2)] shrink-0 overflow-hidden">
@@ -598,12 +661,21 @@ export function ZetaMentorModal({
               {(userTier || 'FOUNDATION').toUpperCase()}
             </span>
 
+            {/* Maximize / Restore Button */}
+            <button
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 border border-transparent hover:border-stone-700 transition-colors cursor-pointer"
+              title={isMaximized ? 'Kembalikan Ukuran' : 'Perbesar Jendela'}
+            >
+              {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
             {/* Close Modal Button */}
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 border border-transparent hover:border-stone-700 transition-colors cursor-pointer"
-              title="Tutup Modal (Esc)"
-              aria-label="Tutup Modal"
+              title="Tutup Jendela (Esc)"
+              aria-label="Tutup Jendela"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1039,7 +1111,6 @@ export function ZetaMentorModal({
             </div>
           </div>
         </div>
-      </div>
 
       {/* High-Conversion 3-Tier Decoy Upgrade Modal */}
       <UpgradeModal

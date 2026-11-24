@@ -34,6 +34,8 @@ export interface BurpLiteModalProps {
   onClose: () => void
   activeLabId?: string | null
   activeLabPort?: number | string | null
+  zIndex?: number
+  onBringToFront?: () => void
 }
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS'
@@ -90,7 +92,50 @@ export function BurpLiteModal({
   onClose,
   activeLabId,
   activeLabPort,
+  zIndex = 10000,
+  onBringToFront,
 }: BurpLiteModalProps) {
+  // Floating Draggable Window Position State
+  const [position, setPosition] = useState<{ x: number; y: number }>(() => {
+    if (typeof window !== 'undefined') {
+      const defaultX = Math.max(16, Math.floor((window.innerWidth - 840) / 2) - 80)
+      const defaultY = Math.max(16, Math.floor((window.innerHeight - 680) / 2))
+      return { x: defaultX, y: defaultY }
+    }
+    return { x: 30, y: 30 }
+  })
+
+  // Drag handler for window title bar
+  const handleDragMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0 || isMaximized) return
+    if ((e.target as HTMLElement).closest('button, input, a, select, textarea')) return
+
+    onBringToFront?.()
+
+    const startX = e.clientX
+    const startY = e.clientY
+    const initialX = position.x
+    const initialY = position.y
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const deltaY = moveEvent.clientY - startY
+      const maxX = Math.max(10, window.innerWidth - 180)
+      const maxY = Math.max(10, window.innerHeight - 80)
+      setPosition({
+        x: Math.min(maxX, Math.max(10, initialX + deltaX)),
+        y: Math.min(maxY, Math.max(10, initialY + deltaY)),
+      })
+    }
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }
   // Navigation tabs: 'Target', 'Proxy (HTTP History)', 'Repeater'
   const [activeNavTab, setActiveNavTab] = useState<'target' | 'proxy' | 'repeater'>('repeater')
 
@@ -539,15 +584,26 @@ export function BurpLiteModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-sm select-none">
+    <div
+      style={
+        isMaximized
+          ? { left: '1vw', top: '1vh', width: '98vw', height: '98vh', zIndex }
+          : {
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              width: 'min(840px, 94vw)',
+              height: 'min(680px, 86vh)',
+              zIndex,
+            }
+      }
+      className="fixed flex flex-col rounded-xl border border-slate-700/80 bg-[#12151D] shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_30px_rgba(255,102,51,0.15)] overflow-hidden font-sans text-slate-200 select-none animate-in fade-in zoom-in-95 duration-150"
+      onClick={() => onBringToFront?.()}
+    >
+      {/* Title Bar - PortSwigger Burp Suite Style (Draggable Handle) */}
       <div
-        className={`w-full ${
-          isMaximized ? 'h-[98vh] max-w-[99vw]' : 'h-[92vh] max-w-7xl'
-        } flex flex-col rounded-xl border border-slate-700/80 bg-[#12151D] shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden font-sans text-slate-200 transition-all duration-150`}
-        onClick={(e) => e.stopPropagation()}
+        onMouseDown={handleDragMouseDown}
+        className="flex items-center justify-between px-3.5 py-2.5 bg-[#181C26] border-b border-slate-700/80 shrink-0 cursor-grab active:cursor-grabbing select-none"
       >
-        {/* Title Bar - PortSwigger Burp Suite Style */}
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#181C26] border-b border-slate-700/80 shrink-0">
           <div className="flex items-center gap-3">
             {/* Burp Suite Iconic Flame / Radio Icon */}
             <div className="flex items-center justify-center w-7 h-7 rounded bg-[#FF6633] text-white shadow-sm shadow-[#FF6633]/30">
@@ -1380,7 +1436,6 @@ export function BurpLiteModal({
           </div>
         </div>
       </div>
-    </div>
   )
 }
 
