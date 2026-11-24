@@ -23,7 +23,7 @@ import {
   logout,
   type UserModel,
 } from './authService'
-import { useZoomManager, ZoomFloatingWidget, ZoomToast } from './ZoomControls'
+import { useZoomManager, ZoomFloatingWidget } from './ZoomControls'
 import './App.css'
 
 export function App() {
@@ -41,7 +41,16 @@ export function App() {
     }
   })
 
-  const { zoom, zoomIn, zoomOut, resetZoom, setZoom, toastVisible } = useZoomManager()
+  const {
+    zoom,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    setZoom,
+    widgetVisible,
+    keepWidgetVisible,
+    dismissWidgetAfterDelay,
+  } = useZoomManager()
 
   useEffect(() => {
     const unsub = subscribeAuth((user) => {
@@ -187,16 +196,16 @@ export function App() {
         </div>
       </main>
 
-      {/* 4. Quick Zoom Floating Capsule (Ctrl + / - / Wheel / Click) */}
+      {/* 4. Quick Zoom Floating Capsule (Ctrl + / - / Wheel / Click) - Auto-hides after zoom */}
       <ZoomFloatingWidget
         zoom={zoom}
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onReset={resetZoom}
+        visible={widgetVisible}
+        onMouseEnter={keepWidgetVisible}
+        onMouseLeave={dismissWidgetAfterDelay}
       />
-
-      {/* 5. Zoom HUD Toast Badge */}
-      <ZoomToast zoom={zoom} visible={toastVisible} />
 
       {/* 6. Auth & Avatar Modal Dialog */}
       <AuthDialog isOpen={authOpen} onClose={() => setAuthOpen(false)} />

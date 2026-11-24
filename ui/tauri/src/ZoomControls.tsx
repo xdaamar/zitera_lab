@@ -41,10 +41,44 @@ export function useZoomManager() {
     return 1.0
   })
 
-  const [toastVisible, setToastVisible] = useState(false)
-  const toastTimeoutRef = useRef<number | null>(null)
+  // Auto-hiding state for the floating widget
+  const [widgetVisible, setWidgetVisible] = useState(false)
+  const widgetTimeoutRef = useRef<number | null>(null)
+  const isHoveredRef = useRef(false)
 
-  const applyZoom = useCallback((newZoom: number, showToast = true) => {
+  const clearHideTimer = useCallback(() => {
+    if (widgetTimeoutRef.current) {
+      window.clearTimeout(widgetTimeoutRef.current)
+      widgetTimeoutRef.current = null
+    }
+  }, [])
+
+  const startHideTimer = useCallback((delay = 2500) => {
+    clearHideTimer()
+    widgetTimeoutRef.current = window.setTimeout(() => {
+      if (!isHoveredRef.current) {
+        setWidgetVisible(false)
+      }
+    }, delay)
+  }, [clearHideTimer])
+
+  const keepWidgetVisible = useCallback(() => {
+    isHoveredRef.current = true
+    clearHideTimer()
+    setWidgetVisible(true)
+  }, [clearHideTimer])
+
+  const dismissWidgetAfterDelay = useCallback((delay = 2000) => {
+    isHoveredRef.current = false
+    startHideTimer(delay)
+  }, [startHideTimer])
+
+  const triggerWidget = useCallback((delay = 2500) => {
+    setWidgetVisible(true)
+    startHideTimer(delay)
+  }, [startHideTimer])
+
+  const applyZoom = useCallback((newZoom: number, showWidget = true) => {
     const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(newZoom * 100) / 100))
     setZoomState(clamped)
     try {
@@ -75,37 +109,31 @@ export function useZoomManager() {
       }
     })
 
-    if (showToast) {
-      setToastVisible(true)
-      if (toastTimeoutRef.current) {
-        window.clearTimeout(toastTimeoutRef.current)
-      }
-      toastTimeoutRef.current = window.setTimeout(() => {
-        setToastVisible(false)
-      }, 1200)
+    if (showWidget) {
+      triggerWidget(2500)
     }
-  }, [])
+  }, [triggerWidget])
 
-  // Apply on mount
+  // Apply on mount (silently without showing floating widget)
   useEffect(() => {
     applyZoom(zoom, false)
   }, [applyZoom, zoom])
 
   const zoomIn = useCallback(() => {
-    applyZoom(zoom + ZOOM_STEP)
+    applyZoom(zoom + ZOOM_STEP, true)
   }, [zoom, applyZoom])
 
   const zoomOut = useCallback(() => {
-    applyZoom(zoom - ZOOM_STEP)
+    applyZoom(zoom - ZOOM_STEP, true)
   }, [zoom, applyZoom])
 
   const resetZoom = useCallback(() => {
-    applyZoom(1.0)
+    applyZoom(1.0, true)
   }, [applyZoom])
 
   const setZoom = useCallback(
     (targetZoom: number) => {
-      applyZoom(targetZoom)
+      applyZoom(targetZoom, true)
     },
     [applyZoom]
   )
@@ -119,7 +147,7 @@ export function useZoomManager() {
           e.preventDefault()
           setZoomState((prev) => {
             const next = Math.min(MAX_ZOOM, Math.round((prev + ZOOM_STEP) * 100) / 100)
-            applyZoom(next)
+            applyZoom(next, true)
             return next
           })
         }
@@ -128,14 +156,14 @@ export function useZoomManager() {
           e.preventDefault()
           setZoomState((prev) => {
             const next = Math.max(MIN_ZOOM, Math.round((prev - ZOOM_STEP) * 100) / 100)
-            applyZoom(next)
+            applyZoom(next, true)
             return next
           })
         }
         // Reset zoom: Ctrl + '0' or Numpad0
         else if (e.key === '0' || e.code === 'Numpad0') {
           e.preventDefault()
-          applyZoom(1.0)
+          applyZoom(1.0, true)
         }
       }
     }
@@ -146,7 +174,7 @@ export function useZoomManager() {
         setZoomState((prev) => {
           const step = e.deltaY < 0 ? 0.05 : -0.05
           const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round((prev + step) * 100) / 100))
-          applyZoom(next)
+          applyZoom(next, true)
           return next
         })
       }
@@ -161,13 +189,23 @@ export function useZoomManager() {
     }
   }, [applyZoom])
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearHideTimer()
+    }
+  }, [clearHideTimer])
+
   return {
     zoom,
     zoomIn,
     zoomOut,
     resetZoom,
     setZoom,
-    toastVisible,
+    toastVisible: false,
+    widgetVisible,
+    keepWidgetVisible,
+    dismissWidgetAfterDelay,
   }
 }
 
@@ -176,15 +214,32 @@ interface ZoomFloatingWidgetProps {
   onZoomIn: () => void
   onZoomOut: () => void
   onReset: () => void
+  visible?: boolean
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
-export function ZoomFloatingWidget({ zoom, onZoomIn, onZoomOut, onReset }: ZoomFloatingWidgetProps) {
+export function ZoomFloatingWidget({
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onReset,
+  visible = true,
+  onMouseEnter,
+  onMouseLeave,
+}: ZoomFloatingWidgetProps) {
   const percent = Math.round(zoom * 100)
 
   return (
     <aside
       aria-label="Pengaturan Skala Tampilan"
-      className="fixed bottom-4 right-4 z-50 select-none flex items-center gap-1 bg-[#FCFBF8]/95 backdrop-blur-md border-2 border-[#CEC8BF] rounded-full px-2 py-1 shadow-[0_3px_0_0_#E4DFD7] transition-all duration-200"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className={`fixed bottom-4 right-4 z-50 select-none flex items-center gap-1 bg-[#FCFBF8]/95 backdrop-blur-md border-2 border-[#CEC8BF] rounded-full px-2 py-1 shadow-[0_4px_16px_rgba(0,0,0,0.12),0_3px_0_0_#E4DFD7] transition-all duration-300 ease-out ${
+        visible
+          ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+          : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
+      }`}
     >
       <button
         onClick={onZoomOut}
