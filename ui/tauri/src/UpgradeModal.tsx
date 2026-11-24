@@ -1,5 +1,6 @@
-// ZITERA CYBER_LAB — High-Conversion 3-Tier Decoy Pricing Modal
-// Implements behavioral economics decoy pricing to drive maximum conversion to VIP Elite Operative.
+// ZITERA CYBER_LAB — High-Conversion 3-Tier Pricing Modal
+// Implements behavioral economics tripwire (<100k) & uniform increment ladder (+200k).
+// Tiers: Foundation (Rp 70k) -> PRO Specialist (Rp 270k) -> Enterprise VIP (Rp 470k).
 // Dark glassmorphism, responsive cyber aesthetic (#090D16, #161F30, #1E293B, #10B981, #06B6D4, #8B5CF6).
 // Zero emojis — Lucide icons and masterclass vector styling exclusively.
 
@@ -17,16 +18,19 @@ import {
   Cpu,
   Clock,
   CheckCircle2,
+  FileCode,
+  FileText,
 } from 'lucide-react'
 import { openBrowser } from './engineClient'
 
 export type BillingCycle = 'monthly' | 'annual'
+export type LicenseTierChoice = 'foundation' | 'pro' | 'vip'
 
 export interface UpgradeModalProps {
   isOpen: boolean
   onClose: () => void
-  currentTier?: 'free' | 'pro' | 'vip' | 'foundation' | 'enterprise' | string
-  onSelectTier?: (tier: 'pro' | 'vip', billingCycle: BillingCycle) => void
+  currentTier?: 'free' | 'foundation' | 'pro' | 'vip' | 'enterprise' | string
+  onSelectTier?: (tier: LicenseTierChoice, billingCycle: BillingCycle) => void
   targetFeature?: string
   username?: string
 }
@@ -54,21 +58,42 @@ export function UpgradeModal({
 
   if (!isOpen) return null
 
+  const isCurrentFoundation = currentTier === 'foundation'
   const isCurrentPro = currentTier === 'pro'
   const isCurrentVip = currentTier === 'vip' || currentTier === 'enterprise'
 
-  const handleCheckout = (tier: 'pro' | 'vip') => {
+  const handleCheckout = (tier: LicenseTierChoice) => {
     if (onSelectTier) {
       onSelectTier(tier, billingCycle)
       return
     }
 
     // Default high-converting WhatsApp concierge checkout
-    const tierName =
-      tier === 'vip'
-        ? 'VIP Elite Operative (Rp 89k/bln atau Rp 799k/thn)'
-        : 'PRO Specialist (Rp 49k/bln)'
-    const periodText = billingCycle === 'annual' ? 'Paket Tahunan' : 'Paket Bulanan'
+    let tierName = ''
+    if (tier === 'foundation') {
+      tierName = 'Foundation Edition (Rp 70.000 / Akses 1 Tahun)'
+    } else if (tier === 'vip') {
+      tierName =
+        billingCycle === 'annual'
+          ? 'Enterprise VIP Tahunan (Rp 3.490.000 / thn)'
+          : 'Enterprise VIP Bulanan (Rp 470.000 / bln)'
+    } else {
+      if (isCurrentFoundation) {
+        tierName = 'PRO Specialist (Upgrade Credit Roll-Over: Rp 200.000)'
+      } else {
+        tierName =
+          billingCycle === 'annual'
+            ? 'PRO Specialist Tahunan (Rp 1.990.000 / thn)'
+            : 'PRO Specialist Bulanan (Rp 270.000 / bln)'
+      }
+    }
+
+    const periodText =
+      tier === 'foundation'
+        ? 'Akses 1 Tahun'
+        : billingCycle === 'annual'
+        ? 'Paket Tahunan'
+        : 'Paket Bulanan'
     const contextFeature = targetFeature ? ` [Trigger: ${targetFeature}]` : ''
     const msg = encodeURIComponent(
       `Halo Admin Zitera Lab, saya ingin aktivasi lisensi ${tierName} - ${periodText} untuk username: ${username}${contextFeature}. Mohon kirim instruksi QRIS/Virtual Account.`
@@ -118,7 +143,7 @@ export function UpgradeModal({
               Buka Potensi Penuh Riset Siber
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 font-sans leading-relaxed">
-              Dapatkan akses tak terbatas ke Zitera AI Overview, blueprint payload eksploitasi, integrasi Burp Suite Repeater satu klik, dan mentor elit.
+              Pilih paket all-in-one sesuai target belajar Anda. Seluruh materi lab, petunjuk bertahap, dan bimbingan taktis mentor otomatis terbuka tanpa biaya tambahan.
             </p>
 
             {/* Target Feature Context Notice */}
@@ -127,8 +152,7 @@ export function UpgradeModal({
                 <Zap size={14} className="text-amber-400 shrink-0" />
                 <span>
                   Fitur Terpilih:{' '}
-                  <span className="font-bold text-white">{targetFeature}</span>{' '}
-                  memerlukan lisensi VIP Operative.
+                  <span className="font-bold text-white">{targetFeature}</span>
                 </span>
               </div>
             )}
@@ -156,7 +180,7 @@ export function UpgradeModal({
                 >
                   <span>Tahunan</span>
                   <span className="px-1.5 py-0.2 rounded-full bg-[#10B981]/25 border border-[#10B981]/50 text-[#10B981] text-[10px] font-bold">
-                    HEMAT 25%
+                    HEMAT 38%
                   </span>
                 </button>
               </div>
@@ -164,42 +188,42 @@ export function UpgradeModal({
           </div>
 
           {/* ============================================================== */}
-          {/* 3-TIER DECOY PRICING GRID                                      */}
+          {/* 3-TIER PRICING GRID (FOUNDATION 70K -> PRO 270K -> VIP 470K)   */}
           {/* ============================================================== */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch pt-2">
             {/* ------------------------------------------------------------ */}
-            {/* TIER 1: FREE (Recruit)                                       */}
+            {/* TIER 1: FOUNDATION (Entry Tripwire - Rp 70.000)              */}
             {/* ------------------------------------------------------------ */}
-            <div className="relative flex flex-col justify-between rounded-xl bg-[#161F30]/50 border border-[#1E293B] p-5 hover:border-slate-700 transition-all">
+            <div className="relative flex flex-col justify-between rounded-xl bg-[#161F30]/60 border border-[#1E293B] p-5 hover:border-amber-500/40 transition-all">
               <div className="space-y-4">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                      [ TIER 01 ]
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-amber-400 font-semibold">
+                      [ TIER 01 &bull; PEMULA ]
                     </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-400 border border-slate-700">
-                      DASAR
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950/60 text-amber-300 border border-amber-800/50">
+                      FONDASI
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-200 font-mono">
-                    FREE (Recruit)
+                  <h3 className="text-lg font-bold text-slate-100 font-mono">
+                    Foundation Edition
                   </h3>
                   <p className="text-xs text-slate-400 font-sans">
-                    Akses fundamental untuk eksplorasi konsep awal keamanan web.
+                    Akses fundamental protokol HTTP, sesi, dan 2 lab OWASP nyata untuk pemula.
                   </p>
                 </div>
 
                 <div className="pt-2 pb-1 border-y border-[#1E293B]">
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-extrabold text-white font-mono">
-                      Rp 0
+                      Rp 70.000
                     </span>
                     <span className="text-xs text-slate-400 font-sans">
-                      / selamanya
+                      / sekali bayar
                     </span>
                   </div>
-                  <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                    Akses publik tanpa kartu kredit
+                  <div className="text-[11px] font-mono text-emerald-400 mt-0.5">
+                    Akses penuh 1 tahun kalender
                   </div>
                 </div>
 
@@ -208,140 +232,53 @@ export function UpgradeModal({
                   <li className="flex items-start gap-2">
                     <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
                     <span>
-                      <strong className="text-white">5 AI Overview</strong> / hari
-                      (siklus 12 jam)
+                      <strong className="text-white">8 Lab Lengkap</strong> (F01-F06 + A01 IDOR + A02 Misconfig)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
-                    <span>Clue Level 1 Konsep Teori Dasar</span>
+                    <span>Clue Level 1 & Level 2 penuh (8 lab terbuka)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
-                    <span>Burp View Log (Inspeksi HTTP pasif)</span>
+                    <span>Chat Pertanyaan Taktis interaktif penuh</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
-                    <span>Akses Lab Track 1 (Foundations F01-F06)</span>
+                    <span>Burp View Log & Header Inspector pasif</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
+                    <span>Badge Digital: [ Junior Operative &bull; Verified ]</span>
                   </li>
 
                   {/* Locked items */}
                   <li className="flex items-start gap-2 text-slate-500 opacity-70">
                     <Lock size={13} className="text-slate-600 mt-0.5 shrink-0" />
-                    <span>Payload Blueprint Terkunci (Level 2 & 3)</span>
+                    <span>Track 2 OWASP Top 10 Terkunci (Butuh PRO)</span>
                   </li>
                   <li className="flex items-start gap-2 text-slate-500 opacity-70">
                     <Lock size={13} className="text-slate-600 mt-0.5 shrink-0" />
-                    <span>Tanpa Auto-Inject ke Burp Repeater</span>
+                    <span>Burp Lite Repeater Aktif Terkunci (Butuh PRO)</span>
                   </li>
                 </ul>
               </div>
 
               {/* Action Button */}
               <div className="pt-6">
-                <button
-                  disabled
-                  className="w-full py-2.5 px-4 rounded-lg bg-[#090D16] border border-[#1E293B] text-slate-500 text-xs font-mono font-semibold text-center cursor-not-allowed"
-                >
-                  [ Tier Aktif Saat Ini ]
-                </button>
-              </div>
-            </div>
-
-            {/* ------------------------------------------------------------ */}
-            {/* TIER 2: PRO (Specialist) [The Decoy]                          */}
-            {/* ------------------------------------------------------------ */}
-            <div className="relative flex flex-col justify-between rounded-xl bg-[#161F30]/70 border border-[#1E293B] p-5 hover:border-purple-500/40 transition-all">
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-purple-400 font-semibold">
-                      [ TIER 02 &bull; DECOY ]
-                    </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-950/60 text-purple-300 border border-purple-800/50">
-                      SPESIALIS
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-100 font-mono">
-                    PRO (Specialist)
-                  </h3>
-                  <p className="text-xs text-slate-400 font-sans">
-                    Vektor serangan analitis dan pengujian manual parameter HTTP.
-                  </p>
-                </div>
-
-                <div className="pt-2 pb-1 border-y border-[#1E293B]">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-white font-mono">
-                      {billingCycle === 'monthly' ? 'Rp 49.000' : 'Rp 449.000'}
-                    </span>
-                    <span className="text-xs text-slate-400 font-sans">
-                      {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}
-                    </span>
-                  </div>
-                  <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                    {billingCycle === 'annual'
-                      ? 'Setara Rp 37.400 / bln'
-                      : 'Tagihan bulanan fleksibel'}
-                  </div>
-                </div>
-
-                {/* Features List */}
-                <ul className="space-y-2.5 text-xs text-slate-300 font-sans">
-                  <li className="flex items-start gap-2">
-                    <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
-                    <span>
-                      <strong className="text-white">50 AI Overview</strong> / hari
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
-                    <span>Clue Level 2 Attack Vector & Logika Kerentanan</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
-                    <span>Burp Repeater Manual (Kirim & modifikasi request)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
-                    <span>Badge Spesialis Operatif & Scoreboard Tracking</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check size={14} className="text-[#10B981] mt-0.5 shrink-0" />
-                    <span>Akses 30 Lab OWASP Top 10 (Track 2)</span>
-                  </li>
-
-                  {/* Missing decoy features compared to VIP */}
-                  <li className="flex items-start gap-2 text-slate-500 opacity-80">
-                    <Lock size={13} className="text-amber-500 mt-0.5 shrink-0" />
-                    <span className="text-slate-400">
-                      Tanpa Auto-Inject Otomatis Burp
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2 text-slate-500 opacity-80">
-                    <Lock size={13} className="text-amber-500 mt-0.5 shrink-0" />
-                    <span className="text-slate-400">
-                      Tanpa Level 3 Payload Blueprint
-                    </span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Action Button */}
-              <div className="pt-6">
-                {isCurrentPro ? (
+                {isCurrentFoundation ? (
                   <button
                     disabled
                     className="w-full py-2.5 px-4 rounded-lg bg-[#090D16] border border-[#1E293B] text-slate-500 text-xs font-mono font-semibold text-center cursor-not-allowed"
                   >
-                    [ Tier Pro Aktif ]
+                    [ Tier Fondasi Aktif ]
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleCheckout('pro')}
-                    className="w-full py-2.5 px-4 rounded-lg bg-[#161F30] hover:bg-[#1E293B] border border-purple-500/50 hover:border-purple-400 text-purple-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    onClick={() => handleCheckout('foundation')}
+                    className="w-full py-2.5 px-4 rounded-lg bg-[#161F30] hover:bg-[#1E293B] border border-amber-500/50 hover:border-amber-400 text-amber-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <span>[ Pilih Pro Specialist ]</span>
+                    <span>[ Pilih Foundation (Rp 70k) ]</span>
                     <ChevronRight size={13} />
                   </button>
                 )}
@@ -349,38 +286,37 @@ export function UpgradeModal({
             </div>
 
             {/* ------------------------------------------------------------ */}
-            {/* TIER 3: VIP (Elite Operative) [THE WINNER / GLOWING BORDER]  */}
+            {/* TIER 2: PRO (Specialist - Rp 270.000 / bln) [BEST SELLER]    */}
             {/* ------------------------------------------------------------ */}
             <div className="relative flex flex-col justify-between rounded-xl bg-[#161F30] border-2 border-[#06B6D4] p-5 shadow-[0_0_35px_rgba(6,182,212,0.25)] hover:shadow-[0_0_45px_rgba(6,182,212,0.4)] transition-all">
               {/* Highlight Badge */}
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gradient-to-r from-[#10B981] via-[#06B6D4] to-[#8B5CF6] text-black font-mono text-[10px] font-extrabold uppercase tracking-widest shadow-md flex items-center gap-1">
                 <Sparkles size={11} className="text-black" />
-                <span>PALING POPULER // NILAI TERBAIK</span>
+                <span>PALING POPULER // BEST SELLER</span>
               </div>
 
               <div className="space-y-4 pt-1">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-300 font-semibold">
-                      [ TIER 03 &bull; MAKSIMUM ]
+                      [ TIER 02 &bull; SPESIALIS ]
                     </span>
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/60">
-                      ELITE OPERATIVE
+                      PRO SPESIALIS
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-white font-mono flex items-center gap-1.5">
-                    <span>VIP (Elite Operative)</span>
-                    <Award size={16} className="text-amber-400" />
+                    <span>PRO Specialist</span>
                   </h3>
                   <p className="text-xs text-cyan-100/80 font-sans">
-                    Arsenal penuh: blueprint siap pakai, auto-inject repeater, & mentor Elysia.
+                    Arsenal penuh: seluruh 40+ lab OWASP Top 10, Burp Repeater, & mentor Aoi.
                   </p>
                 </div>
 
                 <div className="pt-2 pb-1 border-y border-[#1E293B]">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-white font-mono">
-                      {billingCycle === 'monthly' ? 'Rp 89.000' : 'Rp 799.000'}
+                      {billingCycle === 'monthly' ? 'Rp 270.000' : 'Rp 1.990.000'}
                     </span>
                     <span className="text-xs text-cyan-300 font-sans">
                       {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}
@@ -388,8 +324,10 @@ export function UpgradeModal({
                   </div>
                   <div className="text-[11px] font-mono text-emerald-400 font-semibold mt-0.5">
                     {billingCycle === 'annual'
-                      ? 'Hanya Rp 66.500 / bln (Hemat Rp 269.000!)'
-                      : 'Hanya selisih Rp 40k dari Pro!'}
+                      ? 'Hanya Rp 165.800 / bln (Hemat Rp 1.250.000!)'
+                      : isCurrentFoundation
+                      ? 'Upgrade Roll-Over: Cukup bayar selisih Rp 200.000!'
+                      : 'Investasi Rp 9.000 / hari'}
                   </div>
                 </div>
 
@@ -401,10 +339,7 @@ export function UpgradeModal({
                       className="text-[#06B6D4] mt-0.5 shrink-0"
                     />
                     <span>
-                      <strong className="text-cyan-300">
-                        Unlimited Priority AI Overview
-                      </strong>{' '}
-                      (Tanpa batasan)
+                      <strong className="text-white">Seluruh 40+ Lab Industri</strong> (Track 1 & 2 OWASP Top 10)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -413,10 +348,7 @@ export function UpgradeModal({
                       className="text-[#06B6D4] mt-0.5 shrink-0"
                     />
                     <span>
-                      <strong className="text-white">
-                        Level 3 Payload Blueprint
-                      </strong>{' '}
-                      (Payload presisi siap pakai)
+                      <strong className="text-cyan-300">Burp Lite Repeater Terintegrasi</strong> (Modifikasi raw HTTP)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -424,50 +356,150 @@ export function UpgradeModal({
                       size={14}
                       className="text-[#06B6D4] mt-0.5 shrink-0"
                     />
-                    <span>
-                      <strong className="text-white">
-                        One-Click Auto-Inject ke Burp Repeater
-                      </strong>
-                    </span>
+                    <span>Clue Level 1 & Level 2 di seluruh 40+ lab</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2
                       size={14}
                       className="text-[#06B6D4] mt-0.5 shrink-0"
                     />
-                    <span>
-                      Mentor Eksklusif{' '}
-                      <strong className="text-amber-300">
-                        Elysia Red-Team & All Mentors
-                      </strong>
-                    </span>
+                    <span>Chat Pertanyaan Taktis Lapis 1 & 2 lengkap</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2
                       size={14}
                       className="text-[#06B6D4] mt-0.5 shrink-0"
                     />
-                    <span>
-                      Instant Mentor Overclock (Bypass cooldown 12 jam)
-                    </span>
+                    <span>Multi-Mentor: Bebas pilih Zeta atau Aoi</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2
                       size={14}
                       className="text-[#06B6D4] mt-0.5 shrink-0"
                     />
+                    <span>Scoreboard Rank, Leaderboard & Streak Saver</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Action Button */}
+              <div className="pt-6">
+                {isCurrentPro ? (
+                  <button
+                    disabled
+                    className="w-full py-3 px-4 rounded-xl bg-[#090D16] border border-[#06B6D4]/50 text-cyan-400 text-xs font-mono font-bold text-center cursor-not-allowed"
+                  >
+                    [ Tier PRO Aktif ]
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleCheckout('pro')}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#10B981] via-[#06B6D4] to-[#8B5CF6] hover:brightness-110 active:scale-[0.99] text-black text-xs font-mono font-extrabold flex items-center justify-center gap-2 shadow-[0_4px_24px_rgba(6,182,212,0.45)] transition-all cursor-pointer"
+                  >
+                    <Zap size={14} className="fill-black text-black" />
                     <span>
-                      Sertifikat Kriptografis Resmi Anti-Pemalsuan
+                      {isCurrentFoundation
+                        ? '[ UPGRADE KE PRO &bull; TAMBAH RP 200K ]'
+                        : '[ PILIH PRO SPECIALIST SEKARANG ]'}
+                    </span>
+                    <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* ------------------------------------------------------------ */}
+            {/* TIER 3: VIP (Enterprise VIP - Rp 470.000 / bln) [ELITE]      */}
+            {/* ------------------------------------------------------------ */}
+            <div className="relative flex flex-col justify-between rounded-xl bg-[#161F30]/80 border border-purple-500/50 p-5 hover:border-purple-400 transition-all">
+              <div className="space-y-4 pt-1">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-purple-300 font-semibold">
+                      [ TIER 03 &bull; MAKSIMUM ]
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-500/60">
+                      ELITE OPERATIVE
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white font-mono flex items-center gap-1.5">
+                    <span>Enterprise VIP</span>
+                    <Award size={16} className="text-amber-400" />
+                  </h3>
+                  <p className="text-xs text-purple-200/80 font-sans">
+                    Masterclass karir: bedah source code asli, remediasi aman, & sertifikasi.
+                  </p>
+                </div>
+
+                <div className="pt-2 pb-1 border-y border-[#1E293B]">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-white font-mono">
+                      {billingCycle === 'monthly' ? 'Rp 470.000' : 'Rp 3.490.000'}
+                    </span>
+                    <span className="text-xs text-purple-300 font-sans">
+                      {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-mono text-emerald-400 font-semibold mt-0.5">
+                    {billingCycle === 'annual'
+                      ? 'Hanya Rp 290.800 / bln (Hemat Rp 2.150.000!)'
+                      : 'Hanya selisih Rp 200k dari PRO!'}
+                  </div>
+                </div>
+
+                {/* Features List */}
+                <ul className="space-y-2.5 text-xs text-slate-100 font-sans">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2
+                      size={14}
+                      className="text-purple-400 mt-0.5 shrink-0"
+                    />
+                    <span>
+                      <strong className="text-white">Seluruh 60+ Lab Lengkap</strong> (Termasuk Track 3 Red-Team & Live CVE)
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <FileCode
+                      size={14}
+                      className="text-purple-400 mt-0.5 shrink-0"
+                    />
+                    <span>
+                      <strong className="text-purple-300">Clue Level 3 Masterclass:</strong> White-Box Code Anatomy & DevSecOps Patch
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <FileText
+                      size={14}
+                      className="text-purple-400 mt-0.5 shrink-0"
+                    />
+                    <span>
+                      <strong className="text-white">HackerOne Report Draft Generator</strong> (Markdown siap submit)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2
                       size={14}
-                      className="text-[#06B6D4] mt-0.5 shrink-0"
+                      className="text-purple-400 mt-0.5 shrink-0"
                     />
                     <span>
-                      Akses Seluruh 45 Lab Termasuk Track 3 Zero-Day
+                      <strong className="text-amber-300">Sertifikat Digital Kriptografis</strong> (Verifikasi CV/LinkedIn)
                     </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2
+                      size={14}
+                      className="text-purple-400 mt-0.5 shrink-0"
+                    />
+                    <span>
+                      Mentor Senior Eksklusif <strong className="text-cyan-300">Elysia (Red-Team Lead)</strong>
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2
+                      size={14}
+                      className="text-purple-400 mt-0.5 shrink-0"
+                    />
+                    <span>Jalur Konsultasi Prioritas / Concierge VIP</span>
                   </li>
                 </ul>
               </div>
@@ -477,18 +509,17 @@ export function UpgradeModal({
                 {isCurrentVip ? (
                   <button
                     disabled
-                    className="w-full py-3 px-4 rounded-xl bg-[#090D16] border border-[#10B981]/50 text-[#10B981] text-xs font-mono font-bold text-center cursor-not-allowed"
+                    className="w-full py-2.5 px-4 rounded-lg bg-[#090D16] border border-purple-500/50 text-purple-400 text-xs font-mono font-bold text-center cursor-not-allowed"
                   >
                     [ Tier VIP Aktif ]
                   </button>
                 ) : (
                   <button
                     onClick={() => handleCheckout('vip')}
-                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#10B981] via-[#06B6D4] to-[#8B5CF6] hover:brightness-110 active:scale-[0.99] text-black text-xs font-mono font-extrabold flex items-center justify-center gap-2 shadow-[0_4px_24px_rgba(6,182,212,0.45)] transition-all cursor-pointer"
+                    className="w-full py-2.5 px-4 rounded-lg bg-[#161F30] hover:bg-[#1E293B] border border-purple-500/50 hover:border-purple-400 text-purple-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <Zap size={14} className="fill-black text-black" />
-                    <span>[ AKTIFKAN AKSES VIP SEKARANG ]</span>
-                    <ArrowRight size={14} />
+                    <span>[ Aktifkan Enterprise VIP ]</span>
+                    <ChevronRight size={13} />
                   </button>
                 )}
               </div>
@@ -507,7 +538,7 @@ export function UpgradeModal({
             </div>
             <div className="flex items-center gap-2">
               <Clock size={13} className="text-[#8B5CF6]" />
-              <span>Dukungan Teknis Komunitas & Tim Pengembang</span>
+              <span>Garansi Kredit Roll-Over Antar Tingkatan</span>
             </div>
           </div>
         </div>

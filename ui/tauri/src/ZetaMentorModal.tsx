@@ -1,15 +1,14 @@
 // ZITERA CYBER_LAB — Multi-Mentor Character Intelligence Modal
 // Features multiple realistic anime cyber mentors (Zeta, Aoi, Elysia), dynamic teaching & praise poses,
-// progressive Socratic clue ladder, and serverless anti-spoiler heuristic chat.
+// progressive Socratic clue ladder, and finite tactical question tree (Option A) with realistic typewriter cadence.
 // Zero emojis — Lucide icons and masterclass vector/anime assets used exclusively.
 
-import { useState, useEffect, useRef, type FormEvent } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   ShieldCheck,
   Terminal,
   Lock,
   Unlock,
-  Send,
   Sparkles,
   AlertTriangle,
   ChevronDown,
@@ -20,6 +19,9 @@ import {
   ArrowRight,
   KeyRound,
   UserCheck,
+  RotateCcw,
+  FastForward,
+  CheckCircle2,
 } from 'lucide-react'
 import {
   getSocraticCurriculum,
@@ -80,8 +82,29 @@ export function ZetaMentorModal({
   const [expandedClueLevel, setExpandedClueLevel] = useState<number | null>(1)
   const [activeMood, setActiveMood] = useState<ZetaMood>('idle')
   const [isTyping, setIsTyping] = useState<boolean>(false)
-  const [inputPrompt, setInputPrompt] = useState<string>('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
+
+  // ── Tactical Question Tree & Typewriter State (Option A) ────────────────────
+  const [investigationDepth, setInvestigationDepth] = useState<number>(0)
+  const [activeQuestions, setActiveQuestions] = useState<string[]>([])
+  const [isTerminal, setIsTerminal] = useState<boolean>(false)
+  const [typingState, setTypingState] = useState<{
+    text: string
+    isStreaming: boolean
+    targetFullText: string
+    activeMessageId: string | null
+    mood: ZetaMood
+    mentorId: MentorId
+  }>({
+    text: '',
+    isStreaming: false,
+    targetFullText: '',
+    activeMessageId: null,
+    mood: 'idle',
+    mentorId: selectedMentorId,
+  })
+
+  const typewriterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── AI Overview & Paywall State ────────────────────────────────────────────
   const [activeConsoleTab, setActiveConsoleTab] = useState<'overview' | 'chat'>('overview')
@@ -163,6 +186,19 @@ export function ZetaMentorModal({
     ])
     setUnlockedClues([1])
     setExpandedClueLevel(1)
+
+    // Reset Tactical Question Tree to Root Questions
+    setInvestigationDepth(0)
+    setIsTerminal(false)
+    const rootQuestions =
+      curriculum.suggestedPrompts && curriculum.suggestedPrompts.length > 0
+        ? curriculum.suggestedPrompts
+        : [
+            'Bagaimana cara memetakan parameter sensitif pada endpoint ini?',
+            'Indikasi apa pada response HTTP yang membuktikan adanya celah?',
+            'Langkah observasi awal apa yang harus saya lakukan?',
+          ]
+    setActiveQuestions(rootQuestions)
   }, [isOpen, cleanLabId, labTitle])
 
   // Auto-scroll chat console
@@ -170,23 +206,40 @@ export function ZetaMentorModal({
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, typingState.text])
 
-  const isFoundationTier = userTier !== 'pro' && userTier !== 'enterprise'
+  // Tier Gating Helpers
+  const isFoundationEligibleLab = [
+    'F01',
+    'F02',
+    'F03',
+    'F04',
+    'F05',
+    'F06',
+    'A01',
+    'A02',
+  ].includes(cleanLabId)
+
+  const canAccessLevel2 =
+    userTier === 'pro' ||
+    userTier === 'vip' ||
+    userTier === 'enterprise' ||
+    (userTier === 'foundation' && isFoundationEligibleLab)
+
+  const canAccessLevel3 = userTier === 'vip' || userTier === 'enterprise'
 
   // ── Unlock Clue Progression ────────────────────────────────────────────────
   const handleUnlockClue = (level: number) => {
-    // Tier Gating Enforcement
-    if (level === 2 && isFoundationTier) {
+    if (level === 2 && !canAccessLevel2) {
       setActiveMood('warning')
-      setUpgradeTargetFeature('Clue Level 2 (Vulnerability Logic)')
+      setUpgradeTargetFeature('Clue Level 2 (Vektor Serangan & Logika Bypass)')
       setUpgradeModalOpen(true)
       return
     }
 
-    if (level === 3 && isFoundationTier) {
+    if (level === 3 && !canAccessLevel3) {
       setActiveMood('warning')
-      setUpgradeTargetFeature('Clue Level 3 (Payload Blueprint)')
+      setUpgradeTargetFeature('Clue Level 3 (White-Box Code Anatomy & DevSecOps Patch)')
       setUpgradeModalOpen(true)
       return
     }
@@ -214,67 +267,196 @@ export function ZetaMentorModal({
     }
   }
 
-  // ── Submit Student Prompt to Heuristic Socratic Engine ─────────────────────
-  const handleSendMessage = (e?: FormEvent) => {
-    if (e) e.preventDefault()
-    const query = inputPrompt.trim()
-    if (!query || isTyping) return
+  // ── Skip Typewriter Animation ──────────────────────────────────────────────
+  const handleSkipTyping = () => {
+    if (!typingState.isStreaming) return
+    if (typewriterTimerRef.current) {
+      clearTimeout(typewriterTimerRef.current)
+      typewriterTimerRef.current = null
+    }
 
-    // Deduct energy if > 0
+    const completedText = typingState.targetFullText
+    const completedMsgId = typingState.activeMessageId
+    const finalMood = typingState.mood
+
+    setTypingState((prev) => ({
+      ...prev,
+      text: completedText,
+      isStreaming: false,
+    }))
+    setIsTyping(false)
+    setActiveMood(finalMood)
+
+    if (completedMsgId) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === completedMsgId ? { ...m, text: completedText, mood: finalMood } : m
+        )
+      )
+    }
+  }
+
+  // ── Realistic Typewriter Engine ────────────────────────────────────────────
+  const streamTypewriter = (
+    fullText: string,
+    messageId: string,
+    mood: ZetaMood,
+    mentorId: MentorId,
+    onFinish: () => void
+  ) => {
+    let currentIndex = 0
+    setIsTyping(true)
+    setActiveMood('thinking')
+
+    setTypingState({
+      text: '',
+      isStreaming: true,
+      targetFullText: fullText,
+      activeMessageId: messageId,
+      mood,
+      mentorId,
+    })
+
+    const typeNextChar = () => {
+      if (currentIndex >= fullText.length) {
+        setTypingState((prev) => ({ ...prev, isStreaming: false, text: fullText }))
+        setIsTyping(false)
+        setActiveMood(mood)
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId ? { ...m, text: fullText, mood } : m
+          )
+        )
+        onFinish()
+        return
+      }
+
+      const char = fullText[currentIndex]
+      currentIndex++
+      const partial = fullText.slice(0, currentIndex)
+
+      setTypingState((prev) => ({ ...prev, text: partial }))
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, text: partial } : m
+        )
+      )
+
+      // Variable cadence simulation (18-32ms base, 200ms punctuation pause)
+      let delay = 18 + Math.floor(Math.random() * 14)
+      if (char === '.' || char === '?' || char === '!') {
+        delay = 200
+      } else if (char === ',' || char === ':' || char === ';') {
+        delay = 90
+      } else if (char === '\n') {
+        delay = 140
+      }
+
+      typewriterTimerRef.current = setTimeout(typeNextChar, delay)
+    }
+
+    typewriterTimerRef.current = setTimeout(typeNextChar, 80)
+  }
+
+  // ── Handle Tactical Question Selection (Option A Tree) ──────────────────────
+  const handleSelectTacticalQuestion = (question: string) => {
+    if (isTyping || typingState.isStreaming) return
+
+    // Deduct energy
     if (mentorEnergy > 0) {
       setMentorEnergy((prev) => Math.max(0, prev - 1))
     }
-
-    // Generate enriched, typo-tolerant AI Overview
-    const newOverview = generateAiOverview(
-      query,
-      cleanLabId,
-      (userTier as 'free' | 'pro' | 'vip') || 'free'
-    )
-    setAiOverviewData(newOverview)
 
     const studentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const studentMsg: ChatMessage = {
       id: `std_${Date.now()}`,
       sender: 'student',
-      text: query,
+      text: question,
       timestamp: studentTime,
     }
 
-    setMessages((prev) => [...prev, studentMsg])
-    setInputPrompt('')
-    setActiveMood('thinking')
-    setIsTyping(true)
+    // Evaluate heuristic Socratic engine response
+    const response = querySocraticEngine(question, cleanLabId)
+    const mentorTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-    // Evaluate heuristic Socratic engine response with slight delay for realistic processing
-    setTimeout(() => {
-      setIsTyping(false)
-      const response = querySocraticEngine(query, cleanLabId)
-      const mentorTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    let personalizedText = response.message
+    if (selectedMentorId === 'aoi' && !response.antiSpoilerWarning) {
+      personalizedText = `[Aoi Exploit Note]: ${response.message}`
+    } else if (selectedMentorId === 'elysia' && !response.antiSpoilerWarning) {
+      personalizedText = `[Elysia Defense Review]: ${response.message}`
+    }
 
-      // Tailor response tone slightly based on active mentor persona
-      let personalizedText = response.message
-      if (selectedMentorId === 'aoi' && !response.antiSpoilerWarning) {
-        personalizedText = `[Aoi Exploit Note]: ${response.message}`
-      } else if (selectedMentorId === 'elysia' && !response.antiSpoilerWarning) {
-        personalizedText = `[Elysia Defense Review]: ${response.message}`
+    const mentorMsgId = `zeta_${Date.now()}`
+    const placeholderMentorMsg: ChatMessage = {
+      id: mentorMsgId,
+      sender: 'zeta',
+      text: '',
+      timestamp: mentorTime,
+      mood: 'thinking',
+      antiSpoilerWarning: response.antiSpoilerWarning,
+      mentorId: selectedMentorId,
+    }
+
+    setMessages((prev) => [...prev, studentMsg, placeholderMentorMsg])
+
+    // Update AI Overview context
+    const newOverview = generateAiOverview(
+      question,
+      cleanLabId,
+      (userTier as 'free' | 'pro' | 'vip') || 'free'
+    )
+    setAiOverviewData(newOverview)
+
+    // Stream typewriter response
+    streamTypewriter(
+      personalizedText,
+      mentorMsgId,
+      response.mood,
+      selectedMentorId,
+      () => {
+        const nextDepth = investigationDepth + 1
+        setInvestigationDepth(nextDepth)
+
+        const followups = response.suggestedFollowups.filter((f) => f && f !== question)
+        if (nextDepth >= 2 || followups.length === 0) {
+          setIsTerminal(true)
+          setActiveQuestions([])
+        } else {
+          setIsTerminal(false)
+          setActiveQuestions(followups)
+        }
       }
+    )
+  }
 
-      setActiveMood(response.mood)
+  // ── Reset Investigation Tree ───────────────────────────────────────────────
+  const handleResetInvestigation = () => {
+    if (isTyping || typingState.isStreaming) {
+      handleSkipTyping()
+    }
+    setInvestigationDepth(0)
+    setIsTerminal(false)
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `zeta_${Date.now()}`,
-          sender: 'zeta',
-          text: personalizedText,
-          timestamp: mentorTime,
-          mood: response.mood,
-          antiSpoilerWarning: response.antiSpoilerWarning,
-          mentorId: selectedMentorId,
-        },
-      ])
-    }, 380)
+    const rootQuestions =
+      curriculum.suggestedPrompts && curriculum.suggestedPrompts.length > 0
+        ? curriculum.suggestedPrompts
+        : [
+            'Bagaimana cara memetakan parameter sensitif pada endpoint ini?',
+            'Indikasi apa pada response HTTP yang membuktikan adanya celah?',
+            'Langkah observasi awal apa yang harus saya lakukan?',
+          ]
+    setActiveQuestions(rootQuestions)
+
+    const resetMsg: ChatMessage = {
+      id: `reset_${Date.now()}`,
+      sender: 'zeta',
+      text: `[${currentMentor.name.toUpperCase()} // INVESTIGASI DIRESET]: Rantai penyelidikan telah dikembalikan ke awal. Pilih sudut investigasi baru di bawah untuk melanjutkan eksplorasi ${labTitle}.`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      mood: 'idle',
+      mentorId: selectedMentorId,
+    }
+    setMessages((prev) => [...prev, resetMsg])
+    setActiveMood('idle')
   }
 
   // ── Dynamic Visual Pose Resolution ─────────────────────────────────────────
@@ -687,13 +869,10 @@ export function ZetaMentorModal({
                   maxEnergy={5}
                   onAutoInject={handleAutoInject}
                   onOpenUpgradeModal={() => {
-                    setUpgradeTargetFeature('Level 3 Payload Blueprint & Burp Auto-Inject')
+                    setUpgradeTargetFeature('Level 3 White-Box Code & DevSecOps Patch')
                     setUpgradeModalOpen(true)
                   }}
                   onMentorChange={handleSwitchMentor}
-                  onQueryChange={(corrected) => {
-                    setInputPrompt(corrected)
-                  }}
                 />
               </div>
             ) : (
@@ -705,6 +884,8 @@ export function ZetaMentorModal({
                 {messages.map((msg) => {
                   const isStudent = msg.sender === 'student'
                   const msgMentor = msg.mentorId ? getMentor(msg.mentorId) : currentMentor
+                  const isThisMsgTyping =
+                    msg.id === typingState.activeMessageId && typingState.isStreaming
 
                   return (
                     <div
@@ -742,7 +923,12 @@ export function ZetaMentorModal({
                           </div>
                         )}
 
-                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                        <p className="whitespace-pre-wrap">
+                          {msg.text}
+                          {isThisMsgTyping && (
+                            <span className="inline-block w-2 h-3.5 ml-1 bg-teal-400 animate-pulse align-middle" />
+                          )}
+                        </p>
 
                         {msg.codeSnippet && (
                           <pre className="mt-2 p-2 rounded bg-stone-950 border border-stone-800 text-[11px] font-mono text-cyan-300 overflow-x-auto">
@@ -762,54 +948,95 @@ export function ZetaMentorModal({
               </div>
             )}
 
-            {/* Quick Socratic Suggestion Chips */}
-            <div className="px-4 py-2 bg-stone-950/80 border-t border-stone-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-              <span className="text-[10px] font-mono text-stone-500 shrink-0 mr-1">
-                PERTANYAAN TAKTIS:
-              </span>
-              {curriculum.suggestedPrompts.slice(0, 3).map((prompt, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setInputPrompt(prompt)
-                  }}
-                  className="px-2.5 py-1 rounded-full text-[11px] font-mono text-stone-300 bg-stone-900 hover:bg-teal-950/80 hover:text-teal-300 border border-stone-700/80 hover:border-teal-500/40 transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
-                >
-                  <ArrowRight className="w-2.5 h-2.5 text-teal-400" />
-                  <span className="truncate max-w-[200px]">{prompt}</span>
-                </button>
-              ))}
-            </div>
+            {/* ============================================================== */}
+            {/* TACTICAL QUESTION TREE PANEL (OPTION A - NO OPEN PROMPT)       */}
+            {/* ============================================================== */}
+            <div className="bg-stone-950/95 border-t border-stone-800 p-3 sm:p-4 space-y-2.5">
+              {/* Header & Status Indicator */}
+              <div className="flex items-center justify-between text-[11px] font-mono text-stone-400">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-3.5 h-3.5 text-teal-400" />
+                  <span className="font-semibold text-stone-300">
+                    PERTANYAAN TAKTIS // LEVEL {investigationDepth + 1}/3
+                  </span>
+                  {isTerminal ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-bold">
+                      KESIMPULAN TERCAPAI
+                    </span>
+                  ) : (
+                    <span className="text-stone-500 text-[10px]">
+                      ({activeQuestions.length} Opsi Tersedia)
+                    </span>
+                  )}
+                </div>
 
-            {/* Input Form Bar */}
-            <form
-              onSubmit={handleSendMessage}
-              className="p-3 bg-stone-950 border-t border-stone-800 flex items-center gap-2"
-            >
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={inputPrompt}
-                  onChange={(e) => setInputPrompt(e.target.value)}
-                  placeholder={`Tanya ${currentMentor.name} (contoh: "kenapa 403", "sqli", "stuck di login")...`}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-900 border border-stone-700 text-stone-200 placeholder-stone-500 text-xs sm:text-[13px] focus:outline-none focus:border-teal-400 transition-colors pr-10 font-sans"
-                />
-                <span className="absolute right-3 top-3 text-[10px] font-mono text-stone-500 hidden sm:inline">
-                  Enter ↵
-                </span>
+                <div className="flex items-center gap-2">
+                  {typingState.isStreaming && (
+                    <button
+                      type="button"
+                      onClick={handleSkipTyping}
+                      className="px-2 py-0.5 rounded bg-teal-950/80 hover:bg-teal-900 border border-teal-500/50 text-teal-300 text-[10px] font-mono flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Lewati animasi ketik"
+                    >
+                      <FastForward className="w-3 h-3 text-teal-400" />
+                      <span>Lewati Animasi</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleResetInvestigation}
+                    className="px-2 py-0.5 rounded bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-400 hover:text-stone-200 text-[10px] font-mono flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Kembalikan pertanyaan ke awal investigasi"
+                  >
+                    <RotateCcw className="w-3 h-3 text-stone-400" />
+                    <span>Reset Awal</span>
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={!inputPrompt.trim() || isTyping}
-                className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-40 disabled:hover:bg-teal-600 text-white font-['Space_Grotesk'] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                title="Kirim pesan ke mentor"
-              >
-                <span>Analisis</span>
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </form>
+              {/* Question Tree Action Cards */}
+              {isTerminal ? (
+                <div className="p-3.5 rounded-xl bg-stone-900/90 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-300">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <span>Cabang Penyelidikan Selesai</span>
+                    </div>
+                    <p className="text-[12px] text-stone-300 font-sans leading-relaxed">
+                      Hipotesis investigasi telah dirumuskan secara tuntas. Silakan uji temuan Anda pada lab atau telusuri jalur investigasi lainnya.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleResetInvestigation}
+                    className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all shadow-md shrink-0 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>[ ↺ Kembali ke Awal Investigasi ]</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                  {activeQuestions.map((q, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      disabled={isTyping || typingState.isStreaming}
+                      onClick={() => handleSelectTacticalQuestion(q)}
+                      className="w-full text-left p-2.5 rounded-xl bg-stone-900/80 hover:bg-teal-950/60 border border-stone-800 hover:border-teal-500/50 disabled:opacity-40 disabled:hover:bg-stone-900 transition-all flex items-start gap-2.5 group cursor-pointer"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 text-teal-400 mt-0.5 shrink-0 group-hover:scale-110 transition-transform" />
+                      <span className="flex-1 text-xs text-stone-200 font-mono group-hover:text-teal-200 leading-snug">
+                        {q}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-stone-500 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all mt-0.5 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -450,7 +450,7 @@ export function ZiteraAiOverview({
                       ) : (
                         <>
                           <Copy size={13} />
-                          <span>Salin Payload</span>
+                          <span>Salin Cetak Biru</span>
                         </>
                       )}
                     </button>
@@ -465,41 +465,34 @@ export function ZiteraAiOverview({
                       className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[#0F766E] to-[#06B6D4] hover:from-[#115E59] hover:to-[#0891B2] text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-[0_2px_12px_rgba(6,182,212,0.3)] hover:shadow-[0_2px_18px_rgba(6,182,212,0.5)] transition-all cursor-pointer"
                     >
                       <Zap size={13} className="text-cyan-200" />
-                      <span>Auto-Inject ke Burp Repeater</span>
+                      <span>Kirim ke Burp Lite Repeater</span>
                     </button>
                   </div>
                 </div>
               ) : (
-                // NON-VIP GATED & BLURRED VIEW
-                <div className="relative rounded-lg overflow-hidden border border-[#1E293B] bg-[#090D16] p-4 min-h-[110px] flex items-center justify-center">
-                  {/* Blurred Background Dummy Payload */}
-                  <div
-                    className="select-none blur-sm opacity-40 pointer-events-none font-mono text-xs text-slate-400 w-full overflow-hidden"
-                    aria-hidden="true"
-                  >
-                    <code>
-                      ' UNION SELECT 1, column_name, table_schema, 4 FROM
-                      information_schema.columns WHERE table_name='users'-- -
-                    </code>
-                    <br />
-                    <code>
-                      admin' AND 1=1; EXEC xp_cmdshell('whoami');--
-                    </code>
+                // NON-VIP GATED VIEW (CLEAN CAREER ASSET TEASER - NO BLURRED CHEAT)
+                <div className="rounded-xl border border-purple-500/30 bg-[#090D16]/90 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-mono font-bold text-purple-300">
+                      <Lock size={14} className="text-purple-400" />
+                      <span>Aset Masterclass Karir & Bedah Kode (Khusus VIP)</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800/60 font-semibold">
+                      TIER VIP
+                    </span>
                   </div>
 
-                  {/* Centered Glassmorphic Unlock Action */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#090D16]/85 backdrop-blur-[3px] p-4 text-center space-y-2.5">
-                    <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-300">
-                      <Lock size={14} className="text-amber-400" />
-                      <span>Level 3 Payload Blueprint Terkunci</span>
-                    </div>
+                  <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                    Buka bedah kode sumber backend asli (White-Box), pola perbaikan aman standar DevSecOps ISO 27001, serta draf laporan Bug Bounty HackerOne siap pakai.
+                  </p>
 
+                  <div className="pt-1">
                     <button
                       onClick={onOpenUpgradeModal}
-                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] via-[#06B6D4] to-[#10B981] text-white text-xs font-mono font-bold flex items-center gap-2 shadow-[0_4px_20px_rgba(6,182,212,0.35)] hover:shadow-[0_4px_28px_rgba(6,182,212,0.55)] hover:scale-[1.02] active:scale-[0.99] transition-all cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] via-[#06B6D4] to-[#10B981] text-white text-xs font-mono font-bold flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(139,92,246,0.35)] hover:shadow-[0_4px_28px_rgba(139,92,246,0.55)] hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
                     >
                       <Lock size={13} />
-                      <span>[ Buka Payload & Auto-Inject dengan VIP ]</span>
+                      <span>[ Buka White-Box Code & Remediasi dengan VIP ]</span>
                       <CornerDownRight size={13} />
                     </button>
                   </div>
