@@ -307,6 +307,15 @@ export function UpgradeModal({
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
+                    <FileText
+                      size={14}
+                      className="text-[#06B6D4] mt-0.5 shrink-0"
+                    />
+                    <span>
+                      <strong className="text-white">Modul PoC Standar Industri</strong> (cURL & Raw HTTP Capture)
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
                     <CheckCircle2
                       size={14}
                       className="text-[#06B6D4] mt-0.5 shrink-0"
@@ -408,7 +417,16 @@ export function UpgradeModal({
                       className="text-purple-400 mt-0.5 shrink-0"
                     />
                     <span>
-                      <strong className="text-white">Seluruh 60+ Lab Lengkap</strong> (Termasuk Track 3 Red-Team & Live CVE)
+                      <strong className="text-white">Seluruh 60+ Lab Lengkap</strong> (Track 3 Advanced Exploit Engineering)
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Zap
+                      size={14}
+                      className="text-purple-400 mt-0.5 shrink-0"
+                    />
+                    <span>
+                      <strong className="text-purple-300">Elite Bug Bounty Automated PoC Suite:</strong> Skrip Python/Go + Bimbingan AI
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -426,16 +444,16 @@ export function UpgradeModal({
                       className="text-purple-400 mt-0.5 shrink-0"
                     />
                     <span>
-                      <strong className="text-white">HackerOne Report Draft Generator</strong> (Markdown siap submit)
+                      <strong className="text-white">HackerOne Report Draft Generator</strong> (Triage-Ready Markdown)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2
+                    <Shield
                       size={14}
                       className="text-purple-400 mt-0.5 shrink-0"
                     />
                     <span>
-                      <strong className="text-amber-300">Sertifikat Digital Kriptografis</strong> (Verifikasi CV/LinkedIn)
+                      <strong className="text-amber-300">Pedoman Etika & Safe Harbor</strong> (Aturan RoE Pentest Legal)
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
