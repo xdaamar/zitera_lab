@@ -247,7 +247,9 @@ fn urldecode(input: &str) -> String {
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let Ok(val) = u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16) {
+            if let Ok(val) =
+                u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16)
+            {
                 result.push(val as char);
                 i += 3;
                 continue;
@@ -276,7 +278,12 @@ fn extract_cookie(headers: &HashMap<String, String>, cookie_name: &str) -> Optio
     None
 }
 
-fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, search_q: Option<&str>) -> String {
+fn render_portal(
+    state: &AppState,
+    user: Option<&str>,
+    error: Option<&str>,
+    search_q: Option<&str>,
+) -> String {
     let mut html = String::new();
     html.push_str("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">");
     html.push_str("<title>NexHealth Portal — Electronic Health Records</title>");
@@ -290,7 +297,10 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
     html.push_str("<p>Hospital Clinical Records & Medical Staff Authorization Gateway (OWASP A07:2025)</p></div>");
     html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
     if let Some(u) = user {
-        html.push_str(&format!("<span class=\"badge badge-emerald\">[USER] Signed in: {}</span>", html_escape(u)));
+        html.push_str(&format!(
+            "<span class=\"badge badge-emerald\">[USER] Signed in: {}</span>",
+            html_escape(u)
+        ));
         if u == ADMIN_USER || u == DOCTOR_USER {
             html.push_str("<a href=\"/records/vault\" class=\"btn btn-primary\" style=\"font-size: 12px; padding: 6px 12px;\">Chief Officer's Vault</a>");
         }
@@ -306,10 +316,15 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
     html.push_str("<strong>CLINICAL AUDIT DIRECTIVE:</strong> NexHealth manages emergency health records and clinical prescriptions. ");
     html.push_str("Hospital management recently migrated to a streamlined 4-digit PIN authentication protocol for all physicians. ");
     html.push_str("Notice the staff onboarding memo: all newly provisioned physician PINs (including Dr. Marcus Reid) default to the hospital's annual deployment cycle. ");
-    html.push_str("Test the portal's rate-limiting policy to identify brute-force vulnerabilities.</div>");
+    html.push_str(
+        "Test the portal's rate-limiting policy to identify brute-force vulnerabilities.</div>",
+    );
 
     if let Some(err) = error {
-        html.push_str(&format!("<div class=\"banner-danger\">[PERINGATAN] {}</div>", html_escape(err)));
+        html.push_str(&format!(
+            "<div class=\"banner-danger\">[PERINGATAN] {}</div>",
+            html_escape(err)
+        ));
     }
 
     // Grid layout
@@ -330,11 +345,15 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
 
     let filtered: Vec<&PatientRecord> = if let Some(q) = search_q {
         let q_lower = q.to_lowercase();
-        state.records.iter().filter(|r| {
-            r.patient_name.to_lowercase().contains(&q_lower) ||
-            r.physician.to_lowercase().contains(&q_lower) ||
-            r.diagnosis.to_lowercase().contains(&q_lower)
-        }).collect()
+        state
+            .records
+            .iter()
+            .filter(|r| {
+                r.patient_name.to_lowercase().contains(&q_lower)
+                    || r.physician.to_lowercase().contains(&q_lower)
+                    || r.diagnosis.to_lowercase().contains(&q_lower)
+            })
+            .collect()
     } else {
         state.records.iter().collect()
     };
@@ -353,8 +372,15 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
             html.push_str(&format!("<td><strong>{}</strong><br/><span style=\"font-size: 11px; color: var(--text-secondary);\">{}</span></td>", html_escape(&r.patient_name), html_escape(&r.diagnosis)));
             html.push_str(&format!("<td><code>{}</code></td>", html_escape(&r.room)));
             html.push_str(&format!("<td>{}</td>", html_escape(&r.physician)));
-            html.push_str(&format!("<td><span class=\"badge {}\">{}</span></td>", badge_class, html_escape(&r.triage)));
-            html.push_str(&format!("<td><span class=\"badge badge-emerald\">{}</span></td>", html_escape(&r.status)));
+            html.push_str(&format!(
+                "<td><span class=\"badge {}\">{}</span></td>",
+                badge_class,
+                html_escape(&r.triage)
+            ));
+            html.push_str(&format!(
+                "<td><span class=\"badge badge-emerald\">{}</span></td>",
+                html_escape(&r.status)
+            ));
             html.push_str("</tr>");
         }
     }
@@ -394,7 +420,9 @@ fn render_portal(state: &AppState, user: Option<&str>, error: Option<&str>, sear
     html.push_str("</ul>");
     html.push_str("</div>");
 
-    html.push_str("<div class=\"card\" style=\"padding: 16px; background: #fffbeb; border-color: #fde68a;\">");
+    html.push_str(
+        "<div class=\"card\" style=\"padding: 16px; background: #fffbeb; border-color: #fde68a;\">",
+    );
     html.push_str("<h3 style=\"font-size: 12px; font-weight: 700; color: #b45309; margin-bottom: 6px;\">[NOTE] Staff Memo #2026-IT</h3>");
     html.push_str("<p style=\"font-size: 11px; color: #92400e; line-height: 1.5;\">\"All physicians must use their 4-digit setup PIN on the first login. New system rollout credentials match the deployment year (<strong>2026</strong>). No lockouts are configured to avoid blocking emergency doctors during shifts.\"</p>");
     html.push_str("</div>");
@@ -428,12 +456,17 @@ fn render_login_page(state: &AppState, error: Option<&str>) -> String {
     html.push_str("<div class=\"field\"><label>Staff Identifier / Username</label>");
     html.push_str("<input type=\"text\" name=\"username\" placeholder=\"admin, mreid, or nurse_joy\" value=\"admin\" required autofocus></div>");
     html.push_str("<div class=\"field\"><label>Clinical Security PIN (4 Digits)</label>");
-    html.push_str("<input type=\"password\" name=\"password\" placeholder=\"e.g. 2026\" required></div>");
+    html.push_str(
+        "<input type=\"password\" name=\"password\" placeholder=\"e.g. 2026\" required></div>",
+    );
     html.push_str("<button type=\"submit\" class=\"btn btn-primary\" style=\"width: 100%; padding: 12px;\">Authenticate to EHR</button>");
     html.push_str("</form>");
 
     html.push_str("<div style=\"margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted); text-align: center;\">");
-    html.push_str(&format!("Login attempts without rate-limit: <strong>{}</strong><br/>", state.attempt_count));
+    html.push_str(&format!(
+        "Login attempts without rate-limit: <strong>{}</strong><br/>",
+        state.attempt_count
+    ));
     html.push_str("<a href=\"/\" style=\"color: var(--accent); text-decoration: none;\">← Return to Inpatient Directory</a>");
     html.push_str("</div>");
 
@@ -450,7 +483,10 @@ fn render_vault_page(username: &str) -> String {
     html.push_str("</style></head><body><div class=\"container\"><div class=\"card\">");
     html.push_str("<div class=\"header\"><div class=\"header-title\">");
     html.push_str("<h1> Chief Medical Officer // Confidential Clinical Research</h1>");
-    html.push_str(&format!("<p>Dr. Marcus Reid's Classified Research Repository (Authenticated as: {})</p></div>", html_escape(username)));
+    html.push_str(&format!(
+        "<p>Dr. Marcus Reid's Classified Research Repository (Authenticated as: {})</p></div>",
+        html_escape(username)
+    ));
     html.push_str("<a href=\"/\" class=\"btn btn-secondary\" style=\"font-size: 12px;\">← Return to Clinical Portal</a>");
     html.push_str("</div>");
 
@@ -503,18 +539,40 @@ fn handle_request(
         .and_then(|tok| state.sessions.get(&tok).cloned());
 
     if clean_path == "/" {
-        resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+        resp_headers.insert(
+            "content-type".to_string(),
+            "text/html; charset=utf-8".to_string(),
+        );
         let q = query_map.get("q").map(|s| s.as_str());
-        return (200, resp_headers, render_portal(state, auth_user.as_deref(), None, q));
+        return (
+            200,
+            resp_headers,
+            render_portal(state, auth_user.as_deref(), None, q),
+        );
     }
 
     if clean_path == "/records/new" && method == "POST" {
         let form = parse_form_body(body);
-        let name = form.get("patient_name").cloned().unwrap_or_else(|| "Unknown".to_string());
-        let room = form.get("room").cloned().unwrap_or_else(|| "Unassigned".to_string());
-        let physician = form.get("physician").cloned().unwrap_or_else(|| "Dr. On Call".to_string());
-        let triage = form.get("triage").cloned().unwrap_or_else(|| "Moderate".to_string());
-        let diagnosis = form.get("diagnosis").cloned().unwrap_or_else(|| "General consultation".to_string());
+        let name = form
+            .get("patient_name")
+            .cloned()
+            .unwrap_or_else(|| "Unknown".to_string());
+        let room = form
+            .get("room")
+            .cloned()
+            .unwrap_or_else(|| "Unassigned".to_string());
+        let physician = form
+            .get("physician")
+            .cloned()
+            .unwrap_or_else(|| "Dr. On Call".to_string());
+        let triage = form
+            .get("triage")
+            .cloned()
+            .unwrap_or_else(|| "Moderate".to_string());
+        let diagnosis = form
+            .get("diagnosis")
+            .cloned()
+            .unwrap_or_else(|| "General consultation".to_string());
 
         let next_id = (state.records.len() as u32) + 101;
         state.records.push(PatientRecord {
@@ -546,36 +604,74 @@ fn handle_request(
                 let token = format!("nex_sess_{}_{}", state.attempt_count, 2026);
                 state.sessions.insert(token.clone(), user.to_string());
                 state.admin_unlocked = true;
-                resp_headers.insert("Set-Cookie".to_string(), format!("auth_session={}; nexhealth_session={}; Path=/", token, token));
+                resp_headers.insert(
+                    "Set-Cookie".to_string(),
+                    format!(
+                        "auth_session={}; nexhealth_session={}; Path=/",
+                        token, token
+                    ),
+                );
                 resp_headers.insert("Location".to_string(), "/records/vault".to_string());
                 return (302, resp_headers, String::new());
             } else if user == "nurse_joy" && pw == "1122" {
                 let token = format!("nex_sess_nurse_{}", state.attempt_count);
-                state.sessions.insert(token.clone(), "nurse_joy".to_string());
-                resp_headers.insert("Set-Cookie".to_string(), format!("auth_session={}; nexhealth_session={}; Path=/", token, token));
+                state
+                    .sessions
+                    .insert(token.clone(), "nurse_joy".to_string());
+                resp_headers.insert(
+                    "Set-Cookie".to_string(),
+                    format!(
+                        "auth_session={}; nexhealth_session={}; Path=/",
+                        token, token
+                    ),
+                );
                 resp_headers.insert("Location".to_string(), "/".to_string());
                 return (302, resp_headers, String::new());
             }
 
-            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+            resp_headers.insert(
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            );
             let html = render_login_page(state, Some("Invalid credentials. Please verify your clinical security PIN or staff username."));
             return (200, resp_headers, html);
         }
 
-        resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+        resp_headers.insert(
+            "content-type".to_string(),
+            "text/html; charset=utf-8".to_string(),
+        );
         return (200, resp_headers, render_login_page(state, None));
     }
 
     if clean_path == "/api/login" && method == "POST" {
         state.attempt_count += 1;
         let (user, pw) = if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(body) {
-            let u = json_val.get("username").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
-            let p = json_val.get("password").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+            let u = json_val
+                .get("username")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            let p = json_val
+                .get("password")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_string();
             (u, p)
         } else {
             let form = parse_form_body(body);
-            let u = form.get("username").map(|s| s.trim()).unwrap_or("").to_string();
-            let p = form.get("password").map(|s| s.trim()).unwrap_or("").to_string();
+            let u = form
+                .get("username")
+                .map(|s| s.trim())
+                .unwrap_or("")
+                .to_string();
+            let p = form
+                .get("password")
+                .map(|s| s.trim())
+                .unwrap_or("")
+                .to_string();
             (u, p)
         };
 
@@ -588,7 +684,13 @@ fn handle_request(
             state.admin_unlocked = true;
             let token = format!("nex_token_admin_{}", state.attempt_count);
             state.sessions.insert(token.clone(), user.clone());
-            resp_headers.insert("Set-Cookie".to_string(), format!("auth_session={}; nexhealth_session={}; Path=/", token, token));
+            resp_headers.insert(
+                "Set-Cookie".to_string(),
+                format!(
+                    "auth_session={}; nexhealth_session={}; Path=/",
+                    token, token
+                ),
+            );
             let resp = serde_json::json!({
                 "status": "passed",
                 "message": "Authentication successful as Chief Medical Officer!",
@@ -599,17 +701,27 @@ fn handle_request(
             return (200, resp_headers, resp.to_string());
         }
 
-        return (401, resp_headers, serde_json::json!({
-            "status": "failed",
-            "error": "Invalid credentials",
-            "attempt": state.attempt_count
-        }).to_string());
+        return (
+            401,
+            resp_headers,
+            serde_json::json!({
+                "status": "failed",
+                "error": "Invalid credentials",
+                "attempt": state.attempt_count
+            })
+            .to_string(),
+        );
     }
 
     if clean_path == "/records/vault" || clean_path == "/admin" {
-        let has_cookie_auth = headers.iter().any(|(k, v)| k.to_lowercase() == "cookie" && v.contains("auth_session="));
+        let has_cookie_auth = headers
+            .iter()
+            .any(|(k, v)| k.to_lowercase() == "cookie" && v.contains("auth_session="));
         if auth_user.is_some() || has_cookie_auth {
-            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+            resp_headers.insert(
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            );
             return (200, resp_headers, render_vault_page("admin"));
         }
         resp_headers.insert("Location".to_string(), "/login".to_string());
@@ -617,7 +729,10 @@ fn handle_request(
     }
 
     if clean_path == "/logout" {
-        resp_headers.insert("Set-Cookie".to_string(), "nexhealth_session=; Path=/; Max-Age=0".to_string());
+        resp_headers.insert(
+            "Set-Cookie".to_string(),
+            "nexhealth_session=; Path=/; Max-Age=0".to_string(),
+        );
         resp_headers.insert("Location".to_string(), "/".to_string());
         return (302, resp_headers, String::new());
     }
@@ -696,7 +811,8 @@ fn main() {
             }
             "PRACTICE" => {
                 let id = val.get("id").and_then(|v| v.as_u64()).unwrap_or(0);
-                let success = state.admin_unlocked || state.brute_force_detected || state.attempt_count > 0;
+                let success =
+                    state.admin_unlocked || state.brute_force_detected || state.attempt_count > 0;
                 let message = if state.admin_unlocked {
                     "Practice verified: You authenticated to the administrative portal using weak credential brute-force!"
                 } else if state.brute_force_detected {

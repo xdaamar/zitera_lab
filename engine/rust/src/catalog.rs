@@ -254,8 +254,9 @@ pub fn enrich_catalog_with_installed_status(workspace_root: &Path, catalog: &mut
             if let Ok(manifest) = crate::labs::read_manifest(&lab_dir) {
                 lab.installed = true;
                 lab.installed_version = Some(manifest.version.clone());
-                lab.has_update = crate::package::installer::compare_semver(&lab.version, &manifest.version)
-                    == std::cmp::Ordering::Greater;
+                lab.has_update =
+                    crate::package::installer::compare_semver(&lab.version, &manifest.version)
+                        == std::cmp::Ordering::Greater;
             } else {
                 lab.installed = false;
                 lab.installed_version = None;
@@ -1376,9 +1377,14 @@ mod tests {
         let cat_default = load_catalog(&workspace).expect("Default catalog must load offline");
         assert_eq!(cat_default.schema_version, 1);
         assert_eq!(cat_default.labs.len(), 30);
-        for id in ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"] {
+        for id in [
+            "A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10",
+        ] {
             assert!(
-                cat_default.labs.iter().any(|l| l.id.eq_ignore_ascii_case(id)),
+                cat_default
+                    .labs
+                    .iter()
+                    .any(|l| l.id.eq_ignore_ascii_case(id)),
                 "Default catalog must include {}",
                 id
             );
@@ -1413,8 +1419,8 @@ mod tests {
         // 1. Initially without labs installed -> installed = false, has_update = false
         let cat = load_catalog(&workspace).expect("Catalog must load");
         let a01 = cat.labs.iter().find(|l| l.id == "A01").unwrap();
-        assert_eq!(a01.installed, false);
-        assert_eq!(a01.has_update, false);
+        assert!(!a01.installed);
+        assert!(!a01.has_update);
         assert_eq!(a01.latest_version, a01.version);
 
         // 2. Install lab A01 with older version (1.0.0) while catalog is 1.0.1
@@ -1430,7 +1436,7 @@ mod tests {
             "difficulty": "Beginner",
             "runtime": "native_sandboxed",
             "entrypoint": "bin/a01-lab.exe",
-            "default_port": 8011,
+            "default_port": 18011,
             "estimated_minutes": 35,
             "modes": ["learn"]
         }"#;
@@ -1438,17 +1444,17 @@ mod tests {
 
         let cat_updated = load_catalog(&workspace).expect("Catalog must load");
         let a01_enriched = cat_updated.labs.iter().find(|l| l.id == "A01").unwrap();
-        assert_eq!(a01_enriched.installed, true);
+        assert!(a01_enriched.installed);
         assert_eq!(a01_enriched.installed_version, Some("1.0.0".to_string()));
-        assert_eq!(a01_enriched.has_update, true);
+        assert!(a01_enriched.has_update);
         assert_eq!(a01_enriched.latest_version, "1.0.1");
 
         // 3. Check lab list also reflects installed & update status
         let lab_list = crate::labs::list_all_labs(&workspace);
         let a01_status = lab_list.iter().find(|l| l.id == "A01").unwrap();
-        assert_eq!(a01_status.installed, true);
+        assert!(a01_status.installed);
         assert_eq!(a01_status.version, "1.0.0");
-        assert_eq!(a01_status.has_update, true);
+        assert!(a01_status.has_update);
         assert_eq!(a01_status.latest_version, "1.0.1");
 
         // 4. Test atomic 1-click update
@@ -1458,14 +1464,14 @@ mod tests {
         // 5. Re-check catalog & status: has_update should now be false, version 1.0.1
         let cat_after = load_catalog(&workspace).expect("Catalog must load");
         let a01_after = cat_after.labs.iter().find(|l| l.id == "A01").unwrap();
-        assert_eq!(a01_after.installed, true);
+        assert!(a01_after.installed);
         assert_eq!(a01_after.installed_version, Some("1.0.1".to_string()));
-        assert_eq!(a01_after.has_update, false);
+        assert!(!a01_after.has_update);
 
         let status_after = crate::labs::get_lab_status(&workspace, "A01");
-        assert_eq!(status_after.installed, true);
+        assert!(status_after.installed);
         assert_eq!(status_after.version, "1.0.1");
-        assert_eq!(status_after.has_update, false);
+        assert!(!status_after.has_update);
 
         // 6. Running update again reports already up to date
         let rerun = crate::labs::update_lab(&workspace, "A01").expect("Rerun update");

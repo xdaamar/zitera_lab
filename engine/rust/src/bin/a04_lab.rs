@@ -29,7 +29,6 @@ struct CustodyKey {
 
 struct AppState {
     keys: Vec<CustodyKey>,
-    sessions: HashMap<String, String>, // token -> username
     jwt_claims: HashMap<String, String>, // token -> role
     vault_accessed: bool,
 }
@@ -66,16 +65,13 @@ impl AppState {
             },
         ];
 
-        let mut sessions = HashMap::new();
         let mut jwt_claims = HashMap::new();
 
         // Default operator session
-        sessions.insert("sess_operator_9812".to_string(), "j.operator".to_string());
         jwt_claims.insert("sess_operator_9812".to_string(), "Operator".to_string());
 
         Self {
             keys: initial_keys,
-            sessions,
             jwt_claims,
             vault_accessed: false,
         }
@@ -335,7 +331,9 @@ input[type=text]:focus, textarea:focus { border-color: var(--primary); }
 
 fn render_navbar(active_tab: &str, current_role: Option<&str>) -> String {
     let role_badge = match current_role {
-        Some("SecurityOfficer") => "<span class=\"badge badge-active\">Role: SecurityOfficer</span>",
+        Some("SecurityOfficer") => {
+            "<span class=\"badge badge-active\">Role: SecurityOfficer</span>"
+        }
         Some("Administrator") => "<span class=\"badge badge-active\">Role: Administrator</span>",
         Some(r) => &format!("<span class=\"badge badge-warn\">Role: {}</span>", r),
         None => "<span class=\"badge badge-danger\">Unauthenticated</span>",
@@ -376,7 +374,10 @@ fn handle_request(
     body: &str,
 ) -> (u16, HashMap<String, String>, String) {
     let mut resp_headers = HashMap::new();
-    resp_headers.insert("Content-Type".to_string(), "text/html; charset=utf-8".to_string());
+    resp_headers.insert(
+        "Content-Type".to_string(),
+        "text/html; charset=utf-8".to_string(),
+    );
 
     // 0. Extract Session or JWT Role
     // Checks Authorization header: Bearer <jwt_or_token> or Cookie: safekey_token=<val>
@@ -423,7 +424,10 @@ fn handle_request(
     }
 
     if path == "/login" && method == "POST" {
-        resp_headers.insert("Set-Cookie".to_string(), "vault_session=admin_authenticated_session; Path=/".to_string());
+        resp_headers.insert(
+            "Set-Cookie".to_string(),
+            "vault_session=admin_authenticated_session; Path=/".to_string(),
+        );
         resp_headers.insert("Location".to_string(), "/vault".to_string());
         return (302, resp_headers, "Redirecting to /vault...".to_string());
     }
@@ -554,7 +558,10 @@ fn handle_request(
     // 3. Cryptographic Specifications & Telemetry (INTENTIONALLY LEAKS SPEC & SECRET)
     if path == "/specs" || path == "/api/v1/diagnostics/crypto-spec" {
         if path.starts_with("/api/") {
-            resp_headers.insert("Content-Type".to_string(), "application/json; charset=utf-8".to_string());
+            resp_headers.insert(
+                "Content-Type".to_string(),
+                "application/json; charset=utf-8".to_string(),
+            );
             let json = serde_json::json!({
                 "system": "SafeKey Custody Gateway",
                 "version": "1.4.2-enterprise",
@@ -644,8 +651,16 @@ fn handle_request(
             // Pseudo-sign simulation (generates formatted session token)
             let token_val = format!(
                 "safekey_jwt_{}_{}",
-                if input_text.contains("SecurityOfficer") { "SecurityOfficer" } else { "Operator" },
-                if custom_secret == JWT_SECRET { "VALID_SIG" } else { "CUSTOM_SIG" }
+                if input_text.contains("SecurityOfficer") {
+                    "SecurityOfficer"
+                } else {
+                    "Operator"
+                },
+                if custom_secret == JWT_SECRET {
+                    "VALID_SIG"
+                } else {
+                    "CUSTOM_SIG"
+                }
             );
             computed_token = Some(token_val);
         }
@@ -736,7 +751,9 @@ fn handle_request(
             current_role.clone()
         };
 
-        let has_vault_session = headers.iter().any(|(k, v)| k.to_lowercase() == "cookie" && v.contains("vault_session"));
+        let has_vault_session = headers
+            .iter()
+            .any(|(k, v)| k.to_lowercase() == "cookie" && v.contains("vault_session"));
         let is_authorized = effective_role.as_deref() == Some("SecurityOfficer")
             || effective_role.as_deref() == Some("Administrator")
             || has_vault_session;
@@ -887,13 +904,24 @@ fn urlencoding_decode(input: &str) -> String {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
-        println!("SafeKey Digital Asset & Cryptographic Custody Portal (Cryptographic Failures) v{}", LAB_VERSION);
-        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
+        println!(
+            "SafeKey Digital Asset & Cryptographic Custody Portal (Cryptographic Failures) v{}",
+            LAB_VERSION
+        );
+        println!(
+            "This native lab communicates with the host engine broker via stdin/stdout JSON IPC."
+        );
         println!("Usage: a04-lab.exe");
         return;
     }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
-        println!("A04 v{} (native_sandboxed // SafeKey Custody Vault)", LAB_VERSION);
+    if args
+        .iter()
+        .any(|a| a == "--version" || a == "-v" || a == "-V")
+    {
+        println!(
+            "A04 v{} (native_sandboxed // SafeKey Custody Vault)",
+            LAB_VERSION
+        );
         return;
     }
 

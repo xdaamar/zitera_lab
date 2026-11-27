@@ -264,7 +264,9 @@ fn urldecode(input: &str) -> String {
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let Ok(val) = u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16) {
+            if let Ok(val) =
+                u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16)
+            {
                 result.push(val as char);
                 i += 3;
                 continue;
@@ -309,7 +311,10 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
     html.push_str("</div>");
 
     if let Some(msg) = banner_msg {
-        html.push_str(&format!("<div class=\"banner-notice\">ℹ {}</div>", html_escape(msg)));
+        html.push_str(&format!(
+            "<div class=\"banner-notice\">ℹ {}</div>",
+            html_escape(msg)
+        ));
     }
 
     let is_unlocked = state.failed_login_count >= 5 && state.unlogged_escalation_occurred;
@@ -336,10 +341,17 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
             _ => "badge-amber",
         };
         html.push_str("<tr>");
-        html.push_str(&format!("<td><strong>{}</strong></td>", html_escape(&v.unit_code)));
+        html.push_str(&format!(
+            "<td><strong>{}</strong></td>",
+            html_escape(&v.unit_code)
+        ));
         html.push_str(&format!("<td>{}</td>", html_escape(&v.driver)));
         html.push_str(&format!("<td><span style=\"font-size: 12px;\">{}</span><br/><span style=\"font-size: 11px; color: var(--text-muted);\">{}</span></td>", html_escape(&v.origin_dest), html_escape(&v.cargo)));
-        html.push_str(&format!("<td><span class=\"badge {}\">{}</span></td>", badge_class, html_escape(&v.status)));
+        html.push_str(&format!(
+            "<td><span class=\"badge {}\">{}</span></td>",
+            badge_class,
+            html_escape(&v.status)
+        ));
         html.push_str("</tr>");
     }
     html.push_str("</tbody></table></div>");
@@ -366,19 +378,35 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
     html.push_str("<div style=\"display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;\">");
     html.push_str("<div class=\"stat-box\">");
     html.push_str("<div style=\"font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;\">Unlogged Failed Logins</div>");
-    html.push_str(&format!("<div class=\"stat-num\">{}</div>", state.failed_login_count));
+    html.push_str(&format!(
+        "<div class=\"stat-num\">{}</div>",
+        state.failed_login_count
+    ));
     html.push_str("<div style=\"font-size: 11px; color: var(--text-muted); margin-top: 2px;\">Threshold: 5+ attempts</div></div>");
 
     html.push_str("<div class=\"stat-box\">");
     html.push_str("<div style=\"font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;\">Silent Escalation</div>");
-    let esc_label = if state.unlogged_escalation_occurred { "CONFIRMED" } else { "PENDING" };
-    let esc_color = if state.unlogged_escalation_occurred { "var(--success)" } else { "var(--text-muted)" };
-    html.push_str(&format!("<div class=\"stat-num\" style=\"color: {}; font-size: 16px; margin-top: 10px;\">{}</div>", esc_color, esc_label));
+    let esc_label = if state.unlogged_escalation_occurred {
+        "CONFIRMED"
+    } else {
+        "PENDING"
+    };
+    let esc_color = if state.unlogged_escalation_occurred {
+        "var(--success)"
+    } else {
+        "var(--text-muted)"
+    };
+    html.push_str(&format!(
+        "<div class=\"stat-num\" style=\"color: {}; font-size: 16px; margin-top: 10px;\">{}</div>",
+        esc_color, esc_label
+    ));
     html.push_str("<div style=\"font-size: 11px; color: var(--text-muted); margin-top: 2px;\">Zero SIEM events recorded</div></div>");
     html.push_str("</div>");
 
     // Action buttons
-    html.push_str("<div style=\"display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;\">");
+    html.push_str(
+        "<div style=\"display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;\">",
+    );
     html.push_str("<form method=\"POST\" action=\"/api/auth/login\">");
     html.push_str("<input type=\"hidden\" name=\"username\" value=\"admin\">");
     html.push_str("<input type=\"hidden\" name=\"password\" value=\"wrong_password\">");
@@ -402,9 +430,18 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
     for log in &state.audit_logs {
         html.push_str("<tr>");
         html.push_str(&format!("<td><code>{}</code></td>", html_escape(&log.time)));
-        html.push_str(&format!("<td><strong>{}</strong></td>", html_escape(&log.category)));
-        html.push_str(&format!("<td style=\"font-size: 12px;\">{}</td>", html_escape(&log.event)));
-        html.push_str(&format!("<td><span class=\"badge badge-blue\">{}</span></td>", html_escape(&log.severity)));
+        html.push_str(&format!(
+            "<td><strong>{}</strong></td>",
+            html_escape(&log.category)
+        ));
+        html.push_str(&format!(
+            "<td style=\"font-size: 12px;\">{}</td>",
+            html_escape(&log.event)
+        ));
+        html.push_str(&format!(
+            "<td><span class=\"badge badge-blue\">{}</span></td>",
+            html_escape(&log.severity)
+        ));
         html.push_str("</tr>");
     }
     html.push_str("</tbody></table></div>");
@@ -438,16 +475,31 @@ fn handle_request(
     }
 
     if clean_path == "/" || clean_path == "/index.html" {
-        resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+        resp_headers.insert(
+            "content-type".to_string(),
+            "text/html; charset=utf-8".to_string(),
+        );
         return (200, resp_headers, render_index_page(state, None));
     }
 
     if clean_path == "/fleet/dispatch" && method == "POST" {
         let form = parse_form_body(body);
-        let unit_code = form.get("unit_code").cloned().unwrap_or_else(|| "TRK-000".to_string());
-        let driver = form.get("driver").cloned().unwrap_or_else(|| "Driver".to_string());
-        let route = form.get("route").cloned().unwrap_or_else(|| "Depot -> Depot".to_string());
-        let cargo = form.get("cargo").cloned().unwrap_or_else(|| "General Freight".to_string());
+        let unit_code = form
+            .get("unit_code")
+            .cloned()
+            .unwrap_or_else(|| "TRK-000".to_string());
+        let driver = form
+            .get("driver")
+            .cloned()
+            .unwrap_or_else(|| "Driver".to_string());
+        let route = form
+            .get("route")
+            .cloned()
+            .unwrap_or_else(|| "Depot -> Depot".to_string());
+        let cargo = form
+            .get("cargo")
+            .cloned()
+            .unwrap_or_else(|| "General Freight".to_string());
 
         let next_id = (state.vehicles.len() as u32) + 1;
         state.vehicles.push(FleetVehicle {
@@ -503,13 +555,17 @@ fn handle_request(
 
     if clean_path == "/api/auth/login" && method == "POST" {
         state.failed_login_count += 1;
-        let is_form = headers.get("content-type")
+        let is_form = headers
+            .get("content-type")
             .map(|ct| ct.contains("application/x-www-form-urlencoded"))
             .unwrap_or(false);
 
         // Security logging flaw: authentication failures are NOT appended to audit_logs!
         if is_form {
-            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+            resp_headers.insert(
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            );
             let msg = format!(
                 "Login attempt failed (Count: {}). NOTICE: Zero SOC alerts were triggered.",
                 state.failed_login_count
@@ -534,13 +590,17 @@ fn handle_request(
 
     if clean_path == "/api/admin/role_escalate" && method == "POST" {
         state.unlogged_escalation_occurred = true;
-        let is_form = headers.get("content-type")
+        let is_form = headers
+            .get("content-type")
             .map(|ct| ct.contains("application/x-www-form-urlencoded"))
             .unwrap_or(false);
 
         // Security logging flaw: role escalation is silently applied with zero audit trail!
         if is_form {
-            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+            resp_headers.insert(
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            );
             return (200, resp_headers, render_index_page(state, Some("Privilege escalation applied silently. No SIEM or audit log entry was generated.")));
         } else {
             resp_headers.insert("content-type".to_string(), "application/json".to_string());
@@ -560,7 +620,8 @@ fn handle_request(
 
     if clean_path == "/api/reset" && method == "POST" {
         state.reset();
-        let is_form = headers.get("content-type")
+        let is_form = headers
+            .get("content-type")
             .map(|ct| ct.contains("application/x-www-form-urlencoded"))
             .unwrap_or(false);
 

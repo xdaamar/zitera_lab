@@ -97,9 +97,14 @@ impl StoragePaths {
             Ok(val) if !val.trim().is_empty() => PathBuf::from(val.trim()),
             _ => {
                 if let Ok(local_app_data) = env::var("LOCALAPPDATA") {
-                    PathBuf::from(local_app_data).join("Programs").join("ZiteraLab")
+                    PathBuf::from(local_app_data)
+                        .join("Programs")
+                        .join("ZiteraLab")
                 } else if let Ok(exe_path) = env::current_exe() {
-                    exe_path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."))
+                    exe_path
+                        .parent()
+                        .map(|p| p.to_path_buf())
+                        .unwrap_or_else(|| PathBuf::from("."))
                 } else {
                     PathBuf::from(".")
                 }
@@ -252,7 +257,9 @@ impl StoragePaths {
                             obj.remove("solved_flags");
 
                             // Normalize completed_labs
-                            if let Some(labs) = obj.get_mut("completed_labs").and_then(|v| v.as_array_mut()) {
+                            if let Some(labs) =
+                                obj.get_mut("completed_labs").and_then(|v| v.as_array_mut())
+                            {
                                 for item in labs.iter_mut() {
                                     if let Some(s) = item.as_str() {
                                         *item = serde_json::Value::String(normalize_lab_id(s));
@@ -260,7 +267,10 @@ impl StoragePaths {
                                 }
                             }
                             // Normalize completed_challenges
-                            if let Some(chals) = obj.get_mut("completed_challenges").and_then(|v| v.as_array_mut()) {
+                            if let Some(chals) = obj
+                                .get_mut("completed_challenges")
+                                .and_then(|v| v.as_array_mut())
+                            {
                                 for item in chals.iter_mut() {
                                     if let Some(s) = item.as_str() {
                                         *item = serde_json::Value::String(normalize_lab_id(s));
@@ -268,7 +278,10 @@ impl StoragePaths {
                                 }
                             }
                             // Normalize completed_practice
-                            if let Some(prac) = obj.get_mut("completed_practice").and_then(|v| v.as_array_mut()) {
+                            if let Some(prac) = obj
+                                .get_mut("completed_practice")
+                                .and_then(|v| v.as_array_mut())
+                            {
                                 for item in prac.iter_mut() {
                                     if let Some(s) = item.as_str() {
                                         *item = serde_json::Value::String(normalize_lab_id(s));
@@ -282,7 +295,10 @@ impl StoragePaths {
                                     for (k, v) in rec_map {
                                         new_records.insert(normalize_lab_id(k), v.clone());
                                     }
-                                    obj.insert("lab_records".to_string(), serde_json::Value::Object(new_records));
+                                    obj.insert(
+                                        "lab_records".to_string(),
+                                        serde_json::Value::Object(new_records),
+                                    );
                                 }
                             }
                             // Normalize keys in completed_sections
@@ -292,7 +308,10 @@ impl StoragePaths {
                                     for (k, v) in sec_map {
                                         new_sections.insert(normalize_lab_id(k), v.clone());
                                     }
-                                    obj.insert("completed_sections".to_string(), serde_json::Value::Object(new_sections));
+                                    obj.insert(
+                                        "completed_sections".to_string(),
+                                        serde_json::Value::Object(new_sections),
+                                    );
                                 }
                             }
                         }
@@ -314,7 +333,10 @@ impl StoragePaths {
     }
 
     /// Loads the user progress JSON, executing automatic migration if needed.
-    pub fn load_progress(&self, workspace_root: Option<&Path>) -> Result<serde_json::Value, String> {
+    pub fn load_progress(
+        &self,
+        workspace_root: Option<&Path>,
+    ) -> Result<serde_json::Value, String> {
         let canonical_file = self.user_progress_file();
         if !canonical_file.exists() {
             let _ = self.migrate_legacy_state(workspace_root);
@@ -323,8 +345,7 @@ impl StoragePaths {
         if canonical_file.exists() {
             let content = fs::read_to_string(&canonical_file)
                 .map_err(|e| format!("Failed to read progress file: {}", e))?;
-            serde_json::from_str(&content)
-                .map_err(|e| format!("Corrupted progress file: {}", e))
+            serde_json::from_str(&content).map_err(|e| format!("Corrupted progress file: {}", e))
         } else {
             Ok(serde_json::json!({
                 "language": "en",
@@ -404,7 +425,8 @@ mod tests {
 
     #[test]
     fn test_storage_boundary_isolation_verification() {
-        let temp_root = std::env::temp_dir().join(format!("zitera_boundary_test_{}", std::process::id()));
+        let temp_root =
+            std::env::temp_dir().join(format!("zitera_boundary_test_{}", std::process::id()));
         let app_dir = temp_root.join("Programs").join("ZiteraLab");
         let data_dir = temp_root.join("ZiteraLabData");
 
@@ -424,7 +446,10 @@ mod tests {
     fn test_lifecycle_retention_policy_matrix() {
         // AppUpdate: replaces app binaries, purges cache, preserves user data and labs
         assert_eq!(
-            get_retention_disposition(LifecycleAction::AppUpdate, StorageCategory::ApplicationFiles),
+            get_retention_disposition(
+                LifecycleAction::AppUpdate,
+                StorageCategory::ApplicationFiles
+            ),
             RetentionDisposition::Replace
         );
         assert_eq!(
@@ -446,32 +471,48 @@ mod tests {
 
         // UninstallDefault: purges app binaries and cache, preserves user progress and labs
         assert_eq!(
-            get_retention_disposition(LifecycleAction::UninstallDefault, StorageCategory::ApplicationFiles),
+            get_retention_disposition(
+                LifecycleAction::UninstallDefault,
+                StorageCategory::ApplicationFiles
+            ),
             RetentionDisposition::Purge
         );
         assert_eq!(
-            get_retention_disposition(LifecycleAction::UninstallDefault, StorageCategory::UserProgress),
+            get_retention_disposition(
+                LifecycleAction::UninstallDefault,
+                StorageCategory::UserProgress
+            ),
             RetentionDisposition::Preserve
         );
         assert_eq!(
-            get_retention_disposition(LifecycleAction::UninstallDefault, StorageCategory::LabPackages),
+            get_retention_disposition(
+                LifecycleAction::UninstallDefault,
+                StorageCategory::LabPackages
+            ),
             RetentionDisposition::Preserve
         );
 
         // UninstallFullPurge: purges everything
         assert_eq!(
-            get_retention_disposition(LifecycleAction::UninstallFullPurge, StorageCategory::UserProgress),
+            get_retention_disposition(
+                LifecycleAction::UninstallFullPurge,
+                StorageCategory::UserProgress
+            ),
             RetentionDisposition::Purge
         );
         assert_eq!(
-            get_retention_disposition(LifecycleAction::UninstallFullPurge, StorageCategory::LabPackages),
+            get_retention_disposition(
+                LifecycleAction::UninstallFullPurge,
+                StorageCategory::LabPackages
+            ),
             RetentionDisposition::Purge
         );
     }
 
     #[test]
     fn test_update_simulation_leaves_user_data_intact() {
-        let temp_root = std::env::temp_dir().join(format!("zitera_update_sim_{}", std::process::id()));
+        let temp_root =
+            std::env::temp_dir().join(format!("zitera_update_sim_{}", std::process::id()));
         let app_dir = temp_root.join("Programs").join("ZiteraLab");
         let data_dir = temp_root.join("ZiteraLabData");
 
@@ -494,7 +535,10 @@ mod tests {
         // 3. Assert user progress remains 100% intact
         assert!(progress_file.exists());
         let progress_content = fs::read_to_string(&progress_file).unwrap();
-        assert_eq!(progress_content, r#"{"completed_labs":["A01"],"score":100}"#);
+        assert_eq!(
+            progress_content,
+            r#"{"completed_labs":["A01"],"score":100}"#
+        );
 
         // 4. Assert cache was cleared
         assert!(!cache_file.exists());
@@ -504,7 +548,8 @@ mod tests {
 
     #[test]
     fn test_legacy_state_migration_to_zitera_2x() {
-        let temp_root = std::env::temp_dir().join(format!("zitera_mig_test_{}", std::process::id()));
+        let temp_root =
+            std::env::temp_dir().join(format!("zitera_mig_test_{}", std::process::id()));
         let app_dir = temp_root.join("Programs").join("ZiteraLab");
         let data_dir = temp_root.join("ZiteraLabData");
 
@@ -532,22 +577,34 @@ mod tests {
                 "zitera-lab-a01": "FLAG{legacy_plain_flag}"
             }
         });
-        fs::write(&legacy_file, serde_json::to_string_pretty(&legacy_json).unwrap()).unwrap();
+        fs::write(
+            &legacy_file,
+            serde_json::to_string_pretty(&legacy_json).unwrap(),
+        )
+        .unwrap();
 
         // 2. Run migration
-        let migrated = paths.migrate_legacy_state(None).expect("Migration must succeed");
+        let migrated = paths
+            .migrate_legacy_state(None)
+            .expect("Migration must succeed");
         assert!(migrated, "Migration should have executed");
 
         // 3. Verify canonical progress.json exists
         let canonical = paths.user_progress_file();
-        assert!(canonical.exists(), "Canonical progress.json must exist after migration");
+        assert!(
+            canonical.exists(),
+            "Canonical progress.json must exist after migration"
+        );
 
         // 4. Load migrated data and assert all IDs normalized to canonical A01 and A02
         let progress = paths.load_progress(None).expect("Progress must load");
         let obj = progress.as_object().unwrap();
 
         // solved_flags must be sanitized
-        assert!(!obj.contains_key("solved_flags"), "Secret plain flags must be purged during migration");
+        assert!(
+            !obj.contains_key("solved_flags"),
+            "Secret plain flags must be purged during migration"
+        );
 
         // completed_labs normalized
         let labs: Vec<String> = obj["completed_labs"]
@@ -570,12 +627,18 @@ mod tests {
 
         // lab_records normalized
         let recs = obj["lab_records"].as_object().unwrap();
-        assert!(recs.contains_key("A01"), "lab_records must contain normalized A01 key");
+        assert!(
+            recs.contains_key("A01"),
+            "lab_records must contain normalized A01 key"
+        );
         assert_eq!(recs["A01"]["attempts"], 3);
 
         // completed_sections normalized
         let secs = obj["completed_sections"].as_object().unwrap();
-        assert!(secs.contains_key("A01"), "completed_sections must contain normalized A01 key");
+        assert!(
+            secs.contains_key("A01"),
+            "completed_sections must contain normalized A01 key"
+        );
 
         let _ = fs::remove_dir_all(&temp_root);
     }
@@ -587,12 +650,16 @@ mod tests {
         assert_eq!(normalize_lab_id("a01"), "A01");
         assert_eq!(normalize_lab_id("A01"), "A01");
         assert_eq!(canonical_package_id_from_lab("A01"), "zitera-lab-a01");
-        assert_eq!(canonical_package_id_from_lab("zitera-lab-a01"), "zitera-lab-a01");
+        assert_eq!(
+            canonical_package_id_from_lab("zitera-lab-a01"),
+            "zitera-lab-a01"
+        );
     }
 
     #[test]
     fn test_progress_preservation_across_simulated_app_restart() {
-        let temp_root = std::env::temp_dir().join(format!("zitera_restart_test_{}", std::process::id()));
+        let temp_root =
+            std::env::temp_dir().join(format!("zitera_restart_test_{}", std::process::id()));
         let app_dir = temp_root.join("Programs").join("ZiteraLab");
         let data_dir = temp_root.join("ZiteraLabData");
 
@@ -609,13 +676,17 @@ mod tests {
                     "A01": {"attempts": 2, "score": 100}
                 }
             });
-            paths1.save_progress(&progress1).expect("Initial save must succeed");
+            paths1
+                .save_progress(&progress1)
+                .expect("Initial save must succeed");
         } // All handles dropped (simulating full app exit)
 
         // Session 2: Fresh app process launches, resolves paths, loads progress
         {
             let paths2 = StoragePaths::custom(app_dir, data_dir);
-            let loaded = paths2.load_progress(None).expect("Progress must load after restart");
+            let loaded = paths2
+                .load_progress(None)
+                .expect("Progress must load after restart");
             assert_eq!(loaded["language"], "id");
             let labs = loaded["completed_labs"].as_array().unwrap();
             assert_eq!(labs.len(), 2);
@@ -628,7 +699,8 @@ mod tests {
 
     #[test]
     fn test_progress_preservation_across_package_update() {
-        let temp_root = std::env::temp_dir().join(format!("zitera_pkg_upd_test_{}", std::process::id()));
+        let temp_root =
+            std::env::temp_dir().join(format!("zitera_pkg_upd_test_{}", std::process::id()));
         let app_dir = temp_root.join("Programs").join("ZiteraLab");
         let data_dir = temp_root.join("ZiteraLabData");
 
@@ -638,7 +710,11 @@ mod tests {
         // 1. Initial state: Lab A01 installed (v1.0.0), student solved challenge
         let lab_a01_dir = paths.labs_dir.join("A01");
         fs::create_dir_all(&lab_a01_dir).unwrap();
-        fs::write(lab_a01_dir.join("manifest.json"), r#"{"package_id":"zitera-lab-a01","version":"1.0.0"}"#).unwrap();
+        fs::write(
+            lab_a01_dir.join("manifest.json"),
+            r#"{"package_id":"zitera-lab-a01","version":"1.0.0"}"#,
+        )
+        .unwrap();
 
         let initial_progress = serde_json::json!({
             "completed_labs": ["A01"],
@@ -648,7 +724,11 @@ mod tests {
         paths.save_progress(&initial_progress).unwrap();
 
         // 2. Package update: Lab A01 files updated to v2.0.0 (simulating package installer)
-        fs::write(lab_a01_dir.join("manifest.json"), r#"{"package_id":"zitera-lab-a01","version":"2.0.0","new_meta":"added"}"#).unwrap();
+        fs::write(
+            lab_a01_dir.join("manifest.json"),
+            r#"{"package_id":"zitera-lab-a01","version":"2.0.0","new_meta":"added"}"#,
+        )
+        .unwrap();
         fs::write(lab_a01_dir.join("active_version.txt"), "2.0.0").unwrap();
 
         // 3. User progress loaded: must remain unchanged
@@ -661,7 +741,8 @@ mod tests {
 
     #[test]
     fn test_progress_preservation_across_remove_and_reinstall() {
-        let temp_root = std::env::temp_dir().join(format!("zitera_reinstall_test_{}", std::process::id()));
+        let temp_root =
+            std::env::temp_dir().join(format!("zitera_reinstall_test_{}", std::process::id()));
         let app_dir = temp_root.join("Programs").join("ZiteraLab");
         let data_dir = temp_root.join("ZiteraLabData");
 
@@ -671,7 +752,11 @@ mod tests {
         // 1. Lab A01 installed with progress
         let lab_a01_dir = paths.labs_dir.join("A01");
         fs::create_dir_all(&lab_a01_dir).unwrap();
-        fs::write(lab_a01_dir.join("manifest.json"), r#"{"package_id":"zitera-lab-a01","version":"1.0.0"}"#).unwrap();
+        fs::write(
+            lab_a01_dir.join("manifest.json"),
+            r#"{"package_id":"zitera-lab-a01","version":"1.0.0"}"#,
+        )
+        .unwrap();
 
         let student_progress = serde_json::json!({
             "completed_labs": ["A01"],
@@ -685,11 +770,18 @@ mod tests {
         assert!(!lab_a01_dir.exists(), "Lab package directory deleted");
 
         // 3. Verify user progress was NOT deleted by lab uninstall
-        assert!(paths.user_progress_file().exists(), "User progress file must survive lab removal");
+        assert!(
+            paths.user_progress_file().exists(),
+            "User progress file must survive lab removal"
+        );
 
         // 4. Simulate lab reinstall: new package unpacked to labs/A01
         fs::create_dir_all(&lab_a01_dir).unwrap();
-        fs::write(lab_a01_dir.join("manifest.json"), r#"{"package_id":"zitera-lab-a01","version":"1.0.1"}"#).unwrap();
+        fs::write(
+            lab_a01_dir.join("manifest.json"),
+            r#"{"package_id":"zitera-lab-a01","version":"1.0.1"}"#,
+        )
+        .unwrap();
 
         // 5. Verify student coursework is immediately restored
         let loaded = paths.load_progress(None).unwrap();

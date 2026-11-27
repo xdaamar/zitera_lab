@@ -531,10 +531,26 @@ fn html_page(title: &str, body_content: &str, session_user: Option<&str>) -> Str
             .to_string()
     };
 
-    let active_overview = if title.contains("Portal") || title.contains("Overview") { "active" } else { "" };
-    let active_login = if title.contains("Login") { "active" } else { "" };
-    let active_admin = if title.contains("Admin") { "active" } else { "" };
-    let active_backups = if title.contains("Backup") { "active" } else { "" };
+    let active_overview = if title.contains("Portal") || title.contains("Overview") {
+        "active"
+    } else {
+        ""
+    };
+    let active_login = if title.contains("Login") {
+        "active"
+    } else {
+        ""
+    };
+    let active_admin = if title.contains("Admin") {
+        "active"
+    } else {
+        ""
+    };
+    let active_backups = if title.contains("Backup") {
+        "active"
+    } else {
+        ""
+    };
 
     format!(
         r#"<!DOCTYPE html>
@@ -579,7 +595,10 @@ fn html_page(title: &str, body_content: &str, session_user: Option<&str>) -> Str
         active_backups,
         active_login,
         if session_user.is_some() {
-            format!(r#"<a href="/admin" class="nav-item {}">Root Access</a>"#, active_admin)
+            format!(
+                r#"<a href="/admin" class="nav-item {}">Root Access</a>"#,
+                active_admin
+            )
         } else {
             "".to_string()
         },
@@ -601,7 +620,10 @@ fn handle_request(
         "Content-Type".to_string(),
         "text/html; charset=utf-8".to_string(),
     );
-    resp_headers.insert("Server".to_string(), "OpsGateway/2.1.4 (Ubuntu)".to_string());
+    resp_headers.insert(
+        "Server".to_string(),
+        "OpsGateway/2.1.4 (Ubuntu)".to_string(),
+    );
     resp_headers.insert("X-Content-Type-Options".to_string(), "nosniff".to_string());
 
     // Extract session cookie -> username
@@ -761,7 +783,11 @@ fn handle_request(
         return (
             200,
             resp_headers,
-            html_page("OpsGateway Operations Portal", content, session_user.as_deref()),
+            html_page(
+                "OpsGateway Operations Portal",
+                content,
+                session_user.as_deref(),
+            ),
         );
     }
 
@@ -797,11 +823,7 @@ fn handle_request(
             </div>
         </div>
         "#;
-        return (
-            200,
-            resp_headers,
-            html_page("Supervisor Login", form, None),
-        );
+        return (200, resp_headers, html_page("Supervisor Login", form, None));
     }
 
     // --- Login POST ---
@@ -907,7 +929,10 @@ fn handle_request(
     // --- Debug/vars endpoint (INTENTIONALLY UNAUTHENTICATED) ---
     if path == "/debug/vars" || path == "/debug/vars/" {
         state.debug_accessed = true;
-        resp_headers.insert("Content-Type".to_string(), "application/json; charset=utf-8".to_string());
+        resp_headers.insert(
+            "Content-Type".to_string(),
+            "application/json; charset=utf-8".to_string(),
+        );
         let json = serde_json::json!({
             "app_name": "OpsGateway",
             "version": "2.1.4",
@@ -1028,7 +1053,10 @@ fn handle_request(
 
     // --- Old ops keys (non-flag file, adds realism) ---
     if path == "/backups/ops_keys_old.txt" {
-        resp_headers.insert("Content-Type".to_string(), "text/plain; charset=utf-8".to_string());
+        resp_headers.insert(
+            "Content-Type".to_string(),
+            "text/plain; charset=utf-8".to_string(),
+        );
         return (
             200,
             resp_headers,
@@ -1038,7 +1066,10 @@ fn handle_request(
 
     // --- Database schema dump (adds realism) ---
     if path == "/backups/database_schema.sql.bak" {
-        resp_headers.insert("Content-Type".to_string(), "text/plain; charset=utf-8".to_string());
+        resp_headers.insert(
+            "Content-Type".to_string(),
+            "text/plain; charset=utf-8".to_string(),
+        );
         return (
             200,
             resp_headers,
@@ -1082,12 +1113,20 @@ fn handle_request(
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
-        println!("Zitera Sandboxed Lab A02 (Security Misconfiguration) v{}", LAB_VERSION);
-        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
+        println!(
+            "Zitera Sandboxed Lab A02 (Security Misconfiguration) v{}",
+            LAB_VERSION
+        );
+        println!(
+            "This native lab communicates with the host engine broker via stdin/stdout JSON IPC."
+        );
         println!("Usage: a02-lab.exe");
         return;
     }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
+    if args
+        .iter()
+        .any(|a| a == "--version" || a == "-v" || a == "-V")
+    {
         println!("A02 v{} (native_sandboxed)", LAB_VERSION);
         return;
     }
@@ -1163,9 +1202,8 @@ fn main() {
             }
             "PRACTICE" => {
                 let id = val.get("id").and_then(|v| v.as_u64()).unwrap_or(0);
-                let success = state.debug_accessed
-                    || state.default_creds_used
-                    || state.backup_accessed;
+                let success =
+                    state.debug_accessed || state.default_creds_used || state.backup_accessed;
                 let message = if state.backup_accessed {
                     "Practice verified: You discovered the exposed backup archive and retrieved the configuration file!"
                 } else if state.default_creds_used {

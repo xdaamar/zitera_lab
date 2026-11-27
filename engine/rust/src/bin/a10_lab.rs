@@ -243,7 +243,9 @@ fn urldecode(input: &str) -> String {
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let Ok(val) = u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16) {
+            if let Ok(val) =
+                u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16)
+            {
                 result.push(val as char);
                 i += 3;
                 continue;
@@ -270,7 +272,9 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
     // Header
     html.push_str("<div class=\"card\"><div class=\"header\">");
     html.push_str("<div class=\"header-title\"><h1>[DOC] TemplateCloud Studio</h1>");
-    html.push_str("<p>Commercial SaaS Billing & Payment Settlement Gate (OWASP A10:2025)</p></div>");
+    html.push_str(
+        "<p>Commercial SaaS Billing & Payment Settlement Gate (OWASP A10:2025)</p></div>",
+    );
     html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
     html.push_str("<span class=\"badge badge-rose\">PORT 8020</span>");
     if state.fail_open_triggered {
@@ -288,7 +292,10 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
     html.push_str("</div>");
 
     if let Some(msg) = banner_msg {
-        html.push_str(&format!("<div class=\"banner-notice\">ℹ {}</div>", html_escape(msg)));
+        html.push_str(&format!(
+            "<div class=\"banner-notice\">ℹ {}</div>",
+            html_escape(msg)
+        ));
     }
 
     if state.fail_open_triggered {
@@ -326,7 +333,11 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
         html.push_str(&format!("<td><code>{}</code></td>", html_escape(&inv.code)));
         html.push_str(&format!("<td><strong>{}</strong><br/><span style=\"font-size: 11px; color: var(--text-muted);\">{}</span></td>", html_escape(&inv.client), html_escape(&inv.tier)));
         html.push_str(&format!("<td>{}</td>", html_escape(&inv.amount)));
-        html.push_str(&format!("<td><span class=\"badge {}\">{}</span></td>", badge_class, html_escape(&inv.status)));
+        html.push_str(&format!(
+            "<td><span class=\"badge {}\">{}</span></td>",
+            badge_class,
+            html_escape(&inv.status)
+        ));
         html.push_str("</tr>");
     }
     html.push_str("</tbody></table></div>");
@@ -361,7 +372,9 @@ fn render_index_page(state: &AppState, banner_msg: Option<&str>) -> String {
     html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; color: #9f1239; margin-bottom: 8px;\">Trigger Exceptional Condition</h3>");
     html.push_str("<p style=\"font-size: 12px; color: #881337; margin-bottom: 12px;\">Simulate an upstream parser timeout or malformed exception parameter to induce fail-open behavior.</p>");
     html.push_str("<form method=\"POST\" action=\"/api/gate/verify\">");
-    html.push_str("<input type=\"hidden\" name=\"simulate_exception\" value=\"UPSTREAM_GATEWAY_TIMEOUT\">");
+    html.push_str(
+        "<input type=\"hidden\" name=\"simulate_exception\" value=\"UPSTREAM_GATEWAY_TIMEOUT\">",
+    );
     html.push_str("<button type=\"submit\" class=\"btn btn-primary\" style=\"width: 100%;\">Simulate Upstream Timeout (Trigger Fail-Open)</button></form>");
     html.push_str("</div>");
 
@@ -397,15 +410,27 @@ fn handle_request(
     }
 
     if clean_path == "/" || clean_path == "/index.html" {
-        resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+        resp_headers.insert(
+            "content-type".to_string(),
+            "text/html; charset=utf-8".to_string(),
+        );
         return (200, resp_headers, render_index_page(state, None));
     }
 
     if clean_path == "/invoices/new" && method == "POST" {
         let form = parse_form_body(body);
-        let client = form.get("client").cloned().unwrap_or_else(|| "Client Corp".to_string());
-        let tier = form.get("tier").cloned().unwrap_or_else(|| "Enterprise Tier".to_string());
-        let amount = form.get("amount").cloned().unwrap_or_else(|| "$1,000.00".to_string());
+        let client = form
+            .get("client")
+            .cloned()
+            .unwrap_or_else(|| "Client Corp".to_string());
+        let tier = form
+            .get("tier")
+            .cloned()
+            .unwrap_or_else(|| "Enterprise Tier".to_string());
+        let amount = form
+            .get("amount")
+            .cloned()
+            .unwrap_or_else(|| "$1,000.00".to_string());
 
         let next_id = (state.invoices.len() as u32) + 1;
         state.invoices.push(InvoiceTemplate {
@@ -440,20 +465,24 @@ fn handle_request(
 
     if clean_path == "/api/gate/verify" && method == "POST" {
         state.evaluation_count += 1;
-        let is_form = headers.get("content-type")
+        let is_form = headers
+            .get("content-type")
             .map(|ct| ct.contains("application/x-www-form-urlencoded"))
             .unwrap_or(false);
 
         let (induces_exception, token_val) = if is_form {
             let form = parse_form_body(body);
-            let sim = form.get("simulate_exception").is_some() || form.get("trigger_error").is_some();
+            let sim = form.contains_key("simulate_exception") || form.contains_key("trigger_error");
             let tok = form.get("token").cloned();
             (sim, tok)
         } else if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(body) {
             let sim = json_val.get("simulate_exception").is_some()
                 || json_val.get("trigger_error").is_some()
                 || json_val.get("token").map(|v| v.is_null()).unwrap_or(false);
-            let tok = json_val.get("token").and_then(|v| v.as_str()).map(|s| s.to_string());
+            let tok = json_val
+                .get("token")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
             (sim, tok)
         } else {
             (true, None)
@@ -471,7 +500,10 @@ fn handle_request(
         };
 
         if is_form {
-            resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+            resp_headers.insert(
+                "content-type".to_string(),
+                "text/html; charset=utf-8".to_string(),
+            );
             let msg = if fail_open {
                 "Exceptional condition induced! Settlement Gate fell back to OPEN (access granted)."
             } else if authorized {
@@ -504,7 +536,8 @@ fn handle_request(
 
     if clean_path == "/api/reset" && method == "POST" {
         state.reset();
-        let is_form = headers.get("content-type")
+        let is_form = headers
+            .get("content-type")
             .map(|ct| ct.contains("application/x-www-form-urlencoded"))
             .unwrap_or(false);
 

@@ -198,7 +198,7 @@ pub fn robust_create_dir_all(path: &Path) -> std::io::Result<()> {
             }
         }
     }
-    Err(last_err.unwrap_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Unknown IO error")))
+    Err(last_err.unwrap_or_else(|| std::io::Error::other("Unknown IO error")))
 }
 
 /// Robustly removes a directory tree, clearing Windows read-only bits and retrying on locks.
@@ -226,7 +226,7 @@ pub fn robust_remove_dir_all(path: &Path) -> std::io::Result<()> {
             }
         }
     }
-    Err(last_err.unwrap_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Unknown IO error")))
+    Err(last_err.unwrap_or_else(|| std::io::Error::other("Unknown IO error")))
 }
 
 /// Helper function to recursively copy directories.
@@ -240,7 +240,11 @@ pub fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
         let dest_child = dst.join(&name);
         if ty.is_dir() {
             // Avoid recursive self-copy if dst contains subdirectories or temporary staging
-            if name_str != "versions" && !name_str.starts_with("staging") && !name_str.starts_with("zitera_stage") && name_str != ".git" {
+            if name_str != "versions"
+                && !name_str.starts_with("staging")
+                && !name_str.starts_with("zitera_stage")
+                && name_str != ".git"
+            {
                 copy_dir_all(&entry.path(), &dest_child)?;
             }
         } else {
@@ -816,7 +820,10 @@ mod tests {
         t_bytes[target_entry.data_offset as usize] ^= 0xaa;
         fs::write(&pkg_tampered, t_bytes).unwrap();
         let err_tamper = install_or_update_package(&pkg_tampered, &workspace);
-        assert!(err_tamper.is_err(), "Mutated payload must fail verification");
+        assert!(
+            err_tamper.is_err(),
+            "Mutated payload must fail verification"
+        );
         assert_eq!(get_active_version(&lab_dir), Some("1.0.1".to_string()));
 
         // b. Missing package file
@@ -943,8 +950,8 @@ mod tests {
         assert!(pkg_v1.exists(), "Package file must exist on disk");
 
         // 3. Cryptographically verify signature and canonical payload BEFORE extraction
-        let verified = verify_package(&pkg_v1, Some("A01"))
-            .expect("Package signature must verify cleanly");
+        let verified =
+            verify_package(&pkg_v1, Some("A01")).expect("Package signature must verify cleanly");
         assert_eq!(verified.manifest.id, "A01");
         assert_eq!(verified.manifest.version, "1.0.0");
         assert!(!verified.package_sha256.is_empty());

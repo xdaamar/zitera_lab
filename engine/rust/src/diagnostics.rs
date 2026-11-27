@@ -118,6 +118,12 @@ impl PrivacySanitizer {
     }
 }
 
+impl Default for PrivacySanitizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Redacts substrings starting with prefix until matching closing brace '}'.
 fn redact_pattern_braces(input: &str, prefix: &str) -> String {
     let mut out = String::new();
@@ -188,16 +194,16 @@ fn redact_key_value_pairs(input: &str) -> String {
                     let after_sep = &trimmed[1..];
                     let val_trimmed = after_sep.trim_start();
                     let prefix = &sanitized_line[..pos + key.len()];
-                    if val_trimmed.starts_with('"') {
-                        if let Some(q_end) = val_trimmed[1..].find('"') {
-                            let rest = &val_trimmed[1 + q_end + 1..];
+                    if let Some(inside_quote) = val_trimmed.strip_prefix('"') {
+                        if let Some(q_end) = inside_quote.find('"') {
+                            let rest = &inside_quote[q_end + 1..];
                             sanitized_line = format!("{} {} \"[REDACTED]\"{}", prefix, sep, rest);
                         } else {
                             sanitized_line = format!("{} {} \"[REDACTED]\"", prefix, sep);
                         }
-                    } else if val_trimmed.starts_with('\'') {
-                        if let Some(q_end) = val_trimmed[1..].find('\'') {
-                            let rest = &val_trimmed[1 + q_end + 1..];
+                    } else if let Some(inside_quote) = val_trimmed.strip_prefix('\'') {
+                        if let Some(q_end) = inside_quote.find('\'') {
+                            let rest = &inside_quote[q_end + 1..];
                             sanitized_line = format!("{} {} '[REDACTED]'{}", prefix, sep, rest);
                         } else {
                             sanitized_line = format!("{} {} '[REDACTED]'", prefix, sep);
@@ -318,7 +324,10 @@ pub fn export_diagnostics_archive(
     let mut lab_entries = Vec::new();
     for lab in all_labs {
         let active_ver = if lab.installed {
-            let active_marker = workspace_root.join("labs").join(&lab.id).join("active_version.txt");
+            let active_marker = workspace_root
+                .join("labs")
+                .join(&lab.id)
+                .join("active_version.txt");
             fs::read_to_string(&active_marker)
                 .ok()
                 .map(|s| s.trim().to_string())
@@ -376,8 +385,10 @@ pub fn export_diagnostics_archive(
     }
     let safe_env = SafeEnvironment {
         os: env::var("OS").unwrap_or_else(|_| "Windows_NT".to_string()),
-        processor_architecture: env::var("PROCESSOR_ARCHITECTURE").unwrap_or_else(|_| "AMD64".to_string()),
-        number_of_processors: env::var("NUMBER_OF_PROCESSORS").unwrap_or_else(|_| "Unknown".to_string()),
+        processor_architecture: env::var("PROCESSOR_ARCHITECTURE")
+            .unwrap_or_else(|_| "AMD64".to_string()),
+        number_of_processors: env::var("NUMBER_OF_PROCESSORS")
+            .unwrap_or_else(|_| "Unknown".to_string()),
         system_drive: env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string()),
     };
     let env_json = serde_json::to_string_pretty(&safe_env).map_err(|e| e.to_string())?;
@@ -437,7 +448,10 @@ pub fn export_diagnostics_archive(
         ("security_summary.json".to_string(), sec_json.into_bytes()),
         ("runtime_state.json".to_string(), runtime_json.into_bytes()),
         ("safe_environment.json".to_string(), env_json.into_bytes()),
-        ("diagnostics_summary.txt".to_string(), summary_text.into_bytes()),
+        (
+            "diagnostics_summary.txt".to_string(),
+            summary_text.into_bytes(),
+        ),
     ];
 
     crate::package::archive::create_zip_from_entries(&entries, &output_zip_path)?;
@@ -495,12 +509,14 @@ mod tests {
 
     #[test]
     fn test_export_diagnostics_archive_and_zip_integrity() {
-        let temp_dir = std::env::temp_dir().join(format!("zitera_diag_test_{}", std::process::id()));
+        let temp_dir =
+            std::env::temp_dir().join(format!("zitera_diag_test_{}", std::process::id()));
         let _ = fs::create_dir_all(&temp_dir);
         let out_zip = temp_dir.join("test_diagnostics.zip");
 
         let workspace = PathBuf::from(".");
-        let report = export_diagnostics_archive(&workspace, Some(&out_zip)).expect("Export must succeed");
+        let report =
+            export_diagnostics_archive(&workspace, Some(&out_zip)).expect("Export must succeed");
 
         assert!(out_zip.exists());
         assert!(report.archive_size_bytes > 0);

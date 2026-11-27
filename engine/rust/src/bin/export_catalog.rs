@@ -10,5 +10,8 @@ fn main() {
         let _ = fs::create_dir_all(parent);
     }
     fs::write(dest, json_str).expect("Failed to write catalog.json");
-    println!("Successfully exported and signed catalog with {} labs to catalog/catalog.json", catalog.labs.len());
+    println!(
+        "Successfully exported and signed catalog with {} labs to catalog/catalog.json",
+        catalog.labs.len()
+    );
 }

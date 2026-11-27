@@ -174,7 +174,10 @@ mod tests {
     #[cfg(windows)]
     fn get_probe_exe() -> PathBuf {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let rel = root.join("target").join("release").join("zitera-engine.exe");
+        let rel = root
+            .join("target")
+            .join("release")
+            .join("zitera-engine.exe");
         if rel.exists() {
             rel
         } else {
@@ -679,7 +682,11 @@ mod tests {
 
         // 2. Start Lab A01 in native sandboxed runtime
         let start_res = crate::labs::start_lab(&repo_root, "A01");
-        assert!(start_res.is_ok(), "Starting lab A01 must succeed: {:?}", start_res);
+        assert!(
+            start_res.is_ok(),
+            "Starting lab A01 must succeed: {:?}",
+            start_res
+        );
 
         let status = crate::labs::get_lab_status(&repo_root, "A01");
         assert!(status.running, "Lab A01 must report running in sandbox");
@@ -716,9 +723,15 @@ mod tests {
         assert!(stop_res.is_ok(), "Stopping lab A01 must succeed");
 
         let status_after = crate::labs::get_lab_status(&repo_root, "A01");
-        assert!(!status_after.running, "Lab A01 must report not running after stop");
+        assert!(
+            !status_after.running,
+            "Lab A01 must report not running after stop"
+        );
 
         // Runtime state file must be removed
-        assert!(!lab_dir.join(".runtime.json").exists(), ".runtime.json must be cleaned up on stop");
+        assert!(
+            !lab_dir.join(".runtime.json").exists(),
+            ".runtime.json must be cleaned up on stop"
+        );
     }
 }

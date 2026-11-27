@@ -13,12 +13,12 @@ pub use installer::{
     activate_version, install_or_update_package, reconcile_lab_version, resolve_effective_lab_dir,
     rollback_to_previous_version,
 };
+use std::path::Path;
 pub use trust::{
     build_canonical_package_payload, sign_payload, verify_signature, verify_with_trusted_keys,
     DEV_PRIVATE_KEY_SEED, DEV_PUBLIC_KEY_HEX, RELEASE_PUBLIC_KEY_HEX,
 };
 pub use verifier::verify_package;
-use std::path::Path;
 
 /// Builds and cryptographically signs a production-ready .zlab package from a source directory.
 ///
@@ -42,13 +42,40 @@ pub fn build_signed_package_from_dir(
     let mut manifest_val: serde_json::Value = serde_json::from_str(&manifest_str)
         .map_err(|e| format!("Failed to parse manifest.json: {}", e))?;
 
-    let lab_id = manifest_val.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let version = manifest_val.get("version").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let sec_version = manifest_val.get("security_version").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
-    let min_core = manifest_val.get("minimum_core_version").and_then(|v| v.as_str()).unwrap_or("2.0.0").to_string();
-    let runtime = manifest_val.get("runtime").and_then(|v| v.as_str()).unwrap_or("native_sandboxed").to_string();
-    let target_arch = manifest_val.get("target_arch").and_then(|v| v.as_str()).unwrap_or("x86_64").to_string();
-    let entrypoint = manifest_val.get("entrypoint").and_then(|v| v.as_str()).unwrap_or("bin/lab.exe").to_string();
+    let lab_id = manifest_val
+        .get("id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let version = manifest_val
+        .get("version")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let sec_version = manifest_val
+        .get("security_version")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(1) as u32;
+    let min_core = manifest_val
+        .get("minimum_core_version")
+        .and_then(|v| v.as_str())
+        .unwrap_or("2.0.0")
+        .to_string();
+    let runtime = manifest_val
+        .get("runtime")
+        .and_then(|v| v.as_str())
+        .unwrap_or("native_sandboxed")
+        .to_string();
+    let target_arch = manifest_val
+        .get("target_arch")
+        .and_then(|v| v.as_str())
+        .unwrap_or("x86_64")
+        .to_string();
+    let entrypoint = manifest_val
+        .get("entrypoint")
+        .and_then(|v| v.as_str())
+        .unwrap_or("bin/lab.exe")
+        .to_string();
 
     let pid = std::process::id();
     let rand_nonce = std::time::SystemTime::now()
@@ -65,7 +92,11 @@ pub fn build_signed_package_from_dir(
             let entry = entry.map_err(|e| e.to_string())?;
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with('.') || name == ".runtime.json" || name == "versions" || name == "active_version.txt" {
+            if name.starts_with('.')
+                || name == ".runtime.json"
+                || name == "versions"
+                || name == "active_version.txt"
+            {
                 continue;
             }
             let target = dst.join(&name);
@@ -111,7 +142,8 @@ pub fn build_signed_package_from_dir(
 
     // 3. Inject signature, security_version, and minimum_core_version into manifest
     manifest_val["signature"] = serde_json::Value::String(signature);
-    manifest_val["security_version"] = serde_json::Value::Number(serde_json::Number::from(sec_version));
+    manifest_val["security_version"] =
+        serde_json::Value::Number(serde_json::Number::from(sec_version));
     manifest_val["minimum_core_version"] = serde_json::Value::String(min_core);
 
     let final_manifest_str = serde_json::to_string_pretty(&manifest_val)
@@ -149,7 +181,6 @@ mod tests {
         let _ = fs::create_dir_all(&workspace);
         (temp, workspace)
     }
-
 
     fn build_test_package(pkg_path: &std::path::Path, id: &str, version: &str, lesson_text: &str) {
         let stage = pkg_path.with_extension("stage_dir");

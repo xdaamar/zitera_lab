@@ -389,7 +389,11 @@ mod tests {
             let _ = fs::remove_dir_all(&stage);
             let _ = fs::create_dir_all(&stage);
             let _ = fs::create_dir_all(stage.join("bin"));
-            fs::write(stage.join("bin").join("a01-lab.exe"), b"ELF_OR_PE_BINARY_BYTES").unwrap();
+            fs::write(
+                stage.join("bin").join("a01-lab.exe"),
+                b"ELF_OR_PE_BINARY_BYTES",
+            )
+            .unwrap();
 
             for (rel_path, content) in extra_files {
                 let p = stage.join(rel_path);
@@ -494,7 +498,14 @@ mod tests {
 
         // 4. CORRUPTED SIGNATURE (Wrong length / corrupt hex)
         let pkg_corrupt_sig = temp.join("04_corrupt_sig.zlab");
-        make_signed_package(&pkg_corrupt_sig, "A01", "1.0.0", 1, &[], Some("deadbeef_corrupt"));
+        make_signed_package(
+            &pkg_corrupt_sig,
+            "A01",
+            "1.0.0",
+            1,
+            &[],
+            Some("deadbeef_corrupt"),
+        );
         let err4 = verify_package(&pkg_corrupt_sig, Some("A01")).unwrap_err();
         assert!(err4.contains("Invalid signature length") || err4.contains("Invalid hex"));
 
@@ -520,7 +531,11 @@ mod tests {
         let stage6 = temp.join("stage6");
         let _ = fs::create_dir_all(&stage6);
         super::super::archive::extract_zlab_archive(&pkg_mod_bin, &stage6).unwrap();
-        fs::write(stage6.join("bin").join("a01-lab.exe"), b"TAMPERED_MALICIOUS_BYTES").unwrap();
+        fs::write(
+            stage6.join("bin").join("a01-lab.exe"),
+            b"TAMPERED_MALICIOUS_BYTES",
+        )
+        .unwrap();
         create_zlab_package(&stage6, &pkg_mod_bin).unwrap();
         let _ = fs::remove_dir_all(&stage6);
         let err6 = verify_package(&pkg_mod_bin, Some("A01")).unwrap_err();
@@ -625,13 +640,27 @@ mod tests {
 
         // 12. INVALID PACKAGE ID
         let pkg_bad_id = temp.join("12_bad_id.zlab");
-        make_signed_package(&pkg_bad_id, "INVALID_ID_TOO_LONG_12345", "1.0.0", 1, &[], None);
+        make_signed_package(
+            &pkg_bad_id,
+            "INVALID_ID_TOO_LONG_12345",
+            "1.0.0",
+            1,
+            &[],
+            None,
+        );
         let err12 = verify_package(&pkg_bad_id, None).unwrap_err();
         assert!(err12.contains("Lab ID must be between 1 and 16 characters"));
 
         // 13. INVALID VERSION
         let pkg_bad_ver = temp.join("13_bad_ver.zlab");
-        make_signed_package(&pkg_bad_ver, "A01", "invalid version with spaces!", 1, &[], None);
+        make_signed_package(
+            &pkg_bad_ver,
+            "A01",
+            "invalid version with spaces!",
+            1,
+            &[],
+            None,
+        );
         let err13 = verify_package(&pkg_bad_ver, Some("A01")).unwrap_err();
         assert!(err13.contains("Invalid package version format"));
 

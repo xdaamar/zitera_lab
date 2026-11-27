@@ -398,7 +398,11 @@ fn render_navbar(active_tab: &str, wallet_balance: f64, cart_count: usize) -> St
         </div>
     </div>
 </header>"#,
-        cat_active = if active_tab == "catalog" { "active" } else { "" },
+        cat_active = if active_tab == "catalog" {
+            "active"
+        } else {
+            ""
+        },
         cart_active = if active_tab == "cart" { "active" } else { "" },
         ord_active = if active_tab == "orders" { "active" } else { "" },
         cart_count = cart_count,
@@ -414,7 +418,10 @@ fn handle_request(
     body: &str,
 ) -> (u16, HashMap<String, String>, String) {
     let mut resp_headers = HashMap::new();
-    resp_headers.insert("Content-Type".to_string(), "text/html; charset=utf-8".to_string());
+    resp_headers.insert(
+        "Content-Type".to_string(),
+        "text/html; charset=utf-8".to_string(),
+    );
 
     // 1. Health Probe
     if path == "/health" {
@@ -634,7 +641,11 @@ fn handle_request(
 </html>"#,
             css = css(),
             navbar = render_navbar("cart", state.wallet_balance, state.cart.len()),
-            rows = if has_items { rows } else { "<tr><td colspan='4' style='text-align:center; padding: 32px; color: #78716c;'>Your cart is currently empty. <a href='/' style='color: #d97706; font-weight: 700;'>Browse catalog &rarr;</a></td></tr>".to_string() },
+            rows = if has_items {
+                rows
+            } else {
+                "<tr><td colspan='4' style='text-align:center; padding: 32px; color: #78716c;'>Your cart is currently empty. <a href='/' style='color: #d97706; font-weight: 700;'>Browse catalog &rarr;</a></td></tr>".to_string()
+            },
             subtotal = subtotal,
             discount = state.applied_discount,
             total = final_total,
@@ -649,7 +660,11 @@ fn handle_request(
     if path == "/cart/coupon" && method == "POST" {
         for pair in body.split('&') {
             if let Some((k, v)) = pair.split_once('=') {
-                if k == "coupon" && urlencoding_decode(v).trim().eq_ignore_ascii_case("WELCOME50") {
+                if k == "coupon"
+                    && urlencoding_decode(v)
+                        .trim()
+                        .eq_ignore_ascii_case("WELCOME50")
+                {
                     state.applied_discount += 50.0;
                 }
             }
@@ -669,21 +684,29 @@ fn handle_request(
                 let decoded = urlencoding_decode(v);
                 match k {
                     "cart_total" => submitted_total = decoded.parse::<f64>().ok(),
-                    "price_override" | "unit_price" | "price" => price_override = decoded.parse::<f64>().ok(),
-                    "discount_amount" | "discount" => discount_override = decoded.parse::<f64>().ok(),
+                    "price_override" | "unit_price" | "price" => {
+                        price_override = decoded.parse::<f64>().ok()
+                    }
+                    "discount_amount" | "discount" => {
+                        discount_override = decoded.parse::<f64>().ok()
+                    }
                     _ => {}
                 }
             }
         }
 
         // Compute actual catalog subtotal
-        let actual_subtotal: f64 = state.cart.iter().map(|item| {
-            if let Some(p) = state.products.iter().find(|p| p.id == item.product_id) {
-                p.price * (item.quantity as f64)
-            } else {
-                0.0
-            }
-        }).sum();
+        let actual_subtotal: f64 = state
+            .cart
+            .iter()
+            .map(|item| {
+                if let Some(p) = state.products.iter().find(|p| p.id == item.product_id) {
+                    p.price * (item.quantity as f64)
+                } else {
+                    0.0
+                }
+            })
+            .sum();
 
         // Flaw 1: Price override parameter tampering accepted
         let mut effective_total = actual_subtotal - state.applied_discount;
@@ -714,14 +737,21 @@ fn handle_request(
                 total_paid: effective_total,
                 created_at: "2026-11-19".to_string(),
                 buyer_account: "operator.enterprise".to_string(),
-                voucher_secret: if has_target_keycard { Some(FLAG.to_string()) } else { None },
+                voucher_secret: if has_target_keycard {
+                    Some(FLAG.to_string())
+                } else {
+                    None
+                },
             };
 
             state.orders.push(new_order);
             state.cart.clear();
             state.applied_discount = 0.0;
 
-            resp_headers.insert("Location".to_string(), format!("/order/receipt?id={}", order_id));
+            resp_headers.insert(
+                "Location".to_string(),
+                format!("/order/receipt?id={}", order_id),
+            );
             return (302, resp_headers, "Order placed successfully!".to_string());
         } else {
             // Insufficient funds
@@ -962,13 +992,24 @@ fn urlencoding_decode(input: &str) -> String {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
-        println!("NexaStore Luxury Hardware (Insecure Design & Business Logic Flaw) v{}", LAB_VERSION);
-        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
+        println!(
+            "NexaStore Luxury Hardware (Insecure Design & Business Logic Flaw) v{}",
+            LAB_VERSION
+        );
+        println!(
+            "This native lab communicates with the host engine broker via stdin/stdout JSON IPC."
+        );
         println!("Usage: a06-lab.exe");
         return;
     }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
-        println!("A06 v{} (native_sandboxed // NexaStore Marketplace)", LAB_VERSION);
+    if args
+        .iter()
+        .any(|a| a == "--version" || a == "-v" || a == "-V")
+    {
+        println!(
+            "A06 v{} (native_sandboxed // NexaStore Marketplace)",
+            LAB_VERSION
+        );
         return;
     }
 

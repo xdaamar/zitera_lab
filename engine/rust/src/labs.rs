@@ -46,8 +46,8 @@ pub fn read_manifest(lab_dir: &Path) -> Result<LabManifest, String> {
     let data = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read manifest at {:?}: {}", manifest_path, e))?;
     let clean_data = data.trim_start_matches('\u{feff}');
-    let manifest: LabManifest =
-        serde_json::from_str(clean_data).map_err(|e| format!("Failed to parse manifest JSON: {}", e))?;
+    let manifest: LabManifest = serde_json::from_str(clean_data)
+        .map_err(|e| format!("Failed to parse manifest JSON: {}", e))?;
 
     if manifest.id.trim().is_empty() {
         return Err("Lab manifest 'id' cannot be empty.".to_string());
@@ -327,8 +327,9 @@ pub fn get_lab_status_cached(
                     Err(_) => manifest.version.clone(),
                 }
             };
-            let has_update = crate::package::installer::compare_semver(&latest_version, &manifest.version)
-                == std::cmp::Ordering::Greater;
+            let has_update =
+                crate::package::installer::compare_semver(&latest_version, &manifest.version)
+                    == std::cmp::Ordering::Greater;
 
             LabStatus {
                 id: manifest.id,
@@ -672,7 +673,10 @@ pub fn start_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String> 
 
             if success == 0 {
                 let err = unsafe { windows_sys::Win32::Foundation::GetLastError() };
-                return Err(format!("Failed to spawn lab broker daemon: Win32 error {}", err));
+                return Err(format!(
+                    "Failed to spawn lab broker daemon: Win32 error {}",
+                    err
+                ));
             }
 
             unsafe {
@@ -831,7 +835,10 @@ pub fn install_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String
                                 || fname_lower.starts_with(&format!("{}-", target_lower))
                                 || fname_lower.contains(&format!("zitera-lab-{}", target_lower))
                             {
-                                let rep = crate::package::install_or_update_package(&path, workspace_root)?;
+                                let rep = crate::package::install_or_update_package(
+                                    &path,
+                                    workspace_root,
+                                )?;
                                 return Ok(format!(
                                     "Lab {} ({}) successfully installed from package bundle v{}.",
                                     lab_id, item.title, rep.new_version
@@ -950,7 +957,10 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
             for name in &candidate_names {
                 let pkg_file = dir.join(name);
                 if pkg_file.is_file() {
-                    let rep = crate::package::installer::install_or_update_package(&pkg_file, workspace_root)?;
+                    let rep = crate::package::installer::install_or_update_package(
+                        &pkg_file,
+                        workspace_root,
+                    )?;
                     return Ok(format!(
                         "Lab {} ({}) successfully updated to v{}.",
                         lab_id, item.title, rep.new_version
@@ -970,7 +980,10 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
                                 || fname_lower.starts_with(&format!("{}-", target_lower))
                                 || fname_lower.contains(&format!("zitera-lab-{}", target_lower))
                             {
-                                let rep = crate::package::installer::install_or_update_package(&path, workspace_root)?;
+                                let rep = crate::package::installer::install_or_update_package(
+                                    &path,
+                                    workspace_root,
+                                )?;
                                 return Ok(format!(
                                     "Lab {} ({}) successfully updated to v{}.",
                                     lab_id, item.title, rep.new_version
@@ -986,12 +999,32 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
     // 2. Check if package_url is available to fetch package
     if let Some(ref pkg_url) = item.package_url {
         if pkg_url.starts_with("https://") {
-            let temp_pkg = std::env::temp_dir().join(format!("zlab_update_{}_{}.zlab", lab_id, std::process::id()));
+            let temp_pkg = std::env::temp_dir().join(format!(
+                "zlab_update_{}_{}.zlab",
+                lab_id,
+                std::process::id()
+            ));
             let _ = fs::remove_file(&temp_pkg);
-            let curl_res = crate::process::run_cmd("curl.exe", &["-s", "--max-time", "15", "--fail", "-L", "-o", temp_pkg.to_str().unwrap(), pkg_url], None);
+            let curl_res = crate::process::run_cmd(
+                "curl.exe",
+                &[
+                    "-s",
+                    "--max-time",
+                    "15",
+                    "--fail",
+                    "-L",
+                    "-o",
+                    temp_pkg.to_str().unwrap(),
+                    pkg_url,
+                ],
+                None,
+            );
             if let Ok(out) = curl_res {
                 if out.success && temp_pkg.exists() {
-                    let install_res = crate::package::installer::install_or_update_package(&temp_pkg, workspace_root);
+                    let install_res = crate::package::installer::install_or_update_package(
+                        &temp_pkg,
+                        workspace_root,
+                    );
                     let _ = fs::remove_file(&temp_pkg);
                     let rep = install_res?;
                     return Ok(format!(
@@ -1057,13 +1090,17 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         }
     } else {
         // 4. Atomic update of local lab files to catalog target version
-        if crate::package::installer::compare_semver(&current_manifest.version, &item.version) == std::cmp::Ordering::Equal {
+        if crate::package::installer::compare_semver(&current_manifest.version, &item.version)
+            == std::cmp::Ordering::Equal
+        {
             return Ok(format!(
                 "Lab {} is already up to date (v{}).",
                 lab_id, current_manifest.version
             ));
         }
-        if crate::package::installer::compare_semver(&current_manifest.version, &item.version) == std::cmp::Ordering::Greater {
+        if crate::package::installer::compare_semver(&current_manifest.version, &item.version)
+            == std::cmp::Ordering::Greater
+        {
             return Ok(format!(
                 "Lab {} is already on a newer version (v{} > catalog v{}).",
                 lab_id, current_manifest.version, item.version
@@ -1074,7 +1111,8 @@ pub fn update_lab(workspace_root: &Path, lab_id: &str) -> Result<String, String>
         let pid = std::process::id();
         let staging_dir = std::env::temp_dir().join(format!("zitera_lab_stage_{}_{}", lab_id, pid));
         let _ = fs::remove_dir_all(&staging_dir);
-        fs::create_dir_all(&staging_dir).map_err(|e| format!("Failed to create staging directory: {}", e))?;
+        fs::create_dir_all(&staging_dir)
+            .map_err(|e| format!("Failed to create staging directory: {}", e))?;
 
         // Copy existing lab files to staging, excluding versions and staging artifacts
         if let Err(e) = crate::package::installer::copy_dir_all(&lab_dir, &staging_dir) {
@@ -1174,7 +1212,8 @@ fn safe_read_file(path: &Path) -> Result<String, String> {
             MAX_CONTENT_FILE_SIZE
         ));
     }
-    let content = fs::read_to_string(path).map_err(|e| format!("Failed to read {:?}: {}", path, e))?;
+    let content =
+        fs::read_to_string(path).map_err(|e| format!("Failed to read {:?}: {}", path, e))?;
     Ok(content.trim_start_matches('\u{feff}').to_string())
 }
 
@@ -1330,8 +1369,11 @@ pub fn verify_practice(
     // 1. Authoritative Practice Verification Endpoint (Contract V2)
     // If the laboratory service exposes a stateful practice verification endpoint, query it.
     let practice_url = format!("{}/practice/verify", base_url);
-    let practice_probe =
-        crate::process::run_cmd("curl.exe", &["-s", "--noproxy", "*", "--max-time", "3", &practice_url], None);
+    let practice_probe = crate::process::run_cmd(
+        "curl.exe",
+        &["-s", "--noproxy", "*", "--max-time", "3", &practice_url],
+        None,
+    );
 
     if let Ok(pout) = practice_probe {
         if pout.success && !pout.stdout.trim().is_empty() {
@@ -1628,7 +1670,9 @@ pub fn validate_lab(workspace_root: &Path, lab_id: &str) -> LabValidationResult 
             name: "Lesson Content".to_string(),
             passed: false,
             message: "No 'lesson/' or 'lessons/' folder found.".to_string(),
-            remediation: Some("Add educational markdown files inside 'lesson/' directory.".to_string()),
+            remediation: Some(
+                "Add educational markdown files inside 'lesson/' directory.".to_string(),
+            ),
         });
     }
 
@@ -1650,7 +1694,9 @@ pub fn validate_lab(workspace_root: &Path, lab_id: &str) -> LabValidationResult 
             name: "Challenge Specification".to_string(),
             passed: false,
             message: "Challenge objective / flag verification not found.".to_string(),
-            remediation: Some("Create 'challenge/' folder with challenge.md or challenge.json.".to_string()),
+            remediation: Some(
+                "Create 'challenge/' folder with challenge.md or challenge.json.".to_string(),
+            ),
         });
     }
 
@@ -1683,10 +1729,18 @@ pub fn validate_lab(workspace_root: &Path, lab_id: &str) -> LabValidationResult 
         let filename = entrypoint_path.file_name().unwrap_or_default();
         let underscore_name = filename.to_str().unwrap_or("").replace('-', "_");
         let target_candidates = [
-            workspace_root.join("engine/rust/target/release").join(filename),
-            workspace_root.join("engine/rust/target/debug").join(filename),
-            workspace_root.join("engine/rust/target/release").join(&underscore_name),
-            workspace_root.join("engine/rust/target/debug").join(&underscore_name),
+            workspace_root
+                .join("engine/rust/target/release")
+                .join(filename),
+            workspace_root
+                .join("engine/rust/target/debug")
+                .join(filename),
+            workspace_root
+                .join("engine/rust/target/release")
+                .join(&underscore_name),
+            workspace_root
+                .join("engine/rust/target/debug")
+                .join(&underscore_name),
         ];
         for cand in &target_candidates {
             if cand.exists() {
@@ -1703,7 +1757,10 @@ pub fn validate_lab(workspace_root: &Path, lab_id: &str) -> LabValidationResult 
         checks.push(ValidationCheck {
             name: "Entrypoint Existence".to_string(),
             passed: true,
-            message: format!("Entrypoint '{}' resolved successfully.", manifest.entrypoint),
+            message: format!(
+                "Entrypoint '{}' resolved successfully.",
+                manifest.entrypoint
+            ),
             remediation: None,
         });
     } else {
@@ -2142,7 +2199,10 @@ mod tests {
         );
         let resp_root = send_req(&req_root);
         assert!(resp_root.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_root.contains("ApexFin") || resp_root.contains("Internal Financial Accounting Portal"));
+        assert!(
+            resp_root.contains("ApexFin")
+                || resp_root.contains("Internal Financial Accounting Portal")
+        );
 
         // 5. Test POST /login -> Authenticate as alice
         let login_body = "username=alice&password=password123";
@@ -2430,9 +2490,8 @@ mod tests {
         assert!(resp_login.contains("ops_session"));
 
         // 9. Validate Challenge submission
-        let verif =
-            validate_challenge(&repo_root, "A02", "ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}")
-                .unwrap();
+        let verif = validate_challenge(&repo_root, "A02", "ZITERA{53cur1ty_m15c0nf1g_b4ckup_134k}")
+            .unwrap();
         assert_eq!(
             verif.status, "passed",
             "Challenge flag must pass validation"
@@ -2545,7 +2604,10 @@ mod tests {
         );
         let resp_verify = send_req(&req_verify);
         assert!(resp_verify.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_verify.contains("\"status\":\"passed\"") || resp_verify.contains("\"status\": \"passed\""));
+        assert!(
+            resp_verify.contains("\"status\":\"passed\"")
+                || resp_verify.contains("\"status\": \"passed\"")
+        );
 
         // 7. Validate Challenge submission
         let verif =
@@ -2689,8 +2751,7 @@ mod tests {
 
         // 8. Validate Challenge submission
         let verif =
-            validate_challenge(&repo_root, "A04", "ZITERA{cryp70_f41lur35_w34k_k3y_2026}")
-                .unwrap();
+            validate_challenge(&repo_root, "A04", "ZITERA{cryp70_f41lur35_w34k_k3y_2026}").unwrap();
         assert_eq!(
             verif.status, "passed",
             "Challenge flag must pass validation"
@@ -2814,8 +2875,7 @@ mod tests {
 
         // 8. Validate Challenge submission
         let verif =
-            validate_challenge(&repo_root, "A05", "ZITERA{5q1_1nj3ct10n_m45t3r_2026}")
-                .unwrap();
+            validate_challenge(&repo_root, "A05", "ZITERA{5q1_1nj3ct10n_m45t3r_2026}").unwrap();
         assert_eq!(
             verif.status, "passed",
             "Challenge flag must pass validation"
@@ -2906,7 +2966,10 @@ mod tests {
         );
         let resp_login_get = send_req(&req_login_get);
         assert!(resp_login_get.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_login_get.contains("NexHealth") || resp_login_get.contains("OmniAuth // Admin Gateway"));
+        assert!(
+            resp_login_get.contains("NexHealth")
+                || resp_login_get.contains("OmniAuth // Admin Gateway")
+        );
 
         // 5. POST /session/{token}/login with wrong password -> 200 OK with error (no lockout)
         let fail_body = "username=admin&password=0000";
@@ -2963,8 +3026,7 @@ mod tests {
 
         // 9. Validate Challenge submission
         let verif =
-            validate_challenge(&repo_root, "A07", "ZITERA{4uth_f41lur3_brut3_f0rc3_2026}")
-                .unwrap();
+            validate_challenge(&repo_root, "A07", "ZITERA{4uth_f41lur3_brut3_f0rc3_2026}").unwrap();
         assert_eq!(
             verif.status, "passed",
             "Challenge flag must pass validation"
@@ -3036,7 +3098,10 @@ mod tests {
         );
         let resp_index = send_req(&req_index);
         assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_index.contains("DataFlow") || resp_index.contains("Zitera Edge // Firmware & Config Ingestion"));
+        assert!(
+            resp_index.contains("DataFlow")
+                || resp_index.contains("Zitera Edge // Firmware & Config Ingestion")
+        );
 
         // 5. GET /session/{token}/api/config -> default factory configuration
         let req_config = format!(
@@ -3066,8 +3131,16 @@ mod tests {
         assert_eq!(verif_post.status, "passed");
 
         // 9. Validate Challenge submission
-        let verif_chall = validate_challenge(&repo_root, "A08", "ZITERA{1nt3gr1ty_f41lur3_un51gn3d_p4ck4g3}").unwrap();
-        assert_eq!(verif_chall.status, "passed", "Challenge flag must pass validation");
+        let verif_chall = validate_challenge(
+            &repo_root,
+            "A08",
+            "ZITERA{1nt3gr1ty_f41lur3_un51gn3d_p4ck4g3}",
+        )
+        .unwrap();
+        assert_eq!(
+            verif_chall.status, "passed",
+            "Challenge flag must pass validation"
+        );
 
         // 10. Stop A08
         let stop_res = stop_lab(&repo_root, "A08");
@@ -3075,7 +3148,10 @@ mod tests {
 
         // 11. Status after stop
         let st_stopped = get_lab_status(&repo_root, "A08");
-        assert!(!st_stopped.running, "A08 must report stopped after stop_lab");
+        assert!(
+            !st_stopped.running,
+            "A08 must report stopped after stop_lab"
+        );
     }
 
     #[test]
@@ -3132,7 +3208,10 @@ mod tests {
         );
         let resp_index = send_req(&req_index);
         assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_index.contains("FleetTrack") || resp_index.contains("Zitera SOC // Telemetry & Audit Console"));
+        assert!(
+            resp_index.contains("FleetTrack")
+                || resp_index.contains("Zitera SOC // Telemetry & Audit Console")
+        );
 
         // 5. Practice verification initially -> failed (no attacks yet)
         let verif_pre = verify_practice(&repo_root, "A09").unwrap();
@@ -3164,8 +3243,16 @@ mod tests {
         assert_eq!(verif_post.status, "passed");
 
         // 9. Validate Challenge submission
-        let verif_chall = validate_challenge(&repo_root, "A09", "ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}").unwrap();
-        assert_eq!(verif_chall.status, "passed", "Challenge flag must pass validation");
+        let verif_chall = validate_challenge(
+            &repo_root,
+            "A09",
+            "ZITERA{53cur1ty_l0gg1ng_4l3rt1ng_bl1nd5p0t}",
+        )
+        .unwrap();
+        assert_eq!(
+            verif_chall.status, "passed",
+            "Challenge flag must pass validation"
+        );
 
         // 10. Stop A09
         let stop_res = stop_lab(&repo_root, "A09");
@@ -3173,7 +3260,10 @@ mod tests {
 
         // 11. Status after stop
         let st_stopped = get_lab_status(&repo_root, "A09");
-        assert!(!st_stopped.running, "A09 must report stopped after stop_lab");
+        assert!(
+            !st_stopped.running,
+            "A09 must report stopped after stop_lab"
+        );
     }
 
     #[test]
@@ -3230,7 +3320,10 @@ mod tests {
         );
         let resp_index = send_req(&req_index);
         assert!(resp_index.starts_with("HTTP/1.1 200 OK"));
-        assert!(resp_index.contains("TemplateCloud") || resp_index.contains("Zitera Gate // Fail-Open Evaluation"));
+        assert!(
+            resp_index.contains("TemplateCloud")
+                || resp_index.contains("Zitera Gate // Fail-Open Evaluation")
+        );
 
         // 5. Practice verification initially -> failed (no exception induced)
         let verif_pre = verify_practice(&repo_root, "A10").unwrap();
@@ -3264,8 +3357,16 @@ mod tests {
         assert_eq!(verif_post.status, "passed");
 
         // 9. Validate Challenge submission
-        let verif_chall = validate_challenge(&repo_root, "A10", "ZITERA{f41l_0p3n_3xc3pt10n5_un4uth0r1z3d}").unwrap();
-        assert_eq!(verif_chall.status, "passed", "Challenge flag must pass validation");
+        let verif_chall = validate_challenge(
+            &repo_root,
+            "A10",
+            "ZITERA{f41l_0p3n_3xc3pt10n5_un4uth0r1z3d}",
+        )
+        .unwrap();
+        assert_eq!(
+            verif_chall.status, "passed",
+            "Challenge flag must pass validation"
+        );
 
         // 10. Stop A10
         let stop_res = stop_lab(&repo_root, "A10");
@@ -3273,15 +3374,25 @@ mod tests {
 
         // 11. Status after stop
         let st_stopped = get_lab_status(&repo_root, "A10");
-        assert!(!st_stopped.running, "A10 must report stopped after stop_lab");
+        assert!(
+            !st_stopped.running,
+            "A10 must report stopped after stop_lab"
+        );
     }
 
     #[test]
     fn test_validate_all_curriculum_labs() {
         let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let repo_root = manifest_dir.parent().unwrap().parent().unwrap().to_path_buf();
+        let repo_root = manifest_dir
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
 
-        for lab_id in ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"] {
+        for lab_id in [
+            "A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10",
+        ] {
             let res = validate_lab(&repo_root, lab_id);
             assert!(
                 res.valid,
@@ -3297,12 +3408,7 @@ mod tests {
         let _ = fs::remove_dir_all(&temp_dir);
         let _ = fs::create_dir_all(&temp_dir);
 
-        let scaffold_res = create_lab_template(
-            &temp_dir,
-            "A99",
-            "SSRF Security Module",
-            "A10",
-        );
+        let scaffold_res = create_lab_template(&temp_dir, "A99", "SSRF Security Module", "A10");
         assert!(scaffold_res.is_ok(), "create_lab_template should succeed");
 
         let val_res = validate_lab(&temp_dir, "A99");

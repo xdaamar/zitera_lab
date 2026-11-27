@@ -280,20 +280,21 @@ fn generate_html(ctx: &LabContext, query_msg: Option<&str>, revealed: bool) -> S
     </div>
 </body>
 </html>"#,
-        ctx.id,
-        ctx.title,
-        ctx.port,
-        ctx.id,
-        ctx.title,
-        ctx.description,
-        alert_box,
-        ctx.port
+        ctx.id, ctx.title, ctx.port, ctx.id, ctx.title, ctx.description, alert_box, ctx.port
     )
 }
 
-fn handle_request(ctx: &LabContext, method: &str, path: &str, _body: &str) -> (u16, HashMap<String, String>, String) {
+fn handle_request(
+    ctx: &LabContext,
+    method: &str,
+    path: &str,
+    _body: &str,
+) -> (u16, HashMap<String, String>, String) {
     let mut headers = HashMap::new();
-    headers.insert("Content-Type".to_string(), "text/html; charset=utf-8".to_string());
+    headers.insert(
+        "Content-Type".to_string(),
+        "text/html; charset=utf-8".to_string(),
+    );
     headers.insert("X-Content-Type-Options".to_string(), "nosniff".to_string());
     headers.insert("X-Zitera-Lab-Id".to_string(), ctx.id.clone());
 
@@ -316,7 +317,15 @@ fn handle_request(ctx: &LabContext, method: &str, path: &str, _body: &str) -> (u
     }
 
     let is_solve = path.contains("solve=1") || method == "POST";
-    let body = generate_html(ctx, if is_solve { None } else { Some("Menunggu pengujian payload...") }, is_solve);
+    let body = generate_html(
+        ctx,
+        if is_solve {
+            None
+        } else {
+            Some("Menunggu pengujian payload...")
+        },
+        is_solve,
+    );
     (200, headers, body)
 }
 

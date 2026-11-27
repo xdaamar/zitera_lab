@@ -38,7 +38,9 @@ pub fn validate_curl_args(args: &[String]) -> Result<(), String> {
             return Err("curl: argument length exceeds maximum allowed limit\n".to_string());
         }
         if arg.starts_with("-o") || arg.starts_with("--output") || arg.contains("file://") {
-            return Err("curl: file output redirection is restricted in terminal mode\n".to_string());
+            return Err(
+                "curl: file output redirection is restricted in terminal mode\n".to_string(),
+            );
         }
         let is_target = arg.starts_with("http://")
             || arg.starts_with("https://")
@@ -56,7 +58,10 @@ pub fn validate_curl_args(args: &[String]) -> Result<(), String> {
 
         if is_target {
             if arg.starts_with("https://") {
-                return Err("curl: https protocol is not supported for local sandboxed lab endpoints\n".to_string());
+                return Err(
+                    "curl: https protocol is not supported for local sandboxed lab endpoints\n"
+                        .to_string(),
+                );
             }
             if arg.contains('@') {
                 return Err("curl: userinfo credentials in target URL are prohibited\n".to_string());
@@ -99,9 +104,8 @@ pub fn validate_curl_args(args: &[String]) -> Result<(), String> {
             }
 
             let host_lower = host.to_lowercase();
-            let is_loopback = host_lower == "127.0.0.1"
-                || host_lower == "localhost"
-                || host_lower == "::1";
+            let is_loopback =
+                host_lower == "127.0.0.1" || host_lower == "localhost" || host_lower == "::1";
 
             if !is_loopback {
                 return Err("curl: access to external network or non-localhost target is denied by sandbox policy\n".to_string());
@@ -262,7 +266,10 @@ impl TerminalSession {
                 };
                 (h, p)
             } else {
-                return Some(commands::CommandOutput::err("curl: malformed IPv6 address\n", 1));
+                return Some(commands::CommandOutput::err(
+                    "curl: malformed IPv6 address\n",
+                    1,
+                ));
             }
         } else if host_port.contains(':') {
             let parts: Vec<&str> = host_port.split(':').collect();
@@ -574,7 +581,8 @@ mod tests {
         let lan_err = validate_curl_args(&["http://192.168.1.1/".to_string()]);
         assert!(lan_err.is_err());
 
-        let metadata_err = validate_curl_args(&["http://169.254.169.254/latest/meta-data".to_string()]);
+        let metadata_err =
+            validate_curl_args(&["http://169.254.169.254/latest/meta-data".to_string()]);
         assert!(metadata_err.is_err());
 
         // 3c. Userinfo credentials prohibited
@@ -585,7 +593,9 @@ mod tests {
         // 3d. File output redirection restricted
         let file_out_err = validate_curl_args(&["-o".to_string(), "malware.exe".to_string()]);
         assert!(file_out_err.is_err());
-        assert!(file_out_err.unwrap_err().contains("file output redirection is restricted"));
+        assert!(file_out_err
+            .unwrap_err()
+            .contains("file output redirection is restricted"));
 
         let file_proto_err = validate_curl_args(&["file:///C:/Windows/win.ini".to_string()]);
         assert!(file_proto_err.is_err());
@@ -593,7 +603,9 @@ mod tests {
         // 3e. HTTPS protocol restricted for local lab endpoints
         let https_err = validate_curl_args(&["https://127.0.0.1:8080".to_string()]);
         assert!(https_err.is_err());
-        assert!(https_err.unwrap_err().contains("https protocol is not supported"));
+        assert!(https_err
+            .unwrap_err()
+            .contains("https protocol is not supported"));
 
         // 3f. Malformed URL & Invalid port
         let port_err = validate_curl_args(&["http://127.0.0.1:99999".to_string()]);

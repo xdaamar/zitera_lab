@@ -73,8 +73,11 @@ pub fn run() {
 }
 
 fn handle_doctor(args: &[String], workspace_root: &Path, json: bool) {
-    if let Some(pos) = args.iter().position(|a| a == "--export-diagnostics" || a == "export") {
-        let custom_path = args.get(pos + 1).map(|s| PathBuf::from(s));
+    if let Some(pos) = args
+        .iter()
+        .position(|a| a == "--export-diagnostics" || a == "export")
+    {
+        let custom_path = args.get(pos + 1).map(PathBuf::from);
         return handle_diagnostics_export(custom_path.as_deref(), workspace_root, json);
     }
 
@@ -116,7 +119,7 @@ fn handle_doctor(args: &[String], workspace_root: &Path, json: bool) {
 
 fn handle_diagnostics(args: &[String], workspace_root: &Path, json: bool) {
     if args.is_empty() || args[0] == "export" {
-        let custom_path = args.get(1).map(|s| PathBuf::from(s));
+        let custom_path = args.get(1).map(PathBuf::from);
         handle_diagnostics_export(custom_path.as_deref(), workspace_root, json);
     } else {
         if json {
@@ -154,12 +157,8 @@ fn handle_diagnostics_export(custom_out: Option<&Path>, workspace_root: &Path, j
         }
         Err(e) => {
             if json {
-                let resp: ApiResponse<()> = ApiResponse::err(
-                    "diagnostics.export",
-                    "EXPORT_ERROR",
-                    e,
-                    false,
-                );
+                let resp: ApiResponse<()> =
+                    ApiResponse::err("diagnostics.export", "EXPORT_ERROR", e, false);
                 println!("{}", serde_json::to_string_pretty(&resp).unwrap());
             } else {
                 eprintln!("Failed to export diagnostics archive: {}", e);
@@ -742,7 +741,9 @@ fn handle_lab_list(workspace_root: &Path, json: bool) {
 }
 
 fn handle_catalog(args: &[String], workspace_root: &Path, json: bool) {
-    let force_refresh = args.iter().any(|a| a == "refresh" || a == "--refresh" || a == "-r");
+    let force_refresh = args
+        .iter()
+        .any(|a| a == "refresh" || a == "--refresh" || a == "-r");
     let res = if force_refresh {
         catalog::refresh_catalog(workspace_root)
     } else {
@@ -829,13 +830,16 @@ fn handle_package(args: &[String], workspace_root: &Path, json: bool) {
             ) {
                 Ok(verified) => {
                     if json {
-                        let resp = ApiResponse::ok("package.build", serde_json::json!({
-                            "lab_id": verified.manifest.id,
-                            "version": verified.manifest.version,
-                            "package_sha256": verified.package_sha256,
-                            "content_digest": verified.content_digest,
-                            "output_path": out_path.display().to_string(),
-                        }));
+                        let resp = ApiResponse::ok(
+                            "package.build",
+                            serde_json::json!({
+                                "lab_id": verified.manifest.id,
+                                "version": verified.manifest.version,
+                                "package_sha256": verified.package_sha256,
+                                "content_digest": verified.content_digest,
+                                "output_path": out_path.display().to_string(),
+                            }),
+                        );
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         println!("[SUCCESS] Built and signed package {}", out_path.display());
@@ -847,12 +851,8 @@ fn handle_package(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
-                        let resp: ApiResponse<()> = ApiResponse::err(
-                            "package.build",
-                            "PACKAGE_BUILD_FAILED",
-                            e,
-                            true,
-                        );
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("package.build", "PACKAGE_BUILD_FAILED", e, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] Package build failed: {}", e);
@@ -881,33 +881,45 @@ fn handle_package(args: &[String], workspace_root: &Path, json: bool) {
             match crate::package::verifier::verify_package(&pkg_path, None) {
                 Ok(verified) => {
                     if json {
-                        let resp = ApiResponse::ok("package.verify", serde_json::json!({
-                            "lab_id": verified.manifest.id,
-                            "version": verified.manifest.version,
-                            "security_version": verified.manifest.security_version,
-                            "minimum_core_version": verified.manifest.minimum_core_version,
-                            "package_sha256": verified.package_sha256,
-                            "content_digest": verified.content_digest,
-                        }));
+                        let resp = ApiResponse::ok(
+                            "package.verify",
+                            serde_json::json!({
+                                "lab_id": verified.manifest.id,
+                                "version": verified.manifest.version,
+                                "security_version": verified.manifest.security_version,
+                                "minimum_core_version": verified.manifest.minimum_core_version,
+                                "package_sha256": verified.package_sha256,
+                                "content_digest": verified.content_digest,
+                            }),
+                        );
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
-                        println!("[VALID] Package verification PASSED for {}", pkg_path.display());
+                        println!(
+                            "[VALID] Package verification PASSED for {}",
+                            pkg_path.display()
+                        );
                         println!("  Lab ID              : {}", verified.manifest.id);
                         println!("  Version             : {}", verified.manifest.version);
-                        println!("  Security Version    : {}", verified.manifest.security_version.unwrap_or(1));
-                        println!("  Minimum Core Version: {}", verified.manifest.minimum_core_version.as_deref().unwrap_or("2.0.0"));
+                        println!(
+                            "  Security Version    : {}",
+                            verified.manifest.security_version.unwrap_or(1)
+                        );
+                        println!(
+                            "  Minimum Core Version: {}",
+                            verified
+                                .manifest
+                                .minimum_core_version
+                                .as_deref()
+                                .unwrap_or("2.0.0")
+                        );
                         println!("  Package SHA-256     : {}", verified.package_sha256);
                         println!("  Content Digest      : {}", verified.content_digest);
                     }
                 }
                 Err(e) => {
                     if json {
-                        let resp: ApiResponse<()> = ApiResponse::err(
-                            "package.verify",
-                            "VERIFICATION_FAILED",
-                            e,
-                            true,
-                        );
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("package.verify", "VERIFICATION_FAILED", e, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[REJECTED] Package verification failed: {}", e);
@@ -957,12 +969,8 @@ fn handle_package(args: &[String], workspace_root: &Path, json: bool) {
                 }
                 Err(e) => {
                     if json {
-                        let resp: ApiResponse<()> = ApiResponse::err(
-                            "package.install",
-                            "INSTALL_FAILED",
-                            e,
-                            true,
-                        );
+                        let resp: ApiResponse<()> =
+                            ApiResponse::err("package.install", "INSTALL_FAILED", e, true);
                         println!("{}", serde_json::to_string_pretty(&resp).unwrap());
                     } else {
                         eprintln!("[ERROR] Package installation failed: {}", e);
@@ -980,7 +988,10 @@ fn handle_package(args: &[String], workspace_root: &Path, json: bool) {
                 );
                 println!("{}", serde_json::to_string_pretty(&resp).unwrap());
             } else {
-                eprintln!("Unknown package subcommand '{}'. Use: build, verify, install", other);
+                eprintln!(
+                    "Unknown package subcommand '{}'. Use: build, verify, install",
+                    other
+                );
             }
         }
     }
@@ -1103,39 +1114,44 @@ fn handle_storage(args: &[String], json: bool) {
                 println!("Diagnostics    : {}", paths.diagnostics_dir.display());
                 println!("Progress File  : {}", paths.user_progress_file().display());
                 println!("--------------------------------------------------");
-                println!("Boundary Check : {}", if is_isolated { "ISOLATED (OK)" } else { "VIOLATION" });
+                println!(
+                    "Boundary Check : {}",
+                    if is_isolated {
+                        "ISOLATED (OK)"
+                    } else {
+                        "VIOLATION"
+                    }
+                );
                 println!("==================================================");
             }
         }
-        "purge-cache" => {
-            match paths.purge_cache() {
-                Ok(cleared) => {
-                    if json {
-                        let resp = ApiResponse::ok("storage.purge_cache", cleared);
-                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
-                    } else {
-                        println!("Cache purged successfully: {} items removed.", cleared);
-                    }
-                }
-                Err(e) => {
-                    if json {
-                        let err_str = e.to_string();
-                        let (code, rec) =
-                            crate::models::classify_recovery_error("storage.purge_cache", &err_str);
-                        let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
-                            "storage.purge_cache",
-                            code,
-                            err_str,
-                            rec,
-                            true,
-                        );
-                        println!("{}", serde_json::to_string_pretty(&resp).unwrap());
-                    } else {
-                        eprintln!("Error purging cache: {}", e);
-                    }
+        "purge-cache" => match paths.purge_cache() {
+            Ok(cleared) => {
+                if json {
+                    let resp = ApiResponse::ok("storage.purge_cache", cleared);
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    println!("Cache purged successfully: {} items removed.", cleared);
                 }
             }
-        }
+            Err(e) => {
+                if json {
+                    let err_str = e.to_string();
+                    let (code, rec) =
+                        crate::models::classify_recovery_error("storage.purge_cache", &err_str);
+                    let resp: ApiResponse<()> = ApiResponse::err_with_recovery(
+                        "storage.purge_cache",
+                        code,
+                        err_str,
+                        rec,
+                        true,
+                    );
+                    println!("{}", serde_json::to_string_pretty(&resp).unwrap());
+                } else {
+                    eprintln!("Error purging cache: {}", e);
+                }
+            }
+        },
         other => {
             if json {
                 let resp: ApiResponse<()> = ApiResponse::err(
@@ -1146,7 +1162,10 @@ fn handle_storage(args: &[String], json: bool) {
                 );
                 println!("{}", serde_json::to_string_pretty(&resp).unwrap());
             } else {
-                eprintln!("Unknown storage subcommand: '{}'. Supported: status, purge-cache", other);
+                eprintln!(
+                    "Unknown storage subcommand: '{}'. Supported: status, purge-cache",
+                    other
+                );
             }
         }
     }
@@ -1210,7 +1229,9 @@ fn print_help(json: bool) {
         println!("  lab reset <id>         Deterministically reset a lab environment");
         println!("  lab update <id>        Update a lab environment to latest version");
         println!("  lab install-package <file> Install or update lab from .zlab package");
-        println!("  lab validate <id>      Verify curriculum contract, content & signature compliance");
+        println!(
+            "  lab validate <id>      Verify curriculum contract, content & signature compliance"
+        );
         println!("  lab create <id>        Scaffold new lab template with curriculum contract");
         println!("  lab remove <id>        Remove an installed lab");
         println!("  package build <src> <out.zlab> Build and sign a deterministic .zlab package");

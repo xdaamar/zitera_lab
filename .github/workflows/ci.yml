@@ -34,28 +34,29 @@ jobs:
           cargo build --release --verbose
 
   ui-check:
-    name: Flutter Desktop CI
+    name: Tauri Desktop CI
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          channel: 'stable'
-          cache: true
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ui/tauri/package-lock.json
 
-      - name: Flutter Dependencies
+      - name: Install dependencies
         run: |
-          cd ui/flutter
-          flutter pub get
+          cd ui/tauri
+          npm ci
 
-      - name: Flutter Analyze
+      - name: Lint
         run: |
-          cd ui/flutter
-          flutter analyze
+          cd ui/tauri
+          npm run lint
 
-      - name: Flutter Test
+      - name: Build
         run: |
-          cd ui/flutter
-          flutter test
+          cd ui/tauri
+          npm run build

@@ -580,7 +580,8 @@ Tip: Run 'help <command>' (e.g., 'help grep', 'help ls', 'help curl') for cybers
 
     let target = args[0].trim().to_lowercase();
     let detail = match target.as_str() {
-        "ls" => r#"COMMAND: ls
+        "ls" => {
+            r#"COMMAND: ls
 USAGE: ls [-l] [-a] [path]
 DESCRIPTION:
   List directory contents. In cybersecurity analysis, 'ls' is fundamental for
@@ -590,8 +591,10 @@ FLAGS:
   -a   Show hidden files (files beginning with '.')
 SECURITY CONTEXT:
   Always inspect hidden files (-a) like .env, .git, or .bash_history during CTFs.
-"#,
-        "grep" => r#"COMMAND: grep
+"#
+        }
+        "grep" => {
+            r#"COMMAND: grep
 USAGE: grep [-i] [-n] <pattern> [file]
 DESCRIPTION:
   Search for PATTERN in each FILE or standard input.
@@ -601,24 +604,30 @@ FLAGS:
 SECURITY CONTEXT:
   Indispensable for log analysis, discovering exposed hardcoded secrets, API tokens,
   and tracing error stack dumps across application files.
-"#,
-        "find" => r#"COMMAND: find
+"#
+        }
+        "find" => {
+            r#"COMMAND: find
 USAGE: find [path] [-name <pattern>]
 DESCRIPTION:
   Recursively traverses the directory hierarchy to search for files matching patterns.
 SECURITY CONTEXT:
   Used to discover vulnerable SUID binaries, misconfigured world-writable files,
   or misplaced backup files (e.g. *.bak, *.sql, *.conf).
-"#,
-        "cat" => r#"COMMAND: cat
+"#
+        }
+        "cat" => {
+            r#"COMMAND: cat
 USAGE: cat <file...>
 DESCRIPTION:
   Concatenate FILE(s) to standard output.
 SECURITY CONTEXT:
   Frequently used in Local File Inclusion (LFI) and Broken Access Control challenges
   to read sensitive files such as /etc/passwd or configuration files.
-"#,
-        "curl" => r#"COMMAND: curl
+"#
+        }
+        "curl" => {
+            r#"COMMAND: curl
 USAGE: curl [-i] [-X METHOD] [url]
 DESCRIPTION:
   Transfer data from or to a server using supported application protocols (HTTP/HTTPS).
@@ -629,8 +638,10 @@ FLAGS:
 SECURITY CONTEXT:
   The premier CLI tool for API pentesting, verifying CORS headers, testing JWT tokens,
   and executing HTTP requests against local lab servers.
-"#,
-        "ps" => r#"COMMAND: ps
+"#
+        }
+        "ps" => {
+            r#"COMMAND: ps
 USAGE: ps [-ef]
 DESCRIPTION:
   Report a snapshot of the current processes running within the lab sandbox.
@@ -639,67 +650,92 @@ FLAGS:
 SECURITY CONTEXT:
   Key for privilege escalation reconnaissance, detecting background daemon credentials,
   and verifying isolated service states.
-"#,
-        "head" => r#"COMMAND: head
+"#
+        }
+        "head" => {
+            r#"COMMAND: head
 USAGE: head [-n lines] [file]
 DESCRIPTION:
   Output the first N lines (default 10) of specified file.
-"#,
-        "tail" => r#"COMMAND: tail
+"#
+        }
+        "tail" => {
+            r#"COMMAND: tail
 USAGE: tail [-n lines] [file]
 DESCRIPTION:
   Output the last N lines (default 10) of specified file. Great for live log inspection.
-"#,
-        "cd" => r#"COMMAND: cd
+"#
+        }
+        "cd" => {
+            r#"COMMAND: cd
 USAGE: cd [dir]
 DESCRIPTION:
   Change the current working directory inside the sandboxed Virtual Filesystem.
-"#,
-        "pwd" => r#"COMMAND: pwd
+"#
+        }
+        "pwd" => {
+            r#"COMMAND: pwd
 USAGE: pwd
 DESCRIPTION:
   Print the full pathname of the current working directory.
-"#,
-        "mkdir" => r#"COMMAND: mkdir
+"#
+        }
+        "mkdir" => {
+            r#"COMMAND: mkdir
 USAGE: mkdir [-p] <dir>
 DESCRIPTION:
   Create the DIRECTORY(ies), if they do not already exist.
-"#,
-        "touch" => r#"COMMAND: touch
+"#
+        }
+        "touch" => {
+            r#"COMMAND: touch
 USAGE: touch <file...>
 DESCRIPTION:
   Update file timestamp or create empty file if it does not exist.
-"#,
-        "cp" => r#"COMMAND: cp
+"#
+        }
+        "cp" => {
+            r#"COMMAND: cp
 USAGE: cp <source> <destination>
 DESCRIPTION:
   Copy SOURCE to DEST.
-"#,
-        "mv" => r#"COMMAND: mv
+"#
+        }
+        "mv" => {
+            r#"COMMAND: mv
 USAGE: mv <source> <destination>
 DESCRIPTION:
   Rename SOURCE to DEST, or move SOURCE to DIRECTORY.
-"#,
-        "rm" => r#"COMMAND: rm
+"#
+        }
+        "rm" => {
+            r#"COMMAND: rm
 USAGE: rm [-r] <file...>
 DESCRIPTION:
   Remove (unlink) the FILE(s). Use -r for recursive directory removal.
-"#,
-        "whoami" => r#"COMMAND: whoami
+"#
+        }
+        "whoami" => {
+            r#"COMMAND: whoami
 USAGE: whoami
 DESCRIPTION:
   Print the effective user ID of the current terminal session (defaults to 'learner').
-"#,
-        "uname" => r#"COMMAND: uname
+"#
+        }
+        "uname" => {
+            r#"COMMAND: uname
 USAGE: uname [-a]
 DESCRIPTION:
   Print system and kernel architecture information.
-"#,
-        "clear" => r#"COMMAND: clear
+"#
+        }
+        "clear" => {
+            r#"COMMAND: clear
 USAGE: clear
 DESCRIPTION:
   Clear the terminal screen buffer.
-"#,
+"#
+        }
         other => {
             return CommandOutput::err(
                 format!(

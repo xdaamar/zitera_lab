@@ -199,9 +199,7 @@ impl LabManifest {
     }
 
     pub fn category_id(&self) -> String {
-        self.category_id
-            .clone()
-            .unwrap_or_else(|| self.id.clone())
+        self.category_id.clone().unwrap_or_else(|| self.id.clone())
     }
 
     pub fn category_name(&self) -> String {
@@ -384,9 +382,7 @@ impl CatalogLabItem {
     }
 
     pub fn category_id(&self) -> String {
-        self.category_id
-            .clone()
-            .unwrap_or_else(|| self.id.clone())
+        self.category_id.clone().unwrap_or_else(|| self.id.clone())
     }
 
     pub fn category_name(&self) -> String {
@@ -548,37 +544,54 @@ mod tests {
     #[test]
     fn test_failure_recovery_classification_states() {
         // 1. Lab Crash
-        let (code1, rec1) = classify_recovery_error("lab.start", "Timed out waiting for Lab A01 to initialize");
+        let (code1, rec1) =
+            classify_recovery_error("lab.start", "Timed out waiting for Lab A01 to initialize");
         assert_eq!(code1, "LAB_CRASH");
         assert!(rec1.contains("Restart"));
 
         // 2. Runtime Unavailable
-        let (code2, rec2) = classify_recovery_error("lab.start", "AppContainer profile creation failed");
+        let (code2, rec2) =
+            classify_recovery_error("lab.start", "AppContainer profile creation failed");
         assert_eq!(code2, "RUNTIME_UNAVAILABLE");
         assert!(rec2.contains("zitera doctor"));
 
         // 3. Package Verification Failure
-        let (code3, rec3) = classify_recovery_error("lab.install_package", "Signature verification failed: invalid key");
+        let (code3, rec3) = classify_recovery_error(
+            "lab.install_package",
+            "Signature verification failed: invalid key",
+        );
         assert_eq!(code3, "PACKAGE_VERIFICATION_FAILED");
         assert!(rec3.contains(".zlab"));
 
         // 4. Update Interrupted
-        let (code4, rec4) = classify_recovery_error("lab.update", "Staged manifest.json not found: staging interrupted");
+        let (code4, rec4) = classify_recovery_error(
+            "lab.update",
+            "Staged manifest.json not found: staging interrupted",
+        );
         assert_eq!(code4, "UPDATE_INTERRUPTED");
         assert!(rec4.contains("Retry"));
 
         // 5. Rollback Occurred
-        let (code5, rec5) = classify_recovery_error("lab.update", "Post-install verification failed: rolled back to 1.0.0");
+        let (code5, rec5) = classify_recovery_error(
+            "lab.update",
+            "Post-install verification failed: rolled back to 1.0.0",
+        );
         assert_eq!(code5, "ROLLBACK_OCCURRED");
         assert!(rec5.contains("previous"));
 
         // 6. Storage Failure
-        let (code6, rec6) = classify_recovery_error("storage.purge", "Storage permission denied on LocalAppData path");
+        let (code6, rec6) = classify_recovery_error(
+            "storage.purge",
+            "Storage permission denied on LocalAppData path",
+        );
         assert_eq!(code6, "STORAGE_FAILURE");
         assert!(rec6.contains("Purge cache"));
 
         // 7. Broker Unavailable
-        let (code7, rec7) = classify_recovery_error("lab.start", "Failed to start broker: address already in use on port 8080");
+        let (code7, rec7) = classify_recovery_error(
+            "lab.start",
+            "Failed to start broker: address already in use on port 8080",
+        );
         assert_eq!(code7, "BROKER_UNAVAILABLE");
         assert!(rec7.contains("port availability"));
 

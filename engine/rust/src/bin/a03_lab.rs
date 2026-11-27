@@ -374,8 +374,16 @@ fn render_navbar(active_tab: &str) -> String {
         <a href="/verify" class="nav-link {ver_active}">Pipeline Verify</a>
     </nav>
 </header>"#,
-        pkg_active = if active_tab == "catalog" { "active" } else { "" },
-        pub_active = if active_tab == "publish" { "active" } else { "" },
+        pkg_active = if active_tab == "catalog" {
+            "active"
+        } else {
+            ""
+        },
+        pub_active = if active_tab == "publish" {
+            "active"
+        } else {
+            ""
+        },
         aud_active = if active_tab == "audit" { "active" } else { "" },
         ver_active = if active_tab == "verify" { "active" } else { "" }
     )
@@ -389,7 +397,10 @@ fn handle_request(
     body: &str,
 ) -> (u16, HashMap<String, String>, String) {
     let mut resp_headers = HashMap::new();
-    resp_headers.insert("Content-Type".to_string(), "text/html; charset=utf-8".to_string());
+    resp_headers.insert(
+        "Content-Type".to_string(),
+        "text/html; charset=utf-8".to_string(),
+    );
 
     // 1. Health Probe
     if path == "/health" {
@@ -412,7 +423,8 @@ fn handle_request(
             let status_badge = if p.verified {
                 "<span class=\"badge badge-verified\"> Verified Source</span>".to_string()
             } else {
-                "<span class=\"badge badge-untrusted\">[PERINGATAN] Unpinned / External</span>".to_string()
+                "<span class=\"badge badge-untrusted\">[PERINGATAN] Unpinned / External</span>"
+                    .to_string()
             };
 
             let script_badge = if p.has_install_script {
@@ -613,8 +625,16 @@ fn handle_request(
                 author = p.author,
                 source = p.registry_source,
                 sri = p.integrity_sri,
-                badge_cls = if p.verified { "badge-verified" } else { "badge-untrusted" },
-                badge_lbl = if p.verified { "Verified Upstream Source" } else { "Unpinned Internal Dependency" },
+                badge_cls = if p.verified {
+                    "badge-verified"
+                } else {
+                    "badge-untrusted"
+                },
+                badge_lbl = if p.verified {
+                    "Verified Upstream Source"
+                } else {
+                    "Unpinned Internal Dependency"
+                },
                 hook_details = hook_details
             );
             return (200, resp_headers, html);
@@ -646,9 +666,17 @@ fn handle_request(
                 let has_script = !script.trim().is_empty();
                 let item = PackageItem {
                     id: state.next_id,
-                    name: if name.starts_with('@') { name } else { format!("@packnexus/{}", name) },
+                    name: if name.starts_with('@') {
+                        name
+                    } else {
+                        format!("@packnexus/{}", name)
+                    },
                     version,
-                    description: if desc.is_empty() { "Custom developer package artifact".to_string() } else { desc },
+                    description: if desc.is_empty() {
+                        "Custom developer package artifact".to_string()
+                    } else {
+                        desc
+                    },
                     author: "Current Operator".to_string(),
                     downloads: 1,
                     verified: !has_script,
@@ -777,7 +805,10 @@ fn handle_request(
     // 6. Direct JSON Lockfile Audit Manifest Endpoint
     if path == "/packages/audit/package_lock_audit.json" || path == "/api/v1/packages/audit" {
         state.audit_accessed = true;
-        resp_headers.insert("Content-Type".to_string(), "application/json; charset=utf-8".to_string());
+        resp_headers.insert(
+            "Content-Type".to_string(),
+            "application/json; charset=utf-8".to_string(),
+        );
         let manifest = serde_json::json!({
             "name": "packnexus-monorepo-core",
             "version": "2.4.1",
@@ -812,7 +843,8 @@ fn handle_request(
     }
 
     // 7. Verify Recovered Pipeline Token View & API
-    if path == "/verify" || path == "/api/supply-chain/verify" || path == "/api/v1/pipeline/verify" {
+    if path == "/verify" || path == "/api/supply-chain/verify" || path == "/api/v1/pipeline/verify"
+    {
         let mut token = String::new();
         let mut verification_result: Option<bool> = None;
 
@@ -956,13 +988,24 @@ fn urlencoding_decode(input: &str) -> String {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
-        println!("PackNexus Enterprise Artifact Registry (Supply Chain Failures) v{}", LAB_VERSION);
-        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
+        println!(
+            "PackNexus Enterprise Artifact Registry (Supply Chain Failures) v{}",
+            LAB_VERSION
+        );
+        println!(
+            "This native lab communicates with the host engine broker via stdin/stdout JSON IPC."
+        );
         println!("Usage: a03-lab.exe");
         return;
     }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
-        println!("A03 v{} (native_sandboxed // PackNexus Supply Hub)", LAB_VERSION);
+    if args
+        .iter()
+        .any(|a| a == "--version" || a == "-v" || a == "-V")
+    {
+        println!(
+            "A03 v{} (native_sandboxed // PackNexus Supply Hub)",
+            LAB_VERSION
+        );
         return;
     }
 

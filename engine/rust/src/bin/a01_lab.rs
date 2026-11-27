@@ -14,11 +14,8 @@ const LAB_VERSION: &str = "1.0.1";
 #[derive(Clone)]
 struct User {
     id: u32,
-    username: &'static str,
-    password: &'static str,
     full_name: &'static str,
     role: &'static str,
-    department: &'static str,
 }
 
 #[derive(Clone)]
@@ -50,27 +47,18 @@ impl AppState {
             users: vec![
                 User {
                     id: 1,
-                    username: "alice",
-                    password: "password123",
                     full_name: "Alice Vance",
                     role: "Treasury Operations Analyst",
-                    department: "Global Liquidity & Clearing",
                 },
                 User {
                     id: 2,
-                    username: "bob",
-                    password: "bobpass",
                     full_name: "Robert Sterling",
                     role: "Senior FX Trader",
-                    department: "Cross-Border Settlement Desk",
                 },
                 User {
                     id: 99,
-                    username: "admin",
-                    password: "adminsecret_unbrute",
                     full_name: "Marcus Reid",
                     role: "VP Corporate Controller & Executive Auditor",
-                    department: "Financial Compliance & Risk Governance",
                 },
             ],
             wires: vec![
@@ -180,15 +168,19 @@ fn render_app_shell(
     };
 
     let nav_items = match current_user {
-        Some(_) => r#"
+        Some(_) => {
+            r#"
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/wires" class="nav-link active">Wire Transfers</a>
             <a href="/wires/new" class="nav-link">New Transfer</a>
             <a href="/audit" class="nav-link">Compliance Audit</a>
-        "#,
-        None => r#"
+        "#
+        }
+        None => {
+            r#"
             <a href="/" class="nav-link active">Sign In</a>
-        "#,
+        "#
+        }
     };
 
     format!(
@@ -577,11 +569,7 @@ fn render_app_shell(
     </footer>
 </body>
 </html>"#,
-        page_title,
-        nav_items,
-        user_pill,
-        flag_box,
-        content_html
+        page_title, nav_items, user_pill, flag_box, content_html
     )
 }
 
@@ -597,7 +585,10 @@ fn handle_request(
     body: &str,
 ) -> (u16, HashMap<String, String>, String) {
     let mut resp_headers = HashMap::new();
-    resp_headers.insert("Content-Type".to_string(), "text/html; charset=utf-8".to_string());
+    resp_headers.insert(
+        "Content-Type".to_string(),
+        "text/html; charset=utf-8".to_string(),
+    );
     resp_headers.insert("Cache-Control".to_string(), "no-store".to_string());
 
     // Determine logged in user from cookie (or default to Alice Vance for realistic lab experience)
@@ -611,11 +602,18 @@ fn handle_request(
         .and_then(|tok| state.sessions.get(tok).copied())
         .unwrap_or(1); // Default to Alice Vance (User ID 1)
 
-    let current_user = state.users.iter().find(|u| u.id == current_user_id).cloned();
+    let current_user = state
+        .users
+        .iter()
+        .find(|u| u.id == current_user_id)
+        .cloned();
 
     // Legacy / Automated Authentication Endpoint
     if path == "/login" && method == "POST" {
-        resp_headers.insert("Set-Cookie".to_string(), "session_user=user_sess_1; Path=/".to_string());
+        resp_headers.insert(
+            "Set-Cookie".to_string(),
+            "session_user=user_sess_1; Path=/".to_string(),
+        );
         resp_headers.insert("Location".to_string(), "/wires".to_string());
         return (302, resp_headers, "Redirecting to /wires...".to_string());
     }
@@ -627,10 +625,21 @@ fn handle_request(
 
     // Invoice alias for wire vouchers
     if path.starts_with("/invoice/") {
-        let inv_id = path.strip_prefix("/invoice/").and_then(|s| s.split('/').next()).and_then(|s| s.parse::<u32>().ok()).unwrap_or(42);
+        let inv_id = path
+            .strip_prefix("/invoice/")
+            .and_then(|s| s.split('/').next())
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(42);
         if inv_id == 42 {
             state.idor_exploited = true;
-            return (200, resp_headers, format!("Invoice #42: Marcus Reid Restricted SOX-404 Voucher. FLAG: {}", FLAG));
+            return (
+                200,
+                resp_headers,
+                format!(
+                    "Invoice #42: Marcus Reid Restricted SOX-404 Voucher. FLAG: {}",
+                    FLAG
+                ),
+            );
         }
     }
 
@@ -736,7 +745,12 @@ fn handle_request(
             total_settled, total_pending, rows
         );
 
-        let page = render_app_shell("Wire Transfers", &dashboard_html, current_user.as_ref(), None);
+        let page = render_app_shell(
+            "Wire Transfers",
+            &dashboard_html,
+            current_user.as_ref(),
+            None,
+        );
         return (200, resp_headers, page);
     }
 
@@ -797,12 +811,27 @@ fn handle_request(
             }
         }
 
-        let title = form_data.get("title").cloned().unwrap_or_else(|| "Corporate Settlement".to_string());
-        let beneficiary_name = form_data.get("beneficiary_name").cloned().unwrap_or_else(|| "Third Party Vendor".to_string());
-        let beneficiary_account = form_data.get("beneficiary_account").cloned().unwrap_or_else(|| "ACH-GENERIC-001".to_string());
-        let amount_str = form_data.get("amount").cloned().unwrap_or_else(|| "100.00".to_string());
+        let title = form_data
+            .get("title")
+            .cloned()
+            .unwrap_or_else(|| "Corporate Settlement".to_string());
+        let beneficiary_name = form_data
+            .get("beneficiary_name")
+            .cloned()
+            .unwrap_or_else(|| "Third Party Vendor".to_string());
+        let beneficiary_account = form_data
+            .get("beneficiary_account")
+            .cloned()
+            .unwrap_or_else(|| "ACH-GENERIC-001".to_string());
+        let amount_str = form_data
+            .get("amount")
+            .cloned()
+            .unwrap_or_else(|| "100.00".to_string());
         let amount = amount_str.parse::<f64>().unwrap_or(100.0);
-        let memo = form_data.get("memo").cloned().unwrap_or_else(|| "Standard scheduled clearance.".to_string());
+        let memo = form_data
+            .get("memo")
+            .cloned()
+            .unwrap_or_else(|| "Standard scheduled clearance.".to_string());
 
         let new_id = state.next_wire_id;
         state.next_wire_id += 1;
@@ -954,7 +983,8 @@ fn handle_request(
                     <a href="/wires" class="btn-secondary">Return to Ledger</a>
                 </div>
                 "#;
-                let page = render_app_shell("Not Found", not_found_html, current_user.as_ref(), None);
+                let page =
+                    render_app_shell("Not Found", not_found_html, current_user.as_ref(), None);
                 return (404, resp_headers, page);
             }
         }
@@ -1014,7 +1044,10 @@ fn main() {
         println!("Usage: a01-lab.exe");
         return;
     }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
+    if args
+        .iter()
+        .any(|a| a == "--version" || a == "-v" || a == "-V")
+    {
         println!("A01 v1.0.1 (native_sandboxed // ApexFin Treasury)");
         return;
     }
@@ -1104,7 +1137,11 @@ fn main() {
             }
             "CHALLENGE" => {
                 let id = val.get("id").and_then(|v| v.as_u64()).unwrap_or(0);
-                let candidate = val.get("flag").and_then(|v| v.as_str()).unwrap_or("").trim();
+                let candidate = val
+                    .get("flag")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim();
                 let valid = candidate == FLAG;
                 let resp_json = serde_json::json!({
                     "type": "CHALLENGE_RESULT",

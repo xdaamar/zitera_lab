@@ -245,11 +245,12 @@ fn process_parsed_request(
             sub.push_str(q);
         }
         let location = format!("/session/{}/{}", active.session_id, sub);
-        let (status, reason) = if parsed.method == "POST" || parsed.method == "PUT" || parsed.method == "DELETE" {
-            (307, "Temporary Redirect")
-        } else {
-            (302, "Found")
-        };
+        let (status, reason) =
+            if parsed.method == "POST" || parsed.method == "PUT" || parsed.method == "DELETE" {
+                (307, "Temporary Redirect")
+            } else {
+                (302, "Found")
+            };
         let mut resp = HttpResponse::new(
             status,
             reason,

@@ -278,7 +278,9 @@ fn urldecode(input: &str) -> String {
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let Ok(val) = u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16) {
+            if let Ok(val) =
+                u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16)
+            {
                 result.push(val as char);
                 i += 3;
                 continue;
@@ -306,7 +308,9 @@ fn render_index_page(state: &AppState, message: Option<(&str, bool)>) -> String 
     // Header
     html.push_str("<div class=\"card\"><div class=\"header\">");
     html.push_str("<div class=\"header-title\"><h1>[METRICS] DataFlow Analytics</h1>");
-    html.push_str("<p>Enterprise BI Engine & Pipeline Configuration Ingestion (OWASP A08:2025)</p></div>");
+    html.push_str(
+        "<p>Enterprise BI Engine & Pipeline Configuration Ingestion (OWASP A08:2025)</p></div>",
+    );
     html.push_str("<div style=\"display: flex; gap: 8px; align-items: center;\">");
     html.push_str("<span class=\"badge badge-indigo\">PORT 8018</span>");
     if state.tampered_accepted {
@@ -325,9 +329,15 @@ fn render_index_page(state: &AppState, message: Option<(&str, bool)>) -> String 
 
     if let Some((msg, is_err)) = message {
         if is_err {
-            html.push_str(&format!("<div class=\"banner-warning\">[PERINGATAN] {}</div>", html_escape(msg)));
+            html.push_str(&format!(
+                "<div class=\"banner-warning\">[PERINGATAN] {}</div>",
+                html_escape(msg)
+            ));
         } else {
-            html.push_str(&format!("<div class=\"banner-success\"> {}</div>", html_escape(msg)));
+            html.push_str(&format!(
+                "<div class=\"banner-success\"> {}</div>",
+                html_escape(msg)
+            ));
         }
     }
 
@@ -349,10 +359,19 @@ fn render_index_page(state: &AppState, message: Option<(&str, bool)>) -> String 
     html.push_str("</tr></thead><tbody>");
     for m in &state.models {
         html.push_str("<tr>");
-        html.push_str(&format!("<td><strong>{}</strong></td>", html_escape(&m.name)));
-        html.push_str(&format!("<td><code>{}</code></td>", html_escape(&m.framework)));
+        html.push_str(&format!(
+            "<td><strong>{}</strong></td>",
+            html_escape(&m.name)
+        ));
+        html.push_str(&format!(
+            "<td><code>{}</code></td>",
+            html_escape(&m.framework)
+        ));
         html.push_str(&format!("<td>{}</td>", html_escape(&m.ingestion_rate)));
-        html.push_str(&format!("<td><span class=\"badge badge-emerald\">{}</span></td>", html_escape(&m.last_verified)));
+        html.push_str(&format!(
+            "<td><span class=\"badge badge-emerald\">{}</span></td>",
+            html_escape(&m.last_verified)
+        ));
         html.push_str("</tr>");
     }
     html.push_str("</tbody></table></div>");
@@ -372,12 +391,17 @@ fn render_index_page(state: &AppState, message: Option<(&str, bool)>) -> String 
     // Column 2: Ingestion Manifest & Config
     html.push_str("<div>");
     html.push_str("<h2 style=\"font-size: 15px; font-weight: 700; margin-bottom: 12px;\">Active Kernel Runtime Manifest</h2>");
-    html.push_str(&format!("<div class=\"pre-box\">{}</div>", html_escape(&config_json)));
+    html.push_str(&format!(
+        "<div class=\"pre-box\">{}</div>",
+        html_escape(&config_json)
+    ));
 
     html.push_str("<div style=\"margin-top: 20px;\">");
     html.push_str("<h3 style=\"font-size: 13px; font-weight: 700; margin-bottom: 8px;\">Deploy Untrusted Configuration Package</h3>");
     html.push_str("<form method=\"POST\" action=\"/api/deploy_update\">");
-    html.push_str("<div class=\"field\"><label>Configuration JSON Package (Untrusted Payload)</label>");
+    html.push_str(
+        "<div class=\"field\"><label>Configuration JSON Package (Untrusted Payload)</label>",
+    );
     let sample_payload = r#"{
   "version": "2.4.0-enterprise",
   "signature_verified": false,
@@ -388,7 +412,10 @@ fn render_index_page(state: &AppState, message: Option<(&str, bool)>) -> String 
     "sandbox_isolation": "bypassed"
   }
 }"#;
-    html.push_str(&format!("<textarea name=\"package_json\" rows=\"8\">{}</textarea></div>", html_escape(sample_payload)));
+    html.push_str(&format!(
+        "<textarea name=\"package_json\" rows=\"8\">{}</textarea></div>",
+        html_escape(sample_payload)
+    ));
     html.push_str("<div style=\"display: flex; gap: 8px;\">");
     html.push_str("<button type=\"submit\" class=\"btn btn-primary\" style=\"flex: 1;\">Deploy Ingestion Package</button>");
     html.push_str("</div></form>");
@@ -427,15 +454,27 @@ fn handle_request(
     }
 
     if clean_path == "/" || clean_path == "/index.html" {
-        resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
+        resp_headers.insert(
+            "content-type".to_string(),
+            "text/html; charset=utf-8".to_string(),
+        );
         return (200, resp_headers, render_index_page(state, None));
     }
 
     if clean_path == "/models/new" && method == "POST" {
         let form = parse_form_body(body);
-        let name = form.get("name").cloned().unwrap_or_else(|| "Custom_Model".to_string());
-        let framework = form.get("framework").cloned().unwrap_or_else(|| "ONNX".to_string());
-        let throughput = form.get("throughput").cloned().unwrap_or_else(|| "5,000 ev/s".to_string());
+        let name = form
+            .get("name")
+            .cloned()
+            .unwrap_or_else(|| "Custom_Model".to_string());
+        let framework = form
+            .get("framework")
+            .cloned()
+            .unwrap_or_else(|| "ONNX".to_string());
+        let throughput = form
+            .get("throughput")
+            .cloned()
+            .unwrap_or_else(|| "5,000 ev/s".to_string());
 
         let next_id = (state.models.len() as u32) + 1;
         state.models.push(PipelineModel {
@@ -475,7 +514,8 @@ fn handle_request(
     }
 
     if clean_path == "/api/deploy_update" && method == "POST" {
-        let is_form = headers.get("content-type")
+        let is_form = headers
+            .get("content-type")
             .map(|ct| ct.contains("application/x-www-form-urlencoded"))
             .unwrap_or(false);
 
@@ -488,18 +528,22 @@ fn handle_request(
         };
 
         if let Some(payload) = parsed_json {
-            let version = payload.get("version")
+            let version = payload
+                .get("version")
                 .and_then(|v| v.as_str())
                 .unwrap_or("2.4.0-enterprise")
                 .to_string();
-            let signature_verified = payload.get("signature_verified")
+            let signature_verified = payload
+                .get("signature_verified")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false);
-            let signer = payload.get("signer")
+            let signer = payload
+                .get("signer")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unverified-external-source")
                 .to_string();
-            let params = payload.get("params")
+            let params = payload
+                .get("params")
                 .cloned()
                 .unwrap_or_else(|| serde_json::json!({"debug_backdoor": true}));
 
@@ -513,8 +557,21 @@ fn handle_request(
             state.deployment_count += 1;
 
             if is_form {
-                resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-                return (200, resp_headers, render_index_page(state, Some(("Configuration package deployed directly into memory.", false))));
+                resp_headers.insert(
+                    "content-type".to_string(),
+                    "text/html; charset=utf-8".to_string(),
+                );
+                return (
+                    200,
+                    resp_headers,
+                    render_index_page(
+                        state,
+                        Some((
+                            "Configuration package deployed directly into memory.",
+                            false,
+                        )),
+                    ),
+                );
             } else {
                 resp_headers.insert("content-type".to_string(), "application/json".to_string());
                 let mut resp_obj = serde_json::json!({
@@ -522,7 +579,10 @@ fn handle_request(
                     "message": "Configuration package deployed directly into memory.",
                     "active_config": state.active_config
                 });
-                let is_backdoor = params.get("debug_backdoor").and_then(|b| b.as_bool()).unwrap_or(false);
+                let is_backdoor = params
+                    .get("debug_backdoor")
+                    .and_then(|b| b.as_bool())
+                    .unwrap_or(false);
                 if is_backdoor || !signature_verified {
                     if let Some(map) = resp_obj.as_object_mut() {
                         map.insert("flag".to_string(), serde_json::json!(FLAG));
@@ -532,8 +592,15 @@ fn handle_request(
             }
         } else {
             if is_form {
-                resp_headers.insert("content-type".to_string(), "text/html; charset=utf-8".to_string());
-                return (400, resp_headers, render_index_page(state, Some(("Invalid JSON format submitted.", true))));
+                resp_headers.insert(
+                    "content-type".to_string(),
+                    "text/html; charset=utf-8".to_string(),
+                );
+                return (
+                    400,
+                    resp_headers,
+                    render_index_page(state, Some(("Invalid JSON format submitted.", true))),
+                );
             } else {
                 resp_headers.insert("content-type".to_string(), "application/json".to_string());
                 let resp = serde_json::json!({
@@ -546,7 +613,8 @@ fn handle_request(
 
     if clean_path == "/api/reset" && method == "POST" {
         state.reset();
-        let is_form = headers.get("content-type")
+        let is_form = headers
+            .get("content-type")
             .map(|ct| ct.contains("application/x-www-form-urlencoded"))
             .unwrap_or(false);
 

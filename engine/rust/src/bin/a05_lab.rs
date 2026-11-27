@@ -384,7 +384,11 @@ fn render_navbar(active_tab: &str) -> String {
         <a href="/api/v1/deals" class="nav-link" target="_blank">API JSON</a>
     </nav>
 </header>"#,
-        pipeline_active = if active_tab == "pipeline" { "active" } else { "" },
+        pipeline_active = if active_tab == "pipeline" {
+            "active"
+        } else {
+            ""
+        },
         new_active = if active_tab == "new" { "active" } else { "" }
     )
 }
@@ -397,7 +401,10 @@ fn handle_request(
     body: &str,
 ) -> (u16, HashMap<String, String>, String) {
     let mut resp_headers = HashMap::new();
-    resp_headers.insert("Content-Type".to_string(), "text/html; charset=utf-8".to_string());
+    resp_headers.insert(
+        "Content-Type".to_string(),
+        "text/html; charset=utf-8".to_string(),
+    );
 
     // 1. Health Probe
     if path == "/health" {
@@ -440,20 +447,29 @@ fn handle_request(
                 "sqlite3.OperationalError: near \"{}\": syntax error in SELECT id, customer, value, stage, contact, notes FROM deals WHERE (customer LIKE '%{}%' OR notes LIKE '%{}%')",
                 query, query, query
             ));
-        } else if q_lower.contains("union") && (q_lower.contains("vault") || q_lower.contains("flag") || q_lower.contains("select")) {
+        } else if q_lower.contains("union")
+            && (q_lower.contains("vault") || q_lower.contains("flag") || q_lower.contains("select"))
+        {
             // UNION Injection match -> extract hidden vault table
             flag_discovered = true;
             rendered_deals = state.deals.clone();
             rendered_deals.push(Deal {
                 id: 99,
-                customer: "PROJECT_ZITERA_CORE_FLAG Marcus Reid (VP Controller) Sovereign Reserve".to_string(),
+                customer: "PROJECT_ZITERA_CORE_FLAG Marcus Reid (VP Controller) Sovereign Reserve"
+                    .to_string(),
                 deal_value: 5000000.0,
                 stage: "BOARD_RESERVE_ESCROW".to_string(),
                 contact_email: "m.reid@apexcorp.internal".to_string(),
-                notes: format!("PROJECT_ZITERA_CORE_FLAG SOX-404 Compliance Vault Key: {}", FLAG),
+                notes: format!(
+                    "PROJECT_ZITERA_CORE_FLAG SOX-404 Compliance Vault Key: {}",
+                    FLAG
+                ),
                 is_confidential: true,
             });
-        } else if q_lower.contains("or 1=1") || q_lower.contains("or '1'='1") || q_lower.contains("or 2>1") {
+        } else if q_lower.contains("or 1=1")
+            || q_lower.contains("or '1'='1")
+            || q_lower.contains("or 2>1")
+        {
             // Boolean-based SQLi -> returns all records
             rendered_deals = state.deals.clone();
         } else if !query.is_empty() {
@@ -608,7 +624,11 @@ fn handle_request(
             err_box = err_box,
             deals_count = state.deals.len(),
             total_rev = total_formatted,
-            active_q = if query.is_empty() { "None (All Deals)" } else { &query },
+            active_q = if query.is_empty() {
+                "None (All Deals)"
+            } else {
+                &query
+            },
             q_val = query,
             rows = rows
         );
@@ -645,8 +665,16 @@ fn handle_request(
                     customer: cust,
                     deal_value: parsed_val,
                     stage,
-                    contact_email: if email.is_empty() { "contact@enterprise.com".to_string() } else { email },
-                    notes: if notes.is_empty() { "Standard customer pipeline inquiry".to_string() } else { notes },
+                    contact_email: if email.is_empty() {
+                        "contact@enterprise.com".to_string()
+                    } else {
+                        email
+                    },
+                    notes: if notes.is_empty() {
+                        "Standard customer pipeline inquiry".to_string()
+                    } else {
+                        notes
+                    },
                     is_confidential: false,
                 };
                 state.next_id += 1;
@@ -718,7 +746,10 @@ fn handle_request(
 
     // 4. API JSON Endpoint
     if path == "/api/v1/deals" {
-        resp_headers.insert("Content-Type".to_string(), "application/json; charset=utf-8".to_string());
+        resp_headers.insert(
+            "Content-Type".to_string(),
+            "application/json; charset=utf-8".to_string(),
+        );
         let json = serde_json::json!({
             "status": "success",
             "count": state.deals.len(),
@@ -765,11 +796,16 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--help" || a == "-h" || a == "/?") {
         println!("DataFlow Enterprise CRM (SQL Injection) v{}", LAB_VERSION);
-        println!("This native lab communicates with the host engine broker via stdin/stdout JSON IPC.");
+        println!(
+            "This native lab communicates with the host engine broker via stdin/stdout JSON IPC."
+        );
         println!("Usage: a05-lab.exe");
         return;
     }
-    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
+    if args
+        .iter()
+        .any(|a| a == "--version" || a == "-v" || a == "-V")
+    {
         println!("A05 v{} (native_sandboxed // DataFlow CRM)", LAB_VERSION);
         return;
     }

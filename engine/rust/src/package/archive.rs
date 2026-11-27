@@ -431,10 +431,12 @@ pub fn extract_zlab_archive(package_path: &Path, staging_dir: &Path) -> Result<(
         };
 
         if entry.is_dir {
-            crate::package::installer::robust_create_dir_all(&safe_dest).map_err(|e| e.to_string())?;
+            crate::package::installer::robust_create_dir_all(&safe_dest)
+                .map_err(|e| e.to_string())?;
         } else {
             if let Some(parent) = safe_dest.parent() {
-                crate::package::installer::robust_create_dir_all(parent).map_err(|e| e.to_string())?;
+                crate::package::installer::robust_create_dir_all(parent)
+                    .map_err(|e| e.to_string())?;
             }
 
             if entry.compression_method == 0 {
