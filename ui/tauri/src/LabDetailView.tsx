@@ -65,7 +65,10 @@ import {
   getLabProgression,
   recordLabSolveProgression,
   canUserAccessLab,
+  LAB_CATALOG_TITLES,
 } from './progressionHelper'
+import { useFeatureWindow } from './useFeatureWindow'
+import { syncFeatureWindowContext } from './featureWindows'
 
 interface LabDetailViewProps {
   labId: string
@@ -179,13 +182,13 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
   // Video Bootcamp Modal State
   const [videoModalOpen, setVideoModalOpen] = useState(false)
 
-  // Zeta Socratic AI Mentor Floating Modal State
-  const [zetaMentorOpen, setZetaMentorOpen] = useState(false)
-  // Embedded Burp Lite Repeater Modal State
-  const [burpModalOpen, setBurpModalOpen] = useState(false)
+  // Detached OS-level feature windows (Tanya Mentor + Burp Suite Lite)
+  const mentorWindow = useFeatureWindow('mentor')
+  const burpWindow = useFeatureWindow('burp')
+  const zetaMentorOpen = mentorWindow.open
+  const burpModalOpen = burpWindow.open
 
-  // Floating Window Stacking and Toast Notification State
-  const [topWindow, setTopWindow] = useState<'mentor' | 'burp'>('mentor')
+  // Floating Window Toast Notification State
   const [windowToast, setWindowToast] = useState<string | null>(null)
   const windowToastTimerRef = useRef<number | null>(null)
 
@@ -197,26 +200,6 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
     windowToastTimerRef.current = window.setTimeout(() => {
       setWindowToast(null)
     }, 2800)
-  }
-
-  const handleToggleMentor = () => {
-    if (!zetaMentorOpen) {
-      setZetaMentorOpen(true)
-      setTopWindow('mentor')
-      showWindowToast('// POPUP AKTIF: Tanya Mentor dibuka dalam jendela mengambang (geser header untuk memindahkan).')
-    } else {
-      setZetaMentorOpen(false)
-    }
-  }
-
-  const handleToggleBurp = () => {
-    if (!burpModalOpen) {
-      setBurpModalOpen(true)
-      setTopWindow('burp')
-      showWindowToast('// POPUP AKTIF: Burp Suite Lite dibuka dalam jendela mengambang (geser header untuk memindahkan).')
-    } else {
-      setBurpModalOpen(false)
-    }
   }
 
   // CTF Challenge state
@@ -464,6 +447,17 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
     }
   }
 
+  useEffect(() => {
+    if (!mentorWindow.open && !burpWindow.open) return
+    void syncFeatureWindowContext({
+      labId,
+      labTitle: LAB_CATALOG_TITLES[labId] || `Laboratorium ${labId}`,
+      port: status?.port ?? content?.manifest.defaultPort ?? 8011,
+      tier: currentUser?.tier || 'foundation',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [labId, status?.port, content?.manifest.defaultPort, currentUser?.tier, mentorWindow.open, burpWindow.open])
+
   if (loading || !content) {
     return (
       <div className="flex-1 h-full overflow-hidden relative flex items-center justify-center p-8 bg-[#FCFBF8]">
@@ -495,6 +489,31 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
   const progression = getLabProgression(labId)
   const interactiveCurriculum = getInteractiveCurriculumForLab(labId, targetPort)
   const bugBountyReport = getBugBountyReportForLab(labId, targetPort)
+
+  const buildFeatureContext = () => ({
+    labId,
+    labTitle: LAB_CATALOG_TITLES[labId] || `Laboratorium ${labId}`,
+    port: targetPort,
+    tier: currentUser?.tier || 'foundation',
+  })
+
+  const handleToggleMentor = () => {
+    if (!mentorWindow.open) {
+      void mentorWindow.show(buildFeatureContext())
+      showWindowToast('// JENDELA TERPISAH: Tanya Mentor dibuka di luar UI utama. Geser ke monitor lain.')
+    } else {
+      void mentorWindow.hide()
+    }
+  }
+
+  const handleToggleBurp = () => {
+    if (!burpWindow.open) {
+      void burpWindow.show(buildFeatureContext())
+      showWindowToast('// JENDELA TERPISAH: Burp Suite Lite dibuka di luar UI utama. Geser ke monitor lain.')
+    } else {
+      void burpWindow.hide()
+    }
+  }
 
   const handleSendToTerminal = (cmd: string) => {
     setTerminalOpen(true)
@@ -1690,32 +1709,23 @@ export function LabDetailView({ labId, onBack, onSelectLab }: LabDetailViewProps
         </div>
       </div>
 
-      {/* Tanya Mentor Floating Window */}
-      {zetaMentorOpen && (
+      {/* In-app fallback only when native window creation is unavailable */}
+      {mentorWindow.fallback && zetaMentorOpen && (
         <ZetaMentorModal
           isOpen={zetaMentorOpen}
-          onClose={() => setZetaMentorOpen(false)}
+          onClose={() => void mentorWindow.hide()}
           currentLabId={labId}
           userTier={currentUser?.tier}
-          onOpenBurpLite={() => {
-            setBurpModalOpen(true)
-            setTopWindow('burp')
-            showWindowToast('// POPUP AKTIF: Burp Suite Lite dibuka dalam jendela mengambang.')
-          }}
-          zIndex={topWindow === 'mentor' ? 10001 : 10000}
-          onBringToFront={() => setTopWindow('mentor')}
+          onOpenBurpLite={() => void burpWindow.show(buildFeatureContext())}
         />
       )}
 
-      {/* Embedded Burp Lite Repeater Floating Window */}
-      {burpModalOpen && (
+      {burpWindow.fallback && burpModalOpen && (
         <BurpLiteModal
           isOpen={burpModalOpen}
-          onClose={() => setBurpModalOpen(false)}
+          onClose={() => void burpWindow.hide()}
           activeLabId={labId}
           activeLabPort={targetPort}
-          zIndex={topWindow === 'burp' ? 10001 : 10000}
-          onBringToFront={() => setTopWindow('burp')}
         />
       )}
     </div>

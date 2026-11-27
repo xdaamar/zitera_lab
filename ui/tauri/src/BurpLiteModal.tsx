@@ -28,6 +28,11 @@ import {
   CornerDownRight,
   Sliders
 } from 'lucide-react'
+import {
+  clearPendingRepeaterPayload,
+  consumePendingRepeaterPayload,
+  subscribeRepeaterPayload,
+} from './featureWindows'
 
 export interface BurpLiteModalProps {
   isOpen: boolean
@@ -36,6 +41,7 @@ export interface BurpLiteModalProps {
   activeLabPort?: number | string | null
   zIndex?: number
   onBringToFront?: () => void
+  windowMode?: boolean
 }
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS'
@@ -94,6 +100,7 @@ export function BurpLiteModal({
   activeLabPort,
   zIndex = 10000,
   onBringToFront,
+  windowMode = false,
 }: BurpLiteModalProps) {
   // Floating Draggable Window Position State
   const [position, setPosition] = useState<{ x: number; y: number }>(() => {
@@ -186,17 +193,16 @@ export function BurpLiteModal({
     }
   }
 
-  // Listen for zitera:inject-repeater custom event from Zitera AI Overview
+  // Listen for payload injections from the Mentor window (same window or detached)
   useEffect(() => {
-    const handleInject = (e: Event) => {
-      const customEvent = e as CustomEvent<{ payload: string; targetParam?: string; path?: string }>
-      if (!customEvent.detail) return
-      const { payload, targetParam, path } = customEvent.detail
-      const tabPath = path || (targetParam ? `/?${targetParam}=${encodeURIComponent(payload)}` : `/?q=${encodeURIComponent(payload)}`)
+    const applyInject = (detail: { payload: string; targetParam?: string; path?: string }) => {
+      const { payload, targetParam, path } = detail
+      const tabPath =
+        path || (targetParam ? `/?${targetParam}=${encodeURIComponent(payload)}` : `/?q=${encodeURIComponent(payload)}`)
       const newId = `tab-inject-${Date.now()}`
       const newTab: RepeaterTab = {
         id: newId,
-        name: `AI Payload`,
+        name: 'AI Payload',
         method: 'GET',
         path: tabPath,
         headersText: DEFAULT_HEADERS,
@@ -209,10 +215,25 @@ export function BurpLiteModal({
       setRepeaterTabs((prev) => [...prev, newTab])
       setActiveTabId(newId)
       setActiveNavTab('repeater')
+      clearPendingRepeaterPayload()
+    }
+
+    const handleInject = (e: Event) => {
+      const customEvent = e as CustomEvent<{ payload: string; targetParam?: string; path?: string }>
+      if (!customEvent.detail) return
+      applyInject(customEvent.detail)
     }
 
     window.addEventListener('zitera:inject-repeater', handleInject)
-    return () => window.removeEventListener('zitera:inject-repeater', handleInject)
+    const stopNative = subscribeRepeaterPayload((detail) => applyInject(detail))
+
+    const pending = consumePendingRepeaterPayload()
+    if (pending) applyInject(pending)
+
+    return () => {
+      window.removeEventListener('zitera:inject-repeater', handleInject)
+      stopNative()
+    }
   }, [])
 
   // Active Repeater Tab
@@ -586,23 +607,31 @@ export function BurpLiteModal({
   return (
     <div
       style={
-        isMaximized
-          ? { left: '1vw', top: '1vh', width: '98vw', height: '98vh', zIndex }
-          : {
-              left: `${position.x}px`,
-              top: `${position.y}px`,
-              width: 'min(840px, 94vw)',
-              height: 'min(680px, 86vh)',
-              zIndex,
-            }
+        windowMode
+          ? { inset: 0, width: '100%', height: '100%', zIndex: 0 }
+          : isMaximized
+            ? { left: '1vw', top: '1vh', width: '98vw', height: '98vh', zIndex }
+            : {
+                left: `${position.x}px`,
+                top: `${position.y}px`,
+                width: 'min(840px, 94vw)',
+                height: 'min(680px, 86vh)',
+                zIndex,
+              }
       }
-      className="fixed flex flex-col rounded-xl border border-slate-700/80 bg-[#12151D] shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_30px_rgba(255,102,51,0.15)] overflow-hidden font-sans text-slate-200 select-none animate-in fade-in zoom-in-95 duration-150"
-      onClick={() => onBringToFront?.()}
+      className={`fixed flex flex-col overflow-hidden bg-[#12151D] font-sans text-slate-200 ${
+        windowMode
+          ? 'inset-0 select-text'
+          : 'rounded-xl border border-slate-700/80 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_30px_rgba(255,102,51,0.15)] select-none animate-in fade-in zoom-in-95 duration-150'
+      }`}
+      onClick={windowMode ? undefined : () => onBringToFront?.()}
     >
       {/* Title Bar - PortSwigger Burp Suite Style (Draggable Handle) */}
       <div
-        onMouseDown={handleDragMouseDown}
-        className="flex items-center justify-between px-3.5 py-2.5 bg-[#181C26] border-b border-slate-700/80 shrink-0 cursor-grab active:cursor-grabbing select-none"
+        onMouseDown={windowMode ? undefined : handleDragMouseDown}
+        className={`flex items-center justify-between px-3.5 py-2.5 bg-[#181C26] border-b border-slate-700/80 shrink-0 select-none ${
+          windowMode ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+        }`}
       >
           <div className="flex items-center gap-3">
             {/* Burp Suite Iconic Flame / Radio Icon */}
@@ -626,13 +655,15 @@ export function BurpLiteModal({
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setIsMaximized(!isMaximized)}
-              className="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
-              title={isMaximized ? 'Restore Size' : 'Maximize'}
-            >
-              {isMaximized ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-            </button>
+            {!windowMode && (
+              <button
+                onClick={() => setIsMaximized(!isMaximized)}
+                className="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                title={isMaximized ? 'Restore Size' : 'Maximize'}
+              >
+                {isMaximized ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+              </button>
+            )}
             <button
               onClick={onClose}
               className="p-1.5 rounded hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors"

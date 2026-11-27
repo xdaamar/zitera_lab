@@ -50,6 +50,8 @@ import {
 import { getCurrentUser, subscribeAuth, type UserModel } from './authService'
 import { BurpLiteModal } from './BurpLiteModal'
 import { ZetaMentorModal } from './ZetaMentorModal'
+import { useFeatureWindow } from './useFeatureWindow'
+import { syncFeatureWindowContext } from './featureWindows'
 
 interface DomainMeta {
   name: string
@@ -1161,8 +1163,10 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
   const [solvedLabsMap, setSolvedLabsMap] = useState<Record<string, boolean>>({})
   const [lockedModalInfo, setLockedModalInfo] = useState<LabProgressionInfo | null>(null)
   const [upgradeModalInfo, setUpgradeModalInfo] = useState<{ labId: string; tierAccess: TierAccessResult } | null>(null)
-  const [burpModalOpen, setBurpModalOpen] = useState(false)
-  const [zetaModalOpen, setZetaModalOpen] = useState(false)
+  const mentorWindow = useFeatureWindow('mentor')
+  const burpWindow = useFeatureWindow('burp')
+  const burpModalOpen = burpWindow.fallback && burpWindow.open
+  const zetaModalOpen = mentorWindow.fallback && mentorWindow.open
   const [activeInspectorLab, setActiveInspectorLab] = useState<{ id: string; port: number } | null>(null)
   const isMountedRef = useRef(true)
   const [currentUser, setCurrentUser] = useState<UserModel | null>(getCurrentUser())
@@ -1210,6 +1214,30 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
     }
     openBrowser(`https://wa.me/6282283088667?text=${encodeURIComponent(text)}`)
   }
+
+  const buildFeatureContext = (labId?: string, port?: number) => {
+    const resolvedLabId = labId || activeInspectorLab?.id || 'A01'
+    return {
+      labId: resolvedLabId,
+      labTitle: LAB_CATALOG_TITLES[resolvedLabId] || `Laboratorium ${resolvedLabId}`,
+      port: port ?? activeInspectorLab?.port ?? 8011,
+      tier: currentUser?.tier || 'foundation',
+    }
+  }
+
+  const handleOpenBurpWindow = (labId?: string, port?: number) => {
+    void burpWindow.show(buildFeatureContext(labId, port))
+  }
+
+  const handleOpenMentorWindow = () => {
+    void mentorWindow.show(buildFeatureContext())
+  }
+
+  useEffect(() => {
+    if (!mentorWindow.open && !burpWindow.open) return
+    void syncFeatureWindowContext(buildFeatureContext())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeInspectorLab, currentUser?.tier, mentorWindow.open, burpWindow.open])
 
   const syncSolvedStatus = (labList?: LabItem[]) => {
     try {
@@ -1417,10 +1445,10 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
             <button
               onClick={() => {
                 setActiveInspectorLab(null)
-                setBurpModalOpen(true)
+                handleOpenBurpWindow()
               }}
               className="px-3.5 py-2 bg-[#12151D] text-[#FB923C] hover:bg-[#1A1F2C] border-2 border-[#F97316] shadow-[0_3px_0_0_#C2410C] hover:shadow-[0_1px_0_0_#C2410C] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-bold font-['Space_Grotesk'] flex items-center gap-2 cursor-pointer transition-all"
-              title="Buka Zitera Burp Suite Lite (HTTP Inspector & Repeater)"
+              title="Buka Zitera Burp Suite Lite di jendela terpisah"
             >
               <Terminal size={14} className="text-[#FB923C]" />
               <span>Burp Suite Lite</span>
@@ -1429,10 +1457,10 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
             <button
               onClick={() => {
                 setActiveInspectorLab(null)
-                setZetaModalOpen(true)
+                handleOpenMentorWindow()
               }}
               className="px-3.5 py-2 bg-gradient-to-r from-[#042F2C] to-[#0D3833] text-[#2DD4BF] hover:from-[#0F4A44] hover:to-[#134E4A] border-2 border-[#2DD4BF] shadow-[0_3px_0_0_#0F766E] hover:shadow-[0_1px_0_0_#0F766E] hover:translate-y-0.5 active:translate-y-1 rounded-xl text-xs font-bold font-['Space_Grotesk'] flex items-center gap-2 cursor-pointer transition-all"
-              title="Tanya Socratic Cyber Mentor (Petunjuk Taktis)"
+              title="Buka Tanya Mentor di jendela terpisah"
             >
               <Sparkles size={14} className="text-[#FBBF24]" />
               <span>Tanya Mentor</span>
@@ -1836,7 +1864,7 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
                 onOpenUpgradeModal={(info) => setUpgradeModalInfo(info)}
                 onOpenBurpLite={(labId, port) => {
                   setActiveInspectorLab({ id: labId, port })
-                  setBurpModalOpen(true)
+                  handleOpenBurpWindow(labId, port)
                 }}
               />
             ))}
@@ -2094,21 +2122,20 @@ export function LabsView({ onSelectLab }: LabsViewProps) {
         )
       })()}
 
-      {/* 8. Zitera Burp Suite Replica Lite Modal */}
+      {/* In-app fallback only when native window creation is unavailable */}
       {burpModalOpen && (
         <BurpLiteModal
           isOpen={burpModalOpen}
-          onClose={() => setBurpModalOpen(false)}
+          onClose={() => void burpWindow.hide()}
           activeLabId={activeInspectorLab?.id || 'A01'}
           activeLabPort={activeInspectorLab?.port || 8011}
         />
       )}
 
-      {/* 9. Zeta Socratic Cyber Intel Companion Modal */}
       {zetaModalOpen && (
         <ZetaMentorModal
           isOpen={zetaModalOpen}
-          onClose={() => setZetaModalOpen(false)}
+          onClose={() => void mentorWindow.hide()}
           currentLabId={activeInspectorLab?.id || 'A01'}
           userTier={currentUser?.tier}
         />

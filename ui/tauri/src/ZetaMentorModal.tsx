@@ -44,6 +44,7 @@ import {
 } from './fuzzySemanticEngine'
 import { ZiteraAiOverview } from './ZiteraAiOverview'
 import { UpgradeModal } from './UpgradeModal'
+import { emitRepeaterPayload } from './featureWindows'
 
 export interface ZetaMentorModalProps {
   isOpen: boolean
@@ -53,6 +54,7 @@ export interface ZetaMentorModalProps {
   onOpenBurpLite?: () => void
   zIndex?: number
   onBringToFront?: () => void
+  windowMode?: boolean
 }
 
 interface ChatMessage {
@@ -74,6 +76,7 @@ export function ZetaMentorModal({
   onOpenBurpLite,
   zIndex = 10000,
   onBringToFront,
+  windowMode = false,
 }: ZetaMentorModalProps) {
   // Floating Draggable Window Position State
   const [position, setPosition] = useState<{ x: number; y: number }>(() => {
@@ -168,23 +171,24 @@ export function ZetaMentorModal({
 
   const chatScrollRef = useRef<HTMLDivElement>(null)
 
-  // Auto-inject handler connecting to Burp Lite Repeater
+  // Auto-inject handler connecting to the Burp Lite Repeater window
   const handleAutoInject = (payload: string, targetParam?: string) => {
-    window.dispatchEvent(
-      new CustomEvent('zitera:inject-repeater', {
-        detail: {
-          payload,
-          targetParam,
-          path: targetParam
-            ? `/?${targetParam}=${encodeURIComponent(payload)}`
-            : `/?q=${encodeURIComponent(payload)}`,
-        },
-      })
-    )
+    const detail = {
+      payload,
+      targetParam,
+      path: targetParam
+        ? `/?${targetParam}=${encodeURIComponent(payload)}`
+        : `/?q=${encodeURIComponent(payload)}`,
+    }
+    void emitRepeaterPayload(detail)
     if (onOpenBurpLite) {
       onOpenBurpLite()
     }
-    setInjectToast('Payload berhasil diinjeksikan ke Burp Lite Repeater!')
+    setInjectToast(
+      windowMode
+        ? 'Payload dikirim ke jendela Burp Lite Repeater.'
+        : 'Payload berhasil diinjeksikan ke Burp Lite Repeater!',
+    )
     setTimeout(() => setInjectToast(null), 3500)
   }
 
@@ -565,26 +569,34 @@ export function ZetaMentorModal({
   return (
     <div
       style={
-        isMaximized
-          ? { left: '1vw', top: '1vh', width: '98vw', height: '98vh', zIndex }
-          : {
-              left: `${position.x}px`,
-              top: `${position.y}px`,
-              width: 'min(640px, 94vw)',
-              height: 'min(780px, 88vh)',
-              zIndex,
-            }
+        windowMode
+          ? { inset: 0, width: '100%', height: '100%', zIndex: 0 }
+          : isMaximized
+            ? { left: '1vw', top: '1vh', width: '98vw', height: '98vh', zIndex }
+            : {
+                left: `${position.x}px`,
+                top: `${position.y}px`,
+                width: 'min(640px, 94vw)',
+                height: 'min(780px, 88vh)',
+                zIndex,
+              }
       }
-      className="fixed flex flex-col rounded-2xl bg-stone-900/95 border border-teal-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_30px_rgba(45,212,191,0.2)] overflow-hidden text-stone-200 select-none animate-in fade-in zoom-in-95 duration-150"
-      onClick={() => onBringToFront?.()}
+      className={`fixed flex flex-col overflow-hidden bg-stone-950 text-stone-200 ${
+        windowMode
+          ? 'inset-0 select-text'
+          : 'rounded-2xl border border-teal-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_30px_rgba(45,212,191,0.2)] select-none animate-in fade-in zoom-in-95 duration-150'
+      }`}
+      onClick={windowMode ? undefined : () => onBringToFront?.()}
     >
       {/* Subtle Cyber Grid Background Texture */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(to_right,#14b8a6_1px,transparent_1px),linear-gradient(to_bottom,#14b8a6_1px,transparent_1px)] bg-[size:24px_24px]" />
 
       {/* ── TOP HEADER BAR (Draggable Handle) ─────────────────────────────────── */}
       <header
-        onMouseDown={handleDragMouseDown}
-        className="relative z-10 flex flex-wrap items-center justify-between px-4 sm:px-5 py-3 border-b border-stone-800 bg-stone-950/85 backdrop-blur-sm gap-3 cursor-grab active:cursor-grabbing select-none"
+        onMouseDown={windowMode ? undefined : handleDragMouseDown}
+        className={`relative z-10 flex flex-wrap items-center justify-between px-4 sm:px-5 py-3 border-b border-stone-800 bg-stone-950/85 backdrop-blur-sm gap-3 select-none ${
+          windowMode ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+        }`}
       >
           {/* Brand & Companion Identity */}
           <div className="flex items-center gap-3">
@@ -661,14 +673,16 @@ export function ZetaMentorModal({
               {(userTier || 'FOUNDATION').toUpperCase()}
             </span>
 
-            {/* Maximize / Restore Button */}
-            <button
-              onClick={() => setIsMaximized(!isMaximized)}
-              className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 border border-transparent hover:border-stone-700 transition-colors cursor-pointer"
-              title={isMaximized ? 'Kembalikan Ukuran' : 'Perbesar Jendela'}
-            >
-              {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
+            {/* Maximize / Restore Button (in-app floating mode only) */}
+            {!windowMode && (
+              <button
+                onClick={() => setIsMaximized(!isMaximized)}
+                className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 border border-transparent hover:border-stone-700 transition-colors cursor-pointer"
+                title={isMaximized ? 'Kembalikan Ukuran' : 'Perbesar Jendela'}
+              >
+                {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+            )}
 
             {/* Close Modal Button */}
             <button

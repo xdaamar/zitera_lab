@@ -4,7 +4,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Command;
-use tauri::Manager;
+use std::sync::Mutex;
+use tauri::{Emitter, Manager};
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -349,6 +350,61 @@ fn get_device_fingerprint() -> Result<String, String> {
     Ok(format!("{}_NODEVICEGUID", host))
 }
 
+// ---------------------------------------------------------------------------
+// Auxiliary feature windows (Tanya Mentor / Burp Suite Lite)
+// ---------------------------------------------------------------------------
+
+/// Shared lab context handed to detached feature windows.
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+struct FeatureWindowContext {
+    lab_id: String,
+    lab_title: String,
+    port: u16,
+    tier: String,
+}
+
+#[derive(Default)]
+struct FeatureWindowsState {
+    context: Mutex<FeatureWindowContext>,
+}
+
+/// Pushes fresh lab context into windows that are already open.
+#[tauri::command]
+fn set_feature_window_context(
+    app: tauri::AppHandle,
+    context: FeatureWindowContext,
+) -> Result<(), String> {
+    {
+        let state = app.state::<FeatureWindowsState>();
+        let mut stored = state
+            .context
+            .lock()
+            .map_err(|_| "Feature window context lock poisoned".to_string())?;
+        *stored = context.clone();
+    }
+
+    for kind in ["mentor", "burp"] {
+            let label = format!("zitera-{kind}");
+            if app.get_webview_window(&label).is_some() {
+                let _ = app.emit_to(&label, "zitera:feature-context", &context);
+            }
+        }
+    Ok(())
+}
+
+/// Returns the latest lab context for the calling feature window.
+#[tauri::command]
+fn get_feature_window_context(
+    state: tauri::State<'_, FeatureWindowsState>,
+) -> Result<FeatureWindowContext, String> {
+    state
+        .context
+        .lock()
+        .map(|context| context.clone())
+        .map_err(|_| "Feature window context lock poisoned".to_string())
+}
+
 mod cloud_enclave;
 
 #[cfg(target_os = "windows")]
@@ -390,12 +446,24 @@ fn cloud_execute_batch(
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            app.manage(FeatureWindowsState::default());
             app.handle().plugin(
                 tauri_plugin_log::Builder::default()
                     .level(log::LevelFilter::Info)
                     .build(),
             )?;
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                if let Some(kind) = window.label().strip_prefix("zitera-") {
+                    let _ = window.app_handle().emit_to(
+                        "main",
+                        "zitera:feature-window",
+                        serde_json::json!({ "kind": kind, "open": false }),
+                    );
+                }
+            }
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
@@ -424,6 +492,9 @@ pub fn run() {
             get_device_fingerprint,
             // Native Security Enclave
             cloud_execute_batch,
+            // Detached feature windows
+            set_feature_window_context,
+            get_feature_window_context,
         ])
         .run(tauri::generate_context!())
         .expect("error while building tauri application");
